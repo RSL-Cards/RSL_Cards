@@ -346,6 +346,46 @@ services:
       - rsl-dev
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: rsl-loki-dev
+    ports:
+      - "3101:3100"
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - rsl-dev
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: rsl-promtail-dev
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./loki/promtail-config.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - rsl-dev
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: rsl-grafana-dev
+    ports:
+      - "3100:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - loki
+    networks:
+      - rsl-dev
+    restart: unless-stopped
+
   nginx-dev:
     image: nginx:alpine
     container_name: rsl-nginx-dev
@@ -373,6 +413,8 @@ volumes:
   postgres_dev_data:
   postgres_read_dev_data:
   redis_dev_data:
+  grafana_data:
+  loki_data:
 
 networks:
   rsl-dev:
