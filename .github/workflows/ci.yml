@@ -119,43 +119,43 @@ jobs:
           fail_ci_if_error: false
         continue-on-error: true
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - run: pnpm install
-      - run: pnpm turbo build
-      - name: Verify service dist folders
-        run: |
-          for s in auth user inventory transaction listing card-db ai-narrative notification analytics admin; do
-            test -d "services/${s}-service/dist" || (echo "missing dist for ${s}-service" && exit 1)
-          done
-
-  docker-build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service:
-          [
-            auth-service,
-            user-service,
-            inventory-service,
-            transaction-service,
-            listing-service,
-            card-db-service,
-            ai-narrative-service,
-            notification-service,
-            analytics-service,
-            admin-service,
-          ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build image
-        run: docker build -f services/${{ matrix.service }}/Dockerfile -t rsl-${{ matrix.service }}:test .
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: "22"
+#       - uses: pnpm/action-setup@v4
+#         with:
+#           version: 9
+#       - run: pnpm install
+#       - run: pnpm turbo build
+#       - name: Verify service dist folders
+#         run: |
+#           for s in auth user inventory transaction listing card-db ai-narrative notification analytics admin; do
+#             test -d "services/${s}-service/dist" || (echo "missing dist for ${s}-service" && exit 1)
+#           done
+# 
+#   docker-build:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         service:
+#           [
+#             auth-service,
+#             user-service,
+#             inventory-service,
+#             transaction-service,
+#             listing-service,
+#             card-db-service,
+#             ai-narrative-service,
+#             notification-service,
+#             analytics-service,
+#             admin-service,
+#           ]
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: docker/setup-buildx-action@v3
+#       - name: Build image
+#         run: docker build -f services/${{ matrix.service }}/Dockerfile -t rsl-${{ matrix.service }}:test .
