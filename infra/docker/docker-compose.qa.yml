@@ -1,0 +1,336 @@
+name: rsl-qa
+
+services:
+  postgres-qa:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rsl_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: rslcards_qa
+    volumes:
+      - postgres_qa_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rsl_user -d rslcards_qa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rsl-qa
+
+  redis-qa:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_qa_data:/data
+    networks:
+      - rsl-qa
+
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    environment:
+      POSTGRESQL_HOST: postgres-qa
+      POSTGRESQL_PORT_NUMBER: "5432"
+      POSTGRESQL_USERNAME: rsl_user
+      POSTGRESQL_PASSWORD: password
+      PGBOUNCER_DATABASE: rslcards_qa
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "100"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "20"
+    depends_on:
+      postgres-qa:
+        condition: service_healthy
+    networks:
+      - rsl-qa
+    restart: always
+
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: services/auth-service/Dockerfile
+    container_name: rsl-auth-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+      AUTH_GATEWAY_IN_DOCKER: "1"
+    ports:
+      - "4001:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  user-service:
+    build:
+      context: ../..
+      dockerfile: services/user-service/Dockerfile
+    container_name: rsl-user-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4002:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  inventory-service:
+    build:
+      context: ../..
+      dockerfile: services/inventory-service/Dockerfile
+    container_name: rsl-inventory-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4003:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  transaction-service:
+    build:
+      context: ../..
+      dockerfile: services/transaction-service/Dockerfile
+    container_name: rsl-transaction-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4004:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  listing-service:
+    build:
+      context: ../..
+      dockerfile: services/listing-service/Dockerfile
+    container_name: rsl-listing-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4005:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  card-db-service:
+    build:
+      context: ../..
+      dockerfile: services/card-db-service/Dockerfile
+    container_name: rsl-card-db-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4006:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  ai-narrative-service:
+    build:
+      context: ../..
+      dockerfile: services/ai-narrative-service/Dockerfile
+    container_name: rsl-ai-narrative-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4007:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: services/notification-service/Dockerfile
+    container_name: rsl-notification-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4008:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  analytics-service:
+    build:
+      context: ../..
+      dockerfile: services/analytics-service/Dockerfile
+    container_name: rsl-analytics-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+    ports:
+      - "4009:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  admin-service:
+    build:
+      context: ../..
+      dockerfile: services/admin-service/Dockerfile
+    container_name: rsl-admin-service-qa
+    env_file:
+      - .env.qa
+    environment:
+      NODE_ENV: qa
+      LOG_LEVEL: info
+      ADMIN_HEALTH_IN_DOCKER: "1"
+    ports:
+      - "4010:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-qa:
+        condition: service_started
+    networks:
+      - rsl-qa
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.5"
+    restart: always
+
+  nginx-qa:
+    image: nginx:alpine
+    container_name: rsl-nginx-qa
+    ports:
+      - "4080:80"
+    volumes:
+      - ../nginx/qa.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - user-service
+      - inventory-service
+      - transaction-service
+      - listing-service
+      - card-db-service
+      - ai-narrative-service
+      - notification-service
+      - analytics-service
+      - admin-service
+    networks:
+      - rsl-qa
+    restart: always
+
+volumes:
+  postgres_qa_data:
+  redis_qa_data:
+
+networks:
+  rsl-qa:
+    driver: bridge

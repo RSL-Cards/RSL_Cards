@@ -1,0 +1,30 @@
+name: rsl-prod
+
+services:
+  nginx-prod:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/prod.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - rsl-prod
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+networks:
+  rsl-prod:
+    driver: bridge

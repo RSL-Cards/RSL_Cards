@@ -1,0 +1,33 @@
+{
+  "name": "rsl-cards",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=./services/*",
+    "build": "turbo build",
+    "test": "turbo test",
+    "test:coverage": "turbo test -- --coverage",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:migrate": "pnpm --filter @rsl/shared-db migrate:dev",
+    "db:seed": "pnpm --filter @rsl/shared-db seed:dev",
+    "db:studio": "pnpm --filter @rsl/shared-db studio",
+    "dev:auth": "turbo dev --filter=@rsl/auth-service",
+    "dev:user": "turbo dev --filter=@rsl/user-service",
+    "dev:inventory": "turbo dev --filter=@rsl/inventory-service",
+    "dev:transaction": "turbo dev --filter=@rsl/transaction-service",
+    "dev:listing": "turbo dev --filter=@rsl/listing-service",
+    "dev:cards": "turbo dev --filter=@rsl/card-db-service",
+    "dev:narrative": "turbo dev --filter=@rsl/ai-narrative-service",
+    "dev:notification": "turbo dev --filter=@rsl/notification-service",
+    "dev:analytics": "turbo dev --filter=@rsl/analytics-service",
+    "dev:admin": "turbo dev --filter=@rsl/admin-service"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
