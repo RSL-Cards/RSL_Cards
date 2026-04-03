@@ -1,5 +1,5 @@
 {
-  "id": "8e7527cc-cb18-4df5-840e-af60eeaedf65",
+  "id": "77553f81-fab8-4850-b473-536dc8326ee4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -412,10 +412,7 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "generated": {
-            "as": "GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (timezone('utc', now()) - timezone('utc', \"inventory\".\"added_at\"))) / 86400)::int)",
-            "type": "stored"
-          }
+          "default": 0
         }
       },
       "indexes": {},

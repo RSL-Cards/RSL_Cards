@@ -70,7 +70,7 @@ CREATE TABLE "inventory" (
 	"sport" varchar(64) NOT NULL,
 	"notes" text,
 	"added_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"days_held" integer GENERATED ALWAYS AS (GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (timezone('utc', now()) - timezone('utc', "inventory"."added_at"))) / 86400)::int)) STORED NOT NULL
+	"days_held" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "transactions" (

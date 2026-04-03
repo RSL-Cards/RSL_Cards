@@ -9,7 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { sql, type SQL } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { cards } from "./cards.js";
 import { users } from "./users.js";
 
@@ -41,10 +41,5 @@ export const inventory = pgTable("inventory", {
   sport: varchar("sport", { length: 64 }).notNull(),
   notes: text("notes"),
   addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
-  daysHeld: integer("days_held")
-    .notNull()
-    .generatedAlwaysAs(
-      (): SQL =>
-        sql`GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (timezone('utc', now()) - timezone('utc', ${inventory.addedAt}))) / 86400)::int)`,
-    ),
+  daysHeld: integer("days_held").notNull().default(0),
 });
