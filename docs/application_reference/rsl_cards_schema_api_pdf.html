@@ -1,0 +1,881 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#doc{max-width:900px;margin:0 auto;padding:8px 0;font-size:13px;color:#1a1a1a;background:#fff;font-family:Arial,sans-serif}
+.print-btn{display:block;background:#1b5e20;color:#fff;border:none;padding:11px 32px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin:0 auto 20px}
+.print-btn:hover{background:#2e7d32}
+.cover{background:#1b5e20;color:#fff;padding:44px 36px 36px;border-radius:12px;margin-bottom:24px}
+.cover-tag{font-size:11px;letter-spacing:2px;opacity:0.65;margin-bottom:8px;font-weight:700}
+.cover h1{font-size:26px;font-weight:700;margin-bottom:6px;color:#fff}
+.cover .sub{font-size:14px;opacity:0.85;margin-bottom:16px;color:#c8e6c9}
+.cover-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.cover-pill{background:rgba(255,255,255,0.12);padding:5px 12px;border-radius:20px;font-size:11px}
+.toc{background:#f1f8e9;border-radius:10px;padding:16px 22px;margin-bottom:24px;border:1px solid #c5e1a5}
+.toc h2{font-size:14px;font-weight:700;color:#1b5e20;margin-bottom:10px}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 24px}
+.toc-item{display:flex;justify-content:space-between;padding:3px 0;font-size:11.5px;border-bottom:1px dotted #aed581}
+.toc-item:last-child{border:none}
+.sec{margin-bottom:28px;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden}
+.sec-hdr{padding:11px 20px;background:#1b5e20}
+.sec-hdr .sec-num{font-size:10px;font-weight:700;color:#a5d6a7;letter-spacing:1.5px;text-transform:uppercase}
+.sec-hdr h2{font-size:15px;font-weight:700;color:#fff;margin-top:2px}
+.sec-body{padding:14px 18px}
+.sub-hdr{font-size:12.5px;font-weight:700;color:#1b5e20;margin:14px 0 6px;padding-bottom:3px;border-bottom:1px solid #c8e6c9}
+.sub-hdr:first-child{margin-top:0}
+.body-p{font-size:12px;line-height:1.7;color:#333;margin:4px 0}
+.code{background:#1a1a2e;border-radius:8px;padding:13px 15px;font-family:'Courier New',monospace;font-size:11px;color:#e8f5e9;margin:8px 0;white-space:pre;overflow-x:auto;line-height:1.7}
+.code .cm{color:#81c784}
+.code .kw{color:#80deea}
+.code .str{color:#ffcc80}
+.code .fn{color:#ce93d8}
+.code .en{color:#f48fb1}
+.api-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+.api-table th{background:#2e7d32;color:#fff;padding:7px 10px;text-align:left;font-weight:600;font-size:10.5px}
+.api-table td{padding:6px 10px;border-bottom:1px solid #eee;vertical-align:top;font-size:11px}
+.api-table tr:nth-child(even) td{background:#f9fbe7}
+.badge{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:10px}
+.get{background:#e3f2fd;color:#0d47a1}
+.post{background:#e8f5e9;color:#1b5e20}
+.patch{background:#fff8e1;color:#e65100}
+.delete{background:#ffebee;color:#c62828}
+.put{background:#f3e5f5;color:#4a148c}
+.callout{border-radius:6px;padding:9px 13px;margin:8px 0;font-size:11.5px;line-height:1.6}
+.callout-green{background:#e8f5e9;border-left:3px solid #2e7d32;color:#1b5e20}
+.callout-blue{background:#e3f2fd;border-left:3px solid #1565c0;color:#0d47a1}
+.footer{text-align:center;font-size:10.5px;color:#9e9e9e;margin-top:20px;padding-top:12px;border-top:1px solid #e0e0e0}
+@media print{.print-btn{display:none}.sec{break-inside:avoid;page-break-inside:avoid}.code{white-space:pre-wrap}}
+</style>
+<div id="doc">
+<button class="print-btn" onclick="window.print()">Download / Print as PDF</button>
+<div class="cover">
+  <div class="cover-tag">RSL CARDS — RUN. SELL. LOG.</div>
+  <h1>Complete Drizzle Schemas<br>+ All API Endpoints</h1>
+  <div class="sub">Every microservice · Every table · Every route — nothing missing</div>
+  <div class="cover-meta">
+    <div class="cover-pill">10 Microservices</div>
+    <div class="cover-pill">25+ Drizzle Tables</div>
+    <div class="cover-pill">100+ API Endpoints</div>
+    <div class="cover-pill">Production Ready</div>
+    <div class="cover-pill">March 2026</div>
+  </div>
+</div>
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <div class="toc-grid">
+    <div>
+      <div class="toc-item"><span>1. Auth Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 1</span></div>
+      <div class="toc-item"><span>2. User Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 2</span></div>
+      <div class="toc-item"><span>3. Inventory Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 3</span></div>
+      <div class="toc-item"><span>4. Transaction Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 4</span></div>
+      <div class="toc-item"><span>5. Listing Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 5</span></div>
+    </div>
+    <div>
+      <div class="toc-item"><span>6. Card DB Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 6</span></div>
+      <div class="toc-item"><span>7. AI Narrative Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 7</span></div>
+      <div class="toc-item"><span>8. Notification Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 8</span></div>
+      <div class="toc-item"><span>9. Analytics Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 9</span></div>
+      <div class="toc-item"><span>10. Admin Service — Schema + APIs</span><span style="color:#1b5e20;font-weight:700">Pg 10</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 1: AUTH ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 1</div><h2>Auth Service — shared/db/schema/auth.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/auth.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, boolean, timestamp, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+
+<span class="kw">export const</span> <span class="fn">roleEnum</span> = pgEnum(<span class="str">'role'</span>, [<span class="str">'dealer'</span>, <span class="str">'consumer'</span>, <span class="str">'admin'</span>])
+<span class="kw">export const</span> <span class="fn">oauthProviderEnum</span> = pgEnum(<span class="str">'oauth_provider'</span>, [<span class="str">'google'</span>, <span class="str">'apple'</span>])
+
+<span class="kw">export const</span> <span class="fn">users</span> = pgTable(<span class="str">'users'</span>, {
+  id:                   uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  email:                varchar(<span class="str">'email'</span>, { length: 255 }).unique().notNull(),
+  passwordHash:         varchar(<span class="str">'password_hash'</span>, { length: 255 }),
+  role:                 roleEnum(<span class="str">'role'</span>).default(<span class="str">'consumer'</span>).notNull(),
+  oauthProvider:        oauthProviderEnum(<span class="str">'oauth_provider'</span>),
+  oauthId:              varchar(<span class="str">'oauth_id'</span>, { length: 255 }),
+  refreshTokenHash:     varchar(<span class="str">'refresh_token_hash'</span>, { length: 255 }),
+  twoFactorSecret:      varchar(<span class="str">'two_factor_secret'</span>, { length: 255 }),
+  twoFactorEnabled:     boolean(<span class="str">'two_factor_enabled'</span>).default(false),
+  isEmailVerified:      boolean(<span class="str">'is_email_verified'</span>).default(false),
+  emailVerifyToken:     varchar(<span class="str">'email_verify_token'</span>, { length: 255 }),
+  passwordResetToken:   varchar(<span class="str">'password_reset_token'</span>, { length: 255 }),
+  passwordResetExpiry:  timestamp(<span class="str">'password_reset_expiry'</span>, { withTimezone: true }),
+  lastLoginAt:          timestamp(<span class="str">'last_login_at'</span>, { withTimezone: true }),
+  createdAt:            timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:            timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">deviceTokens</span> = pgTable(<span class="str">'device_tokens'</span>, {
+  id:         uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:     uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  fcmToken:   varchar(<span class="str">'fcm_token'</span>, { length: 500 }).notNull(),
+  platform:   varchar(<span class="str">'platform'</span>, { length: 10 }).notNull(), <span class="cm">// ios | android</span>
+  deviceId:   varchar(<span class="str">'device_id'</span>, { length: 255 }),
+  createdAt:  timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:  timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/register</td><td>Register with email + password. Returns access + refresh token</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/login</td><td>Login with email + password. Returns access + refresh token</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/logout</td><td>Invalidate refresh token, clear session</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/refresh</td><td>Exchange refresh token for new access token</td><td>Refresh Token</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/oauth/google</td><td>Google OAuth sign-in / sign-up. Returns tokens</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/oauth/apple</td><td>Apple Sign-In. Returns tokens</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/verify-email</td><td>Verify email with token sent to inbox</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/forgot-password</td><td>Send password reset email</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/reset-password</td><td>Reset password using token from email</td><td>Public</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/2fa/setup</td><td>Generate TOTP QR code for 2FA setup</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/2fa/verify</td><td>Verify TOTP code, enable 2FA on account</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/2fa/disable</td><td>Disable 2FA on account</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/auth/device-token</td><td>Register FCM device token for push notifications</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/auth/device-token</td><td>Remove FCM token on logout</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 2: USER ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 2</div><h2>User Service — shared/db/schema/user.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/user.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, text, boolean, timestamp, jsonb, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">dealerProfiles</span> = pgTable(<span class="str">'dealer_profiles'</span>, {
+  id:               uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:           uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).unique().notNull(),
+  displayName:      varchar(<span class="str">'display_name'</span>, { length: 255 }).notNull(),
+  bio:              text(<span class="str">'bio'</span>),
+  phone:            varchar(<span class="str">'phone'</span>, { length: 20 }),
+  photoUrl:         varchar(<span class="str">'photo_url'</span>, { length: 500 }),
+  sports:           text(<span class="str">'sports'</span>).array(),           <span class="cm">// ['basketball','football',...]</span>
+  sellChannels:     text(<span class="str">'sell_channels'</span>).array(),    <span class="cm">// ['card_shows','ebay',...]</span>
+  customUrl:        varchar(<span class="str">'custom_url'</span>, { length: 100 }).unique(), <span class="cm">// rslcards.com/dealers/yourname</span>
+  isPublic:         boolean(<span class="str">'is_public'</span>).default(true),
+  subscriptionPlan: varchar(<span class="str">'subscription_plan'</span>, { length: 50 }).default(<span class="str">'free'</span>),
+  subscriptionExpiry: timestamp(<span class="str">'subscription_expiry'</span>, { withTimezone: true }),
+  createdAt:        timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:        timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">consumerProfiles</span> = pgTable(<span class="str">'consumer_profiles'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:       uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).unique().notNull(),
+  displayName:  varchar(<span class="str">'display_name'</span>, { length: 255 }).notNull(),
+  photoUrl:     varchar(<span class="str">'photo_url'</span>, { length: 500 }),
+  sports:       text(<span class="str">'sports'</span>).array(),
+  teams:        text(<span class="str">'teams'</span>).array(),
+  players:      text(<span class="str">'players'</span>).array(),
+  isPremium:    boolean(<span class="str">'is_premium'</span>).default(false),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:    timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">paymentMethods</span> = pgTable(<span class="str">'payment_methods'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:         uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  provider:       varchar(<span class="str">'provider'</span>, { length: 50 }).notNull(), <span class="cm">// venmo|zelle|paypal|cashapp</span>
+  handle:         varchar(<span class="str">'handle'</span>, { length: 255 }).notNull(),   <span class="cm">// username/email/phone</span>
+  isDefault:      boolean(<span class="str">'is_default'</span>).default(false),
+  createdAt:      timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">connectedPlatforms</span> = pgTable(<span class="str">'connected_platforms'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:         uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  platform:       varchar(<span class="str">'platform'</span>, { length: 50 }).notNull(), <span class="cm">// ebay|whatnot|mercari|tcgplayer|shopify|comc</span>
+  accessToken:    text(<span class="str">'access_token'</span>),                          <span class="cm">// encrypted</span>
+  refreshToken:   text(<span class="str">'refresh_token'</span>),                         <span class="cm">// encrypted</span>
+  tokenExpiry:    timestamp(<span class="str">'token_expiry'</span>, { withTimezone: true }),
+  platformUserId: varchar(<span class="str">'platform_user_id'</span>, { length: 255 }),
+  platformUsername: varchar(<span class="str">'platform_username'</span>, { length: 255 }),
+  isActive:       boolean(<span class="str">'is_active'</span>).default(true),
+  connectedAt:    timestamp(<span class="str">'connected_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">notificationPreferences</span> = pgTable(<span class="str">'notification_preferences'</span>, {
+  id:                   uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:               uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).unique().notNull(),
+  pushEnabled:          boolean(<span class="str">'push_enabled'</span>).default(true),
+  emailEnabled:         boolean(<span class="str">'email_enabled'</span>).default(true),
+  saleNotifications:    boolean(<span class="str">'sale_notifications'</span>).default(true),
+  priceAlerts:          boolean(<span class="str">'price_alerts'</span>).default(true),
+  aiNarratives:         boolean(<span class="str">'ai_narratives'</span>).default(true),
+  showReminders:        boolean(<span class="str">'show_reminders'</span>).default(true),
+  agingAlerts:          boolean(<span class="str">'aging_alerts'</span>).default(true),
+  offerReceived:        boolean(<span class="str">'offer_received'</span>).default(true),
+  inventoryTrending:    boolean(<span class="str">'inventory_trending'</span>).default(true),
+  weeklyDigest:         boolean(<span class="str">'weekly_digest'</span>).default(true),
+  quietHoursStart:      varchar(<span class="str">'quiet_hours_start'</span>, { length: 5 }),  <span class="cm">// '22:00'</span>
+  quietHoursEnd:        varchar(<span class="str">'quiet_hours_end'</span>, { length: 5 }),    <span class="cm">// '08:00'</span>
+  minPriceMovePct:      varchar(<span class="str">'min_price_move_pct'</span>, { length: 5 }).default(<span class="str">'10'</span>),
+  updatedAt:            timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">customers</span> = pgTable(<span class="str">'customers'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  dealerId:     uuid(<span class="str">'dealer_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  name:         varchar(<span class="str">'name'</span>, { length: 255 }).notNull(),
+  phone:        varchar(<span class="str">'phone'</span>, { length: 20 }),
+  email:        varchar(<span class="str">'email'</span>, { length: 255 }),
+  notes:        text(<span class="str">'notes'</span>),
+  isStarred:    boolean(<span class="str">'is_starred'</span>).default(false),
+  totalRevenue: varchar(<span class="str">'total_revenue'</span>, { length: 20 }).default(<span class="str">'0'</span>),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:    timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/me</td><td>Get current user profile (dealer or consumer)</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/users/me</td><td>Update profile (name, bio, photo, sports, channels)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/me/payment-methods</td><td>Get all saved payment methods (Venmo, Zelle etc)</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/users/me/payment-methods</td><td>Add new payment method</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/users/me/payment-methods/:id</td><td>Update payment method handle or set as default</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/users/me/payment-methods/:id</td><td>Remove payment method</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/me/connected-platforms</td><td>Get all connected selling platforms</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/users/me/connected-platforms</td><td>Connect selling platform via OAuth</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/users/me/connected-platforms/:platform</td><td>Disconnect a selling platform</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/me/notification-preferences</td><td>Get notification preference settings</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/users/me/notification-preferences</td><td>Update notification preferences</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/dealers/:customUrl</td><td>Get public dealer profile page</td><td>Public</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/dealers</td><td>List dealers (filter: near, sport, rating)</td><td>Public</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/users/me/customers</td><td>Get dealer's customer list</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/users/me/customers</td><td>Add new customer contact</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/users/me/customers/:id</td><td>Update customer (name, notes, star)</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/users/me/customers/:id</td><td>Delete customer contact</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/users/me/export</td><td>Request data export (GDPR)</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/users/me</td><td>Delete account (GDPR right to erasure)</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 3: INVENTORY ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 3</div><h2>Inventory Service — shared/db/schema/inventory.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/inventory.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, text, boolean, timestamp, decimal, integer, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">listingStatusEnum</span> = pgEnum(<span class="str">'listing_status'</span>, [<span class="str">'unlisted'</span>, <span class="str">'listed'</span>, <span class="str">'sold'</span>, <span class="str">'consignment'</span>])
+<span class="kw">export const</span> <span class="fn">gradeCompanyEnum</span> = pgEnum(<span class="str">'grade_company'</span>, [<span class="str">'PSA'</span>, <span class="str">'BGS'</span>, <span class="str">'SGC'</span>, <span class="str">'CGC'</span>, <span class="str">'RAW'</span>])
+
+<span class="kw">export const</span> <span class="fn">inventory</span> = pgTable(<span class="str">'inventory'</span>, {
+  id:                   uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:               uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  cardId:               varchar(<span class="str">'card_id'</span>, { length: 255 }),       <span class="cm">// ref to card_db</span>
+  playerName:           varchar(<span class="str">'player_name'</span>, { length: 255 }).notNull(),
+  year:                 integer(<span class="str">'year'</span>),
+  setName:              varchar(<span class="str">'set_name'</span>, { length: 255 }),
+  variation:            varchar(<span class="str">'variation'</span>, { length: 255 }),      <span class="cm">// Prizm Silver, Holo, Base</span>
+  cardNumber:           varchar(<span class="str">'card_number'</span>, { length: 50 }),
+  sport:                varchar(<span class="str">'sport'</span>, { length: 50 }),
+  gradeCompany:         gradeCompanyEnum(<span class="str">'grade_company'</span>),
+  gradeValue:           varchar(<span class="str">'grade_value'</span>, { length: 10 }),     <span class="cm">// '10', '9.5', '8'</span>
+  certNumber:           varchar(<span class="str">'cert_number'</span>, { length: 100 }),    <span class="cm">// PSA/BGS cert</span>
+  costBasis:            decimal(<span class="str">'cost_basis'</span>, { precision: 10, scale: 2 }).notNull(),
+  currentMarketValue:   decimal(<span class="str">'current_market_value'</span>, { precision: 10, scale: 2 }),
+  quantity:             integer(<span class="str">'quantity'</span>).default(1),
+  printRun:             integer(<span class="str">'print_run'</span>),                       <span class="cm">// 99, 25, 10, 1</span>
+  printRunSerial:       integer(<span class="str">'print_run_serial'</span>),               <span class="cm">// which number (e.g. 47 of 99)</span>
+  isConsignment:        boolean(<span class="str">'is_consignment'</span>).default(false),
+  consignmentOwner:     varchar(<span class="str">'consignment_owner'</span>, { length: 255 }),
+  consignmentCommPct:   decimal(<span class="str">'consignment_comm_pct'</span>, { precision: 5, scale: 2 }),
+  listingStatus:        listingStatusEnum(<span class="str">'listing_status'</span>).default(<span class="str">'unlisted'</span>),
+  listedPlatforms:      text(<span class="str">'listed_platforms'</span>).array(),           <span class="cm">// ['ebay','whatnot']</span>
+  photos:               text(<span class="str">'photos'</span>).array(),                      <span class="cm">// S3 URLs</span>
+  notes:                text(<span class="str">'notes'</span>),
+  isRookie:             boolean(<span class="str">'is_rookie'</span>).default(false),
+  isAutograph:          boolean(<span class="str">'is_autograph'</span>).default(false),
+  isRelic:              boolean(<span class="str">'is_relic'</span>).default(false),
+  lastRevaluedAt:       timestamp(<span class="str">'last_revalued_at'</span>, { withTimezone: true }),
+  addedAt:              timestamp(<span class="str">'added_at'</span>, { withTimezone: true }).defaultNow(),
+  soldAt:               timestamp(<span class="str">'sold_at'</span>, { withTimezone: true }),
+  updatedAt:            timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">bulkImportJobs</span> = pgTable(<span class="str">'bulk_import_jobs'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:       uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  status:       varchar(<span class="str">'status'</span>, { length: 50 }).default(<span class="str">'pending'</span>), <span class="cm">// pending|processing|done|failed</span>
+  fileName:     varchar(<span class="str">'file_name'</span>, { length: 255 }),
+  totalRows:    integer(<span class="str">'total_rows'</span>),
+  processedRows: integer(<span class="str">'processed_rows'</span>).default(0),
+  errorRows:    integer(<span class="str">'error_rows'</span>).default(0),
+  s3Key:        varchar(<span class="str">'s3_key'</span>, { length: 500 }),
+  errorLog:     text(<span class="str">'error_log'</span>),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory</td><td>List inventory. Query: sport, grade, status, sort, page, limit</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/summary</td><td>Total cards, total cost basis, total market value, unrealized P&L</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/aging-alerts</td><td>Cards held 60+ days or losing value</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/:id</td><td>Get single inventory item with full detail</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/inventory</td><td>Add card to inventory (manual add)</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/inventory/:id</td><td>Update card details (notes, photos, grade, cost)</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/inventory/:id</td><td>Remove card from inventory</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/inventory/revalue</td><td>Trigger manual market value refresh for all cards</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/inventory/:id/photos</td><td>Upload card photo (returns S3 presigned URL)</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/inventory/:id/photos/:photoIndex</td><td>Remove a card photo</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/inventory/bulk-import</td><td>Upload CSV/Excel file for bulk import. Returns jobId</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/bulk-import/:jobId</td><td>Poll bulk import job status and progress</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/export</td><td>Export inventory as CSV</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/inventory/public/:dealerId</td><td>Get dealer's public inventory for consumer app</td><td>Public</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 4: TRANSACTION ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 4</div><h2>Transaction Service — shared/db/schema/transaction.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/transaction.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+<span class="kw">import</span> { inventory } from <span class="str">'./inventory'</span>
+<span class="kw">import</span> { customers } from <span class="str">'./user'</span>
+
+<span class="kw">export const</span> <span class="fn">txTypeEnum</span> = pgEnum(<span class="str">'tx_type'</span>, [<span class="str">'buy'</span>, <span class="str">'sell'</span>, <span class="str">'trade'</span>])
+<span class="kw">export const</span> <span class="fn">txChannelEnum</span> = pgEnum(<span class="str">'tx_channel'</span>, [
+  <span class="str">'card_show'</span>, <span class="str">'ebay'</span>, <span class="str">'whatnot'</span>, <span class="str">'mercari'</span>, <span class="str">'tcgplayer'</span>,
+  <span class="str">'facebook'</span>, <span class="str">'shopify'</span>, <span class="str">'comc'</span>, <span class="str">'goldin'</span>, <span class="str">'myslabs'</span>, <span class="str">'instagram'</span>, <span class="str">'other'</span>
+])
+<span class="kw">export const</span> <span class="fn">paymentMethodEnum</span> = pgEnum(<span class="str">'payment_method'</span>, [
+  <span class="str">'cash'</span>, <span class="str">'venmo'</span>, <span class="str">'zelle'</span>, <span class="str">'paypal'</span>, <span class="str">'cashapp'</span>, <span class="str">'trade'</span>, <span class="str">'other'</span>
+])
+<span class="kw">export const</span> <span class="fn">dealRatingEnum</span> = pgEnum(<span class="str">'deal_rating'</span>, [<span class="str">'good_deal'</span>, <span class="str">'fair_price'</span>, <span class="str">'overpaying'</span>])
+
+<span class="kw">export const</span> <span class="fn">transactions</span> = pgTable(<span class="str">'transactions'</span>, {
+  id:                 uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:             uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  inventoryId:        uuid(<span class="str">'inventory_id'</span>).references(() => inventory.id),
+  customerId:         uuid(<span class="str">'customer_id'</span>).references(() => customers.id),
+  type:               txTypeEnum(<span class="str">'type'</span>).notNull(),
+  channel:            txChannelEnum(<span class="str">'channel'</span>).default(<span class="str">'card_show'</span>),
+  price:              decimal(<span class="str">'price'</span>, { precision: 10, scale: 2 }).notNull(),
+  costBasis:          decimal(<span class="str">'cost_basis'</span>, { precision: 10, scale: 2 }),
+  profit:             decimal(<span class="str">'profit'</span>, { precision: 10, scale: 2 }),
+  profitPct:          decimal(<span class="str">'profit_pct'</span>, { precision: 8, scale: 2 }),
+  platformFee:        decimal(<span class="str">'platform_fee'</span>, { precision: 10, scale: 2 }),
+  netToDealer:        decimal(<span class="str">'net_to_dealer'</span>, { precision: 10, scale: 2 }),
+  paymentMethod:      paymentMethodEnum(<span class="str">'payment_method'</span>),
+  dealRating:         dealRatingEnum(<span class="str">'deal_rating'</span>),
+  compPriceAtTime:    decimal(<span class="str">'comp_price_at_time'</span>, { precision: 10, scale: 2 }),
+  playerName:         varchar(<span class="str">'player_name'</span>, { length: 255 }),     <span class="cm">// denormalized for reports</span>
+  cardSnapshot:       text(<span class="str">'card_snapshot'</span>),                        <span class="cm">// JSON snapshot of card at time of sale</span>
+  isOffline:          boolean(<span class="str">'is_offline'</span>).default(false),          <span class="cm">// was device offline?</span>
+  localId:            varchar(<span class="str">'local_id'</span>, { length: 255 }),          <span class="cm">// mobile SQLite id for dedup on sync</span>
+  createdAt:          timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">tradeItems</span> = pgTable(<span class="str">'trade_items'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  transactionId:  uuid(<span class="str">'transaction_id'</span>).references(() => transactions.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  direction:      varchar(<span class="str">'direction'</span>, { length: 10 }).notNull(),  <span class="cm">// given | received</span>
+  inventoryId:    uuid(<span class="str">'inventory_id'</span>).references(() => inventory.id),
+  playerName:     varchar(<span class="str">'player_name'</span>, { length: 255 }),
+  marketValue:    decimal(<span class="str">'market_value'</span>, { precision: 10, scale: 2 }),
+  cashAdjustment: decimal(<span class="str">'cash_adjustment'</span>, { precision: 10, scale: 2 }).default(<span class="str">'0'</span>),
+})
+
+<span class="kw">export const</span> <span class="fn">offlineSyncQueue</span> = pgTable(<span class="str">'offline_sync_queue'</span>, {
+  id:         uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:     uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  localId:    varchar(<span class="str">'local_id'</span>, { length: 255 }).notNull(),
+  type:       txTypeEnum(<span class="str">'type'</span>).notNull(),
+  payload:    text(<span class="str">'payload'</span>).notNull(),                           <span class="cm">// JSON stringified</span>
+  synced:     boolean(<span class="str">'synced'</span>).default(false),
+  syncedAt:   timestamp(<span class="str">'synced_at'</span>, { withTimezone: true }),
+  createdAt:  timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/transactions/buy</td><td>Record BUY. Adds card to inventory, logs transaction</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/transactions/sell</td><td>Record SELL. Removes from inventory, calculates profit</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/transactions/trade</td><td>Record TRADE. Cards given/received with optional cash</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/transactions/sync</td><td>Bulk sync offline transactions (array of localIds)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/transactions</td><td>List all transactions. Query: type, channel, dateFrom, dateTo, page</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/transactions/:id</td><td>Get single transaction detail</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/transactions/today</td><td>Today's stats: bought, sold, spent, revenue, net profit</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/transactions/customers/:customerId</td><td>All transactions with a specific customer</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/transactions/export</td><td>Export transactions as CSV for a date range</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/transactions/:id</td><td>Delete/void a transaction (with reason)</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 5: LISTING ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 5</div><h2>Listing Service — shared/db/schema/listing.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/listing.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, decimal, text, boolean, timestamp, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+<span class="kw">import</span> { inventory } from <span class="str">'./inventory'</span>
+
+<span class="kw">export const</span> <span class="fn">listingPlatformEnum</span> = pgEnum(<span class="str">'listing_platform'</span>, [
+  <span class="str">'ebay'</span>, <span class="str">'whatnot'</span>, <span class="str">'mercari'</span>, <span class="str">'tcgplayer'</span>, <span class="str">'shopify'</span>,
+  <span class="str">'comc'</span>, <span class="str">'facebook'</span>, <span class="str">'goldin'</span>, <span class="str">'myslabs'</span>, <span class="str">'instagram'</span>
+])
+<span class="kw">export const</span> <span class="fn">listingStatusEnum</span> = pgEnum(<span class="str">'platform_listing_status'</span>, [
+  <span class="str">'draft'</span>, <span class="str">'pending'</span>, <span class="str">'active'</span>, <span class="str">'sold'</span>, <span class="str">'ended'</span>, <span class="str">'failed'</span>
+])
+
+<span class="kw">export const</span> <span class="fn">listings</span> = pgTable(<span class="str">'listings'</span>, {
+  id:                 uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  inventoryId:        uuid(<span class="str">'inventory_id'</span>).references(() => inventory.id).notNull(),
+  userId:             uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  platform:           listingPlatformEnum(<span class="str">'platform'</span>).notNull(),
+  platformListingId:  varchar(<span class="str">'platform_listing_id'</span>, { length: 255 }), <span class="cm">// eBay itemId etc</span>
+  status:             listingStatusEnum(<span class="str">'status'</span>).default(<span class="str">'draft'</span>),
+  listPrice:          decimal(<span class="str">'list_price'</span>, { precision: 10, scale: 2 }).notNull(),
+  platformFeePct:     decimal(<span class="str">'platform_fee_pct'</span>, { precision: 5, scale: 2 }),
+  platformFeeAmt:     decimal(<span class="str">'platform_fee_amt'</span>, { precision: 10, scale: 2 }),
+  estimatedShipping:  decimal(<span class="str">'estimated_shipping'</span>, { precision: 10, scale: 2 }),
+  netToDealer:        decimal(<span class="str">'net_to_dealer'</span>, { precision: 10, scale: 2 }),
+  title:              text(<span class="str">'title'</span>),
+  description:        text(<span class="str">'description'</span>),
+  photos:             text(<span class="str">'photos'</span>).array(),
+  scheduledAt:        timestamp(<span class="str">'scheduled_at'</span>, { withTimezone: true }),
+  listedAt:           timestamp(<span class="str">'listed_at'</span>, { withTimezone: true }),
+  soldAt:             timestamp(<span class="str">'sold_at'</span>, { withTimezone: true }),
+  soldPrice:          decimal(<span class="str">'sold_price'</span>, { precision: 10, scale: 2 }),
+  errorMessage:       text(<span class="str">'error_message'</span>),
+  createdAt:          timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:          timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">platformPriceComps</span> = pgTable(<span class="str">'platform_price_comps'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  cardId:         varchar(<span class="str">'card_id'</span>, { length: 255 }).notNull(),
+  platform:       listingPlatformEnum(<span class="str">'platform'</span>).notNull(),
+  currentPrice:   decimal(<span class="str">'current_price'</span>, { precision: 10, scale: 2 }),
+  lowestPrice:    decimal(<span class="str">'lowest_price'</span>, { precision: 10, scale: 2 }),
+  avgSoldPrice:   decimal(<span class="str">'avg_sold_price'</span>, { precision: 10, scale: 2 }),
+  fetchedAt:      timestamp(<span class="str">'fetched_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/listings</td><td>All active listings across all platforms</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings</td><td>Create listing on one or more platforms simultaneously</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/listings/:id</td><td>Single listing detail with platform status</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/listings/:id/price</td><td>Update price on active listing</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/listings/:id</td><td>End/remove listing from platform</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/:id/relist</td><td>Relist an ended listing</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/listings/price-comparison/:inventoryId</td><td>Get current prices for a card across all platforms</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/listings/fee-calculator</td><td>Calculate net profit per platform for given price</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/generate-content</td><td>AI-generate title + description for a card listing</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/webhooks/ebay</td><td>eBay sold/offer webhook receiver</td><td>Platform</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/webhooks/whatnot</td><td>Whatnot sold webhook receiver</td><td>Platform</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/webhooks/mercari</td><td>Mercari sold webhook receiver</td><td>Platform</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/webhooks/tcgplayer</td><td>TCGPlayer sold webhook receiver</td><td>Platform</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/listings/webhooks/shopify</td><td>Shopify order webhook receiver</td><td>Platform</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/listings/analytics</td><td>Per-platform sales performance, views, watchers</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 6: CARD DB ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 6</div><h2>Card DB Service — shared/db/schema/carddb.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/carddb.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, decimal, integer, text, timestamp, boolean, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">cards</span> = pgTable(<span class="str">'cards'</span>, {
+  id:             varchar(<span class="str">'id'</span>, { length: 255 }).primaryKey(),    <span class="cm">// ximilar_id or tcdb_id</span>
+  playerName:     varchar(<span class="str">'player_name'</span>, { length: 255 }).notNull(),
+  year:           integer(<span class="str">'year'</span>),
+  setName:        varchar(<span class="str">'set_name'</span>, { length: 255 }),
+  variation:      varchar(<span class="str">'variation'</span>, { length: 255 }),
+  cardNumber:     varchar(<span class="str">'card_number'</span>, { length: 50 }),
+  sport:          varchar(<span class="str">'sport'</span>, { length: 50 }),
+  manufacturer:   varchar(<span class="str">'manufacturer'</span>, { length: 100 }),       <span class="cm">// Topps, Panini, Upper Deck</span>
+  isRookie:       boolean(<span class="str">'is_rookie'</span>).default(false),
+  isAutograph:    boolean(<span class="str">'is_autograph'</span>).default(false),
+  isRelic:        boolean(<span class="str">'is_relic'</span>).default(false),
+  printRun:       integer(<span class="str">'print_run'</span>),
+  stockImageUrl:  varchar(<span class="str">'stock_image_url'</span>, { length: 500 }),
+  source:         varchar(<span class="str">'source'</span>, { length: 50 }),              <span class="cm">// ximilar | tcdb | manual</span>
+  createdAt:      timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+  updatedAt:      timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">cardPriceHistory</span> = pgTable(<span class="str">'card_price_history'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  cardId:       varchar(<span class="str">'card_id'</span>, { length: 255 }).references(() => cards.id).notNull(),
+  gradeKey:     varchar(<span class="str">'grade_key'</span>, { length: 30 }),             <span class="cm">// 'RAW' | 'PSA_10' | 'BGS_9.5'</span>
+  avgSoldPrice: decimal(<span class="str">'avg_sold_price'</span>, { precision: 10, scale: 2 }),
+  minSoldPrice: decimal(<span class="str">'min_sold_price'</span>, { precision: 10, scale: 2 }),
+  maxSoldPrice: decimal(<span class="str">'max_sold_price'</span>, { precision: 10, scale: 2 }),
+  salesCount:   integer(<span class="str">'sales_count'</span>),
+  priceTrend:   decimal(<span class="str">'price_trend'</span>, { precision: 8, scale: 2 }), <span class="cm">// % change vs 30 days ago</span>
+  recordedDate: timestamp(<span class="str">'recorded_date'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">ebayRecentSales</span> = pgTable(<span class="str">'ebay_recent_sales'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  cardId:       varchar(<span class="str">'card_id'</span>, { length: 255 }).references(() => cards.id).notNull(),
+  gradeKey:     varchar(<span class="str">'grade_key'</span>, { length: 30 }),
+  soldPrice:    decimal(<span class="str">'sold_price'</span>, { precision: 10, scale: 2 }).notNull(),
+  ebayItemId:   varchar(<span class="str">'ebay_item_id'</span>, { length: 255 }),
+  soldAt:       timestamp(<span class="str">'sold_at'</span>, { withTimezone: true }).notNull(),
+  title:        varchar(<span class="str">'title'</span>, { length: 500 }),
+})
+
+<span class="kw">export const</span> <span class="fn">priceAlerts</span> = pgTable(<span class="str">'price_alerts'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:         uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  cardId:         varchar(<span class="str">'card_id'</span>, { length: 255 }).references(() => cards.id).notNull(),
+  gradeKey:       varchar(<span class="str">'grade_key'</span>, { length: 30 }),
+  targetPrice:    decimal(<span class="str">'target_price'</span>, { precision: 10, scale: 2 }).notNull(),
+  direction:      varchar(<span class="str">'direction'</span>, { length: 10 }).default(<span class="str">'below'</span>), <span class="cm">// below | above</span>
+  isTriggered:    boolean(<span class="str">'is_triggered'</span>).default(false),
+  triggeredAt:    timestamp(<span class="str">'triggered_at'</span>, { withTimezone: true }),
+  isActive:       boolean(<span class="str">'is_active'</span>).default(true),
+  createdAt:      timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">wantList</span> = pgTable(<span class="str">'want_list'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:       uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  cardId:       varchar(<span class="str">'card_id'</span>, { length: 255 }).references(() => cards.id).notNull(),
+  gradeKey:     varchar(<span class="str">'grade_key'</span>, { length: 30 }),
+  maxPrice:     decimal(<span class="str">'max_price'</span>, { precision: 10, scale: 2 }),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/cards/scan</td><td>Identify card from image via Ximilar. Returns card + comps</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/cards/scan/barcode</td><td>Identify graded card from PSA/BGS/SGC cert barcode</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/search</td><td>Text search: player, year, set, variation. Returns top matches</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/:id</td><td>Get card details + current comp data</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/:id/comps</td><td>Last 5 eBay sold prices + 30-day average + trend</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/:id/price-history</td><td>30/90/365 day price history for sparkline chart</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/offline-db</td><td>Download compressed offline card DB (top 50K cards)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/price-alerts</td><td>Get user's price alerts</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/cards/price-alerts</td><td>Create price alert for a card</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/cards/price-alerts/:id</td><td>Delete price alert</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/want-list</td><td>Get user's want list</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/cards/want-list</td><td>Add card to want list with max price</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/cards/want-list/:id</td><td>Remove from want list</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/cards/deal-rating</td><td>Get deal rating (good/fair/overpaying) for price vs comp</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 7: AI NARRATIVE ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 7</div><h2>AI Narrative Service — shared/db/schema/narrative.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/narrative.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+
+<span class="kw">export const</span> <span class="fn">narrativeTypeEnum</span> = pgEnum(<span class="str">'narrative_type'</span>, [
+  <span class="str">'breakout'</span>, <span class="str">'injury'</span>, <span class="str">'hype'</span>, <span class="str">'decline'</span>, <span class="str">'seasonal'</span>,
+  <span class="str">'trade'</span>, <span class="str">'hof'</span>, <span class="str">'award'</span>, <span class="str">'auction_record'</span>, <span class="str">'anniversary'</span>
+])
+<span class="kw">export const</span> <span class="fn">narrativeStatusEnum</span> = pgEnum(<span class="str">'narrative_status'</span>, [
+  <span class="str">'pending_review'</span>, <span class="str">'approved'</span>, <span class="str">'published'</span>, <span class="str">'rejected'</span>
+])
+
+<span class="kw">export const</span> <span class="fn">narratives</span> = pgTable(<span class="str">'narratives'</span>, {
+  id:               uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  playerName:       varchar(<span class="str">'player_name'</span>, { length: 255 }).notNull(),
+  sport:            varchar(<span class="str">'sport'</span>, { length: 50 }),
+  cardIds:          text(<span class="str">'card_ids'</span>).array(),
+  headline:         varchar(<span class="str">'headline'</span>, { length: 500 }).notNull(),
+  shortSummary:     varchar(<span class="str">'short_summary'</span>, { length: 280 }),     <span class="cm">// one-line for BUY screen</span>
+  body:             text(<span class="str">'body'</span>).notNull(),
+  narrativeType:    narrativeTypeEnum(<span class="str">'narrative_type'</span>).notNull(),
+  priceChangePct:   decimal(<span class="str">'price_change_pct'</span>, { precision: 5, scale: 2 }),
+  priceDirection:   varchar(<span class="str">'price_direction'</span>, { length: 5 }),      <span class="cm">// up | down</span>
+  correlatedEvents: text(<span class="str">'correlated_events'</span>),                     <span class="cm">// JSON: [{event, score}]</span>
+  status:           narrativeStatusEnum(<span class="str">'status'</span>).default(<span class="str">'pending_review'</span>),
+  reviewedBy:       uuid(<span class="str">'reviewed_by'</span>),
+  publishedAt:      timestamp(<span class="str">'published_at'</span>, { withTimezone: true }),
+  createdAt:        timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">priceAnomalies</span> = pgTable(<span class="str">'price_anomalies'</span>, {
+  id:             uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  cardId:         varchar(<span class="str">'card_id'</span>, { length: 255 }).notNull(),
+  playerName:     varchar(<span class="str">'player_name'</span>, { length: 255 }),
+  priceChangePct: decimal(<span class="str">'price_change_pct'</span>, { precision: 5, scale: 2 }),
+  windowHours:    integer(<span class="str">'window_hours'</span>).default(48),
+  narrativeId:    uuid(<span class="str">'narrative_id'</span>).references(() => narratives.id),
+  processed:      boolean(<span class="str">'processed'</span>).default(false),
+  detectedAt:     timestamp(<span class="str">'detected_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">contentCalendar</span> = pgTable(<span class="str">'content_calendar'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  title:        varchar(<span class="str">'title'</span>, { length: 255 }).notNull(),
+  eventType:    varchar(<span class="str">'event_type'</span>, { length: 100 }),             <span class="cm">// nfl_draft | topps_chrome | nba_finals</span>
+  sport:        varchar(<span class="str">'sport'</span>, { length: 50 }),
+  scheduledFor: timestamp(<span class="str">'scheduled_for'</span>, { withTimezone: true }).notNull(),
+  notes:        text(<span class="str">'notes'</span>),
+  isActive:     boolean(<span class="str">'is_active'</span>).default(true),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/feed</td><td>Market movers feed — latest published narratives (consumer)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/inventory</td><td>AI narratives relevant to dealer's current inventory</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/:id</td><td>Full narrative detail</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/player/:playerName</td><td>All narratives for a specific player</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/card/:cardId</td><td>Why is this card moving? Narratives for a specific card</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/daily-insight</td><td>Single top daily AI insight for dealer home screen</td><td>JWT Dealer</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/narratives/weekly-recap</td><td>AI weekly recap of collection performance</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/narratives/admin/generate</td><td>Manually trigger narrative generation for a player</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/narratives/admin/:id/approve</td><td>Approve narrative for publishing</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/narratives/admin/:id/reject</td><td>Reject narrative with reason</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/narratives/admin/:id</td><td>Edit narrative body/headline before publishing</td><td>Admin</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 8: NOTIFICATION ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 8</div><h2>Notification Service — shared/db/schema/notification.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/notification.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, text, boolean, timestamp, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">notifTypeEnum</span> = pgEnum(<span class="str">'notif_type'</span>, [
+  <span class="str">'sale'</span>, <span class="str">'price_alert'</span>, <span class="str">'ai_narrative'</span>, <span class="str">'show_reminder'</span>,
+  <span class="str">'aging_alert'</span>, <span class="str">'offer_received'</span>, <span class="str">'inventory_trending'</span>,
+  <span class="str">'want_list_match'</span>, <span class="str">'platform_alert'</span>, <span class="str">'weekly_digest'</span>,
+  <span class="str">'new_dealer_inventory'</span>, <span class="str">'system'</span>
+])
+<span class="kw">export const</span> <span class="fn">notifChannelEnum</span> = pgEnum(<span class="str">'notif_channel'</span>, [<span class="str">'push'</span>, <span class="str">'email'</span>, <span class="str">'in_app'</span>])
+<span class="kw">export const</span> <span class="fn">notifStatusEnum</span> = pgEnum(<span class="str">'notif_status'</span>, [<span class="str">'pending'</span>, <span class="str">'sent'</span>, <span class="str">'failed'</span>, <span class="str">'read'</span>])
+
+<span class="kw">export const</span> <span class="fn">notifications</span> = pgTable(<span class="str">'notifications'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:       uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  type:         notifTypeEnum(<span class="str">'type'</span>).notNull(),
+  channel:      notifChannelEnum(<span class="str">'channel'</span>).notNull(),
+  status:       notifStatusEnum(<span class="str">'status'</span>).default(<span class="str">'pending'</span>),
+  title:        varchar(<span class="str">'title'</span>, { length: 255 }).notNull(),
+  body:         text(<span class="str">'body'</span>).notNull(),
+  data:         text(<span class="str">'data'</span>),                                     <span class="cm">// JSON: deep link params</span>
+  readAt:       timestamp(<span class="str">'read_at'</span>, { withTimezone: true }),
+  sentAt:       timestamp(<span class="str">'sent_at'</span>, { withTimezone: true }),
+  errorMsg:     text(<span class="str">'error_msg'</span>),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">cardShows</span> = pgTable(<span class="str">'card_shows'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  name:         varchar(<span class="str">'name'</span>, { length: 255 }).notNull(),
+  venue:        varchar(<span class="str">'venue'</span>, { length: 255 }),
+  address:      text(<span class="str">'address'</span>),
+  city:         varchar(<span class="str">'city'</span>, { length: 100 }),
+  state:        varchar(<span class="str">'state'</span>, { length: 50 }),
+  lat:          varchar(<span class="str">'lat'</span>, { length: 20 }),
+  lng:          varchar(<span class="str">'lng'</span>, { length: 20 }),
+  startDate:    timestamp(<span class="str">'start_date'</span>, { withTimezone: true }).notNull(),
+  endDate:      timestamp(<span class="str">'end_date'</span>, { withTimezone: true }),
+  website:      varchar(<span class="str">'website'</span>, { length: 500 }),
+  isActive:     boolean(<span class="str">'is_active'</span>).default(true),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">showAttendees</span> = pgTable(<span class="str">'show_attendees'</span>, {
+  id:       uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  showId:   uuid(<span class="str">'show_id'</span>).references(() => cardShows.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  userId:   uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  role:     varchar(<span class="str">'role'</span>, { length: 20 }).default(<span class="str">'attendee'</span>), <span class="cm">// dealer | attendee</span>
+  createdAt: timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/notifications</td><td>Get in-app notifications (unread first, paginated)</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/notifications/:id/read</td><td>Mark single notification as read</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/notifications/read-all</td><td>Mark all notifications as read</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/notifications/unread-count</td><td>Get count of unread notifications (badge)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/shows</td><td>List upcoming card shows. Query: lat, lng, radius, dateFrom</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/shows/:id</td><td>Show detail with dealers attending + want list matches</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/shows/:id/attend</td><td>Mark attending a card show (consumer or dealer)</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/shows/:id/attend</td><td>Remove attendance from card show</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/shows/:id/dealers</td><td>Dealers attending this show with public inventory</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/shows/admin</td><td>Create new card show listing</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/shows/admin/:id</td><td>Update card show details</td><td>Admin</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/shows/admin/:id</td><td>Remove card show</td><td>Admin</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 9: ANALYTICS ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 9</div><h2>Analytics Service — shared/db/schema/analytics.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/analytics.ts</span>
+<span class="cm">// Analytics service reads from transactions + inventory via read replica</span>
+<span class="cm">// It also maintains its own aggregated summary tables for fast dashboard queries</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, decimal, integer, timestamp, text } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">dailySummaries</span> = pgTable(<span class="str">'daily_summaries'</span>, {
+  id:               uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:           uuid(<span class="str">'user_id'</span>).references(() => users.id, { onDelete: <span class="str">'cascade'</span> }).notNull(),
+  date:             varchar(<span class="str">'date'</span>, { length: 10 }).notNull(),        <span class="cm">// YYYY-MM-DD</span>
+  cardsBought:      integer(<span class="str">'cards_bought'</span>).default(0),
+  cardsSold:        integer(<span class="str">'cards_sold'</span>).default(0),
+  totalSpent:       decimal(<span class="str">'total_spent'</span>, { precision: 10, scale: 2 }).default(<span class="str">'0'</span>),
+  totalRevenue:     decimal(<span class="str">'total_revenue'</span>, { precision: 10, scale: 2 }).default(<span class="str">'0'</span>),
+  netProfit:        decimal(<span class="str">'net_profit'</span>, { precision: 10, scale: 2 }).default(<span class="str">'0'</span>),
+  bestDealMargin:   decimal(<span class="str">'best_deal_margin'</span>, { precision: 8, scale: 2 }),
+  revenueByChannel: text(<span class="str">'revenue_by_channel'</span>),                     <span class="cm">// JSON: {ebay: 200, card_show: 150}</span>
+  revenueByPayment: text(<span class="str">'revenue_by_payment'</span>),                     <span class="cm">// JSON: {cash: 100, venmo: 200}</span>
+  createdAt:        timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">taxRecords</span> = pgTable(<span class="str">'tax_records'</span>, {
+  id:               uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:           uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  taxYear:          integer(<span class="str">'tax_year'</span>).notNull(),
+  totalRevenue:     decimal(<span class="str">'total_revenue'</span>, { precision: 12, scale: 2 }),
+  totalCostBasis:   decimal(<span class="str">'total_cost_basis'</span>, { precision: 12, scale: 2 }),
+  grossProfit:      decimal(<span class="str">'gross_profit'</span>, { precision: 12, scale: 2 }),
+  shortTermGains:   decimal(<span class="str">'short_term_gains'</span>, { precision: 12, scale: 2 }),
+  longTermGains:    decimal(<span class="str">'long_term_gains'</span>, { precision: 12, scale: 2 }),
+  platformFeesPaid: decimal(<span class="str">'platform_fees_paid'</span>, { precision: 12, scale: 2 }),
+  expenses:         decimal(<span class="str">'expenses'</span>, { precision: 12, scale: 2 }),
+  generatedAt:      timestamp(<span class="str">'generated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">expenses</span> = pgTable(<span class="str">'expenses'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:       uuid(<span class="str">'user_id'</span>).references(() => users.id).notNull(),
+  category:     varchar(<span class="str">'category'</span>, { length: 100 }),              <span class="cm">// show_fee|travel|supplies|shipping</span>
+  description:  varchar(<span class="str">'description'</span>, { length: 255 }),
+  amount:       decimal(<span class="str">'amount'</span>, { precision: 10, scale: 2 }).notNull(),
+  receiptUrl:   varchar(<span class="str">'receipt_url'</span>, { length: 500 }),
+  expenseDate:  timestamp(<span class="str">'expense_date'</span>, { withTimezone: true }).notNull(),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/daily</td><td>Today's stats: bought, sold, spent, revenue, net profit, best deal</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/report</td><td>Report for period. Query: period=week|month|custom&dateFrom&dateTo</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/profit-by-sport</td><td>Revenue and profit breakdown by sport</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/profit-by-channel</td><td>Revenue breakdown by selling channel (eBay, card show, etc)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/top-cards</td><td>Top 5 most profitable + top 5 worst performing cards for period</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/inventory-value-trend</td><td>Inventory total value trend over time (chart data)</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/platform-performance</td><td>Sales, revenue, avg margin per listing platform</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/tax/:year</td><td>Full tax report for a year: P&L, gains, Schedule C data</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/tax/:year/export</td><td>Download tax report as PDF</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/export</td><td>Export full report as CSV for date range</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/expenses</td><td>List all tracked expenses</td><td>JWT</td></tr>
+      <tr><td><span class="badge post">POST</span></td><td>/v1/analytics/expenses</td><td>Add expense record (show fee, travel, supplies)</td><td>JWT</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/analytics/expenses/:id</td><td>Update expense record</td><td>JWT</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/analytics/expenses/:id</td><td>Delete expense record</td><td>JWT</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/collection</td><td>Consumer portfolio: total value, gain/loss, best/worst card</td><td>JWT Consumer</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/analytics/collection/weekly-recap</td><td>AI-powered weekly collection performance summary</td><td>JWT Consumer</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== SERVICE 10: ADMIN ==================== -->
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-num">Service 10</div><h2>Admin Service — shared/db/schema/admin.ts</h2></div>
+  <div class="sec-body">
+    <div class="sub-hdr">Drizzle Schema</div>
+<div class="code"><span class="cm">// shared/db/schema/admin.ts</span>
+<span class="kw">import</span> { pgTable, uuid, varchar, text, boolean, timestamp, integer, pgEnum } from <span class="str">'drizzle-orm/pg-core'</span>
+<span class="kw">import</span> { users } from <span class="str">'./auth'</span>
+
+<span class="kw">export const</span> <span class="fn">featureFlags</span> = pgTable(<span class="str">'feature_flags'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  key:          varchar(<span class="str">'key'</span>, { length: 100 }).unique().notNull(),  <span class="cm">// aiNarratives, stripePayments</span>
+  value:        boolean(<span class="str">'value'</span>).default(false),
+  description:  text(<span class="str">'description'</span>),
+  updatedBy:    uuid(<span class="str">'updated_by'</span>).references(() => users.id),
+  updatedAt:    timestamp(<span class="str">'updated_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">dealerReviews</span> = pgTable(<span class="str">'dealer_reviews'</span>, {
+  id:           uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  dealerId:     uuid(<span class="str">'dealer_id'</span>).references(() => users.id).notNull(),
+  reviewerId:   uuid(<span class="str">'reviewer_id'</span>).references(() => users.id).notNull(),
+  rating:       integer(<span class="str">'rating'</span>).notNull(),                        <span class="cm">// 1-5</span>
+  comment:      text(<span class="str">'comment'</span>),
+  isApproved:   boolean(<span class="str">'is_approved'</span>).default(false),
+  createdAt:    timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})
+
+<span class="kw">export const</span> <span class="fn">auditLogs</span> = pgTable(<span class="str">'audit_logs'</span>, {
+  id:         uuid(<span class="str">'id'</span>).primaryKey().defaultRandom(),
+  userId:     uuid(<span class="str">'user_id'</span>).references(() => users.id),
+  action:     varchar(<span class="str">'action'</span>, { length: 255 }).notNull(),
+  resource:   varchar(<span class="str">'resource'</span>, { length: 100 }),
+  resourceId: varchar(<span class="str">'resource_id'</span>, { length: 255 }),
+  ipAddress:  varchar(<span class="str">'ip_address'</span>, { length: 50 }),
+  userAgent:  text(<span class="str">'user_agent'</span>),
+  metadata:   text(<span class="str">'metadata'</span>),                                   <span class="cm">// JSON extra context</span>
+  createdAt:  timestamp(<span class="str">'created_at'</span>, { withTimezone: true }).defaultNow(),
+})</div>
+
+    <div class="sub-hdr">API Endpoints</div>
+    <table class="api-table">
+      <tr><th>Method</th><th>Route</th><th>Description</th><th>Auth</th></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/users</td><td>List all users with role, status, join date, stats</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/users/:id</td><td>Full user detail for admin</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/admin/users/:id/role</td><td>Change user role (promote to admin etc)</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/admin/users/:id/suspend</td><td>Suspend user account</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/admin/users/:id/unsuspend</td><td>Restore suspended account</td><td>Admin</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/admin/users/:id</td><td>Permanently delete user and all data</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/narratives/pending</td><td>Narratives pending admin review queue</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/feature-flags</td><td>Get all feature flags and current values</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/admin/feature-flags/:key</td><td>Toggle a feature flag on or off</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/reviews/pending</td><td>Dealer reviews pending approval</td><td>Admin</td></tr>
+      <tr><td><span class="badge patch">PATCH</span></td><td>/v1/admin/reviews/:id/approve</td><td>Approve dealer review for public display</td><td>Admin</td></tr>
+      <tr><td><span class="badge delete">DELETE</span></td><td>/v1/admin/reviews/:id</td><td>Remove inappropriate review</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/audit-logs</td><td>System audit log. Query: userId, action, dateFrom</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/admin/stats</td><td>Platform stats: total users, daily active, transactions today</td><td>Admin</td></tr>
+      <tr><td><span class="badge get">GET</span></td><td>/v1/config/feature-flags</td><td>Public feature flags for mobile app config</td><td>JWT</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="callout callout-green" style="margin-bottom:16px">
+  <strong>Complete count:</strong> 10 services · 25 Drizzle tables · 110+ API endpoints · All enums defined · All foreign keys set · All fields production-typed. Every endpoint in this document maps directly to a feature in the RSL Cards product spec.
+</div>
+
+<div class="footer">RSL Cards — Complete Drizzle Schemas + API Reference &nbsp;|&nbsp; Confidential — Reddy Sherrer Lane LLC &nbsp;|&nbsp; March 2026<br>All schemas use Drizzle ORM with PostgreSQL 16 · Node.js 22 LTS · Fastify v4</div>
+</div>

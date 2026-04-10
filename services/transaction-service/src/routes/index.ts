@@ -1,24 +1,15 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { Env } from "../config/env.js";
-import { internalAuthPreHandler } from "../middleware/internal-auth.js";
-import { healthRoutes } from "./health.routes.js";
-import { transactionRoutes } from "./transaction.routes.js";
+import { FastifyInstance } from 'fastify';
+import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: Env): Promise<void> {
-  await healthRoutes(app, env);
-  await app.register(
-    async (f) => {
-      await transactionRoutes(f, env);
-    },
-    { prefix: "/transactions" },
-  );
-  await app.register(
-    async (f) => {
-      f.get("/probe", async () => ({ ok: true, service: "transaction-service-internal" }));
-    },
-    {
-      prefix: "/internal",
-      preHandler: (req: FastifyRequest, reply: FastifyReply) => internalAuthPreHandler(env, req, reply),
-    },
-  );
+export async function registerRoutes(app: FastifyInstance, env: any) {
+  app.post('/v1/transactions/buy', controller.postTransactionsBuy);
+  app.post('/v1/transactions/sell', controller.postTransactionsSell);
+  app.post('/v1/transactions/trade', controller.postTransactionsTrade);
+  app.post('/v1/transactions/sync', controller.postTransactionsSync);
+  app.get('/v1/transactions', controller.getTransactions);
+  app.get('/v1/transactions/:id', controller.getTransactionsId);
+  app.get('/v1/transactions/today', controller.getTransactionsToday);
+  app.get('/v1/transactions/customers/:customerId', controller.getTransactionsCustomersCustomerid);
+  app.get('/v1/transactions/export', controller.getTransactionsExport);
+  app.delete('/v1/transactions/:id', controller.deleteTransactionsId);
 }

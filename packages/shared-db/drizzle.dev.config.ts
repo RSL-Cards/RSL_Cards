@@ -6,6 +6,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgresql://rsl_user:password@localhost:5432/rslcards_dev",
+    url: process.env.DATABASE_URL ?? "postgresql://rsl_user:password@localhost:5432/rsldb",
   },
 });

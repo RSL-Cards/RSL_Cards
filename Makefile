@@ -1,4 +1,4 @@
-.PHONY: dev qa prod down logs migrate seed test verify
+.PHONY: dev qa prod down logs dev-migrate qa-migrate prod-migrate generate seed test verify
 
 dev:
 	docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env.dev up --build
@@ -17,8 +17,17 @@ down:
 logs:
 	docker compose -f infra/docker/docker-compose.dev.yml logs -f
 
-migrate:
-	pnpm db:migrate
+dev-migrate:
+	pnpm db:migrate:dev
+
+qa-migrate:
+	pnpm db:migrate:qa
+
+prod-migrate:
+	pnpm db:migrate:prod
+
+generate:
+	pnpm db:generate
 
 seed:
 	pnpm db:seed

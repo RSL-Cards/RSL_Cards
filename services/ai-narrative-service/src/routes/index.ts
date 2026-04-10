@@ -1,24 +1,16 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { Env } from "../config/env.js";
-import { internalAuthPreHandler } from "../middleware/internal-auth.js";
-import { healthRoutes } from "./health.routes.js";
-import { narrativesRoutes } from "./narratives.routes.js";
+import { FastifyInstance } from 'fastify';
+import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: Env): Promise<void> {
-  await healthRoutes(app, env);
-  await app.register(
-    async (f) => {
-      await narrativesRoutes(f, env);
-    },
-    { prefix: "/narratives" },
-  );
-  await app.register(
-    async (f) => {
-      f.get("/probe", async () => ({ ok: true, service: "ai-narrative-service-internal" }));
-    },
-    {
-      prefix: "/internal",
-      preHandler: (req: FastifyRequest, reply: FastifyReply) => internalAuthPreHandler(env, req, reply),
-    },
-  );
+export async function registerRoutes(app: FastifyInstance, env: any) {
+  app.get('/v1/narratives/feed', controller.getNarrativesFeed);
+  app.get('/v1/narratives/inventory', controller.getNarrativesInventory);
+  app.get('/v1/narratives/:id', controller.getNarrativesId);
+  app.get('/v1/narratives/player/:playerName', controller.getNarrativesPlayerPlayername);
+  app.get('/v1/narratives/card/:cardId', controller.getNarrativesCardCardid);
+  app.get('/v1/narratives/daily-insight', controller.getNarrativesDailyInsight);
+  app.get('/v1/narratives/weekly-recap', controller.getNarrativesWeeklyRecap);
+  app.post('/v1/narratives/admin/generate', controller.postNarrativesAdminGenerate);
+  app.patch('/v1/narratives/admin/:id/approve', controller.patchNarrativesAdminIdApprove);
+  app.patch('/v1/narratives/admin/:id/reject', controller.patchNarrativesAdminIdReject);
+  app.patch('/v1/narratives/admin/:id', controller.patchNarrativesAdminId);
 }

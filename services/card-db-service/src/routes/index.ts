@@ -1,25 +1,19 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import type { Env } from "../config/env.js";
-import { internalAuthPreHandler } from "../middleware/internal-auth.js";
-import { cardsRoutes } from "./cards.routes.js";
-import { healthRoutes } from "./health.routes.js";
+import { FastifyInstance } from 'fastify';
+import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: Env): Promise<void> {
-  await healthRoutes(app, env);
-  await app.register(
-    async (f) => {
-      await cardsRoutes(f, env);
-    },
-    { prefix: "/cards" },
-  );
-  await app.register(
-    async (f) => {
-      f.get("/probe", async () => ({ ok: true, service: "card-db-service-internal" }));
-    },
-    {
-      prefix: "/internal",
-      preHandler: (req: FastifyRequest, reply: FastifyReply) =>
-        internalAuthPreHandler(env, req, reply),
-    },
-  );
+export async function registerRoutes(app: FastifyInstance, env: any) {
+  app.post('/v1/cards/scan', controller.postCardsScan);
+  app.post('/v1/cards/scan/barcode', controller.postCardsScanBarcode);
+  app.get('/v1/cards/search', controller.getCardsSearch);
+  app.get('/v1/cards/:id', controller.getCardsId);
+  app.get('/v1/cards/:id/comps', controller.getCardsIdComps);
+  app.get('/v1/cards/:id/price-history', controller.getCardsIdPriceHistory);
+  app.get('/v1/cards/offline-db', controller.getCardsOfflineDb);
+  app.get('/v1/cards/price-alerts', controller.getCardsPriceAlerts);
+  app.post('/v1/cards/price-alerts', controller.postCardsPriceAlerts);
+  app.delete('/v1/cards/price-alerts/:id', controller.deleteCardsPriceAlertsId);
+  app.get('/v1/cards/want-list', controller.getCardsWantList);
+  app.post('/v1/cards/want-list', controller.postCardsWantList);
+  app.delete('/v1/cards/want-list/:id', controller.deleteCardsWantListId);
+  app.get('/v1/cards/deal-rating', controller.getCardsDealRating);
 }

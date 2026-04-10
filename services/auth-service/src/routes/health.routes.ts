@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { FastifyInstance } from "fastify";
 import { sql } from "drizzle-orm";
 import type { Env } from "../config/env.js";
@@ -22,26 +23,20 @@ export async function healthRoutes(app: FastifyInstance, env: Env): Promise<void
     {
       schema: {
         response: {
-          200: {
-            type: "object",
-            properties: {
-              status: { type: "string" },
-              service: { type: "string" },
-              environment: { type: "string" },
-              version: { type: "string" },
-              uptime: { type: "number" },
-              timestamp: { type: "string" },
-              checks: { type: "object" },
-            },
-          },
-          503: {
-            type: "object",
-            properties: {
-              status: { type: "string" },
-              service: { type: "string" },
-              checks: { type: "object" },
-            },
-          },
+          200: z.object({
+            status: z.string(),
+            service: z.string(),
+            environment: z.string(),
+            version: z.string(),
+            uptime: z.number(),
+            timestamp: z.string(),
+            checks: z.record(z.any()),
+          }),
+          503: z.object({
+            status: z.string(),
+            service: z.string(),
+            checks: z.record(z.any()),
+          }),
         },
       },
     },

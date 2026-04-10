@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { FastifyInstance } from "fastify";
 import { sql } from "drizzle-orm";
 import type { Env } from "../config/env.js";
@@ -9,11 +10,9 @@ export async function authRoutes(app: FastifyInstance, env: Env): Promise<void> 
     "/ping",
     {
       schema: {
-        body: {
-          type: "object",
-          required: ["message"],
-          properties: { message: { type: "string" } },
-        },
+        body: z.object({
+          message: z.string()
+        }),
       },
     },
     async (request, reply) => {

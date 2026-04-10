@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "fastify-type-provider-zod";
 import type { Env } from "./config/env.js";
 import { getRedis } from "./config/redis.js";
 import { registerErrorHandler } from "./middleware/error-handler.js";
@@ -6,6 +7,7 @@ import { corsPlugin } from "./plugins/cors.js";
 import { helmetPlugin } from "./plugins/helmet.js";
 import { rateLimitPlugin } from "./plugins/rate-limit.js";
 import { requestIdPlugin } from "./plugins/request-id.js";
+import { swaggerPlugin } from "./plugins/swagger.js";
 import { registerRoutes } from "./routes/index.js";
 
 export async function createApp(env: Env) {
@@ -20,13 +22,16 @@ export async function createApp(env: Env) {
         }
       : { level: env.LOG_LEVEL };
 
-  const app = Fastify({ logger });
+  const app = Fastify({ logger }).withTypeProvider<ZodTypeProvider>();
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
   registerErrorHandler(app);
   await app.register(requestIdPlugin);
   await app.register(helmetPlugin);
   await app.register(corsPlugin, { env });
   await app.register(rateLimitPlugin, { redis: getRedis(env) });
+  await app.register(swaggerPlugin);
   await registerRoutes(app, env);
   return app;
 }

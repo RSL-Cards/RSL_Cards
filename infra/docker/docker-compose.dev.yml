@@ -7,34 +7,34 @@ x-node-dev-volumes: &node-dev-volumes
   - rsl_dev_node_modules:/workspace/node_modules
 
 services:
-  postgres-dev:
+  rsldb:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: rsl_user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: rslcards_dev
+      POSTGRES_DB: rsldb
     ports:
       - "5432:5432"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - rsldb_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rsl_user -d rslcards_dev"]
+      test: ["CMD-SHELL", "pg_isready -U rsl_user -d rsldb"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - rsl-dev
 
-  postgres-read-dev:
+  rsldb-read:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: rsl_user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: rslcards_dev
+      POSTGRES_DB: rsldb
     ports:
       - "5433:5432"
     volumes:
-      - postgres_read_dev_data:/var/lib/postgresql/data
+      - rsldb_read_data:/var/lib/postgresql/data
     networks:
       - rsl-dev
 
@@ -79,7 +79,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -107,7 +107,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -135,7 +135,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -163,7 +163,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -191,7 +191,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -219,7 +219,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -247,7 +247,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -275,7 +275,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -303,7 +303,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -332,7 +332,7 @@ services:
     depends_on:
       dev-install:
         condition: service_completed_successfully
-      postgres-dev:
+      rsldb:
         condition: service_healthy
       redis-dev:
         condition: service_started
@@ -410,8 +410,8 @@ services:
 
 volumes:
   rsl_dev_node_modules:
-  postgres_dev_data:
-  postgres_read_dev_data:
+  rsldb_data:
+  rsldb_read_data:
   redis_dev_data:
   grafana_data:
   loki_data:
