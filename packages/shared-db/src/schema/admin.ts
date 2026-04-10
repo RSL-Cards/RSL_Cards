@@ -1,5 +1,5 @@
 // shared/db/schema/admin.ts
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const featureFlags = pgTable('feature_flags', {

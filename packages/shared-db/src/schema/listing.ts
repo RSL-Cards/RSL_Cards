@@ -1,5 +1,5 @@
 // shared/db/schema/listing.ts
-import { pgTable, uuid, varchar, decimal, text, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 

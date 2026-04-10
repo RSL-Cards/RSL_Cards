@@ -2,8 +2,9 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { sql } from "drizzle-orm";
 import {
-  analyticsSnapshots,
+  dailySummaries,
   cards,
   customers,
   inventory,
@@ -11,8 +12,9 @@ import {
   narratives,
   notifications,
   priceAlerts,
-  priceHistory,
-  profiles,
+  cardPriceHistory,
+  dealerProfiles,
+  consumerProfiles,
   transactions,
   users,
 } from "./schema/index.js";
@@ -61,17 +63,23 @@ async function main() {
     })
     .returning({ id: users.id });
 
-  await db.insert(profiles).values([
+  // dealerProfiles for dealers and admins
+  await db.insert(dealerProfiles).values([
     { userId: dealer1.id, displayName: "Dealer One" },
     { userId: dealer2.id, displayName: "Dealer Two" },
-    { userId: consumer.id, displayName: "Consumer" },
     { userId: admin.id, displayName: "Admin" },
+  ]);
+
+  // consumerProfiles for consumers
+  await db.insert(consumerProfiles).values([
+    { userId: consumer.id, displayName: "Consumer" },
   ]);
 
   const cardRows = await db
     .insert(cards)
     .values(
       Array.from({ length: 25 }, (_, i) => ({
+        id: `seed-card-${i + 1}`,
         playerName: `Player ${i + 1}`,
         year: 2020 + (i % 5),
         setName: "Topps Chrome",
@@ -93,7 +101,8 @@ async function main() {
         playerName: `Player ${i}`,
         year: 2023,
         setName: "Seed Set",
-        grade: "PSA 9",
+        gradeCompany: "PSA",
+        gradeValue: "9",
         costBasis: "100.00",
         currentMarketValue: "120.00",
         quantity: 1,
@@ -121,7 +130,7 @@ async function main() {
       costBasis: "100.00",
       profit: "25.00",
       platformFee: "19.28",
-      paymentMethod: "card",
+      paymentMethod: "other",
       dealRating: "fair_price",
     });
   }
@@ -140,25 +149,22 @@ async function main() {
     });
   }
 
-  await db.insert(customers).values({
-    userId: dealer1.id,
+  const [customer] = await db.insert(customers).values({
+    dealerId: dealer1.id,
     name: "Seed Customer",
     email: "buyer@test.com",
-    totalPurchased: 3,
-    totalSpent: "450.00",
-  });
+    totalRevenue: "450.00",
+  }).returning({ id: customers.id });
 
-  await db.insert(priceHistory).values({
+  await db.insert(cardPriceHistory).values({
     cardId: cardRows[0].id,
-    avgPrice: "110.00",
-    lastSale: "105.00",
-    high90d: "130.00",
-    low90d: "90.00",
-    source: "ebay",
+    avgSoldPrice: "110.00",
+    recordedDate: new Date(),
   });
 
   await db.insert(narratives).values({
-    narrativeType: "market_move",
+    narrativeType: "breakout",
+    playerName: "Player 1",
     headline: "Seed narrative",
     body: "Body",
   });
@@ -166,6 +172,7 @@ async function main() {
   await db.insert(notifications).values({
     userId: consumer.id,
     type: "system",
+    channel: "in_app",
     title: "Welcome",
     body: "Hello",
   });
@@ -177,32 +184,29 @@ async function main() {
     direction: "below",
   });
 
-  await db.insert(analyticsSnapshots).values({
+  await db.insert(dailySummaries).values({
     userId: dealer1.id,
     date: "2026-03-01",
-    revenue: "1000",
-    cogs: "600",
-    grossProfit: "400",
+    totalRevenue: "1000.00",
+    netProfit: "400.00",
     cardsBought: 5,
     cardsSold: 4,
-    byChannel: { ebay: 800 },
-    bySport: { baseball: 1000 },
   });
 
   const total =
-    4 +
-    4 +
+    4 + // users
+    3 + // dealerProfiles
+    1 + // consumerProfiles
     cardRows.length +
     inventoryCount +
-    20 +
-    5 +
-    1 +
-    1 +
-    1 +
-    1 +
-    1 +
-    1 +
-    1;
+    20 + // transactions
+    5 + // listings
+    1 + // customer
+    1 + // priceHistory
+    1 + // narrative
+    1 + // notification
+    1 + // priceAlert
+    1; // dailySummary
 
   console.log(`Seeding complete - ${total} records created`);
   await pool.end();

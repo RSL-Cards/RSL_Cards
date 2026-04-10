@@ -1,5 +1,5 @@
 // shared/db/schema/transaction.ts
-import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 import { customers } from './user'

@@ -1,5 +1,5 @@
 // shared/db/schema/carddb.ts
-import { pgTable, uuid, varchar, decimal, integer, text, timestamp, boolean, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, integer, timestamp, boolean } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const cards = pgTable('cards', {

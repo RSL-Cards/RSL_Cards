@@ -1,5 +1,5 @@
 // shared/db/schema/user.ts
-import { pgTable, uuid, varchar, text, boolean, timestamp, jsonb, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const dealerProfiles = pgTable('dealer_profiles', {
