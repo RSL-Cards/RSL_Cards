@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: any) {
+export async function registerRoutes(app: FastifyInstance, _env: any) {
   app.get('/v1/notifications', controller.getNotifications);
   app.patch('/v1/notifications/:id/read', controller.patchNotificationsIdRead);
   app.patch('/v1/notifications/read-all', controller.patchNotificationsReadAll);

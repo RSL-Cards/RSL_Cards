@@ -2,7 +2,6 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { sql } from "drizzle-orm";
 import {
   dailySummaries,
   cards,
@@ -149,7 +148,7 @@ async function main() {
     });
   }
 
-  const [customer] = await db.insert(customers).values({
+  await db.insert(customers).values({
     dealerId: dealer1.id,
     name: "Seed Customer",
     email: "buyer@test.com",

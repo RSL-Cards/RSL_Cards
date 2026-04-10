@@ -19,8 +19,8 @@ export function generateTokens(payload: TokenPayload, env: Env): AuthTokens {
     payload,
     env.JWT_PRIVATE_KEY || 'development_secret_key',
     {
-      expiresIn: env.JWT_ACCESS_EXPIRY || '15m',
-      algorithm: env.JWT_PRIVATE_KEY?.includes('BEGIN') ? 'RS256' : 'HS256'
+      expiresIn: (env.JWT_ACCESS_EXPIRY || '15m') as any,
+      algorithm: (env.JWT_PRIVATE_KEY?.includes('BEGIN') ? 'RS256' : 'HS256') as jwt.Algorithm
     }
   );
 
@@ -28,8 +28,8 @@ export function generateTokens(payload: TokenPayload, env: Env): AuthTokens {
     { userId: payload.userId },
     env.JWT_PRIVATE_KEY || 'development_secret_key',
     {
-      expiresIn: env.JWT_REFRESH_EXPIRY || '7d',
-      algorithm: env.JWT_PRIVATE_KEY?.includes('BEGIN') ? 'RS256' : 'HS256'
+      expiresIn: (env.JWT_REFRESH_EXPIRY || '7d') as any,
+      algorithm: (env.JWT_PRIVATE_KEY?.includes('BEGIN') ? 'RS256' : 'HS256') as jwt.Algorithm
     }
   );
 

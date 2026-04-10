@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: any) {
+export async function registerRoutes(app: FastifyInstance, _env: any) {
   app.get('/v1/users/me', controller.getUsersMe);
   app.patch('/v1/users/me', controller.patchUsersMe);
   app.get('/v1/users/me/payment-methods', controller.getUsersMePaymentMethods);

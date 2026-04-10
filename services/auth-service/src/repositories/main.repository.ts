@@ -40,42 +40,42 @@ export async function updateRefreshToken(env: Env, userId: string, refreshTokenH
 
 /// Stubs for extended auth paths
 
-export async function postAuthOauthGoogle(body: any, params: any, query: any) {
+export async function postAuthOauthGoogle(_body: any, _params: any, _query: any) {
   return { message: `Google OAuth sign-in / sign-up. Returns tokens` };
 }
 
-export async function postAuthOauthApple(body: any, params: any, query: any) {
+export async function postAuthOauthApple(_body: any, _params: any, _query: any) {
   return { message: `Apple Sign-In. Returns tokens` };
 }
 
-export async function postAuthVerifyEmail(body: any, params: any, query: any) {
+export async function postAuthVerifyEmail(_body: any, _params: any, _query: any) {
   return { message: `Verify email with token sent to inbox` };
 }
 
-export async function postAuthForgotPassword(body: any, params: any, query: any) {
+export async function postAuthForgotPassword(_body: any, _params: any, _query: any) {
   return { message: `Send password reset email` };
 }
 
-export async function postAuthResetPassword(body: any, params: any, query: any) {
+export async function postAuthResetPassword(_body: any, _params: any, _query: any) {
   return { message: `Reset password using token from email` };
 }
 
-export async function postAuth2FaSetup(body: any, params: any, query: any) {
+export async function postAuth2FaSetup(_body: any, _params: any, _query: any) {
   return { message: `Generate TOTP QR code for 2FA setup` };
 }
 
-export async function postAuth2FaVerify(body: any, params: any, query: any) {
+export async function postAuth2FaVerify(_body: any, _params: any, _query: any) {
   return { message: `Verify TOTP code, enable 2FA on account` };
 }
 
-export async function postAuth2FaDisable(body: any, params: any, query: any) {
+export async function postAuth2FaDisable(_body: any, _params: any, _query: any) {
   return { message: `Disable 2FA on account` };
 }
 
-export async function postAuthDeviceToken(body: any, params: any, query: any) {
+export async function postAuthDeviceToken(_body: any, _params: any, _query: any) {
   return { message: `Register FCM device token for push notifications` };
 }
 
-export async function deleteAuthDeviceToken(body: any, params: any, query: any) {
+export async function deleteAuthDeviceToken(_body: any, _params: any, _query: any) {
   return { message: `Remove FCM token on logout` };
 }

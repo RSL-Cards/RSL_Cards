@@ -36,7 +36,7 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: any) {
       (req, res) => requireGatewayAccessToken(env, req, res),
       requireAdminRole
     ]
-  }, async (req, reply) => {
+  }, async (_req, reply) => {
     return reply.send({ success: true, message: 'You have accessed the admin-only zone successfully!' });
   });
 

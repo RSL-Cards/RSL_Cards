@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import * as controller from '../controllers/main.controller.js';
 
-export async function registerRoutes(app: FastifyInstance, env: any) {
+export async function registerRoutes(app: FastifyInstance, _env: any) {
   app.get('/v1/listings', controller.getListings);
   app.post('/v1/listings', controller.postListings);
   app.get('/v1/listings/:id', controller.getListingsId);
