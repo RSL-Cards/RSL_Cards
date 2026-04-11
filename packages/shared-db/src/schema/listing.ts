@@ -1,11 +1,11 @@
-import { pgTable, uuid, varchar, decimal, text, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 
 export const listingPlatformEnum = pgEnum('listing_platform', [
   'ebay','whatnot','mercari','tcgplayer','shopify','comc','facebook','goldin','myslabs','instagram'
 ])
-export const listingStatusEnum = pgEnum('platform_listing_status',
+export const platformListingStatusEnum = pgEnum('platform_listing_status',
   ['draft','pending','active','sold','ended','failed'])
 
 export const listings = pgTable('listings', {
@@ -14,7 +14,7 @@ export const listings = pgTable('listings', {
   userId:            uuid('user_id').references(() => users.id).notNull(),
   platform:          listingPlatformEnum('platform').notNull(),
   platformListingId: varchar('platform_listing_id', { length: 255 }),  // eBay itemId etc
-  status:            listingStatusEnum('status').default('draft'),
+  status:            platformListingStatusEnum('status').default('draft'),
   listPrice:         decimal('list_price', { precision: 10, scale: 2 }).notNull(),
   platformFeePct:    decimal('platform_fee_pct', { precision: 5, scale: 2 }),
   platformFeeAmt:    decimal('platform_fee_amt', { precision: 10, scale: 2 }),

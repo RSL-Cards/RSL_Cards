@@ -57,7 +57,7 @@ export async function getUserById(env: Env, id: string): Promise<UserRow | null>
   return user || null;
 }
 
-export async function updateRefreshToken(env: Env, userId: string, tokenHash: string | null, expiresAt?: Date) {
+export async function updateRefreshToken(env: Env, userId: string, tokenHash: string | null, expiresAt?: Date, ipAddress?: string | null, deviceInfo?: string | null) {
   const db = getDb(env);
   // Simple "single session per user" model for right now:
   await db.delete(refreshTokens as any).where(eq((refreshTokens as any).userId, userId));
@@ -67,7 +67,9 @@ export async function updateRefreshToken(env: Env, userId: string, tokenHash: st
     await db.insert(refreshTokens as any).values({
       userId: userId,
       tokenHash: tokenHash,
-      expiresAt: expires
+      expiresAt: expires,
+      ...(ipAddress && { ipAddress: ipAddress.slice(0, 50) }),
+      ...(deviceInfo && { deviceInfo: deviceInfo.slice(0, 500) })
     });
   }
 }

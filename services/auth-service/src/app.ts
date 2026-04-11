@@ -11,16 +11,21 @@ import { swaggerPlugin } from "./plugins/swagger.js";
 import { registerRoutes } from "./routes/index.js";
 
 export async function createApp(env: Env) {
-  const logger =
+  const redactList = ['body.password', 'responseData.tokens.accessToken', 'responseData.tokens.refreshToken', 'responseData.token', 'body.refreshToken'];
+  const logger: any =
     env.NODE_ENV === "development" || env.NODE_ENV === "dev"
       ? {
           level: env.LOG_LEVEL,
+          redact: redactList,
           transport: {
             target: "pino-pretty",
             options: { colorize: true },
           },
         }
-      : { level: env.LOG_LEVEL };
+      : { 
+          level: env.LOG_LEVEL,
+          redact: redactList
+        };
 
   const app = Fastify({ logger }).withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
@@ -32,6 +37,24 @@ export async function createApp(env: Env) {
   await app.register(corsPlugin, { env });
   await app.register(rateLimitPlugin, { redis: getRedis(env) });
   await app.register(swaggerPlugin);
+  
+  // Custom Logging Hooks
+  app.addHook('preHandler', (req, reply, done) => {
+    if (req.body) {
+      req.log.info({ body: req.body }, 'parsed request body');
+    }
+    done();
+  });
+
+  app.addHook('onSend', (req, reply, payload, done) => {
+    if (payload && typeof payload === 'string' && reply.getHeader('content-type')?.toString().includes('application/json')) {
+      try {
+        req.log.info({ responseData: JSON.parse(payload) }, 'response payload');
+      } catch (e) {}
+    }
+    done(null, payload);
+  });
+
   await registerRoutes(app, env);
   return app;
 }

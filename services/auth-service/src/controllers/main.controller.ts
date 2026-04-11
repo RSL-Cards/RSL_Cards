@@ -7,21 +7,27 @@ import { RegisterSchema, LoginSchema, RefreshSchema, LogoutSchema } from '../typ
 export async function postAuthRegister(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
   const result = RegisterSchema.parse(req.body);
-  const data = await service.registerUser(env, result);
+  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || null;
+  const deviceInfo = (req.headers['user-agent'] as string) || null;
+  const data = await service.registerUser(env, result, ipAddress, deviceInfo);
   return reply.send(data);
 }
 
 export async function postAuthLogin(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
   const result = LoginSchema.parse(req.body);
-  const data = await service.loginUser(env, result);
+  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || null;
+  const deviceInfo = (req.headers['user-agent'] as string) || null;
+  const data = await service.loginUser(env, result, ipAddress, deviceInfo);
   return reply.send(data);
 }
 
 export async function postAuthRefresh(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
   const result = RefreshSchema.parse(req.body);
-  const data = await service.refreshTokens(env, result);
+  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip || null;
+  const deviceInfo = (req.headers['user-agent'] as string) || null;
+  const data = await service.refreshTokens(env, result, ipAddress, deviceInfo);
   return reply.send(data);
 }
 

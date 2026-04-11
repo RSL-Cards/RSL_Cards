@@ -149,14 +149,15 @@ async function main() {
   }
 
   await db.insert(customers).values({
-    dealerId: dealer1.id,
+    userId: dealer1.id,
     name: "Seed Customer",
     email: "buyer@test.com",
-    totalRevenue: "450.00",
+    totalSpent: "450.00",
   }).returning({ id: customers.id });
 
   await db.insert(cardPriceHistory).values({
     cardId: cardRows[0].id,
+    gradeKey: "RAW",
     avgSoldPrice: "110.00",
     recordedDate: new Date(),
   });
@@ -179,6 +180,7 @@ async function main() {
   await db.insert(priceAlerts).values({
     userId: consumer.id,
     cardId: cardRows[0].id,
+    gradeKey: "RAW",
     targetPrice: "100.00",
     direction: "below",
   });

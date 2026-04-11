@@ -5,7 +5,7 @@ import { generateTokens, verifyToken } from '../utils/jwt.js';
 import type { RegisterBody, LoginBody, RefreshBody, LogoutBody } from '../types/schemas.js';
 import { AuthError, AuthErrorCode } from '../errors/definitions.js';
 
-export async function registerUser(env: Env, body: RegisterBody) {
+export async function registerUser(env: Env, body: RegisterBody, ipAddress?: string | null, deviceInfo?: string | null) {
   const existingUser = await repo.getUserByEmail(env, body.email);
   if (existingUser) {
     throw AuthError.userAlreadyExists();
@@ -26,7 +26,7 @@ export async function registerUser(env: Env, body: RegisterBody) {
     }
   } catch (e) {}
 
-  await repo.updateRefreshToken(env, newUser.id, refreshTokenHash, expiresAt);
+  await repo.updateRefreshToken(env, newUser.id, refreshTokenHash, expiresAt, ipAddress, deviceInfo);
 
   return {
     user: { id: newUser.id, email: newUser.email, role: newUser.role },
@@ -34,7 +34,7 @@ export async function registerUser(env: Env, body: RegisterBody) {
   };
 }
 
-export async function loginUser(env: Env, body: LoginBody) {
+export async function loginUser(env: Env, body: LoginBody, ipAddress?: string | null, deviceInfo?: string | null) {
   const user = await repo.getUserByEmail(env, body.email);
   if (!user || !user.passwordHash) {
     throw AuthError.invalidCredentials();
@@ -56,7 +56,7 @@ export async function loginUser(env: Env, body: LoginBody) {
     }
   } catch (e) {}
 
-  await repo.updateRefreshToken(env, user.id, refreshTokenHash, expiresAt);
+  await repo.updateRefreshToken(env, user.id, refreshTokenHash, expiresAt, ipAddress, deviceInfo);
 
   return {
     user: { id: user.id, email: user.email, role: user.role },
@@ -64,7 +64,7 @@ export async function loginUser(env: Env, body: LoginBody) {
   };
 }
 
-export async function refreshTokens(env: Env, body: RefreshBody) {
+export async function refreshTokens(env: Env, body: RefreshBody, ipAddress?: string | null, deviceInfo?: string | null) {
   let decoded;
   try {
     decoded = verifyToken(body.refreshToken, env);
@@ -96,7 +96,7 @@ export async function refreshTokens(env: Env, body: RefreshBody) {
     }
   } catch (e) {}
   
-  await repo.updateRefreshToken(env, user.id, newHash, expiresAt);
+  await repo.updateRefreshToken(env, user.id, newHash, expiresAt, ipAddress, deviceInfo);
 
   return { tokens: newTokens };
 }

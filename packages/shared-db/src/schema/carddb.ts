@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, integer, text, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, integer, timestamp, boolean, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { listingPlatformEnum } from './listing'
 

@@ -1,5 +1,4 @@
-import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum,
-         uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum } from 'drizzle-orm/pg-core'
 
 export const narrativeTypeEnum   = pgEnum('narrative_type',
   ['breakout','injury','hype','decline','seasonal','trade','hof','award','auction_record'])
