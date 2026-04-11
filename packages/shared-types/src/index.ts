@@ -118,3 +118,25 @@ export interface HealthCheck {
     };
   };
 }
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+    requestId?: string;
+  };
+}
+
+export class BaseAppError extends Error {
+  constructor(
+    public readonly errorCode: string,
+    public readonly message: string,
+    public readonly statusCode: number = 400,
+    public readonly details?: any,
+  ) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}

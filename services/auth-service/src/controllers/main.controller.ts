@@ -6,57 +6,29 @@ import { RegisterSchema, LoginSchema, RefreshSchema, LogoutSchema } from '../typ
 
 export async function postAuthRegister(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
-  const result = RegisterSchema.safeParse(req.body);
-  if (!result.success) {
-    return reply.status(400).send({ error: result.error.errors });
-  }
-
-  try {
-    const data = await service.registerUser(env, result.data);
-    return reply.send(data);
-  } catch (err: any) {
-    return reply.status(409).send({ error: err.message });
-  }
+  const result = RegisterSchema.parse(req.body);
+  const data = await service.registerUser(env, result);
+  return reply.send(data);
 }
 
 export async function postAuthLogin(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
-  const result = LoginSchema.safeParse(req.body);
-  if (!result.success) {
-    return reply.status(400).send({ error: result.error.errors });
-  }
-
-  try {
-    const data = await service.loginUser(env, result.data);
-    return reply.send(data);
-  } catch (err: any) {
-    return reply.status(401).send({ error: err.message });
-  }
+  const result = LoginSchema.parse(req.body);
+  const data = await service.loginUser(env, result);
+  return reply.send(data);
 }
 
 export async function postAuthRefresh(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
-  const result = RefreshSchema.safeParse(req.body);
-  if (!result.success) {
-    return reply.status(400).send({ error: result.error.errors });
-  }
-
-  try {
-    const data = await service.refreshTokens(env, result.data);
-    return reply.send(data);
-  } catch (err: any) {
-    return reply.status(401).send({ error: err.message });
-  }
+  const result = RefreshSchema.parse(req.body);
+  const data = await service.refreshTokens(env, result);
+  return reply.send(data);
 }
 
 export async function postAuthLogout(req: FastifyRequest, reply: FastifyReply) {
   const env = validateEnv();
-  const result = LogoutSchema.safeParse(req.body);
-  if (!result.success) {
-    return reply.status(400).send({ error: result.error.errors });
-  }
-
-  const data = await service.logoutUser(env, result.data);
+  const result = LogoutSchema.parse(req.body);
+  const data = await service.logoutUser(env, result);
   return reply.send(data);
 }
 

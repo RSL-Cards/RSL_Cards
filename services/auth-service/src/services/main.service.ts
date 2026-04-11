@@ -3,11 +3,12 @@ import * as repo from '../repositories/main.repository.js';
 import { hashPassword, comparePassword, hashToken } from '../utils/crypto.js';
 import { generateTokens, verifyToken } from '../utils/jwt.js';
 import type { RegisterBody, LoginBody, RefreshBody, LogoutBody } from '../types/schemas.js';
+import { AuthError, AuthErrorCode } from '../errors/definitions.js';
 
 export async function registerUser(env: Env, body: RegisterBody) {
   const existingUser = await repo.getUserByEmail(env, body.email);
   if (existingUser) {
-    throw new Error('User with this email already exists');
+    throw AuthError.userAlreadyExists();
   }
 
   const pwdHash = await hashPassword(body.password);
@@ -27,12 +28,12 @@ export async function registerUser(env: Env, body: RegisterBody) {
 export async function loginUser(env: Env, body: LoginBody) {
   const user = await repo.getUserByEmail(env, body.email);
   if (!user || !user.passwordHash) {
-    throw new Error('Invalid email or password');
+    throw AuthError.invalidCredentials();
   }
 
   const validPassword = await comparePassword(body.password, user.passwordHash);
   if (!validPassword) {
-    throw new Error('Invalid email or password');
+    throw AuthError.invalidCredentials();
   }
 
   const tokens = generateTokens({ userId: user.id, role: user.role }, env);
@@ -51,18 +52,18 @@ export async function refreshTokens(env: Env, body: RefreshBody) {
   try {
     decoded = verifyToken(body.refreshToken, env);
   } catch (err) {
-    throw new Error('Invalid or expired refresh token');
+    throw new AuthError(AuthErrorCode.INVALID_REFRESH_TOKEN, 'Invalid or expired refresh token', 401);
   }
 
   const user = await repo.getUserById(env, decoded.userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new AuthError(AuthErrorCode.USER_NOT_FOUND, 'User not found', 404);
   }
 
   const incomingHash = hashToken(body.refreshToken);
   if (user.refreshTokenHash !== incomingHash) {
     // Possibly a stolen token reuse attempt
-    throw new Error('Invalid refresh token');
+    throw new AuthError(AuthErrorCode.INVALID_REFRESH_TOKEN, 'Invalid refresh token', 401);
   }
 
   const newTokens = generateTokens({ userId: user.id, role: user.role }, env);
