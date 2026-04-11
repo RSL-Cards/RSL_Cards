@@ -140,3 +140,84 @@ export class BaseAppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
+export interface DeactivateListingsPayload {
+  inventoryId: string;
+  soldPlatform: string;
+  soldAt: string;
+  dealerId: string;
+  cardName: string;
+}
+
+export interface SaleNotificationPayload {
+  type: string;
+  userId: string;
+  cardName: string;
+  salePrice: number;
+  costBasis: number;
+  profit: number;
+  profitPct: number;
+  platform: string;
+  transactionId: string;
+}
+
+export interface NarrativeGeneratePayload {
+  playerName: string;
+  sport: string;
+  previousScore: number;
+  currentScore: number;
+  delta: number;
+  primaryDriver: string;
+  narrativeType: string;
+  factorScores: Record<string, number>;
+  rawData: any;
+  fetchWindow: { from: string; to: string };
+}
+
+export interface DataIngestionPayload {
+  triggeredAt: string;
+  manual: boolean;
+}
+
+export interface AiNarrativePublishPayload {
+  narrativeId: string;
+  playerName: string;
+  headline: string;
+  shortSummary: string;
+  narrativeType: string;
+  priceChangePct: number;
+  affectedCardIds: string[];
+}
+
+export interface PriceAlertTriggeredPayload {
+  alertId: string;
+  userId: string;
+  cardId: string;
+  gradeKey: string;
+  targetPrice: number;
+  currentPrice: number;
+  direction: string;
+  narrativeId?: string;
+}
+
+export interface WantListMatchPayload {
+  inventoryId: string;
+  cardId: string;
+  gradeKey: string;
+  dealerId: string;
+  dealerName: string;
+  price: number;
+  playerName: string;
+}
+
+export interface AnalyticsSnapshotPayload {
+  date: string;
+  manual: boolean;
+}
+
+export interface TaxReportGeneratePayload {
+  userId: string;
+  taxYear: number;
+  format: string;
+  email: string;
+}

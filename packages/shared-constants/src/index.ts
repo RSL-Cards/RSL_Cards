@@ -83,3 +83,23 @@ export function getServicePortsForNodeEnv(nodeEnv: string): Record<string, numbe
   if (nodeEnv === "dev") return { ...SERVICE_PORTS.dev };
   return { ...SERVICE_PORTS.development };
 }
+
+export const QUEUES = {
+  DEACTIVATE_LISTINGS: 'deactivate-listings',
+  SALE_NOTIFICATION: 'sale-notification',
+  WANT_LIST_MATCH: 'want-list-match',
+  OFFER_RECEIVED: 'offer-received',
+  PRICE_ALERT_TRIGGERED: 'price-alert-triggered',
+  NOTIFY_SEND: 'notify-send',
+  AI_NARRATIVE_PUBLISH: 'ai-narrative-publish',
+  INVENTORY_AGING_ALERT: 'inventory-aging-alert',
+  NARRATIVE_GENERATE: 'narrative-generate',
+  DATA_INGESTION: 'data-ingestion',
+  ANALYTICS_SNAPSHOT: 'analytics-snapshot',
+  TAX_REPORT_GENERATE: 'tax-report-generate',
+  OFFLINE_SYNC_DRAIN: 'offline-sync-drain',
+  PLATFORM_TOKEN_REFRESH: 'platform-token-refresh',
+  EMAIL_SEND: 'email-send'
+} as const;
+
+export const CRITICAL_TYPES = ['sale', 'offer_received', 'price_alert', 'want_list_match'] as const;

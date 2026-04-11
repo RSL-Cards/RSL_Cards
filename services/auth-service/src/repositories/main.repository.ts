@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { users } from '@rsl/shared-db';
+import { users, refreshTokens, dealerProfiles, consumerProfiles, userPreferences } from '@rsl/shared-db';
 import { getDb } from '../config/db.js';
 import type { Env } from '../config/env.js';
 
@@ -8,17 +8,41 @@ export type UserRow = {
   email: string;
   passwordHash: string | null;
   role: 'dealer' | 'consumer' | 'admin';
-  refreshTokenHash: string | null;
 };
 
 export async function createUser(env: Env, data: { email: string; passwordHash: string; role: 'dealer' | 'consumer' }): Promise<UserRow> {
   const db = getDb(env);
-  const [user] = await db.insert(users as any).values({
-    email: data.email,
-    passwordHash: data.passwordHash,
-    role: data.role
-  }).returning() as any;
-  return user;
+  
+  return await db.transaction(async (tx: any) => {
+    // 1. Insert user
+    const [user] = await tx.insert(users).values({
+      email: data.email,
+      passwordHash: data.passwordHash,
+      role: data.role
+    }).returning() as any;
+
+    const displayName = data.email.split('@')[0] || 'User';
+
+    // 2. Insert Profile
+    if (data.role === 'dealer') {
+      await tx.insert(dealerProfiles).values({
+        userId: user.id,
+        displayName: displayName
+      });
+    } else {
+      await tx.insert(consumerProfiles).values({
+        userId: user.id,
+        displayName: displayName
+      });
+    }
+
+    // 3. Insert Preferences
+    await tx.insert(userPreferences).values({
+      userId: user.id
+    });
+
+    return user;
+  });
 }
 
 export async function getUserByEmail(env: Env, email: string): Promise<UserRow | null> {
@@ -33,9 +57,25 @@ export async function getUserById(env: Env, id: string): Promise<UserRow | null>
   return user || null;
 }
 
-export async function updateRefreshToken(env: Env, userId: string, refreshTokenHash: string | null) {
+export async function updateRefreshToken(env: Env, userId: string, tokenHash: string | null, expiresAt?: Date) {
   const db = getDb(env);
-  await db.update(users as any).set({ refreshTokenHash, updatedAt: new Date() }).where(eq((users as any).id, userId));
+  // Simple "single session per user" model for right now:
+  await db.delete(refreshTokens as any).where(eq((refreshTokens as any).userId, userId));
+  
+  if (tokenHash) {
+    const expires = expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days fallback
+    await db.insert(refreshTokens as any).values({
+      userId: userId,
+      tokenHash: tokenHash,
+      expiresAt: expires
+    });
+  }
+}
+
+export async function getRefreshToken(env: Env, tokenHash: string) {
+  const db = getDb(env);
+  const [tokenRecord] = await db.select().from(refreshTokens as any).where(eq((refreshTokens as any).tokenHash, tokenHash)).limit(1) as any;
+  return tokenRecord || null;
 }
 
 /// Stubs for extended auth paths
