@@ -31,6 +31,16 @@ export interface RegisterPayload {
   role: "dealer" | "consumer";
 }
 
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthResponse> {
     const { data } = await apiClient.post<AuthResponse>(
@@ -76,5 +86,25 @@ export const authService = {
     ]);
     if (token && user) return user;
     return null;
+  },
+
+  async forgotPassword(
+    payload: ForgotPasswordPayload,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(
+      ENDPOINTS.auth.forgotPassword,
+      payload,
+    );
+    return data;
+  },
+
+  async resetPassword(
+    payload: ResetPasswordPayload,
+  ): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(
+      ENDPOINTS.auth.resetPassword,
+      payload,
+    );
+    return data;
   },
 };

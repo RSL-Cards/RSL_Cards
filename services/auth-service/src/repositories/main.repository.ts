@@ -158,19 +158,126 @@ export async function postAuthVerifyEmail(
 }
 
 export async function postAuthForgotPassword(
-  _body: any,
-  _params: any,
-  _query: any,
+  env: Env,
+  body: { email: string },
 ) {
-  return { message: `Send password reset email` };
+  const db = getDb(env);
+
+  try {
+    // Find user by email
+    const user = await getUserByEmail(env, body.email);
+    if (!user) {
+      // Return success even if user not found (security best practice)
+      return { message: "If an account exists, an OTP has been sent" };
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Set expiry to 15 minutes from now
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Debug logging
+    console.log("[DEBUG] Updating user:", user.id);
+    console.log("[DEBUG] Users table:", users);
+    console.log("[DEBUG] OTP:", otp, "Expiry:", expiry);
+
+    // Store OTP in password_reset_token field
+    const result = await db
+      .update(users as any)
+      .set({
+        passwordResetToken: otp,
+        passwordResetExpiry: expiry,
+      } as any)
+      .where(eq((users as any).id, user.id))
+      .returning({ id: (users as any).id });
+
+    console.log("[DEBUG] Update result:", result);
+
+    // Log OTP to console (visible in Docker logs)
+    console.log("\n" + "=".repeat(60));
+    console.log("🔐 PASSWORD RESET OTP");
+    console.log("=".repeat(60));
+    console.log(`📧 Email: ${body.email}`);
+    console.log(`🔢 OTP: ${otp}`);
+    console.log(`⏰ Expires: ${expiry.toISOString()}`);
+    console.log("=".repeat(60) + "\n");
+
+    return {
+      message: "If an account exists, an OTP has been sent",
+      // Include OTP in dev mode for testing (remove in production)
+      ...(process.env.NODE_ENV === "development" && { otp }),
+    };
+  } catch (error) {
+    console.error("[ERROR] postAuthForgotPassword failed:", error);
+    console.error("[ERROR] Stack:", (error as Error).stack);
+    throw error;
+  }
 }
 
 export async function postAuthResetPassword(
-  _body: any,
-  _params: any,
-  _query: any,
+  env: Env,
+  body: { email: string; otp: string; newPassword: string },
 ) {
-  return { message: `Reset password using token from email` };
+  const db = getDb(env);
+
+  try {
+    // Find user by email
+    const user = await getUserByEmail(env, body.email);
+    if (!user) {
+      throw new Error("Invalid email or OTP");
+    }
+
+    // Get stored OTP and expiry
+    const [userRecord] = (await db
+      .select({
+        passwordResetToken: (users as any).passwordResetToken,
+        passwordResetExpiry: (users as any).passwordResetExpiry,
+      })
+      .from(users as any)
+      .where(eq((users as any).id, user.id))
+      .limit(1)) as any;
+
+    // Validate OTP
+    if (
+      !userRecord?.passwordResetToken ||
+      userRecord.passwordResetToken !== body.otp
+    ) {
+      throw new Error("Invalid or expired OTP");
+    }
+
+    // Check expiry
+    if (new Date() > new Date(userRecord.passwordResetExpiry)) {
+      throw new Error("OTP has expired");
+    }
+
+    // Hash new password
+    const { hashPassword } = await import("../utils/crypto.js");
+    const passwordHash = await hashPassword(body.newPassword);
+
+    // Update password and clear reset token
+    await db
+      .update(users as any)
+      .set({
+        passwordHash: passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq((users as any).id, user.id));
+
+    console.log("\n" + "=".repeat(60));
+    console.log("✅ PASSWORD RESET SUCCESSFUL");
+    console.log("=".repeat(60));
+    console.log(`📧 Email: ${body.email}`);
+    console.log("=".repeat(60) + "\n");
+
+    return { message: "Password reset successfully" };
+  } catch (error) {
+    console.error("[ERROR] postAuthResetPassword failed:", error);
+    console.error("[ERROR] Stack:", (error as Error).stack);
+    throw error;
+  }
 }
 
 export async function postAuth2FaSetup(_body: any, _params: any, _query: any) {

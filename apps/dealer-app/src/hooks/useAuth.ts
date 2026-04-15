@@ -5,6 +5,8 @@ import {
   authService,
   type LoginPayload,
   type RegisterPayload,
+  type ForgotPasswordPayload,
+  type ResetPasswordPayload,
 } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
 import { useOnboardingStore } from "../stores/onboardingStore";
@@ -112,6 +114,49 @@ export function useCompleteOnboarding() {
         type: "error",
         text1: "Couldn't save profile",
         text2: getErrorMessage(error, "Please try again."),
+      });
+    },
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (payload: ForgotPasswordPayload) =>
+      authService.forgotPassword(payload),
+    onSuccess: () => {
+      Toast.show({
+        type: "success",
+        text1: "OTP sent!",
+        text2: "Check your email for the reset code.",
+      });
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Failed to send OTP",
+        text2: getErrorMessage(error, "Please try again."),
+      });
+    },
+  });
+}
+
+export function useResetPassword() {
+  const router = useRouter();
+  return useMutation({
+    mutationFn: (payload: ResetPasswordPayload) =>
+      authService.resetPassword(payload),
+    onSuccess: () => {
+      Toast.show({
+        type: "success",
+        text1: "Password reset!",
+        text2: "You can now log in with your new password.",
+      });
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Reset failed",
+        text2: getErrorMessage(error, "Invalid or expired OTP."),
       });
     },
   });

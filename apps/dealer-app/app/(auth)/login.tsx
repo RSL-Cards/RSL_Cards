@@ -87,26 +87,16 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={styles.forgotBtn}>
+              <TouchableOpacity
+                style={styles.forgotBtn}
+                onPress={() => router.push("/(auth)/forgot-password")}
+              >
                 <Text style={styles.forgotText}>Forgot Password?</Text>
               </TouchableOpacity>
 
               {errorMsg ? (
                 <Text style={styles.errorText}>{errorMsg}</Text>
               ) : null}
-
-              <TouchableOpacity
-                style={styles.demoFillBtn}
-                onPress={() => {
-                  setEmail("demo@rslcards.com");
-                  setPassword("Demo1234!");
-                }}
-              >
-                <Text style={styles.demoHint}>
-                  Demo: demo@rslcards.com / Demo1234!{"\n"}
-                  <Text style={{ color: "#0057FF" }}>Tap to autofill →</Text>
-                </Text>
-              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.signInBtn}
@@ -176,21 +166,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 12,
     textAlign: "center",
-  },
-  demoFillBtn: {
-    marginTop: 12,
-    backgroundColor: "#111111",
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
-    alignItems: "center",
-  },
-  demoHint: {
-    color: "#555555",
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 18,
   },
   signInBtn: {
     marginTop: 32,

@@ -7,6 +7,8 @@ import {
   LoginSchema,
   RefreshSchema,
   LogoutSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
 } from "../types/schemas.js";
 import { serviceOrigins } from "../config/gateway-upstreams.js";
 import { internalPost, internalGet } from "../utils/internal-fetch.js";
@@ -145,18 +147,18 @@ export async function postAuthForgotPassword(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  return reply.send(
-    await appRepo.postAuthForgotPassword(req.body, req.params, req.query),
-  );
+  const env = validateEnv();
+  const body = ForgotPasswordSchema.parse(req.body);
+  return reply.send(await appRepo.postAuthForgotPassword(env, body));
 }
 
 export async function postAuthResetPassword(
   req: FastifyRequest,
   reply: FastifyReply,
 ) {
-  return reply.send(
-    await appRepo.postAuthResetPassword(req.body, req.params, req.query),
-  );
+  const env = validateEnv();
+  const body = ResetPasswordSchema.parse(req.body);
+  return reply.send(await appRepo.postAuthResetPassword(env, body));
 }
 
 export async function postAuth2FaSetup(

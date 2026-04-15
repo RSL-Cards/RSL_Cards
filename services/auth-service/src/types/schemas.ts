@@ -34,8 +34,20 @@ export const OnboardingSchema = z.object({
     .default([]),
 });
 
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const ResetPasswordSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+  newPassword: z.string().min(8),
+});
+
 export type RegisterBody = z.infer<typeof RegisterSchema>;
 export type LoginBody = z.infer<typeof LoginSchema>;
 export type RefreshBody = z.infer<typeof RefreshSchema>;
 export type LogoutBody = z.infer<typeof LogoutSchema>;
 export type OnboardingBody = z.infer<typeof OnboardingSchema>;
+export type ForgotPasswordBody = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordBody = z.infer<typeof ResetPasswordSchema>;

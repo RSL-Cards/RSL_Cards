@@ -7,6 +7,8 @@ import {
   RefreshSchema,
   LogoutSchema,
   OnboardingSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
 } from "../types/schemas.js";
 import {
   requireGatewayAccessToken,
@@ -107,8 +109,30 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: Env) {
   // ── Email / password flows ────────────────────────────────────────────────
 
   app.post("/v1/auth/verify-email", controller.postAuthVerifyEmail);
-  app.post("/v1/auth/forgot-password", controller.postAuthForgotPassword);
-  app.post("/v1/auth/reset-password", controller.postAuthResetPassword);
+
+  app.post(
+    "/v1/auth/forgot-password",
+    {
+      schema: {
+        ...AUTH_TAG,
+        description: "Request password reset OTP",
+        body: ForgotPasswordSchema,
+      },
+    },
+    controller.postAuthForgotPassword,
+  );
+
+  app.post(
+    "/v1/auth/reset-password",
+    {
+      schema: {
+        ...AUTH_TAG,
+        description: "Reset password using OTP",
+        body: ResetPasswordSchema,
+      },
+    },
+    controller.postAuthResetPassword,
+  );
 
   // ── Two-factor authentication ─────────────────────────────────────────────
 
