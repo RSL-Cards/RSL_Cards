@@ -15,7 +15,7 @@ import {
   paymentMethodIcon,
   useFetchOnFocus,
 } from "../../src/hooks/useProfile";
-import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+// import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 function SettingsRow({
   icon,
@@ -225,14 +225,8 @@ function MoreScreen() {
   );
 }
 
-// Export wrapped with error boundary
-export default function MoreScreenWithBoundary() {
-  return (
-    <UserErrorBoundary>
-      <MoreScreen />
-    </UserErrorBoundary>
-  );
-}
+// Export without error boundary
+export default MoreScreen;
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },

@@ -25,7 +25,7 @@ export const API_BASE_URL = __DEV__
  *   /v1/inventory/*   → inventory-service :3003
  *   /v1/transactions/*→ transaction-service:3004
  *   /v1/listings/*    → listing-service   :3005
- *   /v1/cards/*       → card-db-service   :3006
+ *   /v1/cards/*       → auth-service:3001 →→ card-db-service   :3006 (API Gateway)
  *   /v1/narratives/*  → ai-narrative-service:3007
  *   /v1/notifications/*→notification-service:3008
  *   /v1/analytics/*   → analytics-service :3009
@@ -76,6 +76,8 @@ export const ENDPOINTS = {
   },
 
   cards: {
+    scan: "/v1/cards/scan",
+    scanBarcode: "/v1/cards/scan/barcode",
     search: "/v1/cards/search",
     detail: (id: string) => `/v1/cards/${id}`,
     comps: (id: string) => `/v1/cards/${id}/comps`,

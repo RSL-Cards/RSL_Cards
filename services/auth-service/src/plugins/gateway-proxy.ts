@@ -29,6 +29,19 @@ export async function registerGatewayProxy(
         upstream,
         prefix,
         http2: false,
+        replyOptions: {
+          rewriteRequestHeaders: (originalReq, headers) => {
+            // Add x-user-id header from JWT payload for downstream services
+            const jwtPayload = (originalReq as any).gatewayJwt;
+            if (jwtPayload?.sub) {
+              return {
+                ...headers,
+                "x-user-id": jwtPayload.sub,
+              };
+            }
+            return headers;
+          },
+        },
       });
     });
   }

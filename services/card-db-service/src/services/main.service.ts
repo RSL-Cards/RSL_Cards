@@ -1,8 +1,15 @@
-import * as repository from '../repositories/main.repository.js';
+import type { Env } from "../config/env.js";
+import * as repository from "../repositories/main.repository.js";
 
-export async function postCardsScan(body: any, params: any, query: any) {
+export async function postCardsScan(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  logger: { info: (o: Record<string, unknown>) => void },
+) {
   // Identify card from image via Ximilar. Returns card + comps
-  return repository.postCardsScan(body, params, query);
+  return repository.postCardsScan(body, params, query, env, logger);
 }
 
 export async function postCardsScanBarcode(body: any, params: any, query: any) {
@@ -25,7 +32,11 @@ export async function getCardsIdComps(body: any, params: any, query: any) {
   return repository.getCardsIdComps(body, params, query);
 }
 
-export async function getCardsIdPriceHistory(body: any, params: any, query: any) {
+export async function getCardsIdPriceHistory(
+  body: any,
+  params: any,
+  query: any,
+) {
   // 30/90/365 day price history for sparkline chart
   return repository.getCardsIdPriceHistory(body, params, query);
 }
@@ -45,7 +56,11 @@ export async function postCardsPriceAlerts(body: any, params: any, query: any) {
   return repository.postCardsPriceAlerts(body, params, query);
 }
 
-export async function deleteCardsPriceAlertsId(body: any, params: any, query: any) {
+export async function deleteCardsPriceAlertsId(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Delete price alert
   return repository.deleteCardsPriceAlertsId(body, params, query);
 }
@@ -60,7 +75,11 @@ export async function postCardsWantList(body: any, params: any, query: any) {
   return repository.postCardsWantList(body, params, query);
 }
 
-export async function deleteCardsWantListId(body: any, params: any, query: any) {
+export async function deleteCardsWantListId(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Remove from want list
   return repository.deleteCardsWantListId(body, params, query);
 }
@@ -69,4 +88,3 @@ export async function getCardsDealRating(body: any, params: any, query: any) {
   // Get deal rating (good/fair/overpaying) for price vs comp
   return repository.getCardsDealRating(body, params, query);
 }
-

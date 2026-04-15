@@ -1,28 +1,59 @@
-import * as repository from '../repositories/main.repository.js';
+import type { Env } from "../config/env.js";
+import * as repository from "../repositories/main.repository.js";
 
-export async function getInventory(body: any, params: any, query: any) {
+export async function getInventory(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  userId: string,
+) {
   // List inventory. Query: sport, grade, status, sort, page, limit
-  return repository.getInventory(body, params, query);
+  return repository.getInventory(body, params, query, env, userId);
 }
 
-export async function getInventorySummary(body: any, params: any, query: any) {
+export async function getInventorySummary(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  userId: string,
+) {
   // Total cards, total cost basis, total market value, unrealized P&L
-  return repository.getInventorySummary(body, params, query);
+  return repository.getInventorySummary(body, params, query, env, userId);
 }
 
-export async function getInventoryAgingAlerts(body: any, params: any, query: any) {
+export async function getInventoryAgingAlerts(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  userId: string,
+) {
   // Cards held 60+ days or losing value
-  return repository.getInventoryAgingAlerts(body, params, query);
+  return repository.getInventoryAgingAlerts(body, params, query, env, userId);
 }
 
-export async function getInventoryId(body: any, params: any, query: any) {
+export async function getInventoryId(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  userId: string,
+) {
   // Get single inventory item with full detail
-  return repository.getInventoryId(body, params, query);
+  return repository.getInventoryId(body, params, query, env, userId);
 }
 
-export async function postInventory(body: any, params: any, query: any) {
-  // Add card to inventory (manual add)
-  return repository.postInventory(body, params, query);
+export async function postInventory(
+  body: any,
+  params: any,
+  query: any,
+  env: Env,
+  userId: string,
+) {
+  // Add card to inventory (manual add) with duplicate check
+  return repository.postInventory(body, params, query, env, userId);
 }
 
 export async function patchInventoryId(body: any, params: any, query: any) {
@@ -40,22 +71,38 @@ export async function postInventoryRevalue(body: any, params: any, query: any) {
   return repository.postInventoryRevalue(body, params, query);
 }
 
-export async function postInventoryIdPhotos(body: any, params: any, query: any) {
+export async function postInventoryIdPhotos(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Upload card photo (returns S3 presigned URL)
   return repository.postInventoryIdPhotos(body, params, query);
 }
 
-export async function deleteInventoryIdPhotosPhotoindex(body: any, params: any, query: any) {
+export async function deleteInventoryIdPhotosPhotoindex(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Remove a card photo
   return repository.deleteInventoryIdPhotosPhotoindex(body, params, query);
 }
 
-export async function postInventoryBulkImport(body: any, params: any, query: any) {
+export async function postInventoryBulkImport(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Upload CSV/Excel file for bulk import. Returns jobId
   return repository.postInventoryBulkImport(body, params, query);
 }
 
-export async function getInventoryBulkImportJobid(body: any, params: any, query: any) {
+export async function getInventoryBulkImportJobid(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Poll bulk import job status and progress
   return repository.getInventoryBulkImportJobid(body, params, query);
 }
@@ -65,8 +112,11 @@ export async function getInventoryExport(body: any, params: any, query: any) {
   return repository.getInventoryExport(body, params, query);
 }
 
-export async function getInventoryPublicDealerid(body: any, params: any, query: any) {
+export async function getInventoryPublicDealerid(
+  body: any,
+  params: any,
+  query: any,
+) {
   // Get dealer's public inventory for consumer app
   return repository.getInventoryPublicDealerid(body, params, query);
 }
-

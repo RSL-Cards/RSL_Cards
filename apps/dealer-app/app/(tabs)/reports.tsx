@@ -13,7 +13,7 @@ import {
   MOCK_WEEKLY_REPORT,
 } from "../../src/constants/mockData";
 import { format } from "date-fns";
-import { AnalyticsErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+// import { AnalyticsErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 type Period = "today" | "week" | "month";
 
@@ -444,14 +444,8 @@ function ReportsScreen() {
   );
 }
 
-// Export wrapped with error boundary
-export default function ReportsScreenWithBoundary() {
-  return (
-    <AnalyticsErrorBoundary>
-      <ReportsScreen />
-    </AnalyticsErrorBoundary>
-  );
-}
+// Export without error boundary
+export default ReportsScreen;
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },

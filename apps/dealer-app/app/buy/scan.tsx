@@ -1,37 +1,72 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react'
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Dimensions } from 'react-native'
-import { useRouter } from 'expo-router'
-import { FlashList } from '@shopify/flash-list'
-import { MOCK_CARD_SEARCH_RESULTS } from '../../src/constants/mockData'
-import { useDealTabStore } from '../../src/stores/dealTabStore'
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+  FlatList,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
+import { useDealTabStore } from "../../src/stores/dealTabStore";
+import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-type Tab = 'scan' | 'barcode' | 'search'
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+type Tab = "scan" | "barcode" | "search";
 
-const STEP_PCT = '20%'
+const STEP_PCT = "20%";
 
 export default function BuyScanScreen() {
-  const router = useRouter()
-  const addTab = useDealTabStore(s => s.addTab)
-  const [activeTab, setActiveTab] = useState<Tab>('scan')
-  const [query, setQuery] = useState('')
+  const router = useRouter();
+  const addTab = useDealTabStore((s) => s.addTab);
+  const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [query, setQuery] = useState("");
 
-  const filtered = MOCK_CARD_SEARCH_RESULTS.filter(c =>
-    c.player_name.toLowerCase().includes(query.toLowerCase()) ||
-    c.set_name.toLowerCase().includes(query.toLowerCase())
-  )
+  const filtered = MOCK_CARD_SEARCH_RESULTS.filter(
+    (c) =>
+      c.player_name.toLowerCase().includes(query.toLowerCase()) ||
+      c.set_name.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const cameraRef = useRef<CameraView>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const { mutate: scanImage, isPending: isScanning } = useCardScan();
+  const { mutate: scanBarcode, isPending: isScanningBarcode } =
+    useBarcodeScan();
+
+  const handleCapture = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.7,
+      });
+
+      if (photo.base64) {
+        scanImage(photo.base64);
+      }
+    } catch (error) {
+      console.error("Camera capture failed:", error);
+    }
+  };
 
   const handleSimulateScan = () => {
-        const card = MOCK_CARD_SEARCH_RESULTS[0]
-    addTab({ type: 'buy', step: 2, cardData: card })
-    router.push('/buy/comps')
-  }
+    // Fallback for testing without camera
+    const card = MOCK_CARD_SEARCH_RESULTS[0];
+    addTab({ type: "buy", step: 2, cardData: card });
+    router.push("/buy/comps");
+  };
 
-  const handleSelectCard = (card: typeof MOCK_CARD_SEARCH_RESULTS[0]) => {
-        addTab({ type: 'buy', step: 2, cardData: card })
-    router.push('/buy/comps')
-  }
+  const handleSelectCard = (card: (typeof MOCK_CARD_SEARCH_RESULTS)[0]) => {
+    addTab({ type: "buy", step: 2, cardData: card });
+    router.push("/buy/comps");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,13 +85,15 @@ export default function BuyScanScreen() {
 
       {/* Tab bar */}
       <View style={styles.tabBar}>
-        {(['scan', 'barcode', 'search'] as Tab[]).map(t => (
+        {(["scan", "barcode", "search"] as Tab[]).map((t) => (
           <TouchableOpacity
             key={t}
             style={[styles.tab, activeTab === t && styles.tabActive]}
             onPress={() => setActiveTab(t)}
           >
-            <Text style={[styles.tabText, activeTab === t && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, activeTab === t && styles.tabTextActive]}
+            >
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </Text>
           </TouchableOpacity>
@@ -64,50 +101,124 @@ export default function BuyScanScreen() {
       </View>
 
       {/* SCAN tab */}
-      {activeTab === 'scan' && (
+      {activeTab === "scan" && (
         <View style={styles.scanContent}>
-          <View style={styles.cameraArea}>
-            {/* Corner brackets */}
-            {[
-              { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-              { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2 },
-              { bottom: 16, left: 16, borderBottomWidth: 2, borderLeftWidth: 2 },
-              { bottom: 16, right: 16, borderBottomWidth: 2, borderRightWidth: 2 },
-            ].map((corner, i) => (
-              <View key={i} style={[styles.corner, corner as any]} />
-            ))}
-            <Text style={{ fontSize: 48, marginBottom: 12 }}>📷</Text>
-            <Text style={{ color: '#888888', fontSize: 14 }}>Point at card front</Text>
-          </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleSimulateScan} activeOpacity={0.85}>
-            <Text style={styles.primaryBtnText}>Simulate Card Scan</Text>
-          </TouchableOpacity>
+          {!permission?.granted ? (
+            <View style={styles.permissionContainer}>
+              <Text style={styles.permissionText}>
+                Camera permission needed to scan cards
+              </Text>
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={requestPermission}
+              >
+                <Text style={styles.primaryBtnText}>Grant Permission</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.cameraContainer}>
+                <CameraView
+                  ref={cameraRef}
+                  style={styles.camera}
+                  facing="back"
+                  mode="picture"
+                />
+                {/* Corner brackets overlay */}
+                {[
+                  { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
+                  {
+                    top: 16,
+                    right: 16,
+                    borderTopWidth: 2,
+                    borderRightWidth: 2,
+                  },
+                  {
+                    bottom: 16,
+                    left: 16,
+                    borderBottomWidth: 2,
+                    borderLeftWidth: 2,
+                  },
+                  {
+                    bottom: 16,
+                    right: 16,
+                    borderBottomWidth: 2,
+                    borderRightWidth: 2,
+                  },
+                ].map((corner, i) => (
+                  <View key={i} style={[styles.corner, corner as any]} />
+                ))}
+                {(isScanning || isScanningBarcode) && (
+                  <View style={styles.scanningOverlay}>
+                    <ActivityIndicator color="#0057FF" size="large" />
+                    <Text style={styles.scanningText}>Identifying card...</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.primaryBtn,
+                  (isScanning || isScanningBarcode) && styles.disabledBtn,
+                ]}
+                onPress={handleCapture}
+                activeOpacity={0.85}
+                disabled={isScanning || isScanningBarcode}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {isScanning ? "Scanning..." : "Capture Card"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.simulateBtn}
+                onPress={handleSimulateScan}
+                disabled={isScanning || isScanningBarcode}
+              >
+                <Text style={styles.simulateText}>Simulate Scan (Debug)</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
 
       {/* BARCODE tab */}
-      {activeTab === 'barcode' && (
+      {activeTab === "barcode" && (
         <View style={styles.scanContent}>
           <View style={[styles.cameraArea, { aspectRatio: 2 }]}>
             {[
               { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
               { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2 },
-              { bottom: 16, left: 16, borderBottomWidth: 2, borderLeftWidth: 2 },
-              { bottom: 16, right: 16, borderBottomWidth: 2, borderRightWidth: 2 },
+              {
+                bottom: 16,
+                left: 16,
+                borderBottomWidth: 2,
+                borderLeftWidth: 2,
+              },
+              {
+                bottom: 16,
+                right: 16,
+                borderBottomWidth: 2,
+                borderRightWidth: 2,
+              },
             ].map((corner, i) => (
               <View key={i} style={[styles.corner, corner as any]} />
             ))}
             <Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text>
-            <Text style={{ color: '#888888', fontSize: 14 }}>Point at barcode / cert #</Text>
+            <Text style={{ color: "#888888", fontSize: 14 }}>
+              Point at barcode / cert #
+            </Text>
           </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleSimulateScan} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={handleSimulateScan}
+            activeOpacity={0.85}
+          >
             <Text style={styles.primaryBtnText}>Simulate Barcode Scan</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {/* SEARCH tab */}
-      {activeTab === 'search' && (
+      {activeTab === "search" && (
         <View style={{ flex: 1, paddingTop: 16 }}>
           <View style={styles.searchRow}>
             <Text style={styles.searchIcon}>🔍</Text>
@@ -120,9 +231,8 @@ export default function BuyScanScreen() {
               autoFocus
             />
           </View>
-          <FlashList
+          <FlatList
             data={filtered}
-            {...{ estimatedItemSize: 64 } as any}
             keyExtractor={(item: any) => item.id}
             renderItem={({ item }: any) => (
               <TouchableOpacity
@@ -131,8 +241,13 @@ export default function BuyScanScreen() {
                 activeOpacity={0.75}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.searchResultName}>{item.player_name}</Text>
-                  <Text style={styles.searchResultMeta}>{item.year} · {item.set_name}{item.variation ? ` · ${item.variation}` : ''}</Text>
+                  <Text style={styles.searchResultName}>
+                    {item.player_name}
+                  </Text>
+                  <Text style={styles.searchResultMeta}>
+                    {item.year} · {item.set_name}
+                    {item.variation ? ` · ${item.variation}` : ""}
+                  </Text>
                 </View>
                 <View style={styles.sportChip}>
                   <Text style={styles.sportChipText}>{item.sport}</Text>
@@ -143,52 +258,151 @@ export default function BuyScanScreen() {
         </View>
       )}
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: "#000000" },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
-  closeBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  closeBtnText: { color: '#888888', fontSize: 20 },
-  headerTitle: { color: 'white', fontSize: 16, fontWeight: '700' },
-  progressBar: { height: 3, backgroundColor: '#1A1A1A' },
-  progressFill: { height: 3, backgroundColor: '#0057FF' },
-  tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#2A2A2A' },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: '#0057FF' },
-  tabText: { color: '#555555', fontSize: 14, fontWeight: '600' },
-  tabTextActive: { color: 'white', fontWeight: '700' },
-  scanContent: { flex: 1, paddingHorizontal: 20, paddingTop: 24, alignItems: 'center' },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeBtnText: { color: "#888888", fontSize: 20 },
+  headerTitle: { color: "white", fontSize: 16, fontWeight: "700" },
+  progressBar: { height: 3, backgroundColor: "#1A1A1A" },
+  progressFill: { height: 3, backgroundColor: "#0057FF" },
+  tabBar: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#2A2A2A",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabActive: { borderBottomColor: "#0057FF" },
+  tabText: { color: "#555555", fontSize: 14, fontWeight: "600" },
+  tabTextActive: { color: "white", fontWeight: "700" },
+  scanContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    alignItems: "center",
+  },
+  cameraContainer: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 20,
+    overflow: "hidden",
+    position: "relative",
+    marginBottom: 24,
+    backgroundColor: "#0D0D0D",
+  },
+  camera: {
+    width: "100%",
+    height: "100%",
+  },
   cameraArea: {
-    width: '100%', aspectRatio: 1, backgroundColor: '#0D0D0D',
-    borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-    position: 'relative', marginBottom: 24,
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#0D0D0D",
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginBottom: 24,
   },
   corner: {
-    position: 'absolute', width: 20, height: 20, borderColor: 'white',
+    position: "absolute",
+    width: 20,
+    height: 20,
+    borderColor: "white",
+  },
+  permissionContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  permissionText: {
+    color: "#888888",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  scanningOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+  },
+  scanningText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 16,
+  },
+  disabledBtn: {
+    opacity: 0.6,
+  },
+  simulateBtn: {
+    marginTop: 12,
+    padding: 12,
+  },
+  simulateText: {
+    color: "#555555",
+    fontSize: 14,
   },
   primaryBtn: {
-    backgroundColor: '#0057FF', height: 56, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', width: '100%',
+    backgroundColor: "#0057FF",
+    height: 56,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
-  primaryBtnText: { color: 'white', fontWeight: '700', fontSize: 16 },
+  primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
   searchRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1A1A1A', borderRadius: 12, marginHorizontal: 20,
-    paddingHorizontal: 14, marginBottom: 8, borderWidth: 1, borderColor: '#2A2A2A',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12,
+    marginHorizontal: 20,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
   },
   searchIcon: { fontSize: 18, marginRight: 8 },
-  searchInput: { flex: 1, height: 48, color: 'white', fontSize: 15 },
+  searchInput: { flex: 1, height: 48, color: "white", fontSize: 15 },
   searchResultRow: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20,
-    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1A1A1A',
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A1A1A",
   },
-  searchResultName: { color: 'white', fontWeight: '600', fontSize: 15 },
-  searchResultMeta: { color: '#888888', fontSize: 12, marginTop: 2 },
-  sportChip: { backgroundColor: '#1A1A1A', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  sportChipText: { color: '#888888', fontSize: 11, fontWeight: '600' },
-})
+  searchResultName: { color: "white", fontWeight: "600", fontSize: 15 },
+  searchResultMeta: { color: "#888888", fontSize: 12, marginTop: 2 },
+  sportChip: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  sportChipText: { color: "#888888", fontSize: 11, fontWeight: "600" },
+});

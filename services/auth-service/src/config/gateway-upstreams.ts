@@ -11,7 +11,21 @@ export type GatewayUpstreamKey =
   | "analytics"
   | "admin";
 
-export const GATEWAY_ROUTES: { prefix: string; upstreamKey: GatewayUpstreamKey }[] = [
+export const GATEWAY_ROUTES: {
+  prefix: string;
+  upstreamKey: GatewayUpstreamKey;
+}[] = [
+  // Support both /v1/prefix and /prefix for flexibility
+  { prefix: "/v1/users", upstreamKey: "user" },
+  { prefix: "/v1/inventory", upstreamKey: "inventory" },
+  { prefix: "/v1/transactions", upstreamKey: "transaction" },
+  { prefix: "/v1/listings", upstreamKey: "listing" },
+  { prefix: "/v1/cards", upstreamKey: "cardDb" },
+  { prefix: "/v1/narratives", upstreamKey: "narrative" },
+  { prefix: "/v1/notifications", upstreamKey: "notification" },
+  { prefix: "/v1/analytics", upstreamKey: "analytics" },
+  { prefix: "/v1/admin", upstreamKey: "admin" },
+  // Also support non-v1 prefixes for direct service calls
   { prefix: "/users", upstreamKey: "user" },
   { prefix: "/inventory", upstreamKey: "inventory" },
   { prefix: "/transactions", upstreamKey: "transaction" },

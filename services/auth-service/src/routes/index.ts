@@ -16,6 +16,7 @@ import {
 } from "../middleware/gateway-jwt.js";
 import { authRoutes } from "./auth.routes.js";
 import { healthRoutes } from "./health.routes.js";
+import { registerGatewayProxy } from "../plugins/gateway-proxy.js";
 import type { Env } from "../config/env.js";
 
 // ─── Reusable preHandler factories ───────────────────────────────────────────
@@ -192,4 +193,8 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: Env) {
 
   await authRoutes(fastifyApp, env);
   await healthRoutes(fastifyApp, env);
+
+  // ── Gateway proxy for other microservices (JWT validated, then proxied)
+  // Routes: /users, /inventory, /transactions, /listings, /cards, etc.
+  await registerGatewayProxy(fastifyApp, env);
 }

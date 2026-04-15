@@ -5,15 +5,15 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { FlashList } from "@shopify/flash-list";
 import {
   MOCK_INVENTORY,
   MOCK_INVENTORY_SUMMARY,
 } from "../../src/constants/mockData";
-import { InventoryErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+// import { InventoryErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 const SPORTS = [
   { key: "All", emoji: "🏆" },
@@ -321,9 +321,8 @@ function InventoryScreen() {
       />
 
       {/* ── LIST ── */}
-      <FlashList
+      <FlatList
         data={filtered}
-        {...({ estimatedItemSize: 148 } as any)}
         keyExtractor={(item: any) => item.id}
         renderItem={({ item }: any) => <InventoryCard item={item} />}
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
@@ -488,11 +487,5 @@ const styles = StyleSheet.create({
   daysText: { fontSize: 11, fontWeight: "600" },
 });
 
-// Export wrapped with error boundary
-export default function InventoryScreenWithBoundary() {
-  return (
-    <InventoryErrorBoundary>
-      <InventoryScreen />
-    </InventoryErrorBoundary>
-  );
-}
+// Export without error boundary for now
+export default InventoryScreen;
