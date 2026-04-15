@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Dimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import { FlashList } from '@shopify/flash-list'
-import * as Haptics from 'expo-haptics'
 import { MOCK_CARD_SEARCH_RESULTS } from '../../src/constants/mockData'
 import { useDealTabStore } from '../../src/stores/dealTabStore'
 
@@ -24,15 +23,13 @@ export default function BuyScanScreen() {
   )
 
   const handleSimulateScan = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    const card = MOCK_CARD_SEARCH_RESULTS[0]
+        const card = MOCK_CARD_SEARCH_RESULTS[0]
     addTab({ type: 'buy', step: 2, cardData: card })
     router.push('/buy/comps')
   }
 
   const handleSelectCard = (card: typeof MOCK_CARD_SEARCH_RESULTS[0]) => {
-    Haptics.selectionAsync()
-    addTab({ type: 'buy', step: 2, cardData: card })
+        addTab({ type: 'buy', step: 2, cardData: card })
     router.push('/buy/comps')
   }
 

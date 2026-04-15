@@ -7,9 +7,8 @@ import {
   Animated,
 } from "react-native";
 import { useRef } from "react";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
 import {
   MOCK_TODAY_STATS,
   MOCK_AI_NARRATIVE,
@@ -21,6 +20,12 @@ import { useAuthStore } from "../../src/stores/authStore";
 export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const initials = (user?.displayName ?? user?.email ?? "U")
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
   const tabs = useDealTabStore((s) => s.tabs);
   const removeTab = useDealTabStore((s) => s.removeTab);
 
@@ -43,7 +48,6 @@ export default function HomeScreen() {
         speed: 20,
       }),
     ]).start();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     router.push("/buy/scan");
   };
 
@@ -60,15 +64,11 @@ export default function HomeScreen() {
         speed: 20,
       }),
     ]).start();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     router.push("/sell/scan");
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#000000" }}
-     
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -129,7 +129,7 @@ export default function HomeScreen() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <TouchableOpacity
-              onPress={() => {}}
+              onPress={() => router.push("/notifications/index")}
               style={{ position: "relative" }}
             >
               <Text style={{ fontSize: 22 }}>🔔</Text>
@@ -164,7 +164,7 @@ export default function HomeScreen() {
               }}
             >
               <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>
-                {user?.initials || "MS"}
+                {initials}
               </Text>
             </View>
           </View>

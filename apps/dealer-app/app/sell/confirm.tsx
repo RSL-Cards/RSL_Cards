@@ -2,7 +2,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
 import { useRouter } from 'expo-router'
-import * as Haptics from 'expo-haptics'
 import { MOCK_COMPS } from '../../src/constants/mockData'
 
 const STEP_PCT = '100%'
@@ -19,8 +18,7 @@ export default function SellConfirmScreen() {
 
   useEffect(() => {
     if (confirmed) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      Animated.parallel([
+            Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
       ]).start()

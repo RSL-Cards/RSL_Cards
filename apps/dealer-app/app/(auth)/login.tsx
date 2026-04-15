@@ -9,33 +9,26 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuthStore } from "../../src/stores/authStore";
+import { useLogin } from "../../src/hooks/useAuth";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState("");
 
-  const DEMO_EMAIL = "demo@rslcards.com";
-  const DEMO_PASSWORD = "Demo1234!";
+  const { mutate: login, isPending, error } = useLogin();
+
+  const errorMsg = error
+    ? (error as any)?.response?.data?.message || "Invalid email or password"
+    : null;
 
   const handleSignIn = () => {
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-    if (email.toLowerCase() !== DEMO_EMAIL || password !== DEMO_PASSWORD) {
-      setError("Invalid credentials. Use the demo account below.");
-      return;
-    }
-    setError("");
-    login();
-    router.replace("/(tabs)");
+    if (!email || !password) return;
+    login({ email: email.trim().toLowerCase(), password });
   };
 
   return (
@@ -98,14 +91,15 @@ export default function LoginScreen() {
                 <Text style={styles.forgotText}>Forgot Password?</Text>
               </TouchableOpacity>
 
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              {errorMsg ? (
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              ) : null}
 
               <TouchableOpacity
                 style={styles.demoFillBtn}
                 onPress={() => {
                   setEmail("demo@rslcards.com");
                   setPassword("Demo1234!");
-                  setError("");
                 }}
               >
                 <Text style={styles.demoHint}>
@@ -117,9 +111,14 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={styles.signInBtn}
                 onPress={handleSignIn}
+                disabled={isPending}
                 activeOpacity={0.85}
               >
-                <Text style={styles.signInBtnText}>Sign In</Text>
+                {isPending ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.signInBtnText}>Sign In</Text>
+                )}
               </TouchableOpacity>
             </View>
 

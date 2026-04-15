@@ -1,22 +1,40 @@
-import type { Env } from '../config/env.js';
-import * as repo from '../repositories/main.repository.js';
-import { hashPassword, comparePassword, hashToken } from '../utils/crypto.js';
-import { generateTokens, verifyToken } from '../utils/jwt.js';
-import type { RegisterBody, LoginBody, RefreshBody, LogoutBody } from '../types/schemas.js';
-import { AuthError, AuthErrorCode } from '../errors/definitions.js';
+import type { Env } from "../config/env.js";
+import * as repo from "../repositories/main.repository.js";
 
-export async function registerUser(env: Env, body: RegisterBody, ipAddress?: string | null, deviceInfo?: string | null) {
+import { hashPassword, comparePassword, hashToken } from "../utils/crypto.js";
+import { generateTokens, verifyToken } from "../utils/jwt.js";
+import type {
+  RegisterBody,
+  LoginBody,
+  RefreshBody,
+  LogoutBody,
+} from "../types/schemas.js";
+import { AuthError, AuthErrorCode } from "../errors/definitions.js";
+
+export async function registerUser(
+  env: Env,
+  body: RegisterBody,
+  ipAddress?: string | null,
+  deviceInfo?: string | null,
+) {
   const existingUser = await repo.getUserByEmail(env, body.email);
   if (existingUser) {
     throw AuthError.userAlreadyExists();
   }
 
   const pwdHash = await hashPassword(body.password);
-  const newUser = await repo.createUser(env, { email: body.email, passwordHash: pwdHash, role: body.role as any });
+  const newUser = await repo.createUser(env, {
+    email: body.email,
+    passwordHash: pwdHash,
+    role: body.role as any,
+  });
 
-  const tokens = generateTokens({ userId: newUser.id, role: newUser.role }, env);
+  const tokens = generateTokens(
+    { userId: newUser.id, role: newUser.role },
+    env,
+  );
   const refreshTokenHash = hashToken(tokens.refreshToken);
-  
+
   // Calculate expiration date (fallback to +7d if verify fails structure)
   let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   try {
@@ -26,15 +44,37 @@ export async function registerUser(env: Env, body: RegisterBody, ipAddress?: str
     }
   } catch (e) {}
 
-  await repo.updateRefreshToken(env, newUser.id, refreshTokenHash, expiresAt, ipAddress, deviceInfo);
+  await repo.updateRefreshToken(
+    env,
+    newUser.id,
+    refreshTokenHash,
+    expiresAt,
+    ipAddress,
+    deviceInfo,
+  );
+
+  const profile = await repo.getDealerProfile(env, newUser.id);
 
   return {
-    user: { id: newUser.id, email: newUser.email, role: newUser.role },
-    tokens
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      displayName: profile?.displayName ?? newUser.email.split("@")[0],
+      onboardingCompleted: !!(
+        profile?.sports?.length && profile?.sellChannels?.length
+      ),
+    },
+    tokens,
   };
 }
 
-export async function loginUser(env: Env, body: LoginBody, ipAddress?: string | null, deviceInfo?: string | null) {
+export async function loginUser(
+  env: Env,
+  body: LoginBody,
+  ipAddress?: string | null,
+  deviceInfo?: string | null,
+) {
   const user = await repo.getUserByEmail(env, body.email);
   if (!user || !user.passwordHash) {
     throw AuthError.invalidCredentials();
@@ -47,7 +87,7 @@ export async function loginUser(env: Env, body: LoginBody, ipAddress?: string | 
 
   const tokens = generateTokens({ userId: user.id, role: user.role }, env);
   const refreshTokenHash = hashToken(tokens.refreshToken);
-  
+
   let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   try {
     const decoded = verifyToken(tokens.refreshToken, env);
@@ -56,38 +96,68 @@ export async function loginUser(env: Env, body: LoginBody, ipAddress?: string | 
     }
   } catch (e) {}
 
-  await repo.updateRefreshToken(env, user.id, refreshTokenHash, expiresAt, ipAddress, deviceInfo);
+  await repo.updateRefreshToken(
+    env,
+    user.id,
+    refreshTokenHash,
+    expiresAt,
+    ipAddress,
+    deviceInfo,
+  );
+
+  const profile = await repo.getDealerProfile(env, user.id);
 
   return {
-    user: { id: user.id, email: user.email, role: user.role },
-    tokens
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      displayName: profile?.displayName ?? user.email.split("@")[0],
+      onboardingCompleted: !!(
+        profile?.sports?.length && profile?.sellChannels?.length
+      ),
+    },
+    tokens,
   };
 }
 
-export async function refreshTokens(env: Env, body: RefreshBody, ipAddress?: string | null, deviceInfo?: string | null) {
+export async function refreshTokens(
+  env: Env,
+  body: RefreshBody,
+  ipAddress?: string | null,
+  deviceInfo?: string | null,
+) {
   let decoded;
   try {
     decoded = verifyToken(body.refreshToken, env);
   } catch (err) {
-    throw new AuthError(AuthErrorCode.INVALID_REFRESH_TOKEN, 'Invalid or expired refresh token', 401);
+    throw new AuthError(
+      AuthErrorCode.INVALID_REFRESH_TOKEN,
+      "Invalid or expired refresh token",
+      401,
+    );
   }
 
   const user = await repo.getUserById(env, decoded.userId);
   if (!user) {
-    throw new AuthError(AuthErrorCode.USER_NOT_FOUND, 'User not found', 404);
+    throw new AuthError(AuthErrorCode.USER_NOT_FOUND, "User not found", 404);
   }
 
   const incomingHash = hashToken(body.refreshToken);
   const tokenRecord = await repo.getRefreshToken(env, incomingHash);
-  
+
   if (!tokenRecord || tokenRecord.userId !== user.id) {
     // Stolen token reuse attempt OR token no longer exists
-    throw new AuthError(AuthErrorCode.INVALID_REFRESH_TOKEN, 'Invalid refresh token', 401);
+    throw new AuthError(
+      AuthErrorCode.INVALID_REFRESH_TOKEN,
+      "Invalid refresh token",
+      401,
+    );
   }
 
   const newTokens = generateTokens({ userId: user.id, role: user.role }, env);
   const newHash = hashToken(newTokens.refreshToken);
-  
+
   let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   try {
     const decodedNew = verifyToken(newTokens.refreshToken, env);
@@ -95,8 +165,15 @@ export async function refreshTokens(env: Env, body: RefreshBody, ipAddress?: str
       expiresAt = new Date(decodedNew.exp * 1000);
     }
   } catch (e) {}
-  
-  await repo.updateRefreshToken(env, user.id, newHash, expiresAt, ipAddress, deviceInfo);
+
+  await repo.updateRefreshToken(
+    env,
+    user.id,
+    newHash,
+    expiresAt,
+    ipAddress,
+    deviceInfo,
+  );
 
   return { tokens: newTokens };
 }

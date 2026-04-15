@@ -2,7 +2,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
-import * as Haptics from 'expo-haptics'
 
 const STEP_PCT = '80%'
 
@@ -43,8 +42,7 @@ export default function BuyPaymentScreen() {
               key={m.key}
               style={[styles.methodCard, selected === m.key && styles.methodCardSelected]}
               onPress={() => {
-                Haptics.selectionAsync()
-                setSelected(m.key)
+                                setSelected(m.key)
               }}
               activeOpacity={0.75}
             >
