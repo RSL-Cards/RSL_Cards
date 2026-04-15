@@ -53,12 +53,18 @@ export async function patchUsersMe(_body: any, _params: any, _query: any) {
   return { message: `Update profile (name, bio, photo, sports, channels)` };
 }
 
-export async function getUsersMePaymentMethods(
-  _body: any,
-  _params: any,
-  _query: any,
-) {
-  return { message: `Get all saved payment methods (Venmo, Zelle etc)` };
+export async function getUsersMePaymentMethods(env: any, userId: string) {
+  const db = getDb(env);
+  const methods = await db
+    .select()
+    .from(paymentMethods as any)
+    .where(eq((paymentMethods as any).userId, userId));
+  return methods.map((m: any) => ({
+    id: m.id,
+    type: m.type,
+    handle: m.handle,
+    isDefault: m.isDefault,
+  }));
 }
 
 export async function postUsersMePaymentMethods(
@@ -85,12 +91,12 @@ export async function deleteUsersMePaymentMethodsId(
   return { message: `Remove payment method` };
 }
 
-export async function getUsersMeConnectedPlatforms(
-  _body: any,
-  _params: any,
-  _query: any,
-) {
-  return { message: `Get all connected selling platforms` };
+export async function getUsersMeConnectedPlatforms(env: any, userId: string) {
+  // TODO: Query connectedPlatforms table when implemented
+  // For now return empty array - platforms are connected via OAuth flows
+  void env;
+  void userId;
+  return [];
 }
 
 export async function postUsersMeConnectedPlatforms(

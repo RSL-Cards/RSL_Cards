@@ -3,13 +3,14 @@ import * as controller from "../controllers/main.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 import { updateOnboarding } from "../repositories/main.repository.js";
 
+const withInternalAuth = (env: any) => (req: any, reply: any) =>
+  internalAuthPreHandler(env, req, reply);
+
 export async function registerRoutes(app: FastifyInstance, env: any) {
   app.post(
     "/v1/users/me/onboarding",
     {
-      preHandler: [
-        (req: any, reply: any) => internalAuthPreHandler(env, req, reply),
-      ],
+      preHandler: [withInternalAuth(env)],
     },
     async (request: any, reply: any) => {
       const userId = request.headers["x-user-id"] as string;
@@ -22,25 +23,34 @@ export async function registerRoutes(app: FastifyInstance, env: any) {
 
   app.get("/v1/users/me", controller.getUsersMe);
   app.patch("/v1/users/me", controller.patchUsersMe);
-  app.get("/v1/users/me/payment-methods", controller.getUsersMePaymentMethods);
+  app.get(
+    "/v1/users/me/payment-methods",
+    { preHandler: [withInternalAuth(env)] },
+    controller.getUsersMePaymentMethods,
+  );
   app.post(
     "/v1/users/me/payment-methods",
+    { preHandler: [withInternalAuth(env)] },
     controller.postUsersMePaymentMethods,
   );
   app.patch(
     "/v1/users/me/payment-methods/:id",
+    { preHandler: [withInternalAuth(env)] },
     controller.patchUsersMePaymentMethodsId,
   );
   app.delete(
     "/v1/users/me/payment-methods/:id",
+    { preHandler: [withInternalAuth(env)] },
     controller.deleteUsersMePaymentMethodsId,
   );
   app.get(
     "/v1/users/me/connected-platforms",
+    { preHandler: [withInternalAuth(env)] },
     controller.getUsersMeConnectedPlatforms,
   );
   app.post(
     "/v1/users/me/connected-platforms",
+    { preHandler: [withInternalAuth(env)] },
     controller.postUsersMeConnectedPlatforms,
   );
   app.delete(

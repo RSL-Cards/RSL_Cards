@@ -46,9 +46,11 @@ export const ENDPOINTS = {
   },
 
   users: {
-    me: "/v1/users/me",
-    updateProfile: "/v1/users/me",
-    preferences: "/v1/users/me/preferences",
+    me: "/v1/auth/me", // auth-service validates JWT, proxies to user-service
+    updateProfile: "/v1/auth/me",
+    preferences: "/v1/auth/me/preferences",
+    paymentMethods: "/v1/auth/me/payment-methods", // auth → user-service (internal)
+    connectedPlatforms: "/v1/auth/me/connected-platforms", // auth → user-service (internal)
   },
 
   inventory: {

@@ -10,6 +10,12 @@ import {
 import { useRouter } from "expo-router";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
+import {
+  usePaymentMethods,
+  paymentMethodIcon,
+  useFetchOnFocus,
+} from "../../src/hooks/useProfile";
+import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 function SettingsRow({
   icon,
@@ -49,10 +55,15 @@ function SectionCard({ children }: { children: React.ReactNode }) {
   return <View style={styles.sectionCard}>{children}</View>;
 }
 
-export default function MoreScreen() {
+function MoreScreen() {
   const router = useRouter();
   const { mutate: logout } = useLogout();
   const user = useAuthStore((s) => s.user);
+
+  // Only fetch data when screen is focused (user clicks More tab)
+  const hasFocused = useFetchOnFocus();
+
+  const { data: paymentMethods } = usePaymentMethods(hasFocused);
   const initials = (user?.displayName ?? user?.email ?? "U")
     .split(" ")
     .map((w: string) => w[0])
@@ -127,29 +138,58 @@ export default function MoreScreen() {
         {/* Platforms */}
         <Text style={styles.sectionLabel}>PLATFORMS</Text>
         <SectionCard>
-          <SettingsRow icon="🛒" label="eBay" value="🟢 MikeSherrer1987" />
-          <SettingsRow icon="📺" label="Whatnot" value="🟢 Connected" />
-          <SettingsRow icon="🎮" label="TCGPlayer" value="⚫ Not connected" />
+          <SettingsRow
+            icon="🛒"
+            label="eBay"
+            value="⚫ Connect"
+            onPress={() =>
+              router.push("/settings/connect-platform?platform=ebay")
+            }
+          />
+          <SettingsRow
+            icon="📺"
+            label="Whatnot"
+            value="⚫ Connect"
+            onPress={() =>
+              router.push("/settings/connect-platform?platform=whatnot")
+            }
+          />
+          <SettingsRow
+            icon="🎮"
+            label="TCGPlayer"
+            value="⚫ Connect"
+            onPress={() =>
+              router.push("/settings/connect-platform?platform=tcgplayer")
+            }
+          />
           <SettingsRow
             icon="🏪"
             label="Shopify"
-            value="⚫ Not connected"
+            value="⚫ Connect"
+            onPress={() =>
+              router.push("/settings/connect-platform?platform=shopify")
+            }
             isLast
           />
         </SectionCard>
 
         {/* Payments */}
-        <Text style={styles.sectionLabel}>PAYMENTS</Text>
-        <SectionCard>
-          <SettingsRow icon="💜" label="Venmo" value="@MikeSherrer" />
-          <SettingsRow icon="💚" label="CashApp" value="$MikeSherrer" />
-          <SettingsRow
-            icon="💙"
-            label="Zelle"
-            value="mike@rslcards.com"
-            isLast
-          />
-        </SectionCard>
+        {paymentMethods && paymentMethods.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>PAYMENTS</Text>
+            <SectionCard>
+              {paymentMethods.map((pm, i) => (
+                <SettingsRow
+                  key={pm.id}
+                  icon={paymentMethodIcon(pm.type)}
+                  label={pm.type.charAt(0).toUpperCase() + pm.type.slice(1)}
+                  value={pm.handle}
+                  isLast={i === paymentMethods.length - 1}
+                />
+              ))}
+            </SectionCard>
+          </>
+        )}
 
         {/* Data */}
         <Text style={styles.sectionLabel}>DATA & EXPORTS</Text>
@@ -182,6 +222,15 @@ export default function MoreScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Export wrapped with error boundary
+export default function MoreScreenWithBoundary() {
+  return (
+    <UserErrorBoundary>
+      <MoreScreen />
+    </UserErrorBoundary>
   );
 }
 

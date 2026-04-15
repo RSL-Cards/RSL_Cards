@@ -13,6 +13,7 @@ import {
   MOCK_INVENTORY,
   MOCK_INVENTORY_SUMMARY,
 } from "../../src/constants/mockData";
+import { InventoryErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 const SPORTS = [
   { key: "All", emoji: "🏆" },
@@ -191,7 +192,7 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
   );
 }
 
-export default function InventoryScreen() {
+function InventoryScreen() {
   const [selectedSport, setSelectedSport] = useState("All");
 
   const filtered =
@@ -486,3 +487,12 @@ const styles = StyleSheet.create({
   pctText: { fontSize: 11, fontWeight: "700" },
   daysText: { fontSize: 11, fontWeight: "600" },
 });
+
+// Export wrapped with error boundary
+export default function InventoryScreenWithBoundary() {
+  return (
+    <InventoryErrorBoundary>
+      <InventoryScreen />
+    </InventoryErrorBoundary>
+  );
+}

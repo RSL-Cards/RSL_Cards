@@ -121,6 +121,34 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: Env) {
   app.post("/v1/auth/device-token", controller.postAuthDeviceToken);
   app.delete("/v1/auth/device-token", controller.deleteAuthDeviceToken);
 
+  // ── User profile proxy routes (JWT validated here, forwarded to user-service) ──
+
+  app.get(
+    "/v1/auth/me/payment-methods",
+    {
+      schema: {
+        ...AUTH_TAG,
+        ...BEARER_SEC,
+        description: "Get saved payment methods",
+      },
+      preHandler: [withAuth(env)],
+    },
+    controller.getAuthMePaymentMethods,
+  );
+
+  app.get(
+    "/v1/auth/me/connected-platforms",
+    {
+      schema: {
+        ...AUTH_TAG,
+        ...BEARER_SEC,
+        description: "Get connected selling platforms",
+      },
+      preHandler: [withAuth(env)],
+    },
+    controller.getAuthMeConnectedPlatforms,
+  );
+
   // ── Admin-only demo ───────────────────────────────────────────────────────
 
   app.post(

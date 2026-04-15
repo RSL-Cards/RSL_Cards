@@ -13,24 +13,40 @@ export interface InternalFetchResult<T = unknown> {
   data: T;
 }
 
+function makeHeaders(env: Env, userId: string) {
+  return {
+    "Content-Type": "application/json",
+    "x-service-key": env.INTERNAL_SERVICE_KEY,
+    "x-user-id": userId,
+  };
+}
+
 /**
  * Makes an authenticated internal service-to-service POST request.
- * Attaches `x-service-key` and `x-user-id` headers required by
- * the `internalAuthPreHandler` middleware on the target service.
+ * Attaches `x-service-key` and `x-user-id` headers.
  */
 export async function internalPost<T = unknown>(
   opts: InternalFetchOptions,
 ): Promise<InternalFetchResult<T>> {
   const res = await fetch(opts.url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-service-key": opts.env.INTERNAL_SERVICE_KEY,
-      "x-user-id": opts.userId,
-    },
+    headers: makeHeaders(opts.env, opts.userId),
     body: JSON.stringify(opts.body ?? {}),
   });
+  const data = (await res.json().catch(() => ({}))) as T;
+  return { ok: res.ok, status: res.status, data };
+}
 
-  const data = await res.json().catch(() => ({})) as T;
+/**
+ * Makes an authenticated internal service-to-service GET request.
+ */
+export async function internalGet<T = unknown>(
+  opts: Pick<InternalFetchOptions, "env" | "userId" | "url">,
+): Promise<InternalFetchResult<T>> {
+  const res = await fetch(opts.url, {
+    method: "GET",
+    headers: makeHeaders(opts.env, opts.userId),
+  });
+  const data = (await res.json().catch(() => ({}))) as T;
   return { ok: res.ok, status: res.status, data };
 }

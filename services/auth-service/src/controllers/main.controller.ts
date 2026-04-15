@@ -9,7 +9,7 @@ import {
   LogoutSchema,
 } from "../types/schemas.js";
 import { serviceOrigins } from "../config/gateway-upstreams.js";
-import { internalPost } from "../utils/internal-fetch.js";
+import { internalPost, internalGet } from "../utils/internal-fetch.js";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -76,6 +76,28 @@ export async function postAuthOnboarding(
   return reply
     .status(result.ok ? 200 : result.status)
     .send(result.ok ? { success: true } : result.data);
+}
+
+export async function getAuthMePaymentMethods(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const env = validateEnv();
+  const { userId } = (req as any).gatewayJwt;
+  const url = `${serviceOrigins(env).user}/v1/users/me/payment-methods`;
+  const result = await internalGet({ env, userId, url });
+  return reply.status(result.status).send(result.data);
+}
+
+export async function getAuthMeConnectedPlatforms(
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const env = validateEnv();
+  const { userId } = (req as any).gatewayJwt;
+  const url = `${serviceOrigins(env).user}/v1/users/me/connected-platforms`;
+  const result = await internalGet({ env, userId, url });
+  return reply.status(result.status).send(result.data);
 }
 
 // ─── Admin controllers ────────────────────────────────────────────────────────
