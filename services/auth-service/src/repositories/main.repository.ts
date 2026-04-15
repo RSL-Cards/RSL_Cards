@@ -5,11 +5,9 @@ import {
   dealerProfiles,
   consumerProfiles,
   userPreferences,
-  paymentMethods,
 } from "@rsl/shared-db";
 import { getDb } from "../config/db.js";
 import type { Env } from "../config/env.js";
-import type { OnboardingBody } from "../types/schemas.js";
 
 export type UserRow = {
   id: string;
@@ -121,6 +119,8 @@ export async function getDealerProfile(env: Env, userId: string) {
   return profile || null;
 }
 
+/// Removed: updateOnboarding moved to user-service
+
 export async function getRefreshToken(env: Env, tokenHash: string) {
   const db = getDb(env);
   const [tokenRecord] = (await db
@@ -129,41 +129,6 @@ export async function getRefreshToken(env: Env, tokenHash: string) {
     .where(eq((refreshTokens as any).tokenHash, tokenHash))
     .limit(1)) as any;
   return tokenRecord || null;
-}
-
-export async function updateOnboarding(
-  env: Env,
-  userId: string,
-  data: OnboardingBody,
-): Promise<void> {
-  const db = getDb(env);
-
-  await db.transaction(async (tx: any) => {
-    // Update dealer profile with sports + sell channels
-    await tx
-      .update(dealerProfiles as any)
-      .set({
-        sports: data.sports,
-        sellChannels: data.sellChannels,
-        updatedAt: new Date(),
-      })
-      .where(eq((dealerProfiles as any).userId, userId));
-
-    // Insert payment methods (skip empty handles)
-    if (data.paymentMethods && data.paymentMethods.length > 0) {
-      await tx
-        .delete(paymentMethods as any)
-        .where(eq((paymentMethods as any).userId, userId));
-      await tx.insert(paymentMethods as any).values(
-        data.paymentMethods.map((pm: any, i: number) => ({
-          userId,
-          type: pm.type,
-          handle: pm.handle,
-          isDefault: i === 0,
-        })),
-      );
-    }
-  });
 }
 
 /// Stubs for extended auth paths

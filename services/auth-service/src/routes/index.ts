@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { ZodTypeProvider } from "fastify-type-provider-zod";
 import * as controller from "../controllers/main.controller.js";
 import {
@@ -12,19 +12,35 @@ import {
   requireGatewayAccessToken,
   requireAdminRole,
 } from "../middleware/gateway-jwt.js";
-import { updateOnboarding } from "../repositories/main.repository.js";
 import { authRoutes } from "./auth.routes.js";
 import { healthRoutes } from "./health.routes.js";
+import type { Env } from "../config/env.js";
 
-export async function registerRoutes(fastifyApp: FastifyInstance, env: any) {
+// ─── Reusable preHandler factories ───────────────────────────────────────────
+
+const withAuth = (env: Env) => (req: FastifyRequest, res: FastifyReply) =>
+  requireGatewayAccessToken(env, req, res);
+
+const withAdminAuth = (env: Env) => [withAuth(env), requireAdminRole];
+
+// ─── Shared Swagger tag / security shorthand ──────────────────────────────────
+
+const AUTH_TAG = { tags: ["Auth"] } as const;
+const BEARER_SEC = { security: [{ bearerAuth: [] }] } as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function registerRoutes(fastifyApp: FastifyInstance, env: Env) {
   const app = fastifyApp.withTypeProvider<ZodTypeProvider>();
+
+  // ── Public auth routes ────────────────────────────────────────────────────
 
   app.post(
     "/v1/auth/register",
     {
       schema: {
+        ...AUTH_TAG,
         description: "Register a new user",
-        tags: ["Auth"],
         body: RegisterSchema,
       },
     },
@@ -35,8 +51,8 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: any) {
     "/v1/auth/login",
     {
       schema: {
-        description: "Login mathematically via JWT",
-        tags: ["Auth"],
+        ...AUTH_TAG,
+        description: "Login and receive JWT tokens",
         body: LoginSchema,
       },
     },
@@ -47,8 +63,8 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: any) {
     "/v1/auth/logout",
     {
       schema: {
-        description: "Logout user explicitly clearing tokens",
-        tags: ["Auth"],
+        ...AUTH_TAG,
+        description: "Invalidate refresh token",
         body: LogoutSchema,
       },
     },
@@ -59,68 +75,69 @@ export async function registerRoutes(fastifyApp: FastifyInstance, env: any) {
     "/v1/auth/refresh",
     {
       schema: {
-        description: "Rotate Access Tokens securely",
-        tags: ["Auth"],
+        ...AUTH_TAG,
+        description: "Rotate access and refresh tokens",
         body: RefreshSchema,
       },
     },
     controller.postAuthRefresh,
   );
 
+  // ── Protected auth routes ─────────────────────────────────────────────────
+
   app.post(
     "/v1/auth/onboarding",
     {
       schema: {
-        description:
-          "Save onboarding data (sports, sell channels, payment methods) for dealer profile",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
+        ...AUTH_TAG,
+        ...BEARER_SEC,
+        description: "Save dealer onboarding data — proxied to user-service",
         body: OnboardingSchema,
       },
-      preHandler: [(req, res) => requireGatewayAccessToken(env, req, res)],
+      preHandler: [withAuth(env)],
     },
-    async (request, reply) => {
-      const jwt = (request as any).gatewayJwt;
-      await updateOnboarding(env, jwt.userId, request.body as any);
-      return reply.send({ success: true });
-    },
+    controller.postAuthOnboarding,
   );
 
-  // --- DEMO ADMIN ROUTE ---
+  // ── OAuth ─────────────────────────────────────────────────────────────────
+
+  app.post("/v1/auth/oauth/google", controller.postAuthOauthGoogle);
+  app.post("/v1/auth/oauth/apple", controller.postAuthOauthApple);
+
+  // ── Email / password flows ────────────────────────────────────────────────
+
+  app.post("/v1/auth/verify-email", controller.postAuthVerifyEmail);
+  app.post("/v1/auth/forgot-password", controller.postAuthForgotPassword);
+  app.post("/v1/auth/reset-password", controller.postAuthResetPassword);
+
+  // ── Two-factor authentication ─────────────────────────────────────────────
+
+  app.post("/v1/auth/2fa/setup", controller.postAuth2FaSetup);
+  app.post("/v1/auth/2fa/verify", controller.postAuth2FaVerify);
+  app.post("/v1/auth/2fa/disable", controller.postAuth2FaDisable);
+
+  // ── Device / push token ───────────────────────────────────────────────────
+
+  app.post("/v1/auth/device-token", controller.postAuthDeviceToken);
+  app.delete("/v1/auth/device-token", controller.deleteAuthDeviceToken);
+
+  // ── Admin-only demo ───────────────────────────────────────────────────────
+
   app.post(
     "/v1/auth/admin-demo",
     {
       schema: {
-        description: "Secure endpoint strictly locked to Admins only",
-        tags: ["Admin Demo"],
-        security: [{ bearerAuth: [] }],
+        tags: ["Admin"],
+        ...BEARER_SEC,
+        description: "Admin-only access demonstration",
       },
-      preHandler: [
-        (req, res) => requireGatewayAccessToken(env, req, res),
-        requireAdminRole,
-      ],
+      preHandler: withAdminAuth(env),
     },
-    async (_req, reply) => {
-      return reply.send({
-        success: true,
-        message: "You have accessed the admin-only zone successfully!",
-      });
-    },
+    controller.postAuthAdminDemo,
   );
 
-  // Boilerplate endpoints (un-schema'd for brevity, but they will show in Swagger without schemas momentarily)
-  app.post("/v1/auth/oauth/google", controller.postAuthOauthGoogle);
-  app.post("/v1/auth/oauth/apple", controller.postAuthOauthApple);
-  app.post("/v1/auth/verify-email", controller.postAuthVerifyEmail);
-  app.post("/v1/auth/forgot-password", controller.postAuthForgotPassword);
-  app.post("/v1/auth/reset-password", controller.postAuthResetPassword);
-  app.post("/v1/auth/2fa/setup", controller.postAuth2FaSetup);
-  app.post("/v1/auth/2fa/verify", controller.postAuth2FaVerify);
-  app.post("/v1/auth/2fa/disable", controller.postAuth2FaDisable);
-  app.post("/v1/auth/device-token", controller.postAuthDeviceToken);
-  app.delete("/v1/auth/device-token", controller.deleteAuthDeviceToken);
+  // ── Split route modules ───────────────────────────────────────────────────
 
-  // Custom split routes
   await authRoutes(fastifyApp, env);
   await healthRoutes(fastifyApp, env);
 }
