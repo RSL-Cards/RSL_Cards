@@ -1,5 +1,9 @@
 import Fastify from "fastify";
-import { serializerCompiler, validatorCompiler, ZodTypeProvider } from "fastify-type-provider-zod";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  ZodTypeProvider,
+} from "fastify-type-provider-zod";
 import type { Env } from "./config/env.js";
 import { getRedis } from "./config/redis.js";
 import { registerErrorHandler } from "./middleware/error-handler.js";
@@ -11,7 +15,13 @@ import { swaggerPlugin } from "./plugins/swagger.js";
 import { registerRoutes } from "./routes/index.js";
 
 export async function createApp(env: Env) {
-  const redactList = ['body.password', 'responseData.tokens.accessToken', 'responseData.tokens.refreshToken', 'responseData.token', 'body.refreshToken'];
+  const redactList = [
+    "body.password",
+    "responseData.tokens.accessToken",
+    "responseData.tokens.refreshToken",
+    "responseData.token",
+    "body.refreshToken",
+  ];
   const logger: any =
     env.NODE_ENV === "development" || env.NODE_ENV === "dev"
       ? {
@@ -22,9 +32,9 @@ export async function createApp(env: Env) {
             options: { colorize: true },
           },
         }
-      : { 
+      : {
           level: env.LOG_LEVEL,
-          redact: redactList
+          redact: redactList,
         };
 
   const app = Fastify({ logger }).withTypeProvider<ZodTypeProvider>();
@@ -37,19 +47,23 @@ export async function createApp(env: Env) {
   await app.register(corsPlugin, { env });
   await app.register(rateLimitPlugin, { redis: getRedis(env) });
   await app.register(swaggerPlugin);
-  
+
   // Custom Logging Hooks
-  app.addHook('preHandler', (req, reply, done) => {
+  app.addHook("preHandler", (req, _reply, done) => {
     if (req.body) {
-      req.log.info({ body: req.body }, 'parsed request body');
+      req.log.info({ body: req.body }, "parsed request body");
     }
     done();
   });
 
-  app.addHook('onSend', (req, reply, payload, done) => {
-    if (payload && typeof payload === 'string' && reply.getHeader('content-type')?.toString().includes('application/json')) {
+  app.addHook("onSend", (req, reply, payload, done) => {
+    if (
+      payload &&
+      typeof payload === "string" &&
+      reply.getHeader("content-type")?.toString().includes("application/json")
+    ) {
       try {
-        req.log.info({ responseData: JSON.parse(payload) }, 'response payload');
+        req.log.info({ responseData: JSON.parse(payload) }, "response payload");
       } catch (e) {}
     }
     done(null, payload);
