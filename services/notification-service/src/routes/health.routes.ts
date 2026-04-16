@@ -19,7 +19,7 @@ async function redisServerVersion(env: Env): Promise<string | undefined> {
 export async function healthRoutes(app: FastifyInstance): Promise<void> {
   const env = (app as any).env as Env;
   app.get(
-    "/health",
+    "/",
     {
       schema: {
         response: {

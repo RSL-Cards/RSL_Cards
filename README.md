@@ -1,89 +1,71 @@
-# RSL Cards — Backend Monorepo
+# RSL Cards — Monorepo Architecture
 
-Production-style Turborepo + pnpm workspace for ten Fastify microservices, shared Drizzle schemas, Redis/BullMQ, and Docker/Nginx for dev/QA/prod.
+Production-ready Turborepo + pnpm workspace for the RSL Cards ecosystem. This monorepo houses ten Fastify microservices, two Next.js web applications, an Expo Native mobile application, shared Drizzle schemas, Redis/BullMQ processing, and full Docker/Nginx environments for dev, QA, and production.
 
-## Prerequisites
+## 🚀 The Tech Stack
 
-- Node.js 22 LTS (see `.nvmrc`)
-- pnpm 9.x (`corepack enable && corepack prepare pnpm@9.15.4 --activate` or `npm i -g pnpm`)
-- Docker Desktop (for Postgres, Redis, and compose stacks)
-- Git
+- **Microservices API**: Fastify, TypeScript, Zod, Swagger
+- **Mobile Application**: Expo (`dealer-app`), React Native, Zustand, React Query
+- **Web Applications**: Next.js 15 (`company-website`, `web-dashboard`), Tailwind CSS
+- **Database Operations**: PostgreSQL, Drizzle ORM
+- **Event / Background Jobs**: Redis, BullMQ
+- **Observability**: Grafana, Loki, Promtail (Containerized)
+- **Tooling**: Turborepo, pnpm workspaces
 
-## First-time setup
+## 📚 Core Documentation
 
-1. Clone/open this repo at the monorepo root.
-2. Run `./scripts/generate-keys.sh` to create an RS256 key pair for JWTs.
-3. Copy `.env.example` to `.env.development` and fill in real values (paste PEM keys, set `INTERNAL_SERVICE_KEY` to a long random string, etc.).
-4. Install dependencies: `pnpm install`
-5. Build shared packages: `pnpm turbo run build --filter=@rsl/shared-*`
+This `README.md` serves as a high-level overview. For detailed, step-by-step developer instructions, you must reference our internal `/docs/` directory:
 
-## Database
+1. **[Developer Setup Guide](./docs/development/setup.md)**
+   Start here! This explains exactly how to run the project via Docker (Zero-Config) or via Native Localhost for fast iteration, alongside connecting the mobile application.
 
-- Generate migrations (after schema changes): `pnpm --filter @rsl/shared-db generate`
-- Apply migrations (dev): `pnpm db:migrate`
-- Seed (development only): `pnpm db:seed`
-- Drizzle Studio: `pnpm db:studio`
+2. **[How to Write Routes](./docs/development/how_to_write_routes.md)**
+   Explains our strict Three-Tier Architecture (Controller -> Service -> Repository), correct Dependency Injection patterns, and how to hook into our automated Zod/Swagger pipeline securely without TS errors.
 
-## Run services locally (without Docker)
+3. **[Architecture Breakdown](./docs/architecture.md)** *(Coming Soon)*
+   Deep dive into inter-service synchronous communication (`INTERNAL_SERVICE_KEY`), and asynchronous messaging.
 
-With Postgres and Redis running and `.env.development` configured:
+## 🏗️ Monorepo Structure
 
-```bash
-pnpm dev
+```text
+├── apps/
+│   ├── dealer-app/           # React Native Expo Mobile App
+│   ├── company-website/      # Next.js Marketing App
+│   └── web-dashboard/        # Next.js Admin Dashboard
+├── services/
+│   ├── admin-service/        # Handles overarching systems monitoring
+│   ├── ai-narrative-service/ # Calls Anthropic API for card narratives
+│   ├── analytics-service/    # Specialized Read-Replica db reporting
+│   ├── auth-service/         # Central JWT issuing & identity management
+│   ├── card-db-service/      # Image recognition & Sportradar integration
+│   ├── inventory-service/    # Core stock tracking
+│   ├── listing-service/      # Multi-channel e-commerce syncing (eBay/WhatNot)
+│   ├── notification-service/ # Resend emails & Firebase Push Notifications
+│   ├── transaction-service/  # Payment orchestration
+│   └── user-service/         # User profile definitions
+├── packages/
+│   ├── shared-config/        # Zod environment schemas & globals
+│   ├── shared-constants/     # Enums & standardized statics
+│   ├── shared-db/            # Drizzle schemas, migrations & seeding
+│   ├── shared-types/         # Cross-app data interfaces
+│   └── shared-utils/         # Reusable data formatting
+└── infra/
+    ├── docker/               # docker-compose stacks (dev/qa/prod)
+    └── nginx/                # Rate-limiting API Gateway configurations
 ```
 
-This runs all service `dev` scripts via Turbo (`./services/*`). Each listens on the port from `*_SERVICE_PORT` (3001–3010).
+## 🛠️ Quick Commands (Makefile)
 
-## Docker Compose (full stack)
+We utilize a robust `Makefile` to securely abstract all heavy lifting. See `./docs/development/setup.md` for full context.
 
-From repo root:
+- `make dev-d` — Starts the entire docker containerized environment securely in the background.
+- `make dev-down` — Stops all Docker containers gracefully.
+- `make mobile` — Boots the Expo bundler for the `dealer-app`.
+- `make mobile-clean` — Hard-resets the Metro bundler cache constraints.
+- `make dev-migrate` — Runs Drizzle DB push & migrations natively.
+- `make dev-restart` — Clears docker Node volumes and reinstalls flawlessly.
 
-```bash
-make dev
-```
+## 🔒 Confidentiality
 
-Starts Postgres (primary + local “replica” on 5433), Redis, all ten services (Node image + `pnpm install` + filtered dev), and Nginx on port 80. Service env comes from `infra/docker/.env.dev` (defaults use compose hostnames for DB/Redis).
-
-After services are up:
-
-```bash
-./scripts/verify-all-services.sh
-```
-
-## Nginx
-
-- Dev: `infra/nginx/dev.conf` (rate limits, `/nginx-health`, path routing to each service on port 3000 inside the network).
-- QA: `infra/nginx/qa.conf`
-- Prod: `infra/nginx/prod.conf` (gzip, larger proxy buffers, security headers).
-
-## Makefile targets
-
-- `make dev` — `docker compose` for development stack
-- `make qa` / `make prod` — QA/prod compose (stubs; wire your images/registries)
-- `make down` — tear down compose projects
-- `make logs` — follow dev compose logs
-- `make migrate` / `make seed` / `make test` — pass through to pnpm
-
-## CI / CD
-
-- `.github/workflows/ci.yml` — PR checks: lint, typecheck, tests (with Postgres + Redis services), full Turbo build, matrix Docker build per service.
-- `.github/workflows/deploy.yml` — placeholders for QA (on `develop`) and production (on version tags); configure AWS, ECR, ECS, Slack, and GitHub Environments.
-
-Document GitHub secrets for deployments: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `ECR_REGISTRY`, `ECS_CLUSTER_QA`, `ECS_CLUSTER_PROD`, `SLACK_WEBHOOK_URL`.
-
-## Branch protection
-
-Use GitHub branch protection on `main` / `develop` so all required CI jobs pass before merge.
-
-## Architecture rules (summary)
-
-- No secrets in git; only `.env.example` is committed for env shape.
-- Every service exposes `/health` that checks PostgreSQL and Redis with latency.
-- `/internal/*` routes require `X-Service-Key` (constant-time compare to `INTERNAL_SERVICE_KEY`).
-- Analytics reads from `DATABASE_URL_READ_REPLICA` for queries; primary is for rare writes / health.
-- Heavy work goes through BullMQ, not long HTTP handlers.
-
-## Confidentiality
-
-RSL Cards — Reddy Sherrer Lane LLC. Internal engineering reference.
-# RSL_Cards
+**RSL Cards — Reddy Sherrer Lane LLC.**
+Internal engineering reference only. Do not distribute codebase or PEM keys.
