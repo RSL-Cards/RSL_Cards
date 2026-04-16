@@ -17,7 +17,8 @@ async function redisServerVersion(env: Env): Promise<string | undefined> {
   return line?.split(":")[1]?.trim();
 }
 
-export async function healthRoutes(app: FastifyInstance, env: Env): Promise<void> {
+export async function healthRoutes(app: FastifyInstance): Promise<void> {
+  const env = (app as any).env as Env;
   app.get(
     "/health",
     {

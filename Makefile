@@ -11,6 +11,7 @@
     qa-migrate qa-generate qa-seed \
   prod prod-down prod-logs prod-restart prod-ps \
     prod-migrate prod-generate \
+  mobile mobile-android mobile-ios mobile-clean \
   down test verify
 
 # ------------------------------------------------------------
@@ -100,6 +101,21 @@ prod-migrate:               ## Run DB migrations (prod)
 
 prod-generate:              ## Generate Drizzle schema (prod)
 	pnpm db:generate:prod
+
+# ------------------------------------------------------------
+#  MOBILE (DEALER APP)
+# ------------------------------------------------------------
+mobile:                     ## Start Expo dev server
+	pnpm --filter dealer-app start
+
+mobile-android:             ## Start Expo for Android
+	pnpm --filter dealer-app android
+
+mobile-ios:                 ## Start Expo for iOS
+	pnpm --filter dealer-app ios
+
+mobile-clean:               ## Start Expo with a cleanly wiped cache
+	cd apps/dealer-app && npx expo start --clear
 
 # ------------------------------------------------------------
 #  SHARED

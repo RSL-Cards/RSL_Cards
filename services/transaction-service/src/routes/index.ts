@@ -1,15 +1,20 @@
-import { FastifyInstance } from 'fastify';
-import * as controller from '../controllers/main.controller.js';
+import { FastifyInstance } from "fastify";
+import type { Env } from "../config/env.js";
+import { transactionRoutes } from "./transaction.routes.js";
+import { healthRoutes } from "./health.routes.js";
 
-export async function registerRoutes(app: FastifyInstance, _env: any) {
-  app.post('/v1/transactions/buy', controller.postTransactionsBuy);
-  app.post('/v1/transactions/sell', controller.postTransactionsSell);
-  app.post('/v1/transactions/trade', controller.postTransactionsTrade);
-  app.post('/v1/transactions/sync', controller.postTransactionsSync);
-  app.get('/v1/transactions', controller.getTransactions);
-  app.get('/v1/transactions/:id', controller.getTransactionsId);
-  app.get('/v1/transactions/today', controller.getTransactionsToday);
-  app.get('/v1/transactions/customers/:customerId', controller.getTransactionsCustomersCustomerid);
-  app.get('/v1/transactions/export', controller.getTransactionsExport);
-  app.delete('/v1/transactions/:id', controller.deleteTransactionsId);
+export async function registerRoutes(app: FastifyInstance, env: Env) {
+  // Decorate fastify instance with env so controllers can access it
+  app.decorate("env", env);
+
+  // Add hook to attach env to each request
+  app.addHook("onRequest", async (request) => {
+    (request as any).env = env;
+  });
+
+  // Transaction routes with /v1/transactions prefix
+  await app.register(transactionRoutes, { prefix: "/v1/transactions" });
+
+  // Health routes
+  await app.register(healthRoutes, { prefix: "/health" });
 }

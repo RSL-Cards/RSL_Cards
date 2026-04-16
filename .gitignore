@@ -11,3 +11,10 @@ coverage
 .DS_Store
 .pnpm-store/
 .expo/
+
+# Web Next.js / Builds
+.next
+out
+build
+.eslintcache
+*.tsbuildinfo

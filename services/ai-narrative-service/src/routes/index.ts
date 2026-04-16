@@ -1,16 +1,20 @@
-import { FastifyInstance } from 'fastify';
-import * as controller from '../controllers/main.controller.js';
+import { FastifyInstance } from "fastify";
+import type { Env } from "../config/env.js";
+import { narrativesRoutes } from "./narratives.routes.js";
+import { healthRoutes } from "./health.routes.js";
 
-export async function registerRoutes(app: FastifyInstance, _env: any) {
-  app.get('/v1/narratives/feed', controller.getNarrativesFeed);
-  app.get('/v1/narratives/inventory', controller.getNarrativesInventory);
-  app.get('/v1/narratives/:id', controller.getNarrativesId);
-  app.get('/v1/narratives/player/:playerName', controller.getNarrativesPlayerPlayername);
-  app.get('/v1/narratives/card/:cardId', controller.getNarrativesCardCardid);
-  app.get('/v1/narratives/daily-insight', controller.getNarrativesDailyInsight);
-  app.get('/v1/narratives/weekly-recap', controller.getNarrativesWeeklyRecap);
-  app.post('/v1/narratives/admin/generate', controller.postNarrativesAdminGenerate);
-  app.patch('/v1/narratives/admin/:id/approve', controller.patchNarrativesAdminIdApprove);
-  app.patch('/v1/narratives/admin/:id/reject', controller.patchNarrativesAdminIdReject);
-  app.patch('/v1/narratives/admin/:id', controller.patchNarrativesAdminId);
+export async function registerRoutes(app: FastifyInstance, env: Env) {
+  // Decorate fastify instance with env so controllers can access it
+  app.decorate("env", env);
+
+  // Add hook to attach env to each request
+  app.addHook("onRequest", async (request) => {
+    (request as any).env = env;
+  });
+
+  // Narrative routes with /v1/narratives prefix
+  await app.register(narrativesRoutes, { prefix: "/v1/narratives" });
+
+  // Health routes
+  await app.register(healthRoutes, { prefix: "/health" });
 }
