@@ -38,6 +38,24 @@ services:
     networks:
       - rsl-dev
 
+  rsldb-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rsl_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: rsldb_test
+    ports:
+      - "5434:5432"
+    volumes:
+      - rsldb_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rsl_user -d rsldb_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rsl-dev
+
   redis-dev:
     image: redis:7-alpine
     command: redis-server --appendonly yes
@@ -413,6 +431,7 @@ volumes:
   rsl_dev_node_modules:
   rsldb_data:
   rsldb_read_data:
+  rsldb_test_data:
   redis_dev_data:
   grafana_data:
   loki_data:

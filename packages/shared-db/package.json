@@ -11,9 +11,11 @@
     "generate:dev": "pnpm exec drizzle-kit generate --config drizzle.dev.config.ts",
     "generate:qa": "pnpm exec drizzle-kit generate --config drizzle.qa.config.ts",
     "generate:prod": "pnpm exec drizzle-kit generate --config drizzle.prod.config.ts",
+    "generate:test": "pnpm exec drizzle-kit generate --config drizzle.test.config.ts",
     "migrate:dev": "pnpm exec drizzle-kit migrate --config drizzle.dev.config.ts",
     "migrate:qa": "pnpm exec drizzle-kit migrate --config drizzle.qa.config.ts",
     "migrate:prod": "pnpm exec drizzle-kit migrate --config drizzle.prod.config.ts",
+    "migrate:test": "pnpm exec drizzle-kit migrate --config drizzle.test.config.ts",
     "seed:dev": "tsx src/seed.ts",
     "studio": "drizzle-kit studio --config drizzle.dev.config.ts"
   },

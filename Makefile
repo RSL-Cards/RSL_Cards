@@ -11,6 +11,7 @@
     qa-migrate qa-generate qa-seed \
   prod prod-down prod-logs prod-restart prod-ps \
     prod-migrate prod-generate \
+  test-up test-up-d test-down test-migrate test-generate run-test \
   mobile mobile-android mobile-ios mobile-clean \
   down test verify
 
@@ -116,6 +117,32 @@ mobile-ios:                 ## Start Expo for iOS
 
 mobile-clean:               ## Start Expo with a cleanly wiped cache
 	cd apps/dealer-app && npx expo start --clear
+
+# ------------------------------------------------------------
+#  TEST
+# ------------------------------------------------------------
+test-up:                    ## Start test infrastructure (foreground)
+	docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env.dev up rsldb-test
+
+test-up-d:                  ## Start test infrastructure (detached)
+	docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env.dev up -d rsldb-test
+
+test-down:                  ## Stop test infrastructure
+	docker compose -f infra/docker/docker-compose.dev.yml stop rsldb-test
+
+test-migrate:               ## Run DB migrations (test)
+	@echo "Waiting for test database 'rsldb_test' to be ready..."
+	@until docker exec rsl-dev-rsldb-test-1 psql -U rsl_user -d rsldb_test -c "SELECT 1" > /dev/null 2>&1; do \
+		echo "Database 'rsldb_test' not ready yet, retrying..."; \
+		sleep 1; \
+	done
+	pnpm db:migrate:test
+
+test-generate:              ## Generate Drizzle schema (test)
+	pnpm db:generate:test
+
+run-test:                   ## Run all tests
+	pnpm test
 
 # ------------------------------------------------------------
 #  SHARED

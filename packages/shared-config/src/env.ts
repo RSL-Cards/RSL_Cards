@@ -4,6 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "dev", "qa", "production", "test"]),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]),
   DATABASE_URL: z.string().min(1),
+  TEST_DATABASE_URL: z.string().min(1).optional(),
   DATABASE_URL_READ_REPLICA: z.string().min(1),
   DB_POOL_MIN: z.coerce.number().optional().default(2),
   DB_POOL_MAX: z.coerce.number().optional().default(10),

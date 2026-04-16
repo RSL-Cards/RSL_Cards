@@ -1,0 +1,86 @@
+
+> @rsl/auth-service@1.0.0 test /Users/vinay/RSL_Cards/RSL/services/auth-service
+> vitest run --passWithNoTests
+
+
+ RUN  v3.2.4 /Users/vinay/RSL_Cards/RSL/services/auth-service
+
+ ✓ test/health.test.ts (1 test) 1ms
+{"level":30,"time":1776368962634,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368962639,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","body":{"email":"login-success@rsl.test","password":"[Redacted]","role":"dealer"},"msg":"parsed request body"}
+{"level":30,"time":1776368962782,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368962786,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","body":{"email":"test-signup@rsl.test","password":"[Redacted]","role":"dealer"},"msg":"parsed request body"}
+{"level":30,"time":1776368962838,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","responseData":{"user":{"id":"2fd9837e-bec7-4f50-936c-e4cea08a22dd","email":"login-success@rsl.test","role":"dealer","displayName":"login-success","onboardingCompleted":false},"tokens":{"accessToken":"[Redacted]","refreshToken":"[Redacted]"}},"msg":"response payload"}
+{"level":30,"time":1776368962839,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","res":{"statusCode":200},"responseTime":204.95375000312924,"msg":"request completed"}
+{"level":30,"time":1776368962840,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","req":{"method":"POST","url":"/v1/auth/login","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368962841,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","body":{"email":"login-success@rsl.test","password":"[Redacted]"},"msg":"parsed request body"}
+{"level":30,"time":1776368962863,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","responseData":{"user":{"id":"8d931295-620b-47f2-9701-cdca80438be9","email":"test-signup@rsl.test","role":"dealer","displayName":"test-signup","onboardingCompleted":false},"tokens":{"accessToken":"[Redacted]","refreshToken":"[Redacted]"}},"msg":"response payload"}
+{"level":30,"time":1776368962863,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-1","res":{"statusCode":200},"responseTime":81.6209169998765,"msg":"request completed"}
+{"level":50,"time":1776368963017,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","err":{"type":"DatabaseError","message":"insert or update on table \"refresh_tokens\" violates foreign key constraint \"refresh_tokens_user_id_users_id_fk\"","stack":"error: insert or update on table \"refresh_tokens\" violates foreign key constraint \"refresh_tokens_user_id_users_id_fk\"\n    at /Users/vinay/RSL_Cards/RSL/node_modules/pg-pool/index.js:45:11\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at AuthRepository.updateRefreshToken (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/repositories/auth.repository.ts:98:7)\n    at AuthService.loginUser (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/services/auth.service.ts:101:5)\n    at Object.login (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/controllers/auth.controller.ts:43:23)","length":327,"name":"error","severity":"ERROR","code":"23503","detail":"Key (user_id)=(2fd9837e-bec7-4f50-936c-e4cea08a22dd) is not present in table \"users\".","schema":"public","table":"refresh_tokens","constraint":"refresh_tokens_user_id_users_id_fk","file":"ri_triggers.c","line":"2608","routine":"ri_ReportViolation"},"requestId":"req-2","errorCode":"INTERNAL_SERVER_ERROR","msg":"An unexpected error occurred"}
+{"level":30,"time":1776368963019,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","responseData":{"success":false,"error":{"code":"INTERNAL_SERVER_ERROR","message":"An unexpected error occurred","requestId":"req-2"}},"msg":"response payload"}
+{"level":30,"time":1776368963019,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","res":{"statusCode":500},"responseTime":178.94079099968076,"msg":"request completed"}
+{"level":30,"time":1776368963045,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368963046,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","body":{"email":"duplicate@rsl.test","password":"[Redacted]","role":"consumer"},"msg":"parsed request body"}
+{"level":30,"time":1776368963265,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368963266,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","body":{"email":"wrong-password@rsl.test","password":"[Redacted]","role":"consumer"},"msg":"parsed request body"}
+{"level":30,"time":1776368963328,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","responseData":{"user":{"id":"130008df-5fac-44f2-955a-5be9efce18da","email":"duplicate@rsl.test","role":"consumer","displayName":"duplicate","onboardingCompleted":false},"tokens":{"accessToken":"[Redacted]","refreshToken":"[Redacted]"}},"msg":"response payload"}
+{"level":30,"time":1776368963329,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-2","res":{"statusCode":200},"responseTime":283.91912499815226,"msg":"request completed"}
+{"level":30,"time":1776368963329,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368963330,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","body":{"email":"duplicate@rsl.test","password":"[Redacted]","role":"consumer"},"msg":"parsed request body"}
+{"level":50,"time":1776368963330,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","err":{"type":"AuthError","message":"User with this email already exists","stack":"AuthError: User with this email already exists\n    at AuthError.userAlreadyExists (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/errors/definitions.ts:37:12)\n    at AuthService.registerUser (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/services/auth.service.ts:27:23)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.register (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/controllers/auth.controller.ts:36:7)","errorCode":"AUTH_USER_ALREADY_EXISTS","statusCode":409,"name":"AuthError"},"requestId":"req-3","errorCode":"AUTH_USER_ALREADY_EXISTS","msg":"User with this email already exists"}
+{"level":30,"time":1776368963331,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","responseData":{"success":false,"error":{"code":"AUTH_USER_ALREADY_EXISTS","message":"User with this email already exists","requestId":"req-3"}},"msg":"response payload"}
+{"level":30,"time":1776368963331,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","res":{"statusCode":409},"responseTime":2.4328749999403954,"msg":"request completed"}
+{"level":30,"time":1776368963502,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","responseData":{"user":{"id":"62d9526f-480f-4f55-b8b8-3305600228b7","email":"wrong-password@rsl.test","role":"consumer","displayName":"wrong-password","onboardingCompleted":false},"tokens":{"accessToken":"[Redacted]","refreshToken":"[Redacted]"}},"msg":"response payload"}
+{"level":30,"time":1776368963502,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-3","res":{"statusCode":200},"responseTime":237.60804100334644,"msg":"request completed"}
+{"level":30,"time":1776368963502,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","req":{"method":"POST","url":"/v1/auth/login","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368963503,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","body":{"email":"wrong-password@rsl.test","password":"[Redacted]"},"msg":"parsed request body"}
+{"level":30,"time":1776368963522,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","req":{"method":"POST","url":"/v1/auth/register","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":50,"time":1776368963523,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","err":{"type":"ZodError","message":"[\n  {\n    \"validation\": \"email\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid email\",\n    \"path\": [\n      \"email\"\n    ]\n  }\n]","stack":"ZodError: [\n  {\n    \"validation\": \"email\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid email\",\n    \"path\": [\n      \"email\"\n    ]\n  }\n]\n    at Object.get error [as error] (file:///Users/vinay/RSL_Cards/RSL/node_modules/zod/v3/types.js:39:31)\n    at ZodObject.parse (file:///Users/vinay/RSL_Cards/RSL/node_modules/zod/v3/types.js:114:22)\n    at /Users/vinay/RSL_Cards/RSL/node_modules/fastify-type-provider-zod/dist/index.js:68:32\n    at validateParam (/Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/validation.js:120:36)\n    at validate (/Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/validation.js:164:18)\n    at preValidationCallback (/Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/handleRequest.js:93:25)\n    at handler (/Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/handleRequest.js:77:7)\n    at /Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/contentTypeParser.js:199:9\n    at AsyncResource.runInAsyncScope (node:async_hooks:214:14)\n    at done (/Users/vinay/RSL_Cards/RSL/node_modules/fastify/lib/contentTypeParser.js:192:14)","aggregateErrors":[{"type":"Object","message":"Invalid email","stack":"","validation":"email","code":"invalid_string","path":["email"]}],"issues":[{"validation":"email","code":"invalid_string","message":"Invalid email","path":["email"]}],"name":"ZodError","statusCode":400,"code":"FST_ERR_VALIDATION","validationContext":"body"},"requestId":"req-4","errorCode":"ZOD","msg":"[\n  {\n    \"validation\": \"email\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid email\",\n    \"path\": [\n      \"email\"\n    ]\n  }\n]"}
+{"level":30,"time":1776368963524,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","responseData":{"success":false,"error":{"code":"ZOD","message":"[\n  {\n    \"validation\": \"email\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid email\",\n    \"path\": [\n      \"email\"\n    ]\n  }\n]","requestId":"req-4"}},"msg":"response payload"}
+{"level":30,"time":1776368963524,"pid":32758,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","res":{"statusCode":400},"responseTime":2.195999998599291,"msg":"request completed"}
+ ✓ test/signup.test.ts (3 tests) 1313ms
+   ✓ Signup Integration Tests > should successfully sign up a new user  505ms
+   ✓ Signup Integration Tests > should fail if email already exists  468ms
+{"level":50,"time":1776368963563,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","err":{"type":"AuthError","message":"Invalid email or password","stack":"AuthError: Invalid email or password\n    at AuthError.invalidCredentials (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/errors/definitions.ts:33:12)\n    at AuthService.loginUser (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/services/auth.service.ts:87:23)\n    at Object.login (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/controllers/auth.controller.ts:43:23)","errorCode":"AUTH_INVALID_CREDENTIALS","statusCode":401,"name":"AuthError"},"requestId":"req-4","errorCode":"AUTH_INVALID_CREDENTIALS","msg":"Invalid email or password"}
+{"level":30,"time":1776368963563,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","responseData":{"success":false,"error":{"code":"AUTH_INVALID_CREDENTIALS","message":"Invalid email or password","requestId":"req-4"}},"msg":"response payload"}
+{"level":30,"time":1776368963563,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-4","res":{"statusCode":401},"responseTime":60.7459169998765,"msg":"request completed"}
+{"level":30,"time":1776368963733,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-5","req":{"method":"POST","url":"/v1/auth/login","hostname":"localhost:80","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1776368963734,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-5","body":{"email":"non-existent@rsl.test","password":"[Redacted]"},"msg":"parsed request body"}
+{"level":50,"time":1776368963735,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-5","err":{"type":"AuthError","message":"Invalid email or password","stack":"AuthError: Invalid email or password\n    at AuthError.invalidCredentials (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/errors/definitions.ts:33:12)\n    at AuthService.loginUser (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/services/auth.service.ts:82:23)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.login (/Users/vinay/RSL_Cards/RSL/services/auth-service/src/controllers/auth.controller.ts:43:23)","errorCode":"AUTH_INVALID_CREDENTIALS","statusCode":401,"name":"AuthError"},"requestId":"req-5","errorCode":"AUTH_INVALID_CREDENTIALS","msg":"Invalid email or password"}
+{"level":30,"time":1776368963735,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-5","responseData":{"success":false,"error":{"code":"AUTH_INVALID_CREDENTIALS","message":"Invalid email or password","requestId":"req-5"}},"msg":"response payload"}
+{"level":30,"time":1776368963735,"pid":32757,"hostname":"Vinays-MacBook-Air.local","reqId":"req-5","res":{"statusCode":401},"responseTime":2.3404590003192425,"msg":"request completed"}
+ ❯ test/login.test.ts (3 tests | 1 failed) 1523ms
+   × Login Integration Tests > should successfully log in an existing user 663ms
+     → expected 500 to be 200 // Object.is equality
+   ✓ Login Integration Tests > should fail with incorrect password  541ms
+   ✓ Login Integration Tests > should fail for non-existent user 172ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/login.test.ts > Login Integration Tests > should successfully log in an existing user
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ test/login.test.ts:45:33
+     43|     });
+     44| 
+     45|     expect(response.statusCode).toBe(200);
+       |                                 ^
+     46|     const body = JSON.parse(response.payload);
+     47|     expect(body.user.email).toBe(email);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 6 passed (7)
+   Start at  01:19:21
+   Duration  2.39s (transform 144ms, setup 0ms, collect 1.29s, tests 2.84s, environment 0ms, prepare 164ms)
+
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @rsl/auth-service@1.0.0 test: `vitest run --passWithNoTests`
+Exit status 1
