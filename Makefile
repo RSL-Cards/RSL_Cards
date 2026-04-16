@@ -125,8 +125,11 @@ down:                       ## Stop ALL stacks (dev + qa + prod)
 	docker compose -f infra/docker/docker-compose.qa.yml down 2>/dev/null || true
 	docker compose -f infra/docker/docker-compose.prod.yml down 2>/dev/null || true
 
-test:                       ## Run all tests
+test:                       ## Run all tests (Vitest)
 	pnpm test
+
+test-coverage:              ## Run all tests with coverage reporting
+	pnpm test:coverage
 
 verify:                     ## Verify all services are healthy
 	./scripts/verify-all-services.sh

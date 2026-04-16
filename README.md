@@ -25,6 +25,12 @@ This `README.md` serves as a high-level overview. For detailed, step-by-step dev
 3. **[Architecture Breakdown](./docs/architecture.md)** *(Coming Soon)*
    Deep dive into inter-service synchronous communication (`INTERNAL_SERVICE_KEY`), and asynchronous messaging.
 
+4. **[Database Changes Guide](./docs/development/database_changes.md)**
+   Explains how to cleanly define Drizzle schemas and execute robust SQL push migrations using Turborepo dependency checking and Makefile generators.
+
+5. **[PNPM Workspaces Guide](./docs/development/pnpm_workspaces.md)**
+   Understand exactly how to install packages (`--filter`), how internal `workspace:*` dependencies magically bind together without building, and exactly what `shamefully-hoist` accomplishes for our Docker stability.
+
 ## 🏗️ Monorepo Structure
 
 ```text
@@ -64,6 +70,14 @@ We utilize a robust `Makefile` to securely abstract all heavy lifting. See `./do
 - `make mobile-clean` — Hard-resets the Metro bundler cache constraints.
 - `make dev-migrate` — Runs Drizzle DB push & migrations natively.
 - `make dev-restart` — Clears docker Node volumes and reinstalls flawlessly.
+
+## 🧪 Testing
+
+We use **Vitest** to run lightning-fast backend tests directly over our uncompiled TypeScript using Turborepo.
+
+- `pnpm test` — Executes all `.test.ts` test files concurrently across the entire Monorepo.
+- `pnpm test:coverage` — Runs tests while plotting exact coverage percentage mappings.
+- `pnpm --filter @rsl/auth-service test:watch` — Target a specific microservice for tight TDD loops!
 
 ## 🔒 Confidentiality
 

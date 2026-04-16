@@ -152,8 +152,34 @@ export async function registerRoutes(app: FastifyInstance, env: Env) {
 }
 ```
 
+### Step 7: Write Unit Tests (`test/example.test.ts`)
+We use **Vitest** for blistering-fast parallel testing. When building robust routes, independently test your encapsulated `Service` tier using mock repositories. Place your `.test.ts` files inside a `test/` folder parallel to `src/`.
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { ExampleService } from "../src/services/example.service.js";
+
+describe("ExampleService", () => {
+  it("throws an error if price is below 1", async () => {
+    // 1. Mock the repository correctly so we don't hit the real DB
+    const mockRepo = { insertListing: vi.fn() } as any;
+    const service = new ExampleService(mockRepo);
+    
+    // 2. Validate behavior handles malicious inputs effectively
+    await expect(service.createListing({ cardId: "uuid", price: 0, condition: "MINT" }))
+      .rejects.toThrow("Price too low");
+      
+    // 3. Ensure Side Effects didn't leak
+    expect(mockRepo.insertListing).not.toHaveBeenCalled();
+  });
+});
+```
+
+*You can run all tests iteratively locally using `pnpm run test:watch` from inside the microservice folder, or globally via `pnpm test`.*
+
 ## Why this Pattern?
 By decoupling Controllers from Services and Repositories:
 1. **Zero ESLint Errors**: Injecting only exactly what's used removes dead variable warnings.
 2. **Reusability**: Core business logic and database code live separately from HTTP implementations.
 3. **Pinnacle Readability**: `app.post("/listings", controller.createListing)` is heavily modernized and clear to navigate.
+4. **Testability**: As seen in Step 7, tests are isolated to logic alone without spinning up entire webservers physically.
