@@ -134,6 +134,14 @@ The App handles network targeting via `apps/dealer-app/src/config/api.ts`.
 
 ## 5. Troubleshooting Common Issues
 
+**Expo Login Fails (Invalid Credentials / Network Timeout)**
+If you are testing on a Physical Phone via Wi-Fi and the app suddenly drops connection or rejects logins, your Development Router likely cycled your laptop's DHCP IP Address! 
+1. Discover your newly assigned IP Address natively:
+   - **Mac:** Run `ipconfig getifaddr en0` in your terminal.
+   - **Windows:** Run `ipconfig` in Powershell and look for the `IPv4 Address` under your active Wireless LAN Adapter.
+2. Ensure that inside `apps/dealer-app/src/config/api.ts`, your `DEV_HOST` precisely matches that exact string.
+3. Ensure your local backend is actually running via `make dev-d`!
+
 **`ERR_MODULE_NOT_FOUND` inside Docker**  
 The `node_modules` volume has stale symlinked modules. Re-sync your files:
 ```bash

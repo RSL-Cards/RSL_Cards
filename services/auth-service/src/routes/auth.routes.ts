@@ -30,9 +30,6 @@ export async function authRoutes(app: FastifyInstance) {
   const authService = new AuthService(authRepository, env);
   const authController = new AuthController(authService, env);
 
-  // Global internal security check
-  app.addHook("preHandler", internalAuthPreHandler);
-
   // Helper for auth middleware
   const withAuth = { preHandler: [(req: any, res: any) => requireGatewayAccessToken(env, req, res)] };
   const withAdminAuth = { preHandler: [(req: any, res: any) => requireGatewayAccessToken(env, req, res), requireAdminRole] };
