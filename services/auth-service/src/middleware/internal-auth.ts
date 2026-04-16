@@ -15,10 +15,10 @@ export function verifyServiceKey(env: Env, headerVal: string | undefined): boole
 }
 
 export async function internalAuthPreHandler(
-  env: Env,
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
+  const env = (request as any).env as Env;
   const key = request.headers["x-service-key"] as string | undefined;
   if (!verifyServiceKey(env, key)) {
     return reply.status(401).send({

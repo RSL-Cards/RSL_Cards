@@ -5,6 +5,14 @@
   "engines": {
     "node": ">=22"
   },
+  "pnpm": {
+    "overrides": {
+      "react": "19.1.0",
+      "react-native": "0.81.5",
+      "react-dom": "19.1.0",
+      "@types/react": "~19.1.10"
+    }
+  },
   "scripts": {
     "dev": "turbo run dev --filter=./services/*",
     "build": "turbo build",

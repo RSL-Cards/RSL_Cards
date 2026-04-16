@@ -17,8 +17,10 @@ function dbNameFromUrl(url: string): string {
   return seg[seg.length - 1] ?? "postgres";
 }
 
-export async function healthRoutes(app: FastifyInstance, env: Env): Promise<void> {
-  app.get("/health", async (_request, reply) => {
+export async function healthRoutes(app: FastifyInstance): Promise<void> {
+  const env = (app as any).env as Env;
+  app.get(
+    "/", async (_request, reply) => {
     const service = "analytics-service";
     const environment = env.NODE_ENV;
     const dbName = dbNameFromUrl(env.DATABASE_URL);

@@ -5,6 +5,10 @@ import type { Env } from "../config/env.js";
 import { adminAuthPreHandler } from "../middleware/admin-auth.js";
 import { getDb } from "../config/db.js";
 import { getRedis } from "../config/redis.js";
+import { AdminRepository } from "../repositories/admin.repository.js";
+import { AdminService } from "../services/admin.service.js";
+import { AdminController } from "../controllers/admin.controller.js";
+import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 
 const SERVICE_NAMES = [
   "auth-service",
@@ -29,21 +33,23 @@ function serviceHealthUrl(
   return `${base}:${ports[name]}/health`;
 }
 
-export async function adminRoutes(app: FastifyInstance, env: Env): Promise<void> {
+export async function adminRoutes(app: FastifyInstance) {
+  const env = (app as any).env as Env;
+
+  // Dependency Injection
+  const adminRepository = new AdminRepository(env);
+  const adminService = new AdminService(adminRepository);
+  const adminController = new AdminController(adminService);
+
+  // Global internal security check
+  app.addHook("preHandler", internalAuthPreHandler);
+
+  // Ping
   app.get("/ping", async (_request, reply) => {
     let db_connected = false;
-    try {
-      await getDb(env).execute(sql`SELECT 1`);
-      db_connected = true;
-    } catch {
-      db_connected = false;
-    }
+    try { await getDb(env).execute(sql`SELECT 1`); db_connected = true; } catch { db_connected = false; }
     let redis_connected = false;
-    try {
-      redis_connected = (await getRedis(env).ping()) === "PONG";
-    } catch {
-      redis_connected = false;
-    }
+    try { redis_connected = (await getRedis(env).ping()) === "PONG"; } catch { redis_connected = false; }
     return reply.send({
       service: "admin-service",
       environment: env.NODE_ENV,
@@ -54,9 +60,10 @@ export async function adminRoutes(app: FastifyInstance, env: Env): Promise<void>
     });
   });
 
+  // Health check for all services (secured via adminAuthPreHandler)
   app.get(
     "/health-all",
-    { preHandler: (req, reply) => adminAuthPreHandler(env, req, reply) },
+    { preHandler: adminAuthPreHandler },
     async (_request, reply) => {
       const ports = getServicePortsForNodeEnv(env.NODE_ENV);
       const results = await Promise.allSettled(
@@ -100,4 +107,29 @@ export async function adminRoutes(app: FastifyInstance, env: Env): Promise<void>
       });
     },
   );
+
+  // Users
+  app.get("/users", adminController.getAdminUsers);
+  app.get("/users/:id", adminController.getAdminUsersId);
+  app.patch("/users/:id/role", adminController.patchAdminUsersIdRole);
+  app.patch("/users/:id/suspend", adminController.patchAdminUsersIdSuspend);
+  app.patch("/users/:id/unsuspend", adminController.patchAdminUsersIdUnsuspend);
+  app.delete("/users/:id", adminController.deleteAdminUsersId);
+
+  // Narratives
+  app.get("/narratives/pending", adminController.getAdminNarrativesPending);
+
+  // Reviews
+  app.get("/reviews/pending", adminController.getAdminReviewsPending);
+  app.patch("/reviews/:id/approve", adminController.patchAdminReviewsIdApprove);
+  app.delete("/reviews/:id", adminController.deleteAdminReviewsId);
+
+  // Feature Flags
+  app.get("/feature-flags", adminController.getAdminFeatureFlags);
+  app.patch("/feature-flags/:key", adminController.patchAdminFeatureFlagsKey);
+  app.get("/config/feature-flags", adminController.getConfigFeatureFlags);
+
+  // Logs & Stats
+  app.get("/audit-logs", adminController.getAdminAuditLogs);
+  app.get("/stats", adminController.getAdminStats);
 }

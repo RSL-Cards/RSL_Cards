@@ -3,10 +3,23 @@ import { sql } from "drizzle-orm";
 import type { Env } from "../config/env.js";
 import { getDb } from "../config/db.js";
 import { getRedis } from "../config/redis.js";
+import { ListingRepository } from "../repositories/listing.repository.js";
+import { ListingService } from "../services/listing.service.js";
+import { ListingController } from "../controllers/listing.controller.js";
+import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 
-const platforms = new Set(["ebay", "whatnot", "mercari", "tcgplayer"]);
+export async function listingRoutes(app: FastifyInstance) {
+  const env = (app as any).env as Env;
 
-export async function listingRoutes(app: FastifyInstance, env: Env): Promise<void> {
+  // Dependency Injection
+  const listingRepository = new ListingRepository(env);
+  const listingService = new ListingService(listingRepository);
+  const listingController = new ListingController(listingService);
+
+  // Global internal security check
+  app.addHook("preHandler", internalAuthPreHandler);
+
+  // Ping
   app.get("/ping", async (_request, reply) => {
     let db_connected = false;
     try {
@@ -31,19 +44,26 @@ export async function listingRoutes(app: FastifyInstance, env: Env): Promise<voi
     });
   });
 
-  app.post<{ Params: { platform: string }; Body: Record<string, unknown> }>(
-    "/webhook/:platform",
-    async (request, reply) => {
-      const platform = request.params.platform.toLowerCase();
-      if (!platforms.has(platform)) {
-        return reply.status(400).send({ error: "unknown platform" });
-      }
-      request.log.info(
-        "Webhook received from " + platform + ": " + JSON.stringify(request.body ?? {}),
-      );
-      const sig = request.headers["x-signature"] ?? request.headers["x-ebay-signature"];
-      request.log.info({ sig }, "webhook signature header (verification stub)");
-      return reply.send({ received: true, platform });
-    },
+  // Standard CRUD & Ops
+  app.get("/", listingController.getListings);
+  app.post("/", listingController.createListing);
+  app.get("/analytics", listingController.getAnalytics);
+  app.get("/fee-calculator", listingController.feeCalculator);
+  app.post("/generate-content", listingController.generateContent);
+  app.get(
+    "/price-comparison/:inventoryId",
+    listingController.getPriceComparison,
   );
+
+  app.get("/:id", listingController.getListing);
+  app.patch("/:id/price", listingController.updatePrice);
+  app.post("/:id/relist", listingController.relist);
+  app.delete("/:id", listingController.deleteListing);
+
+  // Webhooks
+  app.post("/webhooks/ebay", listingController.ebayWebhook);
+  app.post("/webhooks/whatnot", listingController.whatnotWebhook);
+  app.post("/webhooks/mercari", listingController.mercariWebhook);
+  app.post("/webhooks/tcgplayer", listingController.tcgplayerWebhook);
+  app.post("/webhooks/shopify", listingController.shopifyWebhook);
 }

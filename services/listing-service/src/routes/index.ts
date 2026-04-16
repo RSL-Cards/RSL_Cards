@@ -1,20 +1,20 @@
-import { FastifyInstance } from 'fastify';
-import * as controller from '../controllers/main.controller.js';
+import { FastifyInstance } from "fastify";
+import type { Env } from "../config/env.js";
+import { listingRoutes } from "./listing.routes.js";
+import { healthRoutes } from "./health.routes.js";
 
-export async function registerRoutes(app: FastifyInstance, _env: any) {
-  app.get('/v1/listings', controller.getListings);
-  app.post('/v1/listings', controller.postListings);
-  app.get('/v1/listings/:id', controller.getListingsId);
-  app.patch('/v1/listings/:id/price', controller.patchListingsIdPrice);
-  app.delete('/v1/listings/:id', controller.deleteListingsId);
-  app.post('/v1/listings/:id/relist', controller.postListingsIdRelist);
-  app.get('/v1/listings/price-comparison/:inventoryId', controller.getListingsPriceComparisonInventoryid);
-  app.get('/v1/listings/fee-calculator', controller.getListingsFeeCalculator);
-  app.post('/v1/listings/generate-content', controller.postListingsGenerateContent);
-  app.post('/v1/listings/webhooks/ebay', controller.postListingsWebhooksEbay);
-  app.post('/v1/listings/webhooks/whatnot', controller.postListingsWebhooksWhatnot);
-  app.post('/v1/listings/webhooks/mercari', controller.postListingsWebhooksMercari);
-  app.post('/v1/listings/webhooks/tcgplayer', controller.postListingsWebhooksTcgplayer);
-  app.post('/v1/listings/webhooks/shopify', controller.postListingsWebhooksShopify);
-  app.get('/v1/listings/analytics', controller.getListingsAnalytics);
+export async function registerRoutes(app: FastifyInstance, env: Env) {
+  // Decorate fastify instance with env so controllers can access it
+  app.decorate("env", env);
+
+  // Add hook to attach env to each request
+  app.addHook("onRequest", async (request) => {
+    (request as any).env = env;
+  });
+
+  // Listing routes with /v1/listings prefix
+  await app.register(listingRoutes, { prefix: "/v1/listings" });
+
+  // Health routes
+  await app.register(healthRoutes, { prefix: "/health" });
 }

@@ -1,81 +1,185 @@
-# How to Write New Routes for Swagger
+# How to Write Microservice Routes
 
-This guide explains how to add new API endpoints to the RSL Cards microservices so they are automatically documented and validated using Zod and Swagger.
+RSL Cards microservices use a strict **Three-Tier Architecture** (Controller, Service, Repository) implemented with TypeScript classes and Fastify Plugins. All endpoints must be documented using Zod for robust validation and automated Swagger UI generation.
 
-## Step 1: Define Your Schema (Zod)
-First, define what the data looks like in `src/types/schemas.ts`.
+## The Architecture at a Glance
+
+1. **Repository**: Handles database (`this.db`) and external data interactions.
+2. **Service**: Encapsulates business logic, data transformation, and orchestrates calls to repositories.
+3. **Controller**: Handles Fastify `(Request, Reply)`, parses payloads via Zod, and returns HTTP responses.
+4. **Routes**: Registers endpoints, extracts `Env`, and injects dependencies.
+
+---
+
+## Step-by-Step Implementation Guide
+
+### Step 1: Define Schemas (`src/types/schemas.ts`)
+Always start by defining your request structures using Zod. This provides both runtime validation and structural TypeScript types.
 
 ```typescript
-import { z } from 'zod';
+import { z } from "zod";
 
-export const UpdateProfileSchema = z.object({
-  displayName: z.string().min(2),
-  bio: z.string().max(160).optional()
+export const CreateListingBody = z.object({
+  cardId: z.string().uuid(),
+  price: z.number().positive(),
+  condition: z.enum(["MINT", "NEAR_MINT", "NM_MT", "EXC", "GOOD", "POOR"])
 });
+export type CreateListingBody = z.infer<typeof CreateListingBody>;
 ```
 
-## Step 2: Register the Route
-Go to your routes file (e.g., `src/routes/index.ts`) and register the route within the `.withTypeProvider<ZodTypeProvider>()` block.
+### Step 2: Write the Repository (`src/repositories/example.repository.ts`)
+Repositories take `Env` in the constructor. If you need DB access, use a `get db()` getter. 
 
 ```typescript
-app.patch('/v1/user/profile', {
-  schema: {
-    // 1. Description
-    description: 'Updates the user profile data',
-    
-    // 2. Tags (Grouping)
-    tags: ['User'],
-    
-    // 3. Request Body
-    body: UpdateProfileSchema,
-    
-    // 4. Response Mapping
-    response: {
-      200: z.object({
-        success: z.boolean(),
-        message: z.string()
-      })
-    },
-    
-    // 5. Security (Bearer Token)
-    security: [{ bearerAuth: [] }]
-  },
-  
-  // 6. Security Guards (Middlewares)
-  preHandler: [requireGatewayAccessToken],
-  
-  // 7. Core Logic (Controller)
-  handler: async (req, reply) => {
-    // Logic goes here
-    return { success: true, message: 'Profile updated' };
+import { getDb } from "../config/db.js";
+import type { Env } from "../config/env.js";
+
+export class ExampleRepository {
+  constructor(private readonly env: Env) {}
+
+  private get db() {
+    return getDb(this.env);
   }
+
+  async insertListing(data: any) {
+    // Database queries go here
+    return { id: "123", ...data };
+  }
+}
+```
+*(Note: If a repository does not yet need DB access, keep the `env` parameter but remove the `db` getter to avoid ESLint unused import checks).*
+
+### Step 3: Write the Service (`src/services/example.service.ts`)
+Services take Repositories in their constructor. **Do not** pass `Env` into services unless explicitly requested (e.g., for JWT functions like in `auth-service`).
+
+```typescript
+import { ExampleRepository } from "../repositories/example.repository.js";
+import type { CreateListingBody } from "../types/schemas.js";
+
+export class ExampleService {
+  constructor(
+    private readonly repository: ExampleRepository
+  ) {}
+
+  async createListing(body: CreateListingBody) {
+    // Apply business logic here
+    if (body.price < 1) throw new Error("Price too low");
+    
+    return await this.repository.insertListing(body);
+  }
+}
+```
+
+### Step 4: Write the Controller (`src/controllers/example.controller.ts`)
+Controllers handle the raw Fastify request/reply. They take Services in their constructor.
+
+```typescript
+import type { FastifyRequest, FastifyReply } from "fastify";
+import { ExampleService } from "../services/example.service.js";
+import { CreateListingBody } from "../types/schemas.js";
+
+export class ExampleController {
+  constructor(private readonly service: ExampleService) {}
+
+  createListing = async (req: FastifyRequest, reply: FastifyReply) => {
+    // Zod parsing directly inside the controller
+    const body = CreateListingBody.parse(req.body);
+    
+    // Pass strictly validated data to the service
+    const result = await this.service.createListing(body);
+    
+    return reply.status(201).send(result);
+  };
+}
+```
+*(Note: Write methods as arrow functions `createListing = async () => {}` to automatically bind `this` when registered cleanly in route files).*
+
+### Step 5: Wire the Routes with Swagger Validation (`src/routes/example.routes.ts`)
+Use Fastify's Plugin system along with the `.withTypeProvider<ZodTypeProvider>()` extension to automatically bridge your Zod schemas into the Swagger UI documentation. 
+
+You must pull `env` from `app.env` before wiring dependencies.
+
+```typescript
+import type { FastifyInstance } from "fastify";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import type { Env } from "../config/env.js";
+import { CreateListingBody } from "../types/schemas.js";
+import { ExampleRepository } from "../repositories/example.repository.js";
+import { ExampleService } from "../services/example.service.js";
+import { ExampleController } from "../controllers/example.controller.js";
+
+export async function exampleRoutes(app: FastifyInstance) {
+  // 1. Zod Type Provider wrapper for Swagger
+  const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+  // 2. Extract Env perfectly (solves TS mismatches)
+  const env = (app as any).env as Env;
+
+  // 3. Dependency Injection
+  const repository = new ExampleRepository(env);
+  const service = new ExampleService(repository);
+  const controller = new ExampleController(service);
+
+  // 4. Register Endpoints with Swagger Schemas
+  typedApp.post("/listings", {
+    schema: {
+      tags: ["Listings"],
+      description: "Create a new inventory listing",
+      body: CreateListingBody,
+      response: {
+        201: z.object({ id: z.string(), success: z.boolean() })
+      },
+      security: [{ bearerAuth: [] }]
+    }
+  }, controller.createListing);
+}
+```
+
+### Step 6: Registration (`src/routes/index.ts`)
+Finally, ensure the route plugin is registered and prefixed inside `index.ts`.
+
+```typescript
+import { FastifyInstance } from "fastify";
+import type { Env } from "../config/env.js";
+import { exampleRoutes } from "./example.routes.js";
+import { healthRoutes } from "./health.routes.js";
+
+export async function registerRoutes(app: FastifyInstance, env: Env) {
+  (app as any).env = env; // Ensure env is accessible downstream
+  
+  await app.register(healthRoutes, { prefix: "/health" });
+  await app.register(exampleRoutes, { prefix: "/v1/example" });
+}
+```
+
+### Step 7: Write Unit Tests (`test/example.test.ts`)
+We use **Vitest** for blistering-fast parallel testing. When building robust routes, independently test your encapsulated `Service` tier using mock repositories. Place your `.test.ts` files inside a `test/` folder parallel to `src/`.
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { ExampleService } from "../src/services/example.service.js";
+
+describe("ExampleService", () => {
+  it("throws an error if price is below 1", async () => {
+    // 1. Mock the repository correctly so we don't hit the real DB
+    const mockRepo = { insertListing: vi.fn() } as any;
+    const service = new ExampleService(mockRepo);
+    
+    // 2. Validate behavior handles malicious inputs effectively
+    await expect(service.createListing({ cardId: "uuid", price: 0, condition: "MINT" }))
+      .rejects.toThrow("Price too low");
+      
+    // 3. Ensure Side Effects didn't leak
+    expect(mockRepo.insertListing).not.toHaveBeenCalled();
+  });
 });
 ```
 
-## Key Configuration Fields
+*You can run all tests iteratively locally using `pnpm run test:watch` from inside the microservice folder, or globally via `pnpm test`.*
 
-### 1. description
-Explain what the route does. This text appears at the top of the route section in Swagger.
-
-### 2. tags
-Used to group related routes. All routes with the same tag will be grouped together under one dropdown.
-
-### 3. body
-The Zod schema for POST/PATCH/PUT requests. Fastify will automatically block any request that doesn't match this shape.
-
-### 4. querystring
-The Zod schema for GET URL parameters (e.g., `?id=123`).
-
-### 5. params
-The Zod schema for dynamic URL segments (e.g., `/user/:id`).
-
-### 6. response
-A map of HTTP status codes to Zod schemas. This documents exactly what the frontend developer should expect to receive.
-
-### 7. security
-If set to `[{ bearerAuth: [] }]`, Swagger UI will show a lock icon and allow you to "Authorize" requests with your JWT token.
-
-## Why use this pattern?
-1. **Validation**: Invalid requests are blocked before they hit your logic.
-2. **Type Safety**: `req.body` will have the correct TypeScript types automatically.
-3. **Auto-Swagger**: The documentation updates itself every time you save your code.
+## Why this Pattern?
+By decoupling Controllers from Services and Repositories:
+1. **Zero ESLint Errors**: Injecting only exactly what's used removes dead variable warnings.
+2. **Reusability**: Core business logic and database code live separately from HTTP implementations.
+3. **Pinnacle Readability**: `app.post("/listings", controller.createListing)` is heavily modernized and clear to navigate.
+4. **Testability**: As seen in Step 7, tests are isolated to logic alone without spinning up entire webservers physically.

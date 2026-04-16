@@ -11,10 +11,10 @@ function useHs256Fallback(env: Env): boolean {
 }
 
 export async function adminAuthPreHandler(
-  env: Env,
   request: FastifyRequest,
   reply: FastifyReply,
 ): Promise<void> {
+  const env = (request as any).env as Env;
   const hdr = request.headers.authorization;
   if (!hdr?.startsWith("Bearer ")) {
     return reply.status(401).send({ error: "Unauthorized", message: "Token required" });
