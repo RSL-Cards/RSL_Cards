@@ -7,7 +7,6 @@ import { getRedis } from "../config/redis.js";
 import { AuthRepository } from "../repositories/auth.repository.js";
 import { AuthService } from "../services/auth.service.js";
 import { AuthController } from "../controllers/auth.controller.js";
-import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 import {
   RegisterSchema,
   LoginSchema,
