@@ -1,6 +1,16 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"],
+  "globalEnv": [
+    "NODE_ENV",
+    "LOG_LEVEL",
+    "DATABASE_URL",
+    "TEST_DATABASE_URL",
+    "DATABASE_URL_READ_REPLICA",
+    "REDIS_URL",
+    "INTERNAL_SERVICE_KEY",
+    "JWT_PRIVATE_KEY",
+    "JWT_PUBLIC_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -16,7 +26,28 @@
       "dependsOn": ["^build"],
       "outputs": [],
       "cache": true,
-      "env": ["NODE_ENV", "CI"]
+      "env": [
+        "NODE_ENV",
+        "CI",
+        "LOG_LEVEL",
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "DATABASE_URL_READ_REPLICA",
+        "REDIS_URL",
+        "INTERNAL_SERVICE_KEY",
+        "JWT_PRIVATE_KEY",
+        "JWT_PUBLIC_KEY",
+        "AUTH_SERVICE_PORT",
+        "USER_SERVICE_PORT",
+        "INVENTORY_SERVICE_PORT",
+        "TRANSACTION_SERVICE_PORT",
+        "LISTING_SERVICE_PORT",
+        "CARD_DB_SERVICE_PORT",
+        "AI_NARRATIVE_SERVICE_PORT",
+        "NOTIFICATION_SERVICE_PORT",
+        "ANALYTICS_SERVICE_PORT",
+        "ADMIN_SERVICE_PORT"
+      ]
     },
     "lint": {
       "cache": true
