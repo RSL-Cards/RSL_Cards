@@ -30,7 +30,28 @@ pnpm install
 
 ---
 
-## 2. Choosing Your Path
+## 2. Environment Configuration (Crucial)
+
+Our services dynamically load the correct environment file from `infra/docker/` based on the `NODE_ENV` value. This is why having correctly configured `.env` files matters for both Docker and Native development.
+
+| Environment (`NODE_ENV`) | Target Config File | Purpose |
+| :--- | :--- | :--- |
+| `development` (default) | `infra/docker/.env.dev` | Local development in Docker |
+| `qa` | `infra/docker/.env.qa` | QA / Staging environments |
+| `production` | `infra/docker/.env.prod` | Production environment |
+
+### Understanding the Two `.env` Files
+We maintain two different configuration strategies for development:
+
+1.  **The Root `.env.dev` (For Option B - Native)**  
+    Used when running microservices directly on your Mac. It connects to database clusters via `localhost` and maps services to unique ports (`3001` - `3010`) to avoid collisions.
+
+2.  **The Docker `.env` (`infra/docker/.env.dev`) (For Option A - Docker)**  
+    Used when running inside the Docker network. It connects to database clusters using internal hostnames (e.g., `rsldb`, `redis-dev`). Every service listens on internal port `3000` but is exposed to your Mac on ports `3001` - `3010`.
+
+---
+
+## 3. Choosing Your Path
 
 Choose ONE of the two methods below to run the environment.
 
@@ -90,7 +111,7 @@ That's it!
 
 ---
 
-## 3. The Port Mappings
+## 4. The Port Mappings
 
 Once running, the microservices will be successfully hosted on these addresses (applicable to both options):
 
@@ -111,7 +132,7 @@ Once running, the microservices will be successfully hosted on these addresses (
 
 ---
 
-## 4. Connecting the Mobile App (Expo)
+## 5. Connecting the Mobile App (Expo)
 
 If you are a mobile developer working on `dealer-app`:
 
@@ -132,7 +153,7 @@ The App handles network targeting via `apps/dealer-app/src/config/api.ts`.
 
 ---
 
-## 5. Troubleshooting Common Issues
+## 6. Troubleshooting Common Issues
 
 **Expo Login Fails (Invalid Credentials / Network Timeout)**
 If you are testing on a Physical Phone via Wi-Fi and the app suddenly drops connection or rejects logins, your Development Router likely cycled your laptop's DHCP IP Address! 
