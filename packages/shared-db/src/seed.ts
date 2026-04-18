@@ -16,6 +16,8 @@ import {
   consumerProfiles,
   transactions,
   users,
+  players,
+  cardVariants,
 } from "./schema/index.js";
 
 const nodeEnv = process.env.NODE_ENV ?? "development";
@@ -74,21 +76,41 @@ async function main() {
     { userId: consumer.id, displayName: "Consumer" },
   ]);
 
+  const playerRows = await db
+    .insert(players)
+    .values([
+      { name: "LeBron James", sport: "basketball" },
+      { name: "Shohei Ohtani", sport: "baseball" },
+      { name: "Patrick Mahomes", sport: "football" },
+      { name: "Victor Wembanyama", sport: "basketball" },
+      { name: "Aaron Judge", sport: "baseball" },
+    ])
+    .returning({ id: players.id, name: players.name });
+
   const cardRows = await db
     .insert(cards)
     .values(
       Array.from({ length: 25 }, (_, i) => ({
         id: `seed-card-${i + 1}`,
-        playerName: `Player ${i + 1}`,
+        playerId: playerRows[i % playerRows.length].id,
         year: 2020 + (i % 5),
         setName: "Topps Chrome",
         cardNumber: String(i + 1),
-        variation: i % 2 === 0 ? "Refractor" : null,
         sport: i % 3 === 0 ? "baseball" : i % 3 === 1 ? "football" : "basketball",
         isRookie: i % 4 === 0,
       })),
     )
     .returning({ id: cards.id });
+
+  const variantRows = await db
+    .insert(cardVariants)
+    .values(
+      cardRows.flatMap((c) => [
+        { cardId: c.id, name: "Base", isBase: true },
+        { cardId: c.id, name: "Refractor", isParallel: true },
+      ]),
+    )
+    .returning({ id: cardVariants.id, cardId: cardVariants.cardId, name: cardVariants.name });
 
   let inventoryCount = 0;
   for (const dealerId of [dealer1.id, dealer2.id]) {
@@ -156,7 +178,7 @@ async function main() {
   }).returning({ id: customers.id });
 
   await db.insert(cardPriceHistory).values({
-    cardId: cardRows[0].id,
+    variantId: variantRows[0].id,
     gradeKey: "RAW",
     avgSoldPrice: "110.00",
     recordedDate: new Date(),
@@ -198,7 +220,9 @@ async function main() {
     4 + // users
     3 + // dealerProfiles
     1 + // consumerProfiles
+    playerRows.length +
     cardRows.length +
+    variantRows.length +
     inventoryCount +
     20 + // transactions
     5 + // listings
