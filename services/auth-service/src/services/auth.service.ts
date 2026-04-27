@@ -10,12 +10,17 @@ import type {
 import { AuthError, AuthErrorCode } from "../errors/definitions.js";
 
 import type { Env } from "../config/env.js";
+import { OAuth2Client } from "google-auth-library";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID
+);
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly env: Env
-  ) {}
+  ) { }
 
   async registerUser(
     body: RegisterBody,
@@ -46,7 +51,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       newUser.id,
@@ -96,7 +101,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -163,7 +168,7 @@ export class AuthService {
       if (decodedNew && decodedNew.exp) {
         expiresAt = new Date(decodedNew.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -229,5 +234,128 @@ export class AuthService {
     await this.repository.resetPassword(user.id, pwdHash);
 
     return { message: "Password reset successfully" };
+  }
+  async loginWithGoogle(
+    idToken: string,
+    role: "dealer" | "consumer" = "consumer",
+    ipAddress?: string | null,
+    deviceInfo?: string | null
+  ) {
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload?.email) {
+      throw new Error("Invalid Google token");
+    }
+
+    let user =
+      await this.repository.getUserByEmail(
+        payload.email
+      );
+
+    if (!user) {
+      user = await this.repository.createOAuthUser({
+        email: payload.email,
+        provider: "google",
+        providerId: payload.sub!,
+        role
+      });
+    }
+    if (!user) {
+      throw new Error("OAuth user creation failed");
+    }
+    const tokens = generateTokens(
+      {
+        userId: user.id,
+        role: user.role
+      },
+      this.env
+    );
+
+    const hash = hashToken(tokens.refreshToken);
+
+    await this.repository.updateRefreshToken(
+      user.id,
+      hash,
+      undefined,
+      ipAddress,
+      deviceInfo
+    );
+
+    return {
+      user,
+      tokens
+    };
+  }
+
+
+  async loginWithApple(
+    idToken: string,
+    role: "dealer" | "consumer" = "consumer",
+    ipAddress?: string | null,
+    deviceInfo?: string | null
+  ) {
+
+    const appleJWKS = createRemoteJWKSet(
+      new URL("https://appleid.apple.com/auth/keys")
+    );
+
+    const { payload } = await jwtVerify(
+      idToken,
+      appleJWKS,
+      {
+        issuer: "https://appleid.apple.com",
+        audience: process.env.APPLE_AUDIENCE
+      }
+    );
+
+    if (!payload.email) {
+      throw new Error("Invalid Apple token");
+    }
+
+    let user =
+      await this.repository.getUserByEmail(
+        payload.email as string
+      );
+
+    if (!user) {
+      user = await this.repository.createOAuthUser({
+        email: payload.email as string,
+        provider: "apple",
+        providerId: payload.sub as string,
+        role
+      });
+    }
+    if (!user) {
+      throw new Error("OAuth user creation failed");
+    }
+    const tokens = generateTokens(
+      {
+        userId: user.id,
+        role: user.role
+      },
+      this.env
+    );
+
+    const hash = hashToken(tokens.refreshToken);
+
+    await this.repository.updateRefreshToken(
+      user.id,
+      hash,
+      undefined,
+      ipAddress,
+      deviceInfo
+    );
+
+    return {
+      user,
+      tokens
+    };
+
   }
 }

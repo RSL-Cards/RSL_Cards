@@ -14,10 +14,12 @@ export type UserRow = {
   email: string;
   passwordHash: string | null;
   role: "dealer" | "consumer" | "admin";
+  oauthProvider?: "google" | "apple" | null;
+  oauthId?: string | null;
 };
 
 export class AuthRepository {
-  constructor(private readonly env: Env) {}
+  constructor(private readonly env: Env) { }
 
   private get db() {
     return getDb(this.env);
@@ -158,13 +160,13 @@ export class AuthRepository {
       .where(eq((users as any).id, userId));
   }
 
-  async postAuthOauthGoogle(_body: any, _params: any, _query: any) {
-    return { message: `Google OAuth sign-in / sign-up. Returns tokens` };
-  }
+  // async postAuthOauthGoogle(_body: any, _params: any, _query: any) {
+  //   return { message: `Google OAuth sign-in / sign-up. Returns tokens` };
+  // }
 
-  async postAuthOauthApple(_body: any, _params: any, _query: any) {
-    return { message: `Apple Sign-In. Returns tokens` };
-  }
+  // async postAuthOauthApple(_body: any, _params: any, _query: any) {
+  //   return { message: `Apple Sign-In. Returns tokens` };
+  // }
 
   async postAuthVerifyEmail(_body: any, _params: any, _query: any) {
     return { message: `Verify email with token sent to inbox` };
@@ -188,5 +190,43 @@ export class AuthRepository {
 
   async deleteAuthDeviceToken(_body: any, _params: any, _query: any) {
     return { message: `Remove FCM token on logout` };
+  }
+  async createOAuthUser(data: {
+    email: string,
+    provider: "google" | "apple",
+    providerId: string,
+    role: "dealer" | "consumer"
+  }) {
+
+    return await this.db.transaction(async (tx: any) => {
+
+      const [user] = await tx
+        .insert(users)
+        .values({
+          email: data.email,
+          passwordHash: null,
+          oauthProvider: data.provider,
+          oauthId: data.providerId,
+          role: data.role
+        })
+        .returning();
+
+      if (data.role === "dealer") {
+        await tx.insert(dealerProfiles).values({
+          userId: user.id,
+          displayName: data.email.split("@")[0]
+        });
+      } else {
+        await tx.insert(consumerProfiles).values({
+          userId: user.id,
+          displayName: data.email.split("@")[0]
+        });
+      }
+
+      await tx.insert(userPreferences)
+        .values({ userId: user.id });
+
+      return user;
+    });
   }
 }

@@ -15,6 +15,8 @@ import {
   OnboardingSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
+  GoogleOauthSchema,
+  AppleOauthSchema
 } from "../types/schemas.js";
 import {
   requireGatewayAccessToken,
@@ -50,8 +52,17 @@ export async function authRoutes(app: FastifyInstance) {
   app.post("/admin-demo", withAdminAuth, authController.adminDemo);
 
   // ── OAuth & Other Stubs ──
-  app.post("/oauth/google", async (req, reply) => reply.send(await authRepository.postAuthOauthGoogle(req.body, req.params, req.query)));
-  app.post("/oauth/apple", async (req, reply) => reply.send(await authRepository.postAuthOauthApple(req.body, req.params, req.query)));
+app.post(
+ "/oauth/google",
+ {schema:{body:GoogleOauthSchema}},
+ authController.googleOauth
+);
+
+app.post(
+ "/oauth/apple",
+ {schema:{body:AppleOauthSchema}},
+ authController.appleOauth
+);
   app.post("/verify-email", async (req, reply) => reply.send(await authRepository.postAuthVerifyEmail(req.body, req.params, req.query)));
   app.post("/2fa/setup", async (req, reply) => reply.send(await authRepository.postAuth2FaSetup(req.body, req.params, req.query)));
   app.post("/2fa/verify", async (req, reply) => reply.send(await authRepository.postAuth2FaVerify(req.body, req.params, req.query)));
