@@ -4,7 +4,7 @@
 **Nginx path:** `/v1/auth/*` → `auth-service:3000` (direct, rate-limited)  
 **Auth:** Public endpoints only — issues JWT tokens. No `x-service-key` required from clients.
 
-Also acts as the **API Gateway** — all non-auth routes that arrive at Nginx routed through auth-service have their JWT validated and `x-service-key` injected before being proxied upstream.
+Also acts as the **API Gateway** — **all** non-auth routes go through auth-service. JWT is validated for protected routes; public routes like `scan-card` bypass JWT but still flow through the gateway (service-key is injected).
 
 ---
 
@@ -12,18 +12,18 @@ Also acts as the **API Gateway** — all non-auth routes that arrive at Nginx ro
 
 ### Authentication
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/v1/auth/register` | None | Create new dealer account |
-| `POST` | `/v1/auth/login` | None | Login, returns `accessToken` + `refreshToken` |
-| `POST` | `/v1/auth/logout` | Bearer | Invalidate refresh token |
-| `POST` | `/v1/auth/refresh` | None | Exchange refresh token for new access token |
-| `GET`  | `/v1/auth/me` | Bearer | Current session info |
-| `POST` | `/v1/auth/google` | None | Google OAuth sign-in |
-| `POST` | `/v1/auth/apple` | None | Apple sign-in |
-| `POST` | `/v1/auth/forgot-password` | None | Send password reset email |
-| `POST` | `/v1/auth/reset-password` | None | Reset password with token |
-| `GET`  | `/health` | None | Service health check |
+| Method | Path                       | Auth   | Description                                   |
+| ------ | -------------------------- | ------ | --------------------------------------------- |
+| `POST` | `/v1/auth/register`        | None   | Create new dealer account                     |
+| `POST` | `/v1/auth/login`           | None   | Login, returns `accessToken` + `refreshToken` |
+| `POST` | `/v1/auth/logout`          | Bearer | Invalidate refresh token                      |
+| `POST` | `/v1/auth/refresh`         | None   | Exchange refresh token for new access token   |
+| `GET`  | `/v1/auth/me`              | Bearer | Current session info                          |
+| `POST` | `/v1/auth/google`          | None   | Google OAuth sign-in                          |
+| `POST` | `/v1/auth/apple`           | None   | Apple sign-in                                 |
+| `POST` | `/v1/auth/forgot-password` | None   | Send password reset email                     |
+| `POST` | `/v1/auth/reset-password`  | None   | Reset password with token                     |
+| `GET`  | `/health`                  | None   | Service health check                          |
 
 ---
 
@@ -31,14 +31,19 @@ Also acts as the **API Gateway** — all non-auth routes that arrive at Nginx ro
 
 When Nginx routes these prefixes to auth-service, the gateway validates the Bearer JWT and proxies to the upstream service with `x-service-key` injected:
 
-| Nginx prefix | Upstream service |
-|---|---|
-| `/v1/inventory/*` | `inventory-service:3000` |
-| `/v1/listings/*` | `listing-service:3000` |
-| `/v1/cards/*` | `card-db-service:3000` |
-| `/v1/narratives/*` | `ai-narrative-service:3000` |
-| `/v1/users/*` | `user-service:3000` *(direct in Nginx — not yet proxied)* |
-| `/v1/transactions/*` | `transaction-service:3000` *(direct in Nginx)* |
+| Nginx prefix          | Upstream service            |
+| --------------------- | --------------------------- |
+| `/v1/users/*`         | `user-service:3000`         |
+| `/v1/inventory/*`     | `inventory-service:3000`    |
+| `/v1/transactions/*`  | `transaction-service:3000`  |
+| `/v1/listings/*`      | `listing-service:3000`      |
+| `/v1/cards/*`         | `card-db-service:3000`      |
+| `/v1/narratives/*`    | `ai-narrative-service:3000` |
+| `/v1/notifications/*` | `notification-service:3000` |
+| `/v1/analytics/*`     | `analytics-service:3000`    |
+| `/v1/admin/*`         | `admin-service:3000`        |
+
+> **Public exception:** `POST /v1/narratives/scan-card` — gateway skips JWT validation and injects `x-service-key` directly, so it still routes through the gateway without exposing the downstream service.
 
 ---
 

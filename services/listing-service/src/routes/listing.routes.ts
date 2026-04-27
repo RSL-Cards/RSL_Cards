@@ -118,41 +118,146 @@ export async function listingRoutes(app: FastifyInstance) {
     {
       schema: {
         tags: ["eBay"],
-        summary: "Sold items — last 7 & 30 days combined",
+        summary:
+          "Sold items — served from DB cache first, refreshed in background",
         querystring: {
           type: "object",
           required: ["q"],
           properties: {
             q: { type: "string", description: "Search keyword" },
-            limit: {
+            limit: { type: "string", description: "Max results (default 20)" },
+            variant_id: {
               type: "string",
-              description: "Max results per period (default 20)",
+              description: "Card variant UUID (for DB upsert)",
+            },
+            grade_key: {
+              type: "string",
+              description: "Grade key e.g. PSA_10 (for DB upsert)",
             },
           },
         },
       },
     },
     async (req: any, reply) => {
-      const { q, limit } = req.query as Record<string, string>;
+      const { q, limit, variant_id, grade_key } = req.query as Record<
+        string,
+        string
+      >;
       if (!q?.trim()) {
         return reply
           .status(400)
           .send({ error: "Query parameter 'q' is required" });
       }
+
+      const db = getDb(env);
+      const maxResults = limit ? Number(limit) : 20;
+      const query = q.trim();
+      const gradeKey = grade_key?.trim() || "RAW";
+
+      // ── 1. Serve from DB cache first ──────────────────────────────────────
+      if (variant_id?.trim()) {
+        const cached = await db.execute(sql`
+          SELECT
+            avg_sold_price, last_sold_price, lowest_active,
+            sales_count_30d, price_trend_30d, fetched_at, platform
+          FROM card_comp_snapshots
+          WHERE variant_id = ${variant_id.trim()}
+            AND grade_key = ${gradeKey}
+          ORDER BY fetched_at DESC
+          LIMIT 10
+        `);
+
+        if (cached.rows.length > 0) {
+          const rows = cached.rows as any[];
+          // Return DB rows immediately, then refresh in background
+          reply.send({
+            query,
+            fromCache: true,
+            fetchedAt: rows[0].fetched_at,
+            snapshots: rows.map((r) => ({
+              platform: r.platform,
+              avgSoldPrice: r.avg_sold_price,
+              lastSoldPrice: r.last_sold_price,
+              lowestActive: r.lowest_active,
+              salesCount30d: r.sales_count_30d,
+              priceTrend30d: r.price_trend_30d,
+            })),
+          });
+
+          // Background refresh if data is older than 15 minutes
+          const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
+          if (ageMs < 15 * 60 * 1000) return;
+
+          // Fire-and-forget background eBay fetch + upsert
+          ebayService
+            .getSoldItems({ q: query, days: 30, limit: maxResults })
+            .then(async (fresh) => {
+              if (!fresh.items.length) return;
+              const prices = fresh.items
+                .map((i: any) => parseFloat(i.soldPrice?.value ?? "0"))
+                .filter((p: number) => p > 0);
+              if (!prices.length) return;
+              const avg =
+                prices.reduce((a: number, b: number) => a + b, 0) /
+                prices.length;
+              const last = prices[0];
+              const lowest = Math.min(...prices);
+              await db.execute(sql`
+                INSERT INTO card_comp_snapshots
+                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+                VALUES
+                  (gen_random_uuid(), ${variant_id.trim()}, ${gradeKey}, 'ebay', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
+                ON CONFLICT (variant_id, grade_key, platform)
+                DO UPDATE SET
+                  avg_sold_price = EXCLUDED.avg_sold_price,
+                  last_sold_price = EXCLUDED.last_sold_price,
+                  lowest_active = EXCLUDED.lowest_active,
+                  sales_count_30d = EXCLUDED.sales_count_30d,
+                  fetched_at = NOW()
+              `);
+            })
+            .catch(() => {});
+          return;
+        }
+      }
+
+      // ── 2. No cache — fetch live from eBay, persist, return ───────────────
       const [last7, last30] = await Promise.all([
-        ebayService.getSoldItems({
-          q: q.trim(),
-          days: 7,
-          limit: limit ? Number(limit) : 20,
-        }),
-        ebayService.getSoldItems({
-          q: q.trim(),
-          days: 30,
-          limit: limit ? Number(limit) : 20,
-        }),
+        ebayService.getSoldItems({ q: query, days: 7, limit: maxResults }),
+        ebayService.getSoldItems({ q: query, days: 30, limit: maxResults }),
       ]);
+
+      // Persist snapshot if variant_id provided
+      if (variant_id?.trim()) {
+        const prices = last30.items
+          .map((i: any) => parseFloat(i.soldPrice?.value ?? "0"))
+          .filter((p: number) => p > 0);
+        if (prices.length > 0) {
+          const avg =
+            prices.reduce((a: number, b: number) => a + b, 0) / prices.length;
+          const last = prices[0];
+          const lowest = Math.min(...prices);
+          db.execute(
+            sql`
+            INSERT INTO card_comp_snapshots
+              (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+            VALUES
+              (gen_random_uuid(), ${variant_id.trim()}, ${gradeKey}, 'ebay', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
+            ON CONFLICT (variant_id, grade_key, platform)
+            DO UPDATE SET
+              avg_sold_price = EXCLUDED.avg_sold_price,
+              last_sold_price = EXCLUDED.last_sold_price,
+              lowest_active = EXCLUDED.lowest_active,
+              sales_count_30d = EXCLUDED.sales_count_30d,
+              fetched_at = NOW()
+          `,
+          ).catch(() => {});
+        }
+      }
+
       return reply.send({
-        query: q.trim(),
+        query,
+        fromCache: false,
         last7Days: last7,
         last30Days: last30,
       });

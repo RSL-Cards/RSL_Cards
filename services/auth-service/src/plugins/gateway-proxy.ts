@@ -42,8 +42,12 @@ export async function registerGatewayProxy(
         if (
           req.url === "/users/status" ||
           req.url === "/health" ||
-          req.url === "/health/fleet"
+          req.url === "/health/fleet" ||
+          req.url === "/v1/narratives/scan-card" ||
+          req.url === "/narratives/scan-card"
         ) {
+          // Inject service key so downstream internalAuthPreHandler still passes
+          (req.raw as any).headers["x-service-key"] = env.INTERNAL_SERVICE_KEY;
           return;
         }
 

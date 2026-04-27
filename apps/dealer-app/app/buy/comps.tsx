@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useEbaySold } from "../../src/hooks/useCardScan";
@@ -120,8 +121,12 @@ export default function BuyCompsScreen() {
   const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
+  const [nameOnly, setNameOnly] = useState(false);
 
-  const ebayQuery = buildEbayQuery(card);
+  const fullQuery = buildEbayQuery(card);
+  const nameQuery = card?.player_name ?? "";
+  const ebayQuery = nameOnly ? nameQuery : fullQuery;
+
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 20,
   });
@@ -352,8 +357,35 @@ export default function BuyCompsScreen() {
               </View>
             )}
 
-            {/* eBay query pill */}
-            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+            {/* eBay query pill + name-only toggle */}
+            <View style={{ paddingHorizontal: 20, marginTop: 16, gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => setNameOnly((v) => !v)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  alignSelf: "flex-start",
+                  backgroundColor: nameOnly ? "#0057FF" : "#1A1A1A",
+                  borderRadius: 100,
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderWidth: 1,
+                  borderColor: nameOnly ? "#0057FF" : "#2A2A2A",
+                  gap: 6,
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={{ fontSize: 12 }}>🔍</Text>
+                <Text
+                  style={{
+                    color: nameOnly ? "white" : "#888888",
+                    fontSize: 12,
+                    fontWeight: "700",
+                  }}
+                >
+                  {nameOnly ? "Name only" : "Full details"} search
+                </Text>
+              </TouchableOpacity>
               <View
                 style={{
                   backgroundColor: "#111111",

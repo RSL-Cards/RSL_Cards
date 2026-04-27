@@ -144,16 +144,21 @@ export class EbayService {
       filter: "buyingOptions:{FIXED_PRICE|AUCTION}",
     });
 
-    const items = (browse.itemSummaries ?? []).map((item) => ({
-      itemId: item.itemId,
-      title: item.title,
-      soldPrice: item.price,
-      condition: item.condition,
-      endDate: null,
-      shippingCost: null,
-      itemWebUrl: item.itemWebUrl,
-      location: null,
-    }));
+    const items = (browse.itemSummaries ?? [])
+      .map((item) => ({
+        itemId: item.itemId,
+        title: item.title,
+        soldPrice: item.price,
+        condition: item.condition,
+        endDate: null,
+        shippingCost: null,
+        itemWebUrl: item.itemWebUrl,
+        location: null,
+      }))
+      .filter((item) => {
+        const price = parseFloat(item.soldPrice?.value ?? "0");
+        return price > 0;
+      });
 
     return {
       items,

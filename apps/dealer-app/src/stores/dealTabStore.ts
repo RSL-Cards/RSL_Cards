@@ -5,9 +5,13 @@ export interface DealTab {
   type: "buy" | "sell";
   step: number;
   cardData?: any;
+  cardId?: string;
+  variantId?: string;
   price?: number;
   avgComp?: number;
   paymentMethod?: string;
+  channel?: string;
+  capturedPhoto?: string;
   createdAt: string;
 }
 

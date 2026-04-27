@@ -65,6 +65,10 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
   APPLE_AUDIENCE: z.string().optional().default(""),
   APPLE_ISSUER: z.string().optional().default("https://appleid.apple.com"),
+  AWS_ACCESS_KEY_ID: z.string().optional().default(""),
+  AWS_SECRET_ACCESS_KEY: z.string().optional().default(""),
+  AWS_REGION: z.string().optional().default("us-east-1"),
+  S3_BUCKET_NAME: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

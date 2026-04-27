@@ -10,6 +10,7 @@ import {
 } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
 import { useOnboardingStore } from "../stores/onboardingStore";
+import { tokenStorage } from "../lib/tokenStorage";
 import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 import * as WebBrowser from "expo-web-browser";
@@ -102,9 +103,18 @@ export function useCompleteOnboarding() {
       sports: string[];
       sellChannels: string[];
       paymentMethods: { type: string; handle: string }[];
-    }) => apiClient.post(ENDPOINTS.auth.onboarding, payload),
-    onSuccess: () => {
-      if (user) setAuth({ ...user, onboardingCompleted: true });
+    }) =>
+      apiClient
+        .post(ENDPOINTS.auth.onboarding, payload)
+        .then((r) => ({ ...r, _payload: payload })),
+    onSuccess: (res: any) => {
+      const updatedUser = {
+        ...user,
+        onboardingCompleted: true,
+        sports: res._payload?.sports ?? user?.sports ?? [],
+      };
+      if (user) setAuth(updatedUser as any);
+      tokenStorage.setUser(updatedUser as any);
       reset();
       Toast.show({
         type: "success",
@@ -166,7 +176,6 @@ export function useResetPassword() {
   });
 }
 export function useGoogleAuth() {
-
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
@@ -177,99 +186,79 @@ export function useGoogleAuth() {
   });
 
   useEffect(() => {
-
     async function handleGoogle() {
-
       if (response?.type !== "success") return;
 
       try {
-        const idToken =
-          response.authentication?.idToken;
+        const idToken = response.authentication?.idToken;
         if (!idToken) return;
 
-        const data =
-          await authService.googleLogin({ idToken });
+        const data = await authService.googleLogin({ idToken });
 
         setAuth(data.user);
 
         Toast.show({
           type: "success",
-          text1: "Signed in with Google"
+          text1: "Signed in with Google",
         });
 
         if (!data.user.onboardingCompleted) {
           router.replace("/(auth)/onboarding/sports");
-        }
-        else {
+        } else {
           router.replace("/(tabs)");
         }
-
-      }
-      catch (error) {
+      } catch (error) {
         Toast.show({
           type: "error",
-          text1: "Google sign in failed"
+          text1: "Google sign in failed",
         });
       }
     }
 
     handleGoogle();
-
   }, [response]);
 
   return {
     promptGoogleSignIn: () => promptAsync(),
-    request
+    request,
   };
-
 }
 
-
 export function useAppleAuth() {
-
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const signInWithApple = async () => {
-
     try {
-
-      const credential =
-        await AppleAuthentication.signInAsync({
-          requestedScopes: [
-            AppleAuthentication.AppleAuthenticationScope.EMAIL,
-            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          ]
-        });
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        ],
+      });
 
       if (!credential.identityToken) return;
 
-      const data =
-        await authService.appleLogin({
-          idToken: credential.identityToken
-        });
+      const data = await authService.appleLogin({
+        idToken: credential.identityToken,
+      });
 
       setAuth(data.user);
 
       if (!data.user.onboardingCompleted) {
         router.replace("/(auth)/onboarding/sports");
-      }
-      else {
+      } else {
         router.replace("/(tabs)");
       }
-
-    }
-    catch (error) {
+    } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Apple sign in failed"
+        text1: "Apple sign in failed",
       });
     }
-
   };
 
   return {
-    signInWithApple
+    signInWithApple,
   };
-
 }

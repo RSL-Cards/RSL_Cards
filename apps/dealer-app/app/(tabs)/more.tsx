@@ -6,14 +6,19 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Image,
+  ActivityIndicator,
 } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
 import {
   usePaymentMethods,
   paymentMethodIcon,
   useFetchOnFocus,
+  useUploadAvatar,
 } from "../../src/hooks/useProfile";
 // import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
@@ -59,6 +64,36 @@ function MoreScreen() {
   const router = useRouter();
   const { mutate: logout } = useLogout();
   const user = useAuthStore((s) => s.user);
+  const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
+    useUploadAvatar();
+  const [localUri, setLocalUri] = useState<string | null>(null);
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Allow photo library access to change your avatar.",
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"] as any,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      const uri = result.assets[0].uri;
+      setLocalUri(uri);
+      uploadAvatar(uri, {
+        onError: (e: any) => {
+          setLocalUri(null);
+          Alert.alert("Upload failed", e?.message ?? String(e));
+        },
+      });
+    }
+  };
 
   // Only fetch data when screen is focused (user clicks More tab)
   const hasFocused = useFetchOnFocus();
@@ -90,9 +125,35 @@ function MoreScreen() {
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>{initials}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={handlePickAvatar}
+            style={styles.profileAvatar}
+          >
+            {(localUri ?? user?.photoUrl) ? (
+              <Image
+                source={{ uri: (localUri ?? user?.photoUrl) as string }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.profileAvatarText}>{initials}</Text>
+            )}
+            {isUploadingAvatar && (
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <ActivityIndicator color="white" size="small" />
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
@@ -113,7 +174,7 @@ function MoreScreen() {
             </View>
             <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/settings/index")}>
+          <TouchableOpacity onPress={() => router.push("/settings")}>
             <Text style={{ color: "#0057FF", fontSize: 13 }}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -145,7 +206,9 @@ function MoreScreen() {
             onPress={() =>
               router.push("/settings/connect-platform?platform=ebay")
             }
+            isLast
           />
+          {/* Whatnot — not yet supported
           <SettingsRow
             icon="📺"
             label="Whatnot"
@@ -153,7 +216,8 @@ function MoreScreen() {
             onPress={() =>
               router.push("/settings/connect-platform?platform=whatnot")
             }
-          />
+          /> */}
+          {/* TCGPlayer — not yet supported
           <SettingsRow
             icon="🎮"
             label="TCGPlayer"
@@ -161,7 +225,8 @@ function MoreScreen() {
             onPress={() =>
               router.push("/settings/connect-platform?platform=tcgplayer")
             }
-          />
+          /> */}
+          {/* Shopify — not yet supported
           <SettingsRow
             icon="🏪"
             label="Shopify"
@@ -170,7 +235,7 @@ function MoreScreen() {
               router.push("/settings/connect-platform?platform=shopify")
             }
             isLast
-          />
+          /> */}
         </SectionCard>
 
         {/* Payments */}
@@ -205,7 +270,7 @@ function MoreScreen() {
           <SettingsRow
             icon="🔔"
             label="Notifications"
-            onPress={() => router.push("/settings/index")}
+            onPress={() => router.push("/settings")}
           />
           <SettingsRow icon="❓" label="Help & Support" />
           <SettingsRow icon="ℹ️" label="About RSL Cards" />
@@ -250,6 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8001C",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   profileAvatarText: { color: "white", fontSize: 20, fontWeight: "700" },
   profileName: { color: "white", fontSize: 16, fontWeight: "700" },

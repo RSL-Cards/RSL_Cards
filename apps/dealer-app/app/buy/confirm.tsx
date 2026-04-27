@@ -6,9 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
+import { useAddToInventory } from "../../src/hooks/useCardScan";
+import { apiClient } from "../../src/lib/apiClient";
+import { ENDPOINTS } from "../../src/config/api";
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: "💵",
@@ -22,15 +26,46 @@ const PAYMENT_ICONS: Record<string, string> = {
 
 const STEP_PCT = "100%";
 
+async function uploadCardPhoto(
+  inventoryId: string,
+  base64: string,
+): Promise<void> {
+  try {
+    const { data: presign } = await apiClient.post(
+      ENDPOINTS.inventory.photos(inventoryId),
+      { contentType: "image/jpeg", fileName: `scan-${Date.now()}.jpg` },
+    );
+    const { uploadUrl, publicUrl } = presign;
+
+    const imgRes = await fetch(`data:image/jpeg;base64,${base64}`);
+    const blob = await imgRes.blob();
+
+    await fetch(uploadUrl, {
+      method: "PUT",
+      body: blob,
+    });
+
+    await apiClient.post(ENDPOINTS.inventory.photosConfirm(inventoryId), {
+      url: publicUrl,
+    });
+  } catch (e) {
+    console.warn("[PHOTO UPLOAD] failed:", e);
+  }
+}
+
 export default function BuyConfirmScreen() {
   const router = useRouter();
   const tabs = useDealTabStore((s) => s.tabs);
   const removeTab = useDealTabStore((s) => s.removeTab);
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
+  const cardId = activeTab?.cardId;
+  const variantId = activeTab?.variantId;
   const price = activeTab?.price;
   const avgComp = activeTab?.avgComp;
   const paymentMethod = activeTab?.paymentMethod;
+  const channel = activeTab?.channel ?? "card_show";
+  const capturedPhoto = activeTab?.capturedPhoto;
   const pctOfComp =
     price && avgComp ? Math.round((price / avgComp) * 100) : null;
   const initials =
@@ -39,6 +74,7 @@ export default function BuyConfirmScreen() {
       .map((w: string) => w[0])
       .join("")
       .slice(0, 2) ?? "?";
+  const { mutate: addToInventory, isPending } = useAddToInventory();
   const [confirmed, setConfirmed] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const scaleAnim = useState(new Animated.Value(0.3))[0];
@@ -98,9 +134,19 @@ export default function BuyConfirmScreen() {
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.cardThumb}>
-            <Text style={{ color: "#555555", fontSize: 24, fontWeight: "900" }}>
-              {initials}
-            </Text>
+            {capturedPhoto ? (
+              <Image
+                source={{ uri: `data:image/jpeg;base64,${capturedPhoto}` }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text
+                style={{ color: "#555555", fontSize: 24, fontWeight: "900" }}
+              >
+                {initials}
+              </Text>
+            )}
           </View>
           <Text style={styles.cardName}>
             {card?.player_name ?? "Unknown Card"}
@@ -123,14 +169,42 @@ export default function BuyConfirmScreen() {
           <Text style={styles.priceLabel}>PURCHASE PRICE</Text>
           <Text style={styles.priceValue}>{price ? `$${price}` : "—"}</Text>
 
-          {paymentMethod && (
+          {(paymentMethod || channel) && (
             <View style={styles.methodRow}>
-              <Text style={{ fontSize: 20 }}>
-                {PAYMENT_ICONS[paymentMethod] ?? "�"}
-              </Text>
-              <Text style={styles.methodText}>
-                {paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}
-              </Text>
+              {paymentMethod && (
+                <>
+                  <Text style={{ fontSize: 20 }}>
+                    {PAYMENT_ICONS[paymentMethod] ?? "💳"}
+                  </Text>
+                  <Text style={styles.methodText}>
+                    {paymentMethod.charAt(0).toUpperCase() +
+                      paymentMethod.slice(1)}
+                  </Text>
+                </>
+              )}
+              {channel && channel !== "card_show" && (
+                <Text
+                  style={[
+                    styles.methodText,
+                    { color: "#555555", marginLeft: 8 },
+                  ]}
+                >
+                  ·{" "}
+                  {channel
+                    .replace(/_/g, " ")
+                    .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                </Text>
+              )}
+              {channel === "card_show" && (
+                <Text
+                  style={[
+                    styles.methodText,
+                    { color: "#555555", marginLeft: 8 },
+                  ]}
+                >
+                  · Card Show
+                </Text>
+              )}
             </View>
           )}
 
@@ -182,11 +256,82 @@ export default function BuyConfirmScreen() {
 
         {/* Confirm */}
         <TouchableOpacity
-          style={styles.confirmBtn}
-          onPress={() => setConfirmed(true)}
+          style={[styles.confirmBtn, isPending && { opacity: 0.7 }]}
+          disabled={isPending}
+          onPress={() => {
+            console.log(
+              "[CONFIRM] card:",
+              card?.player_name,
+              "price:",
+              price,
+              "cardId:",
+              cardId,
+            );
+            if (!card?.player_name || !price) {
+              console.log("[CONFIRM] BLOCKED — missing card or price");
+              return;
+            }
+
+            const dealRating =
+              pctOfComp == null
+                ? null
+                : pctOfComp <= 75
+                  ? "good_deal"
+                  : pctOfComp <= 90
+                    ? "fair_price"
+                    : "overpaying";
+
+            const gradeKey = card.grading
+              ? `${card.grading.company}_${card.grading.grade}`
+              : "RAW";
+
+            addToInventory(
+              {
+                cardId: cardId || undefined,
+                playerName: card.player_name,
+                year: card.year ? Number(card.year) : undefined,
+                setName: card.set_name ?? undefined,
+                variation: card.variation ?? undefined,
+                cardNumber: card.card_number ?? undefined,
+                sport: card.sport ?? undefined,
+                gradeCompany: card.grading?.company ?? undefined,
+                gradeValue: card.grading?.grade ?? undefined,
+                gradeKey,
+                certNumber: card.grading?.cert_number ?? undefined,
+                costBasis: price,
+                currentMarketValue: avgComp ?? undefined,
+                notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
+              },
+              {
+                onSuccess: (data: any) => {
+                  const inventoryId = data?.item?.id ?? null;
+                  if (inventoryId && capturedPhoto) {
+                    uploadCardPhoto(inventoryId, capturedPhoto);
+                  }
+                  apiClient
+                    .post(ENDPOINTS.transactions.buy, {
+                      inventoryId,
+                      playerName: card.player_name,
+                      price: String(price),
+                      costBasis: String(price),
+                      channel,
+                      paymentMethod: paymentMethod ?? null,
+                      dealRating,
+                      compPriceAtTime: avgComp ? String(avgComp) : null,
+                      gradeKey,
+                      cardSnapshot: JSON.stringify(card),
+                    })
+                    .catch(() => {});
+                  setConfirmed(true);
+                },
+              },
+            );
+          }}
           activeOpacity={0.85}
         >
-          <Text style={styles.confirmBtnText}>CONFIRM PURCHASE</Text>
+          <Text style={styles.confirmBtnText}>
+            {isPending ? "SAVING..." : "CONFIRM PURCHASE"}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -230,6 +375,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
+    overflow: "hidden",
   },
   cardName: {
     color: "white",

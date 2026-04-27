@@ -4,9 +4,7 @@ import {
 } from "../repositories/user.repository.js";
 
 export class UserService {
-  constructor(
-    private readonly repository: UserRepository
-  ) {}
+  constructor(private readonly repository: UserRepository) {}
 
   async updateOnboarding(
     userId: string,
@@ -15,12 +13,12 @@ export class UserService {
     return this.repository.updateOnboarding(userId, data);
   }
 
-  async getUsersMe(body: any, params: any, query: any) {
-    return this.repository.getUsersMe(body, params, query);
+  async getUsersMe(userId: string) {
+    return this.repository.getUsersMe(userId);
   }
 
-  async patchUsersMe(body: any, params: any, query: any) {
-    return this.repository.patchUsersMe(body, params, query);
+  async patchUsersMe(userId: string, body: any) {
+    return this.repository.patchUsersMe(userId, body);
   }
 
   async getUsersMePaymentMethods(userId: string) {

@@ -1,10 +1,25 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 
 const STEP_PCT = "80%";
+
+const BUY_CHANNELS = [
+  { key: "card_show", icon: "🏟️", label: "Card Show" },
+  { key: "ebay", icon: "🛒", label: "eBay" },
+  { key: "facebook", icon: "👥", label: "Facebook" },
+  { key: "app", icon: "📱", label: "App/DM" },
+  { key: "comc", icon: "📦", label: "COMC" },
+  { key: "other", icon: "🔍", label: "Other" },
+];
 
 const PAYMENT_METHODS = [
   { key: "cash", icon: "💵", label: "Cash", lastUsed: false },
@@ -22,6 +37,9 @@ export default function BuyPaymentScreen() {
   const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+
+  const canContinue = !!selected && !!selectedChannel;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,9 +55,8 @@ export default function BuyPaymentScreen() {
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Select payment method</Text>
-
         <View style={styles.grid}>
           {PAYMENT_METHODS.map((m) => (
             <TouchableOpacity
@@ -48,9 +65,7 @@ export default function BuyPaymentScreen() {
                 styles.methodCard,
                 selected === m.key && styles.methodCardSelected,
               ]}
-              onPress={() => {
-                setSelected(m.key);
-              }}
+              onPress={() => setSelected(m.key)}
               activeOpacity={0.75}
             >
               {m.lastUsed && (
@@ -70,16 +85,47 @@ export default function BuyPaymentScreen() {
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+
+        <Text style={[styles.title, { marginTop: 28 }]}>
+          Where did you buy it?
+        </Text>
+        <View style={styles.grid}>
+          {BUY_CHANNELS.map((c) => (
+            <TouchableOpacity
+              key={c.key}
+              style={[
+                styles.methodCard,
+                selectedChannel === c.key && styles.channelCardSelected,
+              ]}
+              onPress={() => setSelectedChannel(c.key)}
+              activeOpacity={0.75}
+            >
+              <Text style={{ fontSize: 28, marginBottom: 6 }}>{c.icon}</Text>
+              <Text
+                style={[
+                  styles.methodLabel,
+                  selectedChannel === c.key && { color: "white" },
+                ]}
+              >
+                {c.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ height: 24 }} />
+      </ScrollView>
 
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.primaryBtn, !selected && styles.primaryBtnDisabled]}
-          disabled={!selected}
+          style={[styles.primaryBtn, !canContinue && styles.primaryBtnDisabled]}
+          disabled={!canContinue}
           onPress={() => {
-            if (activeTab?.id && selected)
-              updateTab(activeTab.id, { paymentMethod: selected });
+            if (activeTab?.id && selected && selectedChannel)
+              updateTab(activeTab.id, {
+                paymentMethod: selected,
+                channel: selectedChannel,
+              });
             router.push("/buy/confirm");
           }}
           activeOpacity={0.85}
@@ -123,6 +169,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#0057FF",
     backgroundColor: "rgba(0,87,255,0.1)",
+  },
+  channelCardSelected: {
+    borderWidth: 2,
+    borderColor: "#E8001C",
+    backgroundColor: "rgba(232,0,28,0.1)",
   },
   lastUsedBadge: {
     position: "absolute",

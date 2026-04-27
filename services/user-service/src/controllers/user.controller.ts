@@ -2,9 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { UserService } from "../services/user.service.js";
 
 export class UserController {
-  constructor(
-    private readonly service: UserService
-  ) {}
+  constructor(private readonly service: UserService) {}
 
   private getUserId(req: FastifyRequest): string {
     const userId = req.headers["x-user-id"] as string | undefined;
@@ -21,20 +19,14 @@ export class UserController {
   };
 
   getMe = async (req: FastifyRequest, reply: FastifyReply) => {
-    const result = await this.service.getUsersMe(
-      req.body,
-      req.params,
-      req.query,
-    );
+    const userId = this.getUserId(req);
+    const result = await this.service.getUsersMe(userId);
     return reply.send(result);
   };
 
   patchMe = async (req: FastifyRequest, reply: FastifyReply) => {
-    const result = await this.service.patchUsersMe(
-      req.body,
-      req.params,
-      req.query,
-    );
+    const userId = this.getUserId(req);
+    const result = await this.service.patchUsersMe(userId, req.body);
     return reply.send(result);
   };
 

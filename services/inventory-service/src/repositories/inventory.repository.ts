@@ -9,12 +9,7 @@ export class InventoryRepository {
     return getDb(this.env);
   }
 
-  async getInventory(
-    _body: any,
-    _params: any,
-    query: any,
-    userId: string,
-  ) {
+  async getInventory(_body: any, _params: any, query: any, userId: string) {
     const {
       sport,
       grade,
@@ -122,6 +117,7 @@ export class InventoryRepository {
       gradeKey?: string;
       certNumber?: string;
       costBasis: number;
+      currentMarketValue?: number;
       quantity?: number;
       photos?: string[];
       notes?: string;
@@ -143,6 +139,7 @@ export class InventoryRepository {
       gradeKey = "RAW",
       certNumber,
       costBasis,
+      currentMarketValue,
       quantity = 1,
       photos,
       notes,
@@ -170,13 +167,13 @@ export class InventoryRepository {
     const result = await this.db.execute(sql`
       INSERT INTO inventory (
         user_id, card_id, player_name, year, set_name, variation, card_number, sport,
-        grade_company, grade_value, grade_key, cert_number, cost_basis, quantity,
-        photos, notes, listing_status, added_at, updated_at
+        grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
+        quantity, photos, notes, listing_status, added_at, updated_at
       ) VALUES (
         ${userId}, ${cardId || null}, ${playerName}, ${year || null}, ${setName || null}, 
         ${variation || null}, ${cardNumber || null}, ${sport || null},
         ${gradeCompany || null}, ${gradeValue || null}, ${gradeKey}, ${certNumber || null},
-        ${costBasis}, ${quantity}, ${photos || null}, ${notes || null}, 
+        ${costBasis}, ${currentMarketValue || null}, ${quantity}, ${photos || null}, ${notes || null}, 
         'unlisted', NOW(), NOW()
       )
       RETURNING *
@@ -205,7 +202,11 @@ export class InventoryRepository {
     return { message: `Upload card photo (returns S3 presigned URL)` };
   }
 
-  async deleteInventoryIdPhotosPhotoindex(_body: any, _params: any, _query: any) {
+  async deleteInventoryIdPhotosPhotoindex(
+    _body: any,
+    _params: any,
+    _query: any,
+  ) {
     return { message: `Remove a card photo` };
   }
 

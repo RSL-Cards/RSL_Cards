@@ -8,6 +8,8 @@ export interface AuthUser {
   role: "dealer" | "consumer";
   displayName: string;
   onboardingCompleted: boolean;
+  sports?: string[];
+  photoUrl?: string | null;
 }
 
 export interface AuthTokens {
@@ -41,21 +43,21 @@ export interface ResetPasswordPayload {
   newPassword: string;
 }
 export interface GoogleAuthPayload {
- idToken:string;
+  idToken: string;
 }
 
 export interface AppleAuthPayload {
- idToken:string;
+  idToken: string;
 }
-async function persistAuth(data:AuthResponse){
- await tokenStorage.setTokens(
-   data.tokens.accessToken,
-   data.tokens.refreshToken
- );
+async function persistAuth(data: AuthResponse) {
+  await tokenStorage.setTokens(
+    data.tokens.accessToken,
+    data.tokens.refreshToken,
+  );
 
- await tokenStorage.setUser(data.user);
+  await tokenStorage.setUser(data.user);
 
- return data;
+  return data;
 }
 
 export const authService = {
@@ -64,7 +66,7 @@ export const authService = {
       ENDPOINTS.auth.login,
       payload,
     );
-   return persistAuth(data);
+    return persistAuth(data);
   },
 
   async register(payload: RegisterPayload): Promise<AuthResponse> {
@@ -72,26 +74,26 @@ export const authService = {
       ENDPOINTS.auth.register,
       payload,
     );
-   return persistAuth(data);
+    return persistAuth(data);
   },
 
- async googleLogin(payload:GoogleAuthPayload){
-   const {data}= await apiClient.post<AuthResponse>(
+  async googleLogin(payload: GoogleAuthPayload) {
+    const { data } = await apiClient.post<AuthResponse>(
       ENDPOINTS.auth.oauthGoogle,
-      payload
-   );
+      payload,
+    );
 
-   return persistAuth(data);
- },
+    return persistAuth(data);
+  },
 
- async appleLogin(payload:AppleAuthPayload){
-   const {data}= await apiClient.post<AuthResponse>(
+  async appleLogin(payload: AppleAuthPayload) {
+    const { data } = await apiClient.post<AuthResponse>(
       ENDPOINTS.auth.oauthApple,
-      payload
-   );
+      payload,
+    );
 
-   return persistAuth(data);
- },
+    return persistAuth(data);
+  },
 
   async logout(): Promise<void> {
     try {

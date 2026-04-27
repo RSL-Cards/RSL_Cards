@@ -7,6 +7,8 @@ import { UserRepository } from "../repositories/user.repository.js";
 import { UserService } from "../services/user.service.js";
 import { UserController } from "../controllers/user.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function usersRoutes(app: FastifyInstance) {
   const env = (app as any).env as Env;
@@ -47,6 +49,34 @@ export async function usersRoutes(app: FastifyInstance) {
   // User Profile
   app.get("/me", userController.getMe);
   app.patch("/me", userController.patchMe);
+
+  app.post("/me/avatar", async (req: any, reply) => {
+    const userId = req.headers["x-user-id"] as string;
+    const { contentType = "image/jpeg" } = (req.body as any) ?? {};
+
+    if (!env.S3_BUCKET_NAME) {
+      return reply.status(503).send({ error: "S3 not configured" });
+    }
+
+    const ext = contentType === "image/png" ? "png" : "jpg";
+    const key = `avatars/${userId}/profile.${ext}`;
+
+    const client = new S3Client({
+      region: env.AWS_REGION,
+      credentials: {
+        accessKeyId: env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+    const cmd = new PutObjectCommand({
+      Bucket: env.S3_BUCKET_NAME,
+      Key: key,
+    });
+    const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 300 });
+    const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+
+    return reply.send({ uploadUrl, publicUrl, key });
+  });
   app.post("/me/onboarding", userController.onboarding);
 
   // Payment Methods

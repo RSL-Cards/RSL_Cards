@@ -5,17 +5,21 @@ import {
   TouchableOpacity,
   Pressable,
   Animated,
+  Image,
+  StyleSheet,
 } from "react-native";
 import { useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  MOCK_TODAY_STATS,
-  MOCK_AI_NARRATIVE,
-  MOCK_INVENTORY_SUMMARY,
-} from "../../src/constants/mockData";
+import { MOCK_AI_NARRATIVE } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useAuthStore } from "../../src/stores/authStore";
+import {
+  useDailyStats,
+  useTodayActivity,
+  useRefetchDashboardOnFocus,
+} from "../../src/hooks/useDashboard";
+import { useInventorySummary } from "../../src/hooks/useCardScan";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -28,6 +32,11 @@ export default function HomeScreen() {
     .slice(0, 2);
   const tabs = useDealTabStore((s) => s.tabs);
   const removeTab = useDealTabStore((s) => s.removeTab);
+
+  const { data: dailyStats } = useDailyStats();
+  const { data: summary } = useInventorySummary();
+  const { data: todayActivity } = useTodayActivity();
+  useRefetchDashboardOnFocus();
 
   const buyScale = useRef(new Animated.Value(1)).current;
   const sellScale = useRef(new Animated.Value(1)).current;
@@ -153,7 +162,8 @@ export default function HomeScreen() {
                 </Text>
               </View>
             </TouchableOpacity>
-            <View
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/more")}
               style={{
                 width: 36,
                 height: 36,
@@ -161,12 +171,23 @@ export default function HomeScreen() {
                 backgroundColor: "#E8001C",
                 alignItems: "center",
                 justifyContent: "center",
+                overflow: "hidden",
               }}
             >
-              <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>
-                {initials}
-              </Text>
-            </View>
+              {user?.photoUrl ? (
+                <Image
+                  source={{ uri: user.photoUrl }}
+                  style={StyleSheet.absoluteFill}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text
+                  style={{ color: "white", fontSize: 14, fontWeight: "700" }}
+                >
+                  {initials}
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -183,31 +204,31 @@ export default function HomeScreen() {
           {[
             {
               label: "Bought",
-              value: `${MOCK_TODAY_STATS.cards_bought}`,
+              value: `${dailyStats?.cards_bought ?? 0}`,
               unit: "cards",
               color: "#0057FF",
             },
             {
               label: "Sold",
-              value: `${MOCK_TODAY_STATS.cards_sold}`,
+              value: `${dailyStats?.cards_sold ?? 0}`,
               unit: "cards",
               color: "#E8001C",
             },
             {
               label: "Spent",
-              value: `$${MOCK_TODAY_STATS.total_spent}`,
+              value: `$${dailyStats?.total_spent ?? "0.00"}`,
               unit: "",
               color: "#888888",
             },
             {
               label: "Revenue",
-              value: `$${MOCK_TODAY_STATS.total_revenue}`,
+              value: `$${dailyStats?.total_revenue ?? "0.00"}`,
               unit: "",
               color: "#FFFFFF",
             },
             {
               label: "Profit",
-              value: `$${MOCK_TODAY_STATS.net_profit}`,
+              value: `$${dailyStats?.net_profit ?? "0.00"}`,
               unit: "",
               color: "#00C853",
             },
@@ -516,15 +537,15 @@ export default function HomeScreen() {
               {[
                 {
                   label: "Cards",
-                  value: `${MOCK_INVENTORY_SUMMARY.total_cards}`,
+                  value: `${summary?.total_cards ?? 0}`,
                 },
                 {
                   label: "Value",
-                  value: `$${MOCK_INVENTORY_SUMMARY.total_market_value.toLocaleString()}`,
+                  value: `$${parseFloat(summary?.total_market_value ?? "0").toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
                 },
                 {
                   label: "Gain",
-                  value: `+$${MOCK_INVENTORY_SUMMARY.total_unrealized_gain}`,
+                  value: `${parseFloat(summary?.total_unrealized_gain ?? "0") >= 0 ? "+" : ""}$${parseFloat(summary?.total_unrealized_gain ?? "0").toFixed(0)}`,
                 },
               ].map((item) => (
                 <View key={item.label} style={{ alignItems: "center" }}>
@@ -545,138 +566,112 @@ export default function HomeScreen() {
                 </View>
               ))}
             </View>
-            {MOCK_INVENTORY_SUMMARY.aging_alerts_count > 0 && (
-              <View
-                style={{
-                  marginTop: 14,
-                  backgroundColor: "rgba(255, 179, 0, 0.1)",
-                  borderRadius: 10,
-                  padding: 10,
-                  borderWidth: 1,
-                  borderColor: "rgba(255,179,0,0.3)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ fontSize: 16, marginRight: 8 }}>⏰</Text>
-                <Text style={{ color: "#FFB300", fontSize: 13 }}>
-                  {MOCK_INVENTORY_SUMMARY.aging_alerts_count} cards need
-                  attention (60+ days)
-                </Text>
-              </View>
-            )}
           </View>
         </View>
 
         {/* ── TODAY'S ACTIVITY ── */}
-        <View style={{ marginHorizontal: 20, marginTop: 20 }}>
-          <Text
-            style={{
-              color: "#888888",
-              fontSize: 11,
-              fontWeight: "700",
-              letterSpacing: 1.5,
-              marginBottom: 10,
-            }}
-          >
-            TODAY'S ACTIVITY
-          </Text>
-          <View
-            style={{
-              backgroundColor: "#111111",
-              borderRadius: 16,
-              borderWidth: 1,
-              borderColor: "#2A2A2A",
-              overflow: "hidden",
-            }}
-          >
-            {[
-              {
-                type: "sell",
-                player: "CJ Stroud",
-                price: "$198",
-                profit: "+$42",
-                time: "9:15 AM",
-              },
-              {
-                type: "buy",
-                player: "Josh Allen",
-                price: "$389",
-                profit: null,
-                time: "10:30 AM",
-              },
-              {
-                type: "sell",
-                player: "Jayden Daniels",
-                price: "$58",
-                profit: "+$23",
-                time: "11:45 AM",
-              },
-            ].map((tx, i) => (
-              <View
-                key={i}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  padding: 14,
-                  borderBottomWidth: i < 2 ? 1 : 0,
-                  borderBottomColor: "#2A2A2A",
-                }}
-              >
+        {todayActivity && todayActivity.length > 0 && (
+          <View style={{ marginHorizontal: 20, marginTop: 20 }}>
+            <Text
+              style={{
+                color: "#888888",
+                fontSize: 11,
+                fontWeight: "700",
+                letterSpacing: 1.5,
+                marginBottom: 10,
+              }}
+            >
+              TODAY'S ACTIVITY
+            </Text>
+            <View
+              style={{
+                backgroundColor: "#111111",
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: "#2A2A2A",
+                overflow: "hidden",
+              }}
+            >
+              {todayActivity.map((tx, i) => (
                 <View
+                  key={tx.id}
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    backgroundColor:
-                      tx.type === "buy"
-                        ? "rgba(0,87,255,0.15)"
-                        : "rgba(232,0,28,0.15)",
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 12,
+                    padding: 14,
+                    borderBottomWidth: i < todayActivity.length - 1 ? 1 : 0,
+                    borderBottomColor: "#2A2A2A",
                   }}
                 >
-                  <Text
+                  <View
                     style={{
-                      fontSize: 14,
-                      fontWeight: "700",
-                      color: tx.type === "buy" ? "#0057FF" : "#E8001C",
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      backgroundColor:
+                        tx.type === "buy"
+                          ? "rgba(0,87,255,0.15)"
+                          : "rgba(232,0,28,0.15)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
                     }}
                   >
-                    {tx.type === "buy" ? "B" : "S"}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{ color: "white", fontWeight: "600", fontSize: 14 }}
-                  >
-                    {tx.player}
-                  </Text>
-                  <Text
-                    style={{ color: "#555555", fontSize: 11, marginTop: 2 }}
-                  >
-                    {tx.time}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{ color: "white", fontWeight: "700", fontSize: 14 }}
-                  >
-                    {tx.price}
-                  </Text>
-                  {tx.profit && (
                     <Text
-                      style={{ color: "#00C853", fontSize: 12, marginTop: 2 }}
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: tx.type === "buy" ? "#0057FF" : "#E8001C",
+                      }}
                     >
-                      {tx.profit}
+                      {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
                     </Text>
-                  )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: "white",
+                        fontWeight: "600",
+                        fontSize: 14,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {tx.playerName}
+                    </Text>
+                    <Text
+                      style={{ color: "#555555", fontSize: 11, marginTop: 2 }}
+                    >
+                      {tx.time}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text
+                      style={{
+                        color: "white",
+                        fontWeight: "700",
+                        fontSize: 14,
+                      }}
+                    >
+                      ${tx.price}
+                    </Text>
+                    {tx.profit && (
+                      <Text
+                        style={{
+                          color:
+                            parseFloat(tx.profit) >= 0 ? "#00C853" : "#E8001C",
+                          fontSize: 12,
+                          marginTop: 2,
+                        }}
+                      >
+                        {parseFloat(tx.profit) >= 0 ? "+" : ""}${tx.profit}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -8,6 +8,10 @@ export interface ScannedCard {
   variation?: string;
   sport: string;
   card_number?: string;
+  manufacturer?: string;
+  is_rookie?: boolean;
+  is_autograph?: boolean;
+  is_relic?: boolean;
   grading?: {
     company: string;
     grade: string;
@@ -18,6 +22,9 @@ export interface ScannedCard {
 export interface ScanResponse {
   card: ScannedCard;
   confidence: number;
+  cardId?: string;
+  variantId?: string;
+  fromCache?: boolean;
 }
 
 export interface EbaySoldItem {
@@ -31,10 +38,22 @@ export interface EbaySoldItem {
   location?: string;
 }
 
+export interface EbayCompSnapshot {
+  platform: string;
+  avgSoldPrice: string;
+  lastSoldPrice: string;
+  lowestActive: string;
+  salesCount30d: number;
+  priceTrend30d: string | null;
+}
+
 export interface EbaySoldResponse {
-  sold7d: { items: EbaySoldItem[]; totalEntries: number; period: string };
-  sold30d: { items: EbaySoldItem[]; totalEntries: number; period: string };
   query: string;
+  fromCache: boolean;
+  fetchedAt?: string;
+  snapshots?: EbayCompSnapshot[];
+  sold7d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
+  sold30d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
 }
 
 export interface EbaySearchItem {
@@ -45,6 +64,71 @@ export interface EbaySearchItem {
   itemWebUrl?: string;
   image?: { imageUrl: string };
 }
+
+export interface AddInventoryItem {
+  cardId?: string;
+  playerName: string;
+  year?: number;
+  setName?: string;
+  variation?: string;
+  cardNumber?: string;
+  sport?: string;
+  gradeCompany?: string;
+  gradeValue?: string;
+  gradeKey?: string;
+  certNumber?: string;
+  costBasis: number;
+  currentMarketValue?: number;
+  notes?: string;
+}
+
+export interface AddInventoryResponse {
+  success: boolean;
+  message: string;
+  item: {
+    id: string;
+    player_name: string;
+    cost_basis: string;
+    added_at: string;
+  };
+}
+
+export const inventoryService = {
+  async addItem(data: AddInventoryItem): Promise<AddInventoryResponse> {
+    const { data: res } = await apiClient.post<AddInventoryResponse>(
+      ENDPOINTS.inventory.create,
+      data,
+    );
+    return res;
+  },
+
+  async list(params?: {
+    sport?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: any[];
+    pagination: { page: number; limit: number; total: number };
+  }> {
+    const { data } = await apiClient.get(ENDPOINTS.inventory.list, { params });
+    return data;
+  },
+
+  async getSummary(): Promise<{
+    total_cards: string;
+    total_cost_basis: string;
+    total_market_value: string;
+    total_unrealized_gain: string;
+  }> {
+    const { data } = await apiClient.get(`${ENDPOINTS.inventory.list}/summary`);
+    return data;
+  },
+
+  async getItem(id: string): Promise<any> {
+    const { data } = await apiClient.get(ENDPOINTS.inventory.detail(id));
+    return data;
+  },
+};
 
 export const cardService = {
   async scanImage(imageBase64: string): Promise<ScanResponse> {
@@ -66,22 +150,27 @@ export const cardService = {
     return data;
   },
 
-  async getEbaySold(query: string, limit = 10): Promise<EbaySoldResponse> {
-    const { data } = await apiClient.get<{
-      query: string;
-      last7Days: {
-        items: EbaySoldItem[];
-        totalEntries: number;
-        period: string;
+  async getEbaySold(
+    query: string,
+    limit = 10,
+    variantId?: string,
+    gradeKey?: string,
+  ): Promise<EbaySoldResponse> {
+    const params: Record<string, any> = { q: query, limit };
+    if (variantId) params.variant_id = variantId;
+    if (gradeKey) params.grade_key = gradeKey;
+    const { data } = await apiClient.get<any>(ENDPOINTS.ebay.sold, { params });
+    if (data.fromCache && data.snapshots) {
+      return {
+        query: data.query,
+        fromCache: true,
+        fetchedAt: data.fetchedAt,
+        snapshots: data.snapshots,
       };
-      last30Days: {
-        items: EbaySoldItem[];
-        totalEntries: number;
-        period: string;
-      };
-    }>(ENDPOINTS.ebay.sold, { params: { q: query, limit } });
+    }
     return {
       query: data.query,
+      fromCache: false,
       sold7d: data.last7Days,
       sold30d: data.last30Days,
     };

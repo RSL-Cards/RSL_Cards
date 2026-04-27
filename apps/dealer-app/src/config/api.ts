@@ -46,11 +46,12 @@ export const ENDPOINTS = {
   },
 
   users: {
-    me: "/v1/auth/me", // auth-service validates JWT, proxies to user-service
-    updateProfile: "/v1/auth/me",
+    me: "/v1/users/me",
+    updateProfile: "/v1/users/me",
+    avatarUpload: "/v1/users/me/avatar",
     preferences: "/v1/auth/me/preferences",
-    paymentMethods: "/v1/auth/me/payment-methods", // auth → user-service (internal)
-    connectedPlatforms: "/v1/auth/me/connected-platforms", // auth → user-service (internal)
+    paymentMethods: "/v1/users/me/payment-methods",
+    connectedPlatforms: "/v1/users/me/connected-platforms",
   },
 
   inventory: {
@@ -59,11 +60,15 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/inventory/${id}`,
     update: (id: string) => `/v1/inventory/${id}`,
     delete: (id: string) => `/v1/inventory/${id}`,
+    photos: (id: string) => `/v1/inventory/${id}/photos`,
+    photosConfirm: (id: string) => `/v1/inventory/${id}/photos/confirm`,
   },
 
   transactions: {
     list: "/v1/transactions",
     create: "/v1/transactions",
+    buy: "/v1/transactions/buy",
+    sell: "/v1/transactions/sell",
     detail: (id: string) => `/v1/transactions/${id}`,
   },
 
@@ -101,6 +106,7 @@ export const ENDPOINTS = {
   analytics: {
     dashboard: "/v1/analytics/dashboard",
     daily: "/v1/analytics/daily",
+    todayActivity: "/v1/analytics/today-activity",
     weekly: "/v1/analytics/weekly",
   },
 } as const;

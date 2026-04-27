@@ -13,14 +13,12 @@ import type { Env } from "../config/env.js";
 import { OAuth2Client } from "google-auth-library";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID
-);
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
-    private readonly env: Env
-  ) { }
+    private readonly env: Env,
+  ) {}
 
   async registerUser(
     body: RegisterBody,
@@ -51,7 +49,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) { }
+    } catch (e) {}
 
     await this.repository.updateRefreshToken(
       newUser.id,
@@ -72,6 +70,8 @@ export class AuthService {
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
       tokens,
     };
@@ -87,12 +87,18 @@ export class AuthService {
       throw AuthError.invalidCredentials();
     }
 
-    const validPassword = await comparePassword(body.password, user.passwordHash);
+    const validPassword = await comparePassword(
+      body.password,
+      user.passwordHash,
+    );
     if (!validPassword) {
       throw AuthError.invalidCredentials();
     }
 
-    const tokens = generateTokens({ userId: user.id, role: user.role }, this.env);
+    const tokens = generateTokens(
+      { userId: user.id, role: user.role },
+      this.env,
+    );
     const refreshTokenHash = hashToken(tokens.refreshToken);
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -101,7 +107,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) { }
+    } catch (e) {}
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -122,6 +128,8 @@ export class AuthService {
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
       tokens,
     };
@@ -159,7 +167,10 @@ export class AuthService {
       );
     }
 
-    const newTokens = generateTokens({ userId: user.id, role: user.role }, this.env);
+    const newTokens = generateTokens(
+      { userId: user.id, role: user.role },
+      this.env,
+    );
     const newHash = hashToken(newTokens.refreshToken);
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -168,7 +179,7 @@ export class AuthService {
       if (decodedNew && decodedNew.exp) {
         expiresAt = new Date(decodedNew.exp * 1000);
       }
-    } catch (e) { }
+    } catch (e) {}
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -215,14 +226,21 @@ export class AuthService {
     };
   }
 
-  async resetPassword(body: { email: string; otp: string; newPassword: string }) {
+  async resetPassword(body: {
+    email: string;
+    otp: string;
+    newPassword: string;
+  }) {
     const user = await this.repository.getUserByEmail(body.email);
     if (!user) {
       throw new Error("Invalid email or OTP");
     }
 
     const userRecord = await this.repository.getResetTokenInfo(user.id);
-    if (!userRecord?.passwordResetToken || userRecord.passwordResetToken !== body.otp) {
+    if (
+      !userRecord?.passwordResetToken ||
+      userRecord.passwordResetToken !== body.otp
+    ) {
       throw new Error("Invalid or expired OTP");
     }
 
@@ -239,12 +257,11 @@ export class AuthService {
     idToken: string,
     role: "dealer" | "consumer" = "consumer",
     ipAddress?: string | null,
-    deviceInfo?: string | null
+    deviceInfo?: string | null,
   ) {
-
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
@@ -253,17 +270,14 @@ export class AuthService {
       throw new Error("Invalid Google token");
     }
 
-    let user =
-      await this.repository.getUserByEmail(
-        payload.email
-      );
+    let user = await this.repository.getUserByEmail(payload.email);
 
     if (!user) {
       user = await this.repository.createOAuthUser({
         email: payload.email,
         provider: "google",
         providerId: payload.sub!,
-        role
+        role,
       });
     }
     if (!user) {
@@ -272,9 +286,9 @@ export class AuthService {
     const tokens = generateTokens(
       {
         userId: user.id,
-        role: user.role
+        role: user.role,
       },
-      this.env
+      this.env,
     );
 
     const hash = hashToken(tokens.refreshToken);
@@ -284,51 +298,42 @@ export class AuthService {
       hash,
       undefined,
       ipAddress,
-      deviceInfo
+      deviceInfo,
     );
 
     return {
       user,
-      tokens
+      tokens,
     };
   }
-
 
   async loginWithApple(
     idToken: string,
     role: "dealer" | "consumer" = "consumer",
     ipAddress?: string | null,
-    deviceInfo?: string | null
+    deviceInfo?: string | null,
   ) {
-
     const appleJWKS = createRemoteJWKSet(
-      new URL("https://appleid.apple.com/auth/keys")
+      new URL("https://appleid.apple.com/auth/keys"),
     );
 
-    const { payload } = await jwtVerify(
-      idToken,
-      appleJWKS,
-      {
-        issuer: "https://appleid.apple.com",
-        audience: process.env.APPLE_AUDIENCE
-      }
-    );
+    const { payload } = await jwtVerify(idToken, appleJWKS, {
+      issuer: "https://appleid.apple.com",
+      audience: process.env.APPLE_AUDIENCE,
+    });
 
     if (!payload.email) {
       throw new Error("Invalid Apple token");
     }
 
-    let user =
-      await this.repository.getUserByEmail(
-        payload.email as string
-      );
+    let user = await this.repository.getUserByEmail(payload.email as string);
 
     if (!user) {
       user = await this.repository.createOAuthUser({
         email: payload.email as string,
         provider: "apple",
         providerId: payload.sub as string,
-        role
+        role,
       });
     }
     if (!user) {
@@ -337,9 +342,9 @@ export class AuthService {
     const tokens = generateTokens(
       {
         userId: user.id,
-        role: user.role
+        role: user.role,
       },
-      this.env
+      this.env,
     );
 
     const hash = hashToken(tokens.refreshToken);
@@ -349,13 +354,12 @@ export class AuthService {
       hash,
       undefined,
       ipAddress,
-      deviceInfo
+      deviceInfo,
     );
 
     return {
       user,
-      tokens
+      tokens,
     };
-
   }
 }

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import type { Env } from "../config/env.js";
 import { getDb } from "../config/db.js";
@@ -20,6 +21,10 @@ Return ONLY this JSON:
   "variation": "Silver Prizm",
   "sport": "football",
   "card_number": "269",
+  "manufacturer": "Panini",
+  "is_rookie": false,
+  "is_autograph": false,
+  "is_relic": false,
   "grading": {
     "company": "PSA",
     "grade": "10",
@@ -35,6 +40,10 @@ Rules:
 - "variation": the parallel/refractor name exactly as it appears on the card or is commonly known on eBay (e.g. "Silver Prizm", "Gold Refractor", "Holo", "Base", "Blue Wave", "Red /299"). Include the print run if visible (e.g. "Orange /49"). If base/no variation, use "Base"
 - "card_number": the number printed on the card (e.g. "269", "RC-15"). Omit the # symbol. Use null if not visible
 - "set_name": the brand+product name as used on eBay (e.g. "Panini Prizm", "Topps Chrome", "Bowman Draft"). Do NOT include the year in set_name
+- "manufacturer": the card company (e.g. "Panini", "Topps", "Upper Deck", "Bowman")
+- "is_rookie": true if card has RC logo, "Rookie" text, or is player's first-year card
+- "is_autograph": true if card has a visible on-card or sticker autograph
+- "is_relic": true if card contains embedded patch/jersey/memorabilia window
 - If grading label (PSA/BGS/SGC/CSG slab) not visible, omit "grading" field entirely
 - If a field is not visible or not determinable, use null
 - Return ONLY the JSON object, nothing else`;
@@ -82,17 +91,82 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
       if (!apiKey)
         return reply.status(503).send({ error: "Gemini not configured" });
 
+      const db = getDb(env);
+
+      // ── helpers ──────────────────────────────────────────────────────────
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const generateCardId = (c: {
+        player_name: string;
+        year: number;
+        set_name: string;
+        variation?: string;
+      }) =>
+        [
+          norm(c.player_name),
+          c.year,
+          norm(c.set_name),
+          norm(c.variation || "base"),
+        ]
+          .join("_")
+          .slice(0, 255);
+      const generateImageHash = (b: string) =>
+        createHash("sha256").update(b).digest("hex").slice(0, 64);
+
+      // ── 1. Image hash cache check ─────────────────────────────────────────
+      const imageHash = generateImageHash(image);
+      const cached = await db.execute(sql`
+        SELECT
+          c.id AS card_id, c.year, c.set_name, c.card_number, c.sport, c.manufacturer,
+          c.is_rookie, c.stock_image_url, c.source,
+          p.name AS player_name, p.sport AS player_sport,
+          cv.id AS variant_id, cv.name AS variation, cv.is_autograph, cv.is_relic,
+          cv.is_parallel, cv.print_run,
+          ih.confidence
+        FROM image_hashes ih
+        JOIN cards c ON c.id = ih.card_id
+        JOIN players p ON p.id = c.player_id
+        LEFT JOIN card_variants cv ON cv.card_id = c.id AND cv.name = COALESCE(c.set_name, 'Base')
+        WHERE ih.image_hash = ${imageHash}
+        LIMIT 1
+      `);
+
+      if (cached.rows.length > 0) {
+        const r = cached.rows[0] as any;
+        request.log.info({ cardId: r.card_id }, "scan-card: cache hit");
+        return reply.send({
+          card: {
+            player_name: r.player_name,
+            year: r.year,
+            set_name: r.set_name,
+            variation: r.variation,
+            card_number: r.card_number,
+            sport: r.sport ?? r.player_sport,
+            manufacturer: r.manufacturer ?? null,
+            is_rookie: r.is_rookie ?? false,
+            is_autograph: r.is_autograph ?? false,
+            is_relic: r.is_relic ?? false,
+            grading: null,
+          },
+          cardId: r.card_id,
+          variantId: r.variant_id,
+          fromCache: true,
+          confidence: r.confidence,
+        });
+      }
+
+      // ── 2. Call Gemini ────────────────────────────────────────────────────
       const genAI = new GoogleGenerativeAI(apiKey);
       const modelsToTry = [
-        // "gemini-2.0-flash-lite",
-        // "gemini-2.0-flash",
         "gemini-2.5-flash",
-        // "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
       ];
 
+      let geminiCard: any = null;
       let lastError: any = null;
       for (const modelName of modelsToTry) {
         try {
+          request.log.info({ model: modelName }, "scan-card: trying model");
           const model = genAI.getGenerativeModel({ model: modelName });
           const result = await model.generateContent([
             CARD_SCAN_PROMPT,
@@ -102,8 +176,8 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
           const cleaned = raw.replace(/```json|```/g, "").trim();
           const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
           if (!jsonMatch) throw new Error("No JSON in Gemini response");
-          const card = JSON.parse(jsonMatch[0]);
-          return reply.send({ card, confidence: card.confidence ?? 0.9 });
+          geminiCard = JSON.parse(jsonMatch[0]);
+          break;
         } catch (err: any) {
           lastError = err;
           request.log.warn(
@@ -120,14 +194,106 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
         }
       }
 
-      if (lastError?.status === 429) {
+      if (!geminiCard) {
+        if (lastError?.status === 429)
+          return reply
+            .status(429)
+            .send({ error: "Rate limit exceeded. Wait 30-60s." });
         return reply
-          .status(429)
-          .send({ error: "Rate limit exceeded. Wait 30-60s." });
+          .status(500)
+          .send({ error: "Card scan failed", message: lastError?.message });
       }
-      return reply
-        .status(500)
-        .send({ error: "Card scan failed", message: lastError?.message });
+
+      // ── 3. Persist to DB (best-effort, fire-and-forget errors) ───────────
+      const cardId = generateCardId(geminiCard);
+      let variantId: string | null = null;
+
+      try {
+        // 3a. Upsert player
+        await db.execute(sql`
+          INSERT INTO players (id, name, sport, created_at, updated_at)
+          VALUES (gen_random_uuid(), ${geminiCard.player_name}, ${geminiCard.sport ?? "other"}, NOW(), NOW())
+          ON CONFLICT DO NOTHING
+        `);
+
+        const playerRow = await db.execute(sql`
+          SELECT id FROM players WHERE name = ${geminiCard.player_name} LIMIT 1
+        `);
+        const playerId = (playerRow.rows[0] as any)?.id;
+
+        if (playerId) {
+          // 3b. Upsert base card — all columns from carddb.ts schema
+          await db.execute(sql`
+            INSERT INTO cards (
+              id, player_id, year, set_name, card_number, sport,
+              manufacturer, is_rookie, source, created_at, updated_at
+            ) VALUES (
+              ${cardId}, ${playerId}, ${geminiCard.year ?? null},
+              ${geminiCard.set_name ?? null}, ${geminiCard.card_number ?? null},
+              ${geminiCard.sport ?? null}, ${geminiCard.manufacturer ?? null},
+              ${geminiCard.is_rookie ?? false}, 'gemini', NOW(), NOW()
+            )
+            ON CONFLICT (id) DO NOTHING
+          `);
+
+          // 3c. Upsert variant — all columns from card_variants schema
+          const variantName = geminiCard.variation || "Base";
+          // is_autograph / is_relic: prefer Gemini's explicit flags, fallback to name heuristic
+          const isAutograph =
+            geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
+          const isRelic =
+            geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
+          const isParallel = variantName.toLowerCase() !== "base";
+          const isMemorabilia = isRelic;
+          const printRunMatch = variantName.match(/\/(\d+)/);
+          const printRun = printRunMatch ? parseInt(printRunMatch[1]) : null;
+
+          await db.execute(sql`
+            INSERT INTO card_variants (
+              id, card_id, name, is_parallel, is_base,
+              is_autograph, is_relic, is_memorabilia, print_run,
+              created_at, updated_at
+            ) VALUES (
+              gen_random_uuid(), ${cardId}, ${variantName},
+              ${isParallel}, ${!isParallel},
+              ${isAutograph}, ${isRelic}, ${isMemorabilia}, ${printRun},
+              NOW(), NOW()
+            )
+            ON CONFLICT (card_id, name, print_run) DO NOTHING
+          `);
+
+          const variantRow = await db.execute(sql`
+            SELECT id FROM card_variants WHERE card_id = ${cardId} AND name = ${variantName} LIMIT 1
+          `);
+          variantId = (variantRow.rows[0] as any)?.id ?? null;
+        }
+
+        // 3d. Save image hash so next scan of same image is instant
+        await db.execute(sql`
+          INSERT INTO image_hashes (id, image_hash, card_id, confidence, created_at)
+          VALUES (gen_random_uuid(), ${imageHash}, ${cardId}, ${geminiCard.confidence ?? 0.9}, NOW())
+          ON CONFLICT (image_hash) DO NOTHING
+        `);
+
+        request.log.info({ cardId, variantId }, "scan-card: persisted to DB");
+      } catch (dbErr: any) {
+        request.log.warn(
+          { err: dbErr.message },
+          "scan-card: DB persist failed (non-fatal)",
+        );
+      }
+
+      request.log.info(
+        { cardId, variantId, source: "gemini-ai" },
+        "scan-card: identified via Gemini AI",
+      );
+      return reply.send({
+        card: geminiCard,
+        cardId,
+        variantId,
+        fromCache: false,
+        confidence: geminiCard.confidence ?? 0.9,
+      });
     },
   );
 }

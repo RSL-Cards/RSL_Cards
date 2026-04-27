@@ -10,6 +10,10 @@ import { AnalyticsService } from "../services/analytics.service.js";
 import { AnalyticsController } from "../controllers/analytics.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 
+function getUserId(req: any): string {
+  return req.headers["x-user-id"] as string;
+}
+
 export async function analyticsRoutes(app: FastifyInstance) {
   const env = (app as any).env as Env;
 
@@ -64,7 +68,66 @@ export async function analyticsRoutes(app: FastifyInstance) {
   });
 
   // Standard Routes (prefixed with /v1/analytics in registerRoutes)
-  app.get("/daily", analyticsController.getDaily);
+  app.get("/daily", async (req: any, reply) => {
+    const userId = getUserId(req);
+    const db = getDb(env);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const rows = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE type = 'buy')                          AS cards_bought,
+        COUNT(*) FILTER (WHERE type = 'sell')                         AS cards_sold,
+        COALESCE(SUM(price) FILTER (WHERE type = 'buy'), 0)           AS total_spent,
+        COALESCE(SUM(price) FILTER (WHERE type = 'sell'), 0)          AS total_revenue,
+        COALESCE(SUM(profit) FILTER (WHERE type = 'sell'), 0)         AS net_profit
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND created_at >= ${todayStart.toISOString()}
+    `);
+
+    const r = (rows.rows[0] as any) ?? {};
+    return reply.send({
+      cards_bought: Number(r.cards_bought ?? 0),
+      cards_sold: Number(r.cards_sold ?? 0),
+      total_spent: parseFloat(r.total_spent ?? "0").toFixed(2),
+      total_revenue: parseFloat(r.total_revenue ?? "0").toFixed(2),
+      net_profit: parseFloat(r.net_profit ?? "0").toFixed(2),
+    });
+  });
+
+  app.get("/today-activity", async (req: any, reply) => {
+    const userId = getUserId(req);
+    const db = getDb(env);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const rows = await db.execute(sql`
+      SELECT
+        id, type, price, profit, player_name, created_at
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND created_at >= ${todayStart.toISOString()}
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
+
+    const items = (rows.rows as any[]).map((r) => ({
+      id: r.id,
+      type: r.type,
+      price: parseFloat(r.price ?? "0").toFixed(2),
+      profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
+      playerName: r.player_name ?? "Unknown Card",
+      time: new Date(r.created_at).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+    }));
+
+    return reply.send({ items });
+  });
+
+  app.get("/dashboard", analyticsController.getDaily);
   app.get("/report", analyticsController.getReport);
   app.get("/report/export", analyticsController.exportReport);
   app.get("/profit/sport", analyticsController.getProfitBySport);
