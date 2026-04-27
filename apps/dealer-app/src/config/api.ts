@@ -76,11 +76,17 @@ export const ENDPOINTS = {
   },
 
   cards: {
-    scan: "/v1/cards/scan",
+    scan: "/v1/narratives/scan-card",
     scanBarcode: "/v1/cards/scan/barcode",
     search: "/v1/cards/search",
     detail: (id: string) => `/v1/cards/${id}`,
     comps: (id: string) => `/v1/cards/${id}/comps`,
+  },
+
+  ebay: {
+    sold: "/v1/listings/ebay/sold",
+    search: "/v1/listings/ebay/search",
+    itemByName: "/v1/listings/ebay/items/by-name",
   },
 
   narratives: {

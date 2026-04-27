@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,16 @@ import {
   TextInput,
   StyleSheet,
   FlatList,
+  ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { MOCK_INVENTORY } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
+import { useCardScan } from "../../src/hooks/useCardScan";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type Tab = "scan" | "search";
 const STEP_PCT = "20%";
@@ -21,16 +27,33 @@ export default function SellScanScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("scan");
   const [query, setQuery] = useState("");
 
+  const cameraRef = useRef<CameraView>(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const { mutate: scanImage, isPending: isScanning } = useCardScan("sell");
+
   const filtered = MOCK_INVENTORY.filter(
     (c) =>
       c.player_name.toLowerCase().includes(query.toLowerCase()) ||
       c.set_name.toLowerCase().includes(query.toLowerCase()),
   );
 
+  const handleCapture = async () => {
+    if (!cameraRef.current) return;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.7,
+      });
+      if (photo?.base64) scanImage(photo.base64);
+    } catch (error) {
+      console.error("Camera capture failed:", error);
+    }
+  };
+
   const handleSimulateScan = () => {
     const card = MOCK_INVENTORY[0];
     addTab({ type: "sell", step: 2, cardData: card });
-    router.push("/sell/select");
+    router.push("/sell/price");
   };
 
   const handleSelectCard = (card: (typeof MOCK_INVENTORY)[0]) => {
@@ -72,37 +95,125 @@ export default function SellScanScreen() {
       {/* SCAN tab */}
       {activeTab === "scan" && (
         <View style={styles.scanContent}>
-          <View style={styles.cameraArea}>
-            {[
-              { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-              { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2 },
-              {
-                bottom: 16,
-                left: 16,
-                borderBottomWidth: 2,
-                borderLeftWidth: 2,
-              },
-              {
-                bottom: 16,
-                right: 16,
-                borderBottomWidth: 2,
-                borderRightWidth: 2,
-              },
-            ].map((corner, i) => (
-              <View key={i} style={[styles.corner, corner as any]} />
-            ))}
-            <Text style={{ fontSize: 48, marginBottom: 12 }}>📷</Text>
-            <Text style={{ color: "#888888", fontSize: 14 }}>
-              Scan card or cert number
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={handleSimulateScan}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Simulate Card Scan</Text>
-          </TouchableOpacity>
+          {!permission?.granted ? (
+            <View style={{ alignItems: "center", paddingTop: 40, gap: 16 }}>
+              <Text
+                style={{ color: "#888888", fontSize: 14, textAlign: "center" }}
+              >
+                Camera permission needed to scan cards
+              </Text>
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={requestPermission}
+              >
+                <Text style={styles.primaryBtnText}>Grant Permission</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View style={styles.cameraWrapper}>
+                <CameraView
+                  ref={cameraRef}
+                  style={StyleSheet.absoluteFill}
+                  facing="back"
+                  mode="picture"
+                />
+
+                {/* Dark masks */}
+                <View style={styles.maskTop} />
+                <View style={styles.maskBottom} />
+                <View style={styles.maskLeft} />
+                <View style={styles.maskRight} />
+
+                {/* Card frame */}
+                <View style={styles.cardFrame} pointerEvents="none">
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        left: -2,
+                        borderTopWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        right: -2,
+                        borderTopWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        left: -2,
+                        borderBottomWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        right: -2,
+                        borderBottomWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Hint */}
+                <View style={styles.hintBadge}>
+                  <Text style={styles.hintText}>
+                    Align card within the frame
+                  </Text>
+                </View>
+
+                {isScanning && (
+                  <View style={styles.scanningOverlay}>
+                    <ActivityIndicator color="#E8001C" size="large" />
+                    <Text
+                      style={{
+                        color: "white",
+                        marginTop: 10,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Identifying card...
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.primaryBtn, isScanning && styles.disabledBtn]}
+                onPress={handleCapture}
+                disabled={isScanning}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {isScanning ? "Scanning..." : "Capture Card"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.simulateBtn}
+                onPress={handleSimulateScan}
+                disabled={isScanning}
+              >
+                <Text style={styles.simulateText}>Simulate Scan (Debug)</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       )}
 
@@ -209,17 +320,75 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     alignItems: "center",
   },
-  cameraArea: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "#0D0D0D",
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
+  cameraWrapper: {
+    width: SCREEN_WIDTH - 40,
+    height: (SCREEN_WIDTH - 40) * (3.5 / 2.5),
+    alignSelf: "center",
     marginBottom: 24,
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderRadius: 4,
   },
-  corner: { position: "absolute", width: 20, height: 20, borderColor: "white" },
+  maskTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskLeft: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    left: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskRight: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    right: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  cardFrame: {
+    position: "absolute",
+    top: "8%",
+    left: "5%",
+    right: "5%",
+    bottom: "8%",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(232,0,28,0.5)",
+  },
+  frameCorner: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderColor: "#E8001C",
+    borderRadius: 3,
+  },
+  hintBadge: {
+    position: "absolute",
+    bottom: "10%",
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  hintText: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "600" },
   primaryBtn: {
     backgroundColor: "#E8001C",
     height: 56,
@@ -252,4 +421,13 @@ const styles = StyleSheet.create({
   },
   invName: { color: "white", fontWeight: "600", fontSize: 15 },
   invMeta: { color: "#888888", fontSize: 12, marginTop: 2 },
+  scanningOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disabledBtn: { opacity: 0.5 },
+  simulateBtn: { marginTop: 12, paddingVertical: 10, alignItems: "center" },
+  simulateText: { color: "#555555", fontSize: 13 },
 });

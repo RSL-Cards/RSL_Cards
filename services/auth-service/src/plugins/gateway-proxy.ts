@@ -58,6 +58,8 @@ export async function registerGatewayProxy(
         if (userId) {
           (req.raw as any).headers["x-user-id"] = userId;
         }
+        // Inject service key so downstream services with internalAuthPreHandler accept the request
+        (req.raw as any).headers["x-service-key"] = env.INTERNAL_SERVICE_KEY;
       });
 
       // ------------------------------------------------------------------------

@@ -70,66 +70,143 @@ export async function listingRoutes(app: FastifyInstance) {
   app.post("/webhooks/shopify", listingController.shopifyWebhook);
 
   // eBay Browse API
-  app.get("/ebay/search", async (req: any, reply) => {
-    const { q, limit, offset, sort, filter } = req.query as Record<
-      string,
-      string
-    >;
-    if (!q?.trim()) {
-      return reply
-        .status(400)
-        .send({ error: "Query parameter 'q' is required" });
-    }
-    const result = await ebayService.searchListings({
-      q: q.trim(),
-      limit: limit ? Number(limit) : 20,
-      offset: offset ? Number(offset) : 0,
-      sort,
-      filter,
-    });
-    return reply.send(result);
-  });
-
-  app.get("/ebay/sold", async (req: any, reply) => {
-    const { q, limit } = req.query as Record<string, string>;
-    if (!q?.trim()) {
-      return reply
-        .status(400)
-        .send({ error: "Query parameter 'q' is required" });
-    }
-    const [last7, last30] = await Promise.all([
-      ebayService.getSoldItems({
+  app.get(
+    "/ebay/search",
+    {
+      schema: {
+        tags: ["eBay"],
+        summary: "Search active eBay listings",
+        querystring: {
+          type: "object",
+          required: ["q"],
+          properties: {
+            q: { type: "string", description: "Search keyword" },
+            limit: { type: "string", description: "Max results (default 20)" },
+            offset: {
+              type: "string",
+              description: "Pagination offset (default 0)",
+            },
+            sort: { type: "string", description: "Sort order" },
+            filter: { type: "string", description: "eBay filter string" },
+          },
+        },
+      },
+    },
+    async (req: any, reply) => {
+      const { q, limit, offset, sort, filter } = req.query as Record<
+        string,
+        string
+      >;
+      if (!q?.trim()) {
+        return reply
+          .status(400)
+          .send({ error: "Query parameter 'q' is required" });
+      }
+      const result = await ebayService.searchListings({
         q: q.trim(),
-        days: 7,
         limit: limit ? Number(limit) : 20,
-      }),
-      ebayService.getSoldItems({
-        q: q.trim(),
-        days: 30,
-        limit: limit ? Number(limit) : 20,
-      }),
-    ]);
-    return reply.send({
-      query: q.trim(),
-      last7Days: last7,
-      last30Days: last30,
-    });
-  });
+        offset: offset ? Number(offset) : 0,
+        sort,
+        filter,
+      });
+      return reply.send(result);
+    },
+  );
 
-  app.get("/ebay/items/by-name", async (req: any, reply) => {
-    const { name } = req.query as { name?: string };
-    if (!name?.trim()) {
-      return reply
-        .status(400)
-        .send({ error: "Query parameter 'name' is required" });
-    }
-    const result = await ebayService.getItemDetailsByName(name.trim());
-    return reply.send(result);
-  });
+  app.get(
+    "/ebay/sold",
+    {
+      schema: {
+        tags: ["eBay"],
+        summary: "Sold items — last 7 & 30 days combined",
+        querystring: {
+          type: "object",
+          required: ["q"],
+          properties: {
+            q: { type: "string", description: "Search keyword" },
+            limit: {
+              type: "string",
+              description: "Max results per period (default 20)",
+            },
+          },
+        },
+      },
+    },
+    async (req: any, reply) => {
+      const { q, limit } = req.query as Record<string, string>;
+      if (!q?.trim()) {
+        return reply
+          .status(400)
+          .send({ error: "Query parameter 'q' is required" });
+      }
+      const [last7, last30] = await Promise.all([
+        ebayService.getSoldItems({
+          q: q.trim(),
+          days: 7,
+          limit: limit ? Number(limit) : 20,
+        }),
+        ebayService.getSoldItems({
+          q: q.trim(),
+          days: 30,
+          limit: limit ? Number(limit) : 20,
+        }),
+      ]);
+      return reply.send({
+        query: q.trim(),
+        last7Days: last7,
+        last30Days: last30,
+      });
+    },
+  );
 
-  app.get("/ebay/items/:itemId", async (req: any, reply) => {
-    const { itemId } = req.params as { itemId: string };
-    const result = await ebayService.getItemDetails(itemId);
-    return reply.send(result);
-  });
+  app.get(
+    "/ebay/items/by-name",
+    {
+      schema: {
+        tags: ["eBay"],
+        summary: "Full item detail by search name (returns first match)",
+        querystring: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: { type: "string", description: "Product name to search" },
+          },
+        },
+      },
+    },
+    async (req: any, reply) => {
+      const { name } = req.query as { name?: string };
+      if (!name?.trim()) {
+        return reply
+          .status(400)
+          .send({ error: "Query parameter 'name' is required" });
+      }
+      const result = await ebayService.getItemDetailsByName(name.trim());
+      return reply.send(result);
+    },
+  );
+
+  app.get(
+    "/ebay/items/:itemId",
+    {
+      schema: {
+        tags: ["eBay"],
+        summary: "Full item detail by eBay item ID",
+        params: {
+          type: "object",
+          properties: {
+            itemId: {
+              type: "string",
+              description: "eBay item ID (e.g. v1|110589351995|0)",
+            },
+          },
+        },
+      },
+    },
+    async (req: any, reply) => {
+      const { itemId } = req.params as { itemId: string };
+      const result = await ebayService.getItemDetails(itemId);
+      return reply.send(result);
+    },
+  );
 }

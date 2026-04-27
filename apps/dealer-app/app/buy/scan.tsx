@@ -117,37 +117,80 @@ export default function BuyScanScreen() {
             </View>
           ) : (
             <>
-              <View style={styles.cameraContainer}>
+              <View style={styles.cameraWrapper}>
+                {/* Full-screen camera feed */}
                 <CameraView
                   ref={cameraRef}
-                  style={styles.camera}
+                  style={StyleSheet.absoluteFill}
                   facing="back"
                   mode="picture"
                 />
-                {/* Corner brackets overlay */}
-                {[
-                  { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-                  {
-                    top: 16,
-                    right: 16,
-                    borderTopWidth: 2,
-                    borderRightWidth: 2,
-                  },
-                  {
-                    bottom: 16,
-                    left: 16,
-                    borderBottomWidth: 2,
-                    borderLeftWidth: 2,
-                  },
-                  {
-                    bottom: 16,
-                    right: 16,
-                    borderBottomWidth: 2,
-                    borderRightWidth: 2,
-                  },
-                ].map((corner, i) => (
-                  <View key={i} style={[styles.corner, corner as any]} />
-                ))}
+
+                {/* Dark mask — top */}
+                <View style={styles.maskTop} />
+                {/* Dark mask — bottom */}
+                <View style={styles.maskBottom} />
+                {/* Dark mask — left */}
+                <View style={styles.maskLeft} />
+                {/* Dark mask — right */}
+                <View style={styles.maskRight} />
+
+                {/* Card frame */}
+                <View style={styles.cardFrame} pointerEvents="none">
+                  {/* Corner accents */}
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        left: -2,
+                        borderTopWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        right: -2,
+                        borderTopWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        left: -2,
+                        borderBottomWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        right: -2,
+                        borderBottomWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Hint label */}
+                <View style={styles.hintBadge}>
+                  <Text style={styles.hintText}>
+                    Align card within the frame
+                  </Text>
+                </View>
+
                 {(isScanning || isScanningBarcode) && (
                   <View style={styles.scanningOverlay}>
                     <ActivityIndicator color="#0057FF" size="large" />
@@ -301,22 +344,82 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     alignItems: "center",
   },
-  cameraContainer: {
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: 20,
-    overflow: "hidden",
-    position: "relative",
+  cameraWrapper: {
+    width: SCREEN_WIDTH - 40,
+    height: (SCREEN_WIDTH - 40) * (3.5 / 2.5),
+    alignSelf: "center",
     marginBottom: 24,
-    backgroundColor: "#0D0D0D",
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderRadius: 4,
   },
-  camera: {
-    width: "100%",
-    height: "100%",
+  maskTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskLeft: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    left: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskRight: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    right: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  cardFrame: {
+    position: "absolute",
+    top: "8%",
+    left: "5%",
+    right: "5%",
+    bottom: "8%",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,87,255,0.5)",
+  },
+  frameCorner: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderColor: "#0057FF",
+    borderRadius: 3,
+  },
+  hintBadge: {
+    position: "absolute",
+    bottom: "10%",
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  hintText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "600",
   },
   cameraArea: {
     width: "100%",
-    aspectRatio: 1,
+    aspectRatio: 2,
     backgroundColor: "#0D0D0D",
     borderRadius: 20,
     alignItems: "center",
@@ -344,10 +447,9 @@ const styles = StyleSheet.create({
   },
   scanningOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.72)",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
   },
   scanningText: {
     color: "white",
