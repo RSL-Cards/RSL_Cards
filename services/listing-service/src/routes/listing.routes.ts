@@ -5,6 +5,7 @@ import { getDb } from "../config/db.js";
 import { getRedis } from "../config/redis.js";
 import { ListingRepository } from "../repositories/listing.repository.js";
 import { ListingService } from "../services/listing.service.js";
+import { EbayService } from "../services/ebay.service.js";
 import { ListingController } from "../controllers/listing.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 
@@ -14,6 +15,7 @@ export async function listingRoutes(app: FastifyInstance) {
   // Dependency Injection
   const listingRepository = new ListingRepository(env);
   const listingService = new ListingService(listingRepository);
+  const ebayService = new EbayService(env);
   const listingController = new ListingController(listingService);
 
   // Global internal security check
@@ -66,4 +68,68 @@ export async function listingRoutes(app: FastifyInstance) {
   app.post("/webhooks/mercari", listingController.mercariWebhook);
   app.post("/webhooks/tcgplayer", listingController.tcgplayerWebhook);
   app.post("/webhooks/shopify", listingController.shopifyWebhook);
+
+  // eBay Browse API
+  app.get("/ebay/search", async (req: any, reply) => {
+    const { q, limit, offset, sort, filter } = req.query as Record<
+      string,
+      string
+    >;
+    if (!q?.trim()) {
+      return reply
+        .status(400)
+        .send({ error: "Query parameter 'q' is required" });
+    }
+    const result = await ebayService.searchListings({
+      q: q.trim(),
+      limit: limit ? Number(limit) : 20,
+      offset: offset ? Number(offset) : 0,
+      sort,
+      filter,
+    });
+    return reply.send(result);
+  });
+
+  app.get("/ebay/sold", async (req: any, reply) => {
+    const { q, limit } = req.query as Record<string, string>;
+    if (!q?.trim()) {
+      return reply
+        .status(400)
+        .send({ error: "Query parameter 'q' is required" });
+    }
+    const [last7, last30] = await Promise.all([
+      ebayService.getSoldItems({
+        q: q.trim(),
+        days: 7,
+        limit: limit ? Number(limit) : 20,
+      }),
+      ebayService.getSoldItems({
+        q: q.trim(),
+        days: 30,
+        limit: limit ? Number(limit) : 20,
+      }),
+    ]);
+    return reply.send({
+      query: q.trim(),
+      last7Days: last7,
+      last30Days: last30,
+    });
+  });
+
+  app.get("/ebay/items/by-name", async (req: any, reply) => {
+    const { name } = req.query as { name?: string };
+    if (!name?.trim()) {
+      return reply
+        .status(400)
+        .send({ error: "Query parameter 'name' is required" });
+    }
+    const result = await ebayService.getItemDetailsByName(name.trim());
+    return reply.send(result);
+  });
+
+  app.get("/ebay/items/:itemId", async (req: any, reply) => {
+    const { itemId } = req.params as { itemId: string };
+    const result = await ebayService.getItemDetails(itemId);
+    return reply.send(result);
+  });
 }

@@ -28,6 +28,12 @@ const envSchema = z.object({
   XIMILAR_API_KEY: z.string().optional().default(""),
   EBAY_CLIENT_ID: z.string().optional().default(""),
   EBAY_CLIENT_SECRET: z.string().optional().default(""),
+  EBAY_API_URL: z.string().optional().default("https://api.sandbox.ebay.com"),
+  EBAY_TOKEN_URL: z
+    .string()
+    .optional()
+    .default("https://api.sandbox.ebay.com/identity/v1/oauth2/token"),
+  EBAY_MARKETPLACE_ID: z.string().optional().default("EBAY_US"),
   WHATNOT_API_KEY: z.string().optional().default(""),
   ANTHROPIC_API_KEY: z.string().optional().default(""),
   FIREBASE_SERVICE_ACCOUNT: z.string().optional().default(""),
@@ -48,7 +54,9 @@ export function validateEnv(
 ): Env {
   const parsed = envSchema.safeParse(overrides);
   if (!parsed.success) {
-    const msg = parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; ");
+    const msg = parsed.error.errors
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join("; ");
     throw new Error(`Environment validation failed: ${msg}`);
   }
   cached = parsed.data;

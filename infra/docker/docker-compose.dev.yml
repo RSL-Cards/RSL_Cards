@@ -205,6 +205,7 @@ services:
       NODE_ENV: development
       LOG_LEVEL: debug
       SERVICE_PUBLIC_PORT: 3005
+      NODE_OPTIONS: --dns-result-order=ipv4first
     volumes: *node-dev-volumes
     depends_on:
       dev-install:
@@ -215,6 +216,11 @@ services:
         condition: service_started
     ports:
       - "3005:3000"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    sysctls:
+      net.ipv4.tcp_syn_retries: 2
     command:
       - sh
       - -lc

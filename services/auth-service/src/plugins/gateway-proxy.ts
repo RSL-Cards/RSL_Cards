@@ -19,7 +19,6 @@ export async function registerGatewayProxy(
   app: FastifyInstance,
   env: Env,
 ): Promise<void> {
-
   // 1. Feature Flag: Can be explicitly disabled for local testing environments
   if (process.env.AUTH_GATEWAY_ENABLED === "false") {
     return;
@@ -33,21 +32,32 @@ export async function registerGatewayProxy(
     const upstream = origins[upstreamKey];
 
     await app.register(async (scope) => {
-      
       // ------------------------------------------------------------------------
       // INTERCEPTOR (MIDDLEWARE)
       // Runs identically before ANY proxy request starts
       // ------------------------------------------------------------------------
       scope.addHook("preHandler", async (req, reply) => {
-        // We explicitly skip locking down Public Health endpoints 
+        // We explicitly skip locking down Public Health endpoints
         // to prevent false positives in network heartbeats.
-        if (req.url === "/users/status" || req.url === "/health" || req.url === "/health/fleet") {
+        if (
+          req.url === "/users/status" ||
+          req.url === "/health" ||
+          req.url === "/health/fleet"
+        ) {
           return;
         }
 
-        // Extremely rigorous JWT decoding. Rejects the request strictly with an HTTP 401 
+        // Extremely rigorous JWT decoding. Rejects the request strictly with an HTTP 401
         // if the client token is structurally expired or cryptographically forged.
-        return requireGatewayAccessToken(env, req, reply);
+        await requireGatewayAccessToken(env, req, reply);
+
+        // Stamp x-user-id on the raw Node IncomingMessage so the proxy forwards it.
+        // rewriteRequestHeaders receives IncomingMessage (not FastifyRequest) so
+        // gatewayJwt is not accessible there — we must set it here instead.
+        const userId = (req as any).gatewayJwt?.userId;
+        if (userId) {
+          (req.raw as any).headers["x-user-id"] = userId;
+        }
       });
 
       // ------------------------------------------------------------------------
@@ -56,25 +66,8 @@ export async function registerGatewayProxy(
       await scope.register(fastifyHttpProxy, {
         upstream,
         prefix,
-        http2: false, 
-        replyOptions: {
-          /**
-           * SECURITY HEARDER REWRITES
-           * We physically append the decrypted `x-user-id` straight into the network headers.
-           * This means downstream microservices do NOT need to decrypt Tokens; they just blindly trust
-           * that `req.headers["x-user-id"]` is cryptographically secured since it passed via this proxy!
-           */
-          rewriteRequestHeaders: (originalReq, headers) => {
-            const jwtPayload = (originalReq as any).gatewayJwt;
-            if (jwtPayload?.sub) {
-              return {
-                ...headers,
-                "x-user-id": jwtPayload.sub,
-              };
-            }
-            return headers;
-          },
-        },
+        rewritePrefix: prefix,
+        http2: false,
       });
     });
   }
