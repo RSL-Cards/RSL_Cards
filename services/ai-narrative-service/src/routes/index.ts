@@ -1,6 +1,9 @@
 import { FastifyInstance } from "fastify";
 import type { Env } from "../config/env.js";
-import { narrativesRoutes } from "./narratives.routes.js";
+import {
+  narrativesRoutes,
+  publicNarrativeRoutes,
+} from "./narratives.routes.js";
 import { healthRoutes } from "./health.routes.js";
 
 export async function registerRoutes(app: FastifyInstance, env: Env) {
@@ -12,7 +15,10 @@ export async function registerRoutes(app: FastifyInstance, env: Env) {
     (request as any).env = env;
   });
 
-  // Narrative routes with /v1/narratives prefix
+  // Public narrative routes (no auth) — scan-card
+  await app.register(publicNarrativeRoutes, { prefix: "/v1/narratives" });
+
+  // Auth-gated narrative routes (requires x-service-key)
   await app.register(narrativesRoutes, { prefix: "/v1/narratives" });
 
   // Health routes

@@ -26,14 +26,35 @@ const envSchema = z.object({
   ANALYTICS_SERVICE_PORT: z.coerce.number(),
   ADMIN_SERVICE_PORT: z.coerce.number(),
   XIMILAR_API_KEY: z.string().optional().default(""),
-  EBAY_CLIENT_ID: z.string().optional().default(""),
-  EBAY_CLIENT_SECRET: z.string().optional().default(""),
-  EBAY_API_URL: z.string().optional().default("https://api.sandbox.ebay.com"),
-  EBAY_TOKEN_URL: z
+  EBAY_ENV: z.enum(["sandbox", "production"]).optional().default("sandbox"),
+  EBAY_MARKETPLACE_ID: z.string().optional().default("EBAY_US"),
+  EBAY_SANDBOX_CLIENT_ID: z.string().optional().default(""),
+  EBAY_SANDBOX_CLIENT_SECRET: z.string().optional().default(""),
+  EBAY_SANDBOX_API_URL: z
+    .string()
+    .optional()
+    .default("https://api.sandbox.ebay.com"),
+  EBAY_SANDBOX_TOKEN_URL: z
     .string()
     .optional()
     .default("https://api.sandbox.ebay.com/identity/v1/oauth2/token"),
-  EBAY_MARKETPLACE_ID: z.string().optional().default("EBAY_US"),
+  EBAY_SANDBOX_AUTH_URL: z
+    .string()
+    .optional()
+    .default("https://auth.sandbox.ebay.com/oauth2/authorize"),
+  EBAY_SANDBOX_RU_NAME: z.string().optional().default(""),
+  EBAY_PROD_CLIENT_ID: z.string().optional().default(""),
+  EBAY_PROD_CLIENT_SECRET: z.string().optional().default(""),
+  EBAY_PROD_API_URL: z.string().optional().default("https://api.ebay.com"),
+  EBAY_PROD_TOKEN_URL: z
+    .string()
+    .optional()
+    .default("https://api.ebay.com/identity/v1/oauth2/token"),
+  EBAY_PROD_AUTH_URL: z
+    .string()
+    .optional()
+    .default("https://auth.ebay.com/oauth2/authorize"),
+  EBAY_PROD_RU_NAME: z.string().optional().default(""),
   WHATNOT_API_KEY: z.string().optional().default(""),
   ANTHROPIC_API_KEY: z.string().optional().default(""),
   FIREBASE_SERVICE_ACCOUNT: z.string().optional().default(""),

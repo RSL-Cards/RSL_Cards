@@ -39,15 +39,10 @@ Rules:
 - If a field is not visible or not determinable, use null
 - Return ONLY the JSON object, nothing else`;
 
-export async function narrativesRoutes(app: FastifyInstance) {
+// ── Public routes — no auth required ──
+export async function publicNarrativeRoutes(app: FastifyInstance) {
   const env = (app as any).env as Env;
 
-  // Dependency Injection
-  const aiNarrativeRepository = new AiNarrativeRepository(env);
-  const aiNarrativeService = new AiNarrativeService(aiNarrativeRepository);
-  const aiNarrativeController = new AiNarrativeController(aiNarrativeService);
-
-  // ── Public: ping (no auth required) ──
   app.get("/ping", async (_request, reply) => {
     let db_connected = false;
     try {
@@ -76,7 +71,6 @@ export async function narrativesRoutes(app: FastifyInstance) {
     });
   });
 
-  // ── Public: card scan via Gemini Vision (called from dealer-app with JWT, no service key needed) ──
   app.post<{ Body: { image: string; mimeType?: string } }>(
     "/scan-card",
     async (request, reply) => {
@@ -90,10 +84,10 @@ export async function narrativesRoutes(app: FastifyInstance) {
 
       const genAI = new GoogleGenerativeAI(apiKey);
       const modelsToTry = [
+        // "gemini-2.0-flash-lite",
+        // "gemini-2.0-flash",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite-preview-06-17",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        // "gemini-2.5-flash-lite",
       ];
 
       let lastError: any = null;
@@ -116,7 +110,12 @@ export async function narrativesRoutes(app: FastifyInstance) {
             { model: modelName, err: err.message },
             "Gemini model failed, trying next",
           );
-          if (err.status !== 404 && err.status !== 503 && err.status !== 429)
+          if (
+            err.status !== 404 &&
+            err.status !== 503 &&
+            err.status !== 429 &&
+            err.status !== 400
+          )
             break;
         }
       }
@@ -131,6 +130,17 @@ export async function narrativesRoutes(app: FastifyInstance) {
         .send({ error: "Card scan failed", message: lastError?.message });
     },
   );
+}
+
+// ── Auth-gated routes — require x-service-key ──
+export async function narrativesRoutes(app: FastifyInstance) {
+  const env = (app as any).env as Env;
+
+  const aiNarrativeRepository = new AiNarrativeRepository(env);
+  const aiNarrativeService = new AiNarrativeService(aiNarrativeRepository);
+  const aiNarrativeController = new AiNarrativeController(aiNarrativeService);
+
+  app.addHook("preHandler", internalAuthPreHandler);
 
   app.get("/trigger-ingestion", async (request, reply) => {
     const q = getNarrativeQueue();
@@ -140,10 +150,6 @@ export async function narrativesRoutes(app: FastifyInstance) {
     return reply.send({ triggered: true, jobId: String(job.id) });
   });
 
-  // All routes below require internal service key
-  app.addHook("preHandler", internalAuthPreHandler);
-
-  // Standard Routes (prefixed with /v1/narratives in registerRoutes)
   app.get("/feed", aiNarrativeController.getFeed);
   app.get("/inventory", aiNarrativeController.getInventoryNarratives);
   app.get("/daily-insight", aiNarrativeController.getDailyInsight);
@@ -153,7 +159,6 @@ export async function narrativesRoutes(app: FastifyInstance) {
   app.get("/card/:cardId", aiNarrativeController.getCardNarratives);
   app.get("/:id", aiNarrativeController.getNarrative);
 
-  // Admin Routes
   app.post("/admin/generate", aiNarrativeController.adminGenerate);
   app.patch("/admin/:id/approve", aiNarrativeController.adminApprove);
   app.patch("/admin/:id/reject", aiNarrativeController.adminReject);

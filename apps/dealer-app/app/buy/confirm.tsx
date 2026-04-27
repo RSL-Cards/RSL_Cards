@@ -1,37 +1,83 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native'
-import { useRouter } from 'expo-router'
-import { MOCK_COMPS } from '../../src/constants/mockData'
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useDealTabStore } from "../../src/stores/dealTabStore";
 
-const STEP_PCT = '100%'
+const PAYMENT_ICONS: Record<string, string> = {
+  cash: "💵",
+  venmo: "💜",
+  zelle: "💙",
+  paypal: "🅿️",
+  cashapp: "💚",
+  trade: "🔄",
+  other: "💳",
+};
+
+const STEP_PCT = "100%";
 
 export default function BuyConfirmScreen() {
-  const router = useRouter()
-  const [confirmed, setConfirmed] = useState(false)
-  const fadeAnim = useState(new Animated.Value(0))[0]
-  const scaleAnim = useState(new Animated.Value(0.3))[0]
+  const router = useRouter();
+  const tabs = useDealTabStore((s) => s.tabs);
+  const removeTab = useDealTabStore((s) => s.removeTab);
+  const activeTab = tabs[tabs.length - 1];
+  const card = activeTab?.cardData;
+  const price = activeTab?.price;
+  const avgComp = activeTab?.avgComp;
+  const paymentMethod = activeTab?.paymentMethod;
+  const pctOfComp =
+    price && avgComp ? Math.round((price / avgComp) * 100) : null;
+  const initials =
+    card?.player_name
+      ?.split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2) ?? "?";
+  const [confirmed, setConfirmed] = useState(false);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const scaleAnim = useState(new Animated.Value(0.3))[0];
 
   useEffect(() => {
     if (confirmed) {
-            Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
-      ]).start()
-      setTimeout(() => router.replace('/(tabs)/inventory'), 1800)
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      setTimeout(() => {
+        if (activeTab?.id) removeTab(activeTab.id);
+        router.replace("/(tabs)/inventory");
+      }, 1800);
     }
-  }, [confirmed])
+  }, [confirmed]);
 
   if (confirmed) {
     return (
       <Animated.View style={[styles.successOverlay, { opacity: fadeAnim }]}>
-        <Animated.View style={[styles.successCircle, { transform: [{ scale: scaleAnim }] }]}>
-          <Text style={{ color: 'white', fontSize: 60, lineHeight: 70 }}>✓</Text>
+        <Animated.View
+          style={[styles.successCircle, { transform: [{ scale: scaleAnim }] }]}
+        >
+          <Text style={{ color: "white", fontSize: 60, lineHeight: 70 }}>
+            ✓
+          </Text>
         </Animated.View>
         <Text style={styles.successTitle}>Card Added!</Text>
         <Text style={styles.successSub}>Inventory Updated</Text>
       </Animated.View>
-    )
+    );
   }
 
   return (
@@ -52,26 +98,84 @@ export default function BuyConfirmScreen() {
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.cardThumb}>
-            <Text style={{ color: '#555555', fontSize: 24, fontWeight: '900' }}>PM</Text>
+            <Text style={{ color: "#555555", fontSize: 24, fontWeight: "900" }}>
+              {initials}
+            </Text>
           </View>
-          <Text style={styles.cardName}>{MOCK_COMPS.card_name}</Text>
-          <View style={styles.gradePill}>
-            <Text style={styles.gradePillText}>PSA 10</Text>
-          </View>
+          <Text style={styles.cardName}>
+            {card?.player_name ?? "Unknown Card"}
+          </Text>
+          <Text style={{ color: "#888888", fontSize: 12, marginBottom: 8 }}>
+            {card?.year}
+            {card?.set_name ? ` · ${card.set_name}` : ""}
+            {card?.variation ? ` · ${card.variation}` : ""}
+          </Text>
+          {card?.grading && (
+            <View style={styles.gradePill}>
+              <Text style={styles.gradePillText}>
+                {card.grading.company} {card.grading.grade}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 
           <Text style={styles.priceLabel}>PURCHASE PRICE</Text>
-          <Text style={styles.priceValue}>$280</Text>
+          <Text style={styles.priceValue}>{price ? `$${price}` : "—"}</Text>
 
-          <View style={styles.methodRow}>
-            <Text style={{ fontSize: 20 }}>💜</Text>
-            <Text style={styles.methodText}>Venmo · @seller</Text>
-          </View>
+          {paymentMethod && (
+            <View style={styles.methodRow}>
+              <Text style={{ fontSize: 20 }}>
+                {PAYMENT_ICONS[paymentMethod] ?? "�"}
+              </Text>
+              <Text style={styles.methodText}>
+                {paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}
+              </Text>
+            </View>
+          )}
 
-          <View style={styles.dealBadge}>
-            <Text style={styles.dealBadgeText}>✓ GOOD DEAL — 83% of comp</Text>
-          </View>
+          {pctOfComp != null && (
+            <View
+              style={[
+                styles.dealBadge,
+                {
+                  backgroundColor:
+                    pctOfComp <= 75
+                      ? "rgba(0,200,83,0.15)"
+                      : pctOfComp <= 90
+                        ? "rgba(255,179,0,0.15)"
+                        : "rgba(232,0,28,0.15)",
+                  borderColor:
+                    pctOfComp <= 75
+                      ? "rgba(0,200,83,0.3)"
+                      : pctOfComp <= 90
+                        ? "rgba(255,179,0,0.3)"
+                        : "rgba(232,0,28,0.3)",
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.dealBadgeText,
+                  {
+                    color:
+                      pctOfComp <= 75
+                        ? "#00C853"
+                        : pctOfComp <= 90
+                          ? "#FFB300"
+                          : "#E8001C",
+                  },
+                ]}
+              >
+                {pctOfComp <= 75
+                  ? "✓ GOOD DEAL"
+                  : pctOfComp <= 90
+                    ? "↔ FAIR PRICE"
+                    : "⚠ OVERPAYING"}{" "}
+                — {pctOfComp}% of comp
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ flex: 1 }} />
@@ -86,59 +190,124 @@ export default function BuyConfirmScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={{ alignItems: 'center', marginTop: 16 }}
+          style={{ alignItems: "center", marginTop: 16 }}
           onPress={() => router.back()}
         >
-          <Text style={{ color: '#555555', fontSize: 14 }}>Cancel</Text>
+          <Text style={{ color: "#555555", fontSize: 14 }}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  backText: { color: 'white', fontSize: 28 },
-  headerTitle: { color: 'white', fontSize: 16, fontWeight: '700' },
-  progressBar: { height: 3, backgroundColor: '#1A1A1A' },
-  progressFill: { height: 3, backgroundColor: '#0057FF' },
+  container: { flex: 1, backgroundColor: "#000000" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  backBtn: { width: 40, height: 40, justifyContent: "center" },
+  backText: { color: "white", fontSize: 28 },
+  headerTitle: { color: "white", fontSize: 16, fontWeight: "700" },
+  progressBar: { height: 3, backgroundColor: "#1A1A1A" },
+  progressFill: { height: 3, backgroundColor: "#0057FF" },
   summaryCard: {
-    backgroundColor: '#111111', borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: '#2A2A2A', alignItems: 'center',
+    backgroundColor: "#111111",
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+    alignItems: "center",
   },
   cardThumb: {
-    width: 80, height: 110, backgroundColor: '#222222',
-    borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    width: 80,
+    height: 110,
+    backgroundColor: "#222222",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
-  cardName: { color: 'white', fontSize: 18, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
-  gradePill: { backgroundColor: '#FFD700', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  gradePillText: { color: '#000', fontSize: 12, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: '#2A2A2A', width: '100%', marginVertical: 20 },
-  priceLabel: { color: '#888888', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
-  priceValue: { color: 'white', fontSize: 48, fontWeight: '900', marginBottom: 16 },
-  methodRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-  methodText: { color: '#888888', fontSize: 15 },
+  cardName: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  gradePill: {
+    backgroundColor: "#FFD700",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  gradePillText: { color: "#000", fontSize: 12, fontWeight: "700" },
+  divider: {
+    height: 1,
+    backgroundColor: "#2A2A2A",
+    width: "100%",
+    marginVertical: 20,
+  },
+  priceLabel: {
+    color: "#888888",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  priceValue: {
+    color: "white",
+    fontSize: 48,
+    fontWeight: "900",
+    marginBottom: 16,
+  },
+  methodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  methodText: { color: "#888888", fontSize: 15 },
   dealBadge: {
-    backgroundColor: 'rgba(0,200,83,0.15)', borderRadius: 100,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderWidth: 1, borderColor: 'rgba(0,200,83,0.3)',
+    backgroundColor: "rgba(0,200,83,0.15)",
+    borderRadius: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,200,83,0.3)",
   },
-  dealBadgeText: { color: '#00C853', fontSize: 13, fontWeight: '700' },
+  dealBadgeText: { color: "#00C853", fontSize: 13, fontWeight: "700" },
   confirmBtn: {
-    backgroundColor: '#0057FF', height: 60, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: "#0057FF",
+    height: 60,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  confirmBtnText: { color: 'white', fontWeight: '700', fontSize: 17, letterSpacing: 0.5 },
+  confirmBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 17,
+    letterSpacing: 0.5,
+  },
   successOverlay: {
-    flex: 1, backgroundColor: '#000000',
-    alignItems: 'center', justifyContent: 'center',
+    flex: 1,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
   },
   successCircle: {
-    width: 120, height: 120, borderRadius: 60, backgroundColor: '#00C853',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#00C853",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
   },
-  successTitle: { color: 'white', fontSize: 28, fontWeight: '700' },
-  successSub: { color: '#888888', fontSize: 16, marginTop: 8 },
-})
+  successTitle: { color: "white", fontSize: 28, fontWeight: "700" },
+  successSub: { color: "#888888", fontSize: 16, marginTop: 8 },
+});

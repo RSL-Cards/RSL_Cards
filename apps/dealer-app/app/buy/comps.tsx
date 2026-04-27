@@ -117,6 +117,7 @@ function DealRatingBadge({
 export default function BuyCompsScreen() {
   const router = useRouter();
   const tabs = useDealTabStore((s) => s.tabs);
+  const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
@@ -384,7 +385,12 @@ export default function BuyCompsScreen() {
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() => router.push("/buy/price")}
+          onPress={() => {
+            if (activeTab?.id && avg30 > 0) {
+              updateTab(activeTab.id, { avgComp: avg30 });
+            }
+            router.push("/buy/price");
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>ENTER PRICE →</Text>

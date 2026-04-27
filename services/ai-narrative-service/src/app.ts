@@ -21,7 +21,7 @@ export async function createApp(env: Env) {
         }
       : { level: env.LOG_LEVEL };
 
-  const app = Fastify({ logger });
+  const app = Fastify({ logger, bodyLimit: 20 * 1024 * 1024 }); // 20MB for card image uploads
 
   registerErrorHandler(app);
   await app.register(requestIdPlugin);
