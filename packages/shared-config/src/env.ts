@@ -34,6 +34,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional().default(""),
   SENTRY_DSN: z.string().optional().default(""),
   SPORTRADAR_API_KEY: z.string().optional().default(""),
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  APPLE_AUDIENCE: z.string().min(1),
+  APPLE_ISSUER: z.string()
+    .default("https://appleid.apple.com"),
 });
 
 export type Env = z.infer<typeof envSchema>;

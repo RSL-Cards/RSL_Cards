@@ -7,6 +7,8 @@ import {
   LogoutSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
+  GoogleOauthSchema,
+  AppleOauthSchema
 } from "../types/schemas.js";
 import { serviceOrigins } from "../config/gateway-upstreams.js";
 import { internalPost, internalGet } from "../utils/internal-fetch.js";
@@ -17,7 +19,7 @@ export class AuthController {
   constructor(
     private readonly service: AuthService,
     private readonly env: Env,
-  ) {}
+  ) { }
 
   private requestMeta(req: FastifyRequest) {
     return {
@@ -65,6 +67,36 @@ export class AuthController {
     const body = ResetPasswordSchema.parse(req.body);
     return reply.send(await this.service.resetPassword(body));
   };
+  googleOauth = async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = GoogleOauthSchema.parse(req.body);
+
+    const { ipAddress, deviceInfo } = this.requestMeta(req);
+
+    return reply.send(
+      await this.service.loginWithGoogle(
+        body.idToken,
+        body.role,
+        ipAddress,
+        deviceInfo
+      )
+    );
+  }
+
+
+  appleOauth = async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = AppleOauthSchema.parse(req.body);
+
+    const { ipAddress, deviceInfo } = this.requestMeta(req);
+
+    return reply.send(
+      await this.service.loginWithApple(
+        body.idToken,
+        body.role,
+        ipAddress,
+        deviceInfo
+      )
+    );
+  }
 
   // ─── Proxy / Orchestration ───
 

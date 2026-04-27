@@ -1,10 +1,11 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
-
+import { useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
 export default function WelcomeScreen() {
   const router = useRouter()
-
+  const { promptGoogleSignIn, request } = useGoogleAuth();
+  const { signInWithApple } = useAppleAuth();
   return (
     <SafeAreaView style={styles.container}>
       {/* Logo Card */}
@@ -47,16 +48,28 @@ export default function WelcomeScreen() {
 
         <View style={{ height: 16 }} />
 
-        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          activeOpacity={0.85}
+          disabled={!request}
+          onPress={() => promptGoogleSignIn()}
+        >
           <Text style={styles.googleG}>G</Text>
-          <Text style={styles.socialBtnText}>Continue with Google</Text>
+          <Text style={styles.socialBtnText}>
+            Continue with Google
+          </Text>
         </TouchableOpacity>
 
         <View style={{ height: 10 }} />
 
-        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
-          <Text style={styles.appleIcon}></Text>
-          <Text style={styles.socialBtnText}>Continue with Apple</Text>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          activeOpacity={0.85}
+          onPress={signInWithApple}
+        >
+          <Text style={styles.socialBtnText}>
+            Continue with Apple
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -43,6 +43,24 @@ export const ResetPasswordSchema = z.object({
   otp: z.string().length(6),
   newPassword: z.string().min(8),
 });
+export const GoogleOauthSchema = z.object({
+  idToken: z.string().min(1),
+
+  role: z
+    .enum(["dealer", "consumer"])
+    .optional()
+    .default("consumer"),
+});
+
+
+export const AppleOauthSchema = z.object({
+  idToken: z.string().min(1),
+
+  role: z
+    .enum(["dealer", "consumer"])
+    .optional()
+    .default("consumer"),
+});
 
 export type RegisterBody = z.infer<typeof RegisterSchema>;
 export type LoginBody = z.infer<typeof LoginSchema>;
@@ -51,3 +69,6 @@ export type LogoutBody = z.infer<typeof LogoutSchema>;
 export type OnboardingBody = z.infer<typeof OnboardingSchema>;
 export type ForgotPasswordBody = z.infer<typeof ForgotPasswordSchema>;
 export type ResetPasswordBody = z.infer<typeof ResetPasswordSchema>;
+export type GoogleOauthBody =z.infer<typeof GoogleOauthSchema>;
+
+export type AppleOauthBody =z.infer<typeof AppleOauthSchema>;

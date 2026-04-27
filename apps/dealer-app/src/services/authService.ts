@@ -40,6 +40,23 @@ export interface ResetPasswordPayload {
   otp: string;
   newPassword: string;
 }
+export interface GoogleAuthPayload {
+ idToken:string;
+}
+
+export interface AppleAuthPayload {
+ idToken:string;
+}
+async function persistAuth(data:AuthResponse){
+ await tokenStorage.setTokens(
+   data.tokens.accessToken,
+   data.tokens.refreshToken
+ );
+
+ await tokenStorage.setUser(data.user);
+
+ return data;
+}
 
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthResponse> {
@@ -47,12 +64,7 @@ export const authService = {
       ENDPOINTS.auth.login,
       payload,
     );
-    await tokenStorage.setTokens(
-      data.tokens.accessToken,
-      data.tokens.refreshToken,
-    );
-    await tokenStorage.setUser(data.user);
-    return data;
+   return persistAuth(data);
   },
 
   async register(payload: RegisterPayload): Promise<AuthResponse> {
@@ -60,13 +72,26 @@ export const authService = {
       ENDPOINTS.auth.register,
       payload,
     );
-    await tokenStorage.setTokens(
-      data.tokens.accessToken,
-      data.tokens.refreshToken,
-    );
-    await tokenStorage.setUser(data.user);
-    return data;
+   return persistAuth(data);
   },
+
+ async googleLogin(payload:GoogleAuthPayload){
+   const {data}= await apiClient.post<AuthResponse>(
+      ENDPOINTS.auth.oauthGoogle,
+      payload
+   );
+
+   return persistAuth(data);
+ },
+
+ async appleLogin(payload:AppleAuthPayload){
+   const {data}= await apiClient.post<AuthResponse>(
+      ENDPOINTS.auth.oauthApple,
+      payload
+   );
+
+   return persistAuth(data);
+ },
 
   async logout(): Promise<void> {
     try {
