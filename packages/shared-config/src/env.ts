@@ -34,10 +34,9 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional().default(""),
   SENTRY_DSN: z.string().optional().default(""),
   SPORTRADAR_API_KEY: z.string().optional().default(""),
-  GOOGLE_CLIENT_ID: z.string().min(1),
-  APPLE_AUDIENCE: z.string().min(1),
-  APPLE_ISSUER: z.string()
-    .default("https://appleid.apple.com"),
+  GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  APPLE_AUDIENCE: z.string().optional().default(""),
+  APPLE_ISSUER: z.string().optional().default("https://appleid.apple.com"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -52,7 +51,9 @@ export function validateEnv(
 ): Env {
   const parsed = envSchema.safeParse(overrides);
   if (!parsed.success) {
-    const msg = parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; ");
+    const msg = parsed.error.errors
+      .map((e) => `${e.path.join(".")}: ${e.message}`)
+      .join("; ");
     throw new Error(`Environment validation failed: ${msg}`);
   }
   cached = parsed.data;

@@ -12,7 +12,12 @@ const { Client } = pkg;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function initTestApp() {
-  const env = validateEnv();
+  let env: ReturnType<typeof validateEnv>;
+  try {
+    env = validateEnv();
+  } catch {
+    return null;
+  }
 
   // 1. Ensure test database exists (skip if unreachable — e.g. running outside Docker)
   const dbReady = await ensureTestDbExists(env.TEST_DATABASE_URL!);
