@@ -7,6 +7,7 @@ import { helmetPlugin } from "./plugins/helmet.js";
 import { rateLimitPlugin } from "./plugins/rate-limit.js";
 import { requestIdPlugin } from "./plugins/request-id.js";
 import { registerRoutes } from "./routes/index.js";
+import { swaggerPlugin } from "./plugins/swagger.js";
 
 export async function createApp(env: Env) {
   const logger =
@@ -26,6 +27,7 @@ export async function createApp(env: Env) {
   await app.register(requestIdPlugin);
   await app.register(helmetPlugin);
   await app.register(corsPlugin, { env });
+  await app.register(swaggerPlugin);
   await app.register(rateLimitPlugin, { redis: getRedis(env) });
   await registerRoutes(app, env);
   return app;

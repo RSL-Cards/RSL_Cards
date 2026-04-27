@@ -1,28 +1,45 @@
 # RSL Cards — API Route Reference
 
-Complete map of every API endpoint, the request path, and how it travels through the system.
+> For full endpoint details see the per-service docs below.
+
+## Per-Service Docs
+
+| Service                                           | Port | Swagger UI                          | Doc                   |
+| ------------------------------------------------- | ---- | ----------------------------------- | --------------------- |
+| [auth-service](./auth-service.md)                 | 3001 | [/docs](http://localhost:3001/docs) | Auth + API Gateway    |
+| [user-service](./user-service.md)                 | 3002 | [/docs](http://localhost:3002/docs) | Dealer profiles       |
+| [inventory-service](./inventory-service.md)       | 3003 | [/docs](http://localhost:3003/docs) | Card inventory        |
+| [transaction-service](./transaction-service.md)   | 3004 | [/docs](http://localhost:3004/docs) | Buy/sell/trade        |
+| [listing-service](./listing-service.md)           | 3005 | [/docs](http://localhost:3005/docs) | Marketplace + eBay    |
+| [card-db-service](./card-db-service.md)           | 3006 | [/docs](http://localhost:3006/docs) | Card search + scan    |
+| [ai-narrative-service](./ai-narrative-service.md) | 3007 | [/docs](http://localhost:3007/docs) | Gemini scan + AI feed |
+| [notification-service](./notification-service.md) | 3008 | [/docs](http://localhost:3008/docs) | Notifications + shows |
+| [analytics-service](./analytics-service.md)       | 3009 | [/docs](http://localhost:3009/docs) | P&L + tax reports     |
+| [admin-service](./admin-service.md)               | 3010 | [/docs](http://localhost:3010/docs) | Platform admin        |
 
 ---
 
 ## How Requests Travel
 
 ```
-Mobile App / Browser
-       │
+Mobile App (dealer-app)
+       │  Bearer JWT
        ▼
-  NGINX Gateway  (localhost:80)
+  NGINX Gateway (port 80)
        │
-       ├─ /v1/auth/*         → auth-service:3000
-       ├─ /v1/users/*        → user-service:3000
-       ├─ /v1/inventory/*    → inventory-service:3000
-       ├─ /v1/transactions/* → transaction-service:3000
-       ├─ /v1/listings/*     → listing-service:3000
-       ├─ /v1/cards/*        → card-db-service:3000
-       ├─ /v1/narratives/*   → ai-narrative-service:3000
-       ├─ /v1/notifications/* → notification-service:3000
-       ├─ /v1/shows/*        → notification-service:3000
-       ├─ /v1/analytics/*    → analytics-service:3000
-       └─ /v1/admin/*        → admin-service:3000
+       ├─ /v1/auth/*          → auth-service:3000          (rate-limited, no JWT needed)
+       │
+       ├─ /v1/inventory/*  ─┐
+       ├─ /v1/listings/*   ─┤→ auth-service:3000 (API Gateway)
+       ├─ /v1/cards/*      ─┤   validates JWT
+       ├─ /v1/narratives/* ─┘   injects x-service-key
+       │                        proxies to upstream service
+       │
+       ├─ /v1/users/*          → user-service:3000          (JWT validated internally)
+       ├─ /v1/transactions/*   → transaction-service:3000   (JWT validated internally)
+       ├─ /v1/notifications/*  → notification-service:3000  (JWT validated internally)
+       ├─ /v1/analytics/*      → analytics-service:3000     (JWT validated internally)
+       └─ /v1/admin/*          → admin-service:3000         (admin JWT validated internally)
 ```
 
 **Internal service-to-service calls** bypass NGINX and use `x-service-key` header for authentication.
