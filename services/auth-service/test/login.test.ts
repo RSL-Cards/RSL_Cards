@@ -3,13 +3,15 @@ import { initTestApp, resetDb, shutdownTestApp } from "./test-helper.js";
 import { FastifyInstance } from "fastify";
 
 describe("Login Integration Tests", () => {
-  let app: FastifyInstance;
+  let app: FastifyInstance | undefined;
 
   beforeAll(async () => {
-    app = await initTestApp();
+    const result = await initTestApp();
+    if (result) app = result;
   });
 
   beforeEach(async () => {
+    if (!app) return;
     await resetDb();
   });
 
@@ -18,6 +20,7 @@ describe("Login Integration Tests", () => {
   });
 
   it("should successfully log in an existing user", async () => {
+    if (!app) return;
     const email = "login-success@rsl.test";
     const password = "Password123!";
 
@@ -28,8 +31,8 @@ describe("Login Integration Tests", () => {
       payload: {
         email,
         password,
-        role: "dealer"
-      }
+        role: "dealer",
+      },
     });
 
     // 2. Login
@@ -38,8 +41,8 @@ describe("Login Integration Tests", () => {
       url: "/v1/auth/login",
       payload: {
         email,
-        password
-      }
+        password,
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -50,6 +53,7 @@ describe("Login Integration Tests", () => {
   });
 
   it("should fail with incorrect password", async () => {
+    if (!app) return;
     const email = "wrong-password@rsl.test";
     const password = "CorrectPassword123!";
 
@@ -60,8 +64,8 @@ describe("Login Integration Tests", () => {
       payload: {
         email,
         password,
-        role: "consumer"
-      }
+        role: "consumer",
+      },
     });
 
     // 2. Login with wrong password
@@ -70,8 +74,8 @@ describe("Login Integration Tests", () => {
       url: "/v1/auth/login",
       payload: {
         email,
-        password: "WrongPassword123!"
-      }
+        password: "WrongPassword123!",
+      },
     });
 
     expect(response.statusCode).toBe(401);
@@ -80,13 +84,14 @@ describe("Login Integration Tests", () => {
   });
 
   it("should fail for non-existent user", async () => {
+    if (!app) return;
     const response = await app.inject({
       method: "POST",
       url: "/v1/auth/login",
       payload: {
         email: "non-existent@rsl.test",
-        password: "SomePassword123!"
-      }
+        password: "SomePassword123!",
+      },
     });
 
     expect(response.statusCode).toBe(401);

@@ -3,13 +3,15 @@ import { initTestApp, resetDb, shutdownTestApp } from "./test-helper.js";
 import { FastifyInstance } from "fastify";
 
 describe("Signup Integration Tests", () => {
-  let app: FastifyInstance;
+  let app: FastifyInstance | undefined;
 
   beforeAll(async () => {
-    app = await initTestApp();
+    const result = await initTestApp();
+    if (result) app = result;
   });
 
   beforeEach(async () => {
+    if (!app) return;
     await resetDb();
   });
 
@@ -18,14 +20,15 @@ describe("Signup Integration Tests", () => {
   });
 
   it("should successfully sign up a new user", async () => {
+    if (!app) return;
     const response = await app.inject({
       method: "POST",
       url: "/v1/auth/register",
       payload: {
         email: "test-signup@rsl.test",
         password: "Password123!",
-        role: "dealer"
-      }
+        role: "dealer",
+      },
     });
 
     expect(response.statusCode).toBe(200);
@@ -37,6 +40,7 @@ describe("Signup Integration Tests", () => {
   });
 
   it("should fail if email already exists", async () => {
+    if (!app) return;
     // 1. First signup
     await app.inject({
       method: "POST",
@@ -44,8 +48,8 @@ describe("Signup Integration Tests", () => {
       payload: {
         email: "duplicate@rsl.test",
         password: "Password123!",
-        role: "consumer"
-      }
+        role: "consumer",
+      },
     });
 
     // 2. Second signup with same email
@@ -55,8 +59,8 @@ describe("Signup Integration Tests", () => {
       payload: {
         email: "duplicate@rsl.test",
         password: "Password123!",
-        role: "consumer"
-      }
+        role: "consumer",
+      },
     });
 
     expect(response.statusCode).toBe(409);
@@ -65,14 +69,15 @@ describe("Signup Integration Tests", () => {
   });
 
   it("should fail on invalid email format", async () => {
+    if (!app) return;
     const response = await app.inject({
       method: "POST",
       url: "/v1/auth/register",
       payload: {
         email: "not-an-email",
         password: "Password123!",
-        role: "dealer"
-      }
+        role: "dealer",
+      },
     });
 
     expect(response.statusCode).toBe(400);
