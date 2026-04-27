@@ -17,13 +17,33 @@ const STEP_PCT = "40%";
 
 function buildEbayQuery(card: any): string {
   if (!card) return "";
-  const parts = [card.player_name, card.year, card.set_name, card.variation]
-    .filter(Boolean)
-    .join(" ");
-  if (card.grading?.company && card.grading?.grade) {
-    return `${parts} ${card.grading.company} ${card.grading.grade}`;
+
+  const parts: string[] = [];
+
+  // 1. Player name (most important — always first)
+  if (card.player_name) parts.push(card.player_name);
+
+  // 2. Year
+  if (card.year) parts.push(String(card.year));
+
+  // 3. Set name
+  if (card.set_name) parts.push(card.set_name);
+
+  // 4. Variation / parallel (e.g. "Silver Prizm", "Gold Refractor", "Holo")
+  // Skip "Base" — base cards are listed without variation on eBay
+  if (card.variation && card.variation.toLowerCase() !== "base") {
+    parts.push(card.variation);
   }
-  return parts;
+
+  // 5. Card number (e.g. "#269") — helps narrow to exact print
+  if (card.card_number) parts.push(`#${card.card_number}`);
+
+  // 6. Grading — PSA 10, BGS 9.5 etc. narrows to graded copies only
+  if (card.grading?.company && card.grading?.grade) {
+    parts.push(`${card.grading.company} ${card.grading.grade}`);
+  }
+
+  return parts.join(" ");
 }
 
 function calcAvg(items: EbaySoldItem[]): number {

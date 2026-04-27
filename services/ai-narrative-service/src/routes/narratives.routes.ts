@@ -32,8 +32,11 @@ Rules:
 - "year" must be a number
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": "football" | "basketball" | "baseball" | "hockey" | "soccer" | "other"
-- If grading label not visible, omit "grading" field entirely
-- If a field is not visible, use null
+- "variation": the parallel/refractor name exactly as it appears on the card or is commonly known on eBay (e.g. "Silver Prizm", "Gold Refractor", "Holo", "Base", "Blue Wave", "Red /299"). Include the print run if visible (e.g. "Orange /49"). If base/no variation, use "Base"
+- "card_number": the number printed on the card (e.g. "269", "RC-15"). Omit the # symbol. Use null if not visible
+- "set_name": the brand+product name as used on eBay (e.g. "Panini Prizm", "Topps Chrome", "Bowman Draft"). Do NOT include the year in set_name
+- If grading label (PSA/BGS/SGC/CSG slab) not visible, omit "grading" field entirely
+- If a field is not visible or not determinable, use null
 - Return ONLY the JSON object, nothing else`;
 
 export async function narrativesRoutes(app: FastifyInstance) {
