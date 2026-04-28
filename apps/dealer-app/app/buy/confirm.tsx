@@ -1,5 +1,7 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "../../src/stores/authStore";
 import {
   View,
   Text,
@@ -55,6 +57,8 @@ async function uploadCardPhoto(
 
 export default function BuyConfirmScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id);
   const tabs = useDealTabStore((s) => s.tabs);
   const removeTab = useDealTabStore((s) => s.removeTab);
   const activeTab = tabs[tabs.length - 1];
@@ -303,13 +307,13 @@ export default function BuyConfirmScreen() {
                 notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
               },
               {
-                onSuccess: (data: any) => {
+                onSuccess: async (data: any) => {
                   const inventoryId = data?.item?.id ?? null;
                   if (inventoryId && capturedPhoto) {
                     uploadCardPhoto(inventoryId, capturedPhoto);
                   }
-                  apiClient
-                    .post(ENDPOINTS.transactions.buy, {
+                  try {
+                    await apiClient.post(ENDPOINTS.transactions.buy, {
                       inventoryId,
                       playerName: card.player_name,
                       price: String(price),
@@ -320,8 +324,19 @@ export default function BuyConfirmScreen() {
                       compPriceAtTime: avgComp ? String(avgComp) : null,
                       gradeKey,
                       cardSnapshot: JSON.stringify(card),
-                    })
-                    .catch(() => {});
+                    });
+                    // Refresh homepage stats immediately
+                    if (userId) {
+                      queryClient.invalidateQueries({
+                        queryKey: ["analytics", "daily", userId],
+                      });
+                      queryClient.invalidateQueries({
+                        queryKey: ["analytics", "today-activity", userId],
+                      });
+                    }
+                  } catch {
+                    // Non-fatal — transaction record failed but inventory is saved
+                  }
                   setConfirmed(true);
                 },
               },

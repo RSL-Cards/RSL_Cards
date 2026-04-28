@@ -9,6 +9,7 @@ export interface AuthUser {
   displayName: string;
   onboardingCompleted: boolean;
   sports?: string[];
+  sellChannels?: string[];
   photoUrl?: string | null;
 }
 

@@ -6,43 +6,63 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import {
-  MOCK_TODAY_STATS,
-  MOCK_TRANSACTIONS,
-  MOCK_WEEKLY_REPORT,
-} from "../../src/constants/mockData";
-import { format } from "date-fns";
-// import { AnalyticsErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+  useDailyStats,
+  useTodayActivity,
+  useReport,
+  useProfitByChannel,
+  useRefetchDashboardOnFocus,
+} from "../../src/hooks/useDashboard";
 
 type Period = "today" | "week" | "month";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+function fmt$(val: string | number | undefined) {
+  const n = parseFloat(String(val ?? "0"));
+  return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`;
+}
 
-function BarChart({ data }: { data: number[] }) {
-  const max = Math.max(...data);
+function Skeleton() {
+  return (
+    <View style={{ marginHorizontal: 20, marginTop: 4 }}>
+      <ActivityIndicator color="#333333" style={{ marginTop: 40 }} />
+    </View>
+  );
+}
+
+function safeDayLabel(day: string): string {
+  // Handles: "2026-04-27", "2026-04-27T00:00:00.000Z", "2026-04-27 00:00:00+00"
+  const m = String(day).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${parseInt(m[2])}/${parseInt(m[3])}`;
+  return "—";
+}
+
+function BarChart({ data }: { data: { day: string; revenue: number }[] }) {
+  if (!data.length) return null;
+  const max = Math.max(...data.map((d) => d.revenue), 1);
   return (
     <View
       style={{
         flexDirection: "row",
         alignItems: "flex-end",
         gap: 6,
-        height: 120,
+        height: 100,
         marginTop: 12,
       }}
     >
-      {data.map((v, i) => (
+      {data.map((d, i) => (
         <View key={i} style={{ flex: 1, alignItems: "center" }}>
           <View
             style={{
               width: "100%",
-              height: Math.max((v / max) * 100, 4),
-              backgroundColor: "#0057FF",
+              height: Math.max((d.revenue / max) * 88, 4),
+              backgroundColor: d.revenue > 0 ? "#0057FF" : "#1A1A1A",
               borderRadius: 4,
             }}
           />
-          <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
-            {DAYS[i]}
+          <Text style={{ color: "#555555", fontSize: 9, marginTop: 4 }}>
+            {safeDayLabel(d.day)}
           </Text>
         </View>
       ))}
@@ -50,270 +70,336 @@ function BarChart({ data }: { data: number[] }) {
   );
 }
 
+function AiSummaryCard() {
+  return (
+    <View style={styles.aiCard}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+      >
+        <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
+        <Text
+          style={{
+            color: "#E8001C",
+            fontSize: 11,
+            fontWeight: "700",
+            letterSpacing: 1,
+          }}
+        >
+          AI SUMMARY
+        </Text>
+      </View>
+      <Text
+        style={{
+          color: "white",
+          fontSize: 15,
+          fontWeight: "700",
+          marginBottom: 6,
+        }}
+      >
+        Keep stacking — your margins are solid
+      </Text>
+      <Text style={{ color: "#888888", fontSize: 13, lineHeight: 19 }}>
+        AI-powered deal analysis coming soon. Your buying patterns and profit
+        trends will be summarized here automatically.
+      </Text>
+    </View>
+  );
+}
+
 function TodayView() {
+  const { data: stats, isLoading: loadingStats } = useDailyStats();
+  const { data: activity, isLoading: loadingActivity } = useTodayActivity();
+
+  const revenue = parseFloat(stats?.total_revenue ?? "0");
+  const profit = parseFloat(stats?.net_profit ?? "0");
+  const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 24 }}
     >
-      {/* Metric cards */}
       <View style={styles.metricsRow}>
         {[
           {
+            label: "Bought",
+            value: String(stats?.cards_bought ?? 0),
+            unit: "cards",
+            color: "#0057FF",
+          },
+          {
+            label: "Sold",
+            value: String(stats?.cards_sold ?? 0),
+            unit: "cards",
+            color: "#E8001C",
+          },
+          {
+            label: "Spent",
+            value: fmt$(stats?.total_spent),
+            unit: "",
+            color: "#888888",
+          },
+          {
             label: "Revenue",
-            value: `$${MOCK_TODAY_STATS.total_revenue}`,
+            value: fmt$(stats?.total_revenue),
+            unit: "",
             color: "white",
           },
           {
             label: "Profit",
-            value: `$${MOCK_TODAY_STATS.net_profit}`,
+            value: fmt$(stats?.net_profit),
+            unit: "",
             color: "#00C853",
           },
-          {
-            label: "Margin",
-            value: `${Math.round((MOCK_TODAY_STATS.net_profit / MOCK_TODAY_STATS.total_revenue) * 100)}%`,
-            color: "#0057FF",
-          },
+          { label: "Margin", value: `${margin}%`, unit: "", color: "#0057FF" },
         ].map((m) => (
           <View key={m.label} style={styles.metricCard}>
             <Text style={styles.metricLabel}>{m.label}</Text>
-            <Text style={[styles.metricValue, { color: m.color }]}>
-              {m.value}
-            </Text>
+            {loadingStats ? (
+              <ActivityIndicator color="#333" size="small" />
+            ) : (
+              <Text style={[styles.metricValue, { color: m.color }]}>
+                {m.value}
+              </Text>
+            )}
+            {m.unit ? (
+              <Text style={{ color: "#555555", fontSize: 10 }}>{m.unit}</Text>
+            ) : null}
           </View>
         ))}
       </View>
 
-      {/* Transaction list */}
       <Text
         style={[
           styles.sectionLabel,
           { paddingHorizontal: 20, marginTop: 24, marginBottom: 12 },
         ]}
       >
-        TODAY'S TRANSACTIONS
+        LAST 24H TRANSACTIONS
       </Text>
-      <View
-        style={{
-          marginHorizontal: 20,
-          backgroundColor: "#111111",
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: "#2A2A2A",
-          overflow: "hidden",
-        }}
-      >
-        {MOCK_TRANSACTIONS.map((tx, i) => (
-          <View
-            key={tx.id}
-            style={[
-              styles.txRow,
-              i < MOCK_TRANSACTIONS.length - 1 && {
-                borderBottomWidth: 1,
-                borderBottomColor: "#2A2A2A",
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.typeBadge,
-                {
-                  backgroundColor:
-                    tx.type === "buy"
-                      ? "rgba(0,87,255,0.15)"
-                      : "rgba(232,0,28,0.15)",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.typeBadgeText,
-                  { color: tx.type === "buy" ? "#0057FF" : "#E8001C" },
-                ]}
-              >
-                {tx.type.toUpperCase()}
-              </Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.txPlayer}>{tx.player_name}</Text>
-              <Text style={styles.txMeta}>
-                {tx.grade_key} · {tx.payment_method}
-              </Text>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={styles.txPrice}>${tx.price.toFixed(0)}</Text>
-              {tx.profit != null && (
-                <Text style={{ color: "#00C853", fontSize: 12, marginTop: 2 }}>
-                  +${tx.profit}
-                </Text>
-              )}
-              <Text style={styles.txTime}>
-                {format(new Date(tx.created_at), "h:mm a")}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
 
-      {/* AI Summary */}
-      <View style={{ marginHorizontal: 20, marginTop: 20 }}>
-        <View style={styles.aiCard}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 8,
-            }}
-          >
-            <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
-            <Text
-              style={{
-                color: "#E8001C",
-                fontSize: 11,
-                fontWeight: "700",
-                letterSpacing: 1,
-              }}
-            >
-              AI SUMMARY
-            </Text>
-          </View>
-          <Text
-            style={{
-              color: "white",
-              fontSize: 15,
-              fontWeight: "700",
-              marginBottom: 6,
-            }}
-          >
-            Strong show day — 65.7% best margin
-          </Text>
-          <Text style={{ color: "#888888", fontSize: 13, lineHeight: 19 }}>
-            Your Jayden Daniels raw card was your best deal today at 65.7%
-            margin. 3 sales · 4 purchases. Net profit trending above your weekly
-            average.
+      {loadingActivity ? (
+        <Skeleton />
+      ) : !activity?.length ? (
+        <View
+          style={{ marginHorizontal: 20, padding: 24, alignItems: "center" }}
+        >
+          <Text style={{ color: "#555555", fontSize: 14 }}>
+            No transactions yet today
           </Text>
         </View>
+      ) : (
+        <View style={styles.card}>
+          {activity.map((tx, i) => (
+            <View
+              key={tx.id}
+              style={[
+                styles.txRow,
+                i < activity.length - 1 && styles.txDivider,
+              ]}
+            >
+              <View
+                style={[
+                  styles.typeBadge,
+                  {
+                    backgroundColor:
+                      tx.type === "buy"
+                        ? "rgba(0,87,255,0.15)"
+                        : "rgba(232,0,28,0.15)",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.typeBadgeText,
+                    { color: tx.type === "buy" ? "#0057FF" : "#E8001C" },
+                  ]}
+                >
+                  {tx.type.toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.txPlayer}>{tx.playerName}</Text>
+                <Text style={styles.txTime}>{tx.time}</Text>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={styles.txPrice}>
+                  ${parseFloat(tx.price).toFixed(0)}
+                </Text>
+                {tx.profit != null && (
+                  <Text
+                    style={{ color: "#00C853", fontSize: 12, marginTop: 2 }}
+                  >
+                    +${parseFloat(tx.profit).toFixed(0)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View style={{ marginHorizontal: 20, marginTop: 20 }}>
+        <AiSummaryCard />
       </View>
     </ScrollView>
   );
 }
 
-function WeekView() {
+function PeriodView({ period }: { period: "week" | "month" }) {
+  const { data: report, isLoading: loadingReport } = useReport(period);
+  const { data: channelData, isLoading: loadingChannel } =
+    useProfitByChannel(period);
+
   const maxChannel = Math.max(
-    ...MOCK_WEEKLY_REPORT.by_channel.map((c) => c.revenue),
+    ...(channelData?.channels ?? []).map((c) => c.revenue),
+    1,
   );
+  const label = period === "week" ? "7 DAYS" : "30 DAYS";
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingBottom: 24 }}
     >
-      {/* Week metrics */}
+      {/* Metrics */}
       <View style={styles.metricsRow}>
         {[
           {
             label: "Revenue",
-            value: `$${MOCK_WEEKLY_REPORT.total_revenue.toLocaleString()}`,
+            value: fmt$(report?.total_revenue),
             color: "white",
           },
           {
             label: "Profit",
-            value: `$${MOCK_WEEKLY_REPORT.net_profit.toLocaleString()}`,
+            value: fmt$(report?.net_profit),
             color: "#00C853",
           },
           {
             label: "Margin",
-            value: `${MOCK_WEEKLY_REPORT.avg_margin}%`,
+            value: `${report?.avg_margin ?? 0}%`,
             color: "#0057FF",
           },
         ].map((m) => (
           <View key={m.label} style={styles.metricCard}>
             <Text style={styles.metricLabel}>{m.label}</Text>
-            <Text style={[styles.metricValue, { color: m.color }]}>
-              {m.value}
-            </Text>
+            {loadingReport ? (
+              <ActivityIndicator color="#333" size="small" />
+            ) : (
+              <Text style={[styles.metricValue, { color: m.color }]}>
+                {m.value}
+              </Text>
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* Cards count row */}
+      <View style={[styles.metricsRow, { marginTop: 10 }]}>
+        {[
+          {
+            label: "Bought",
+            value: String(report?.cards_bought ?? 0),
+            color: "#0057FF",
+          },
+          {
+            label: "Sold",
+            value: String(report?.cards_sold ?? 0),
+            color: "#E8001C",
+          },
+          {
+            label: "Spent",
+            value: fmt$(report?.total_spent),
+            color: "#888888",
+          },
+        ].map((m) => (
+          <View key={m.label} style={styles.metricCard}>
+            <Text style={styles.metricLabel}>{m.label}</Text>
+            {loadingReport ? (
+              <ActivityIndicator color="#333" size="small" />
+            ) : (
+              <Text style={[styles.metricValue, { color: m.color }]}>
+                {m.value}
+              </Text>
+            )}
           </View>
         ))}
       </View>
 
       {/* Bar chart */}
-      <View
-        style={{
-          marginHorizontal: 20,
-          marginTop: 20,
-          backgroundColor: "#111111",
-          borderRadius: 16,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: "#2A2A2A",
-        }}
-      >
-        <Text style={styles.sectionLabel}>
-          DAILY REVENUE — {MOCK_WEEKLY_REPORT.week}
-        </Text>
-        <BarChart data={MOCK_WEEKLY_REPORT.daily_revenue} />
-      </View>
-
-      {/* Best card */}
-      <View style={{ marginHorizontal: 20, marginTop: 16 }}>
-        <View
-          style={{
-            backgroundColor: "#111111",
-            borderRadius: 16,
-            padding: 16,
-            borderWidth: 1,
-            borderColor: "#2A2A2A",
-            borderLeftWidth: 3,
-            borderLeftColor: "#FFD700",
-          }}
-        >
-          <Text style={styles.sectionLabel}>BEST DEAL THIS WEEK</Text>
-          <Text
-            style={{
-              color: "white",
-              fontSize: 18,
-              fontWeight: "700",
-              marginTop: 4,
-            }}
-          >
-            {MOCK_WEEKLY_REPORT.best_card.player}
-          </Text>
-          <Text
-            style={{
-              color: "#00C853",
-              fontSize: 22,
-              fontWeight: "900",
-              marginTop: 4,
-            }}
-          >
-            +${MOCK_WEEKLY_REPORT.best_card.profit} ·{" "}
-            {MOCK_WEEKLY_REPORT.best_card.margin}% margin
-          </Text>
+      {!loadingReport && !!report?.daily_revenue?.length && (
+        <View style={[styles.card, { marginTop: 16 }]}>
+          <Text style={styles.sectionLabel}>DAILY REVENUE — {label}</Text>
+          <BarChart data={report.daily_revenue} />
         </View>
-      </View>
+      )}
+
+      {/* Best deal */}
+      {!loadingReport && report?.best_deal && (
+        <View style={{ marginHorizontal: 20, marginTop: 16 }}>
+          <View
+            style={[
+              styles.card,
+              {
+                borderLeftWidth: 3,
+                borderLeftColor: "#FFD700",
+                marginHorizontal: 0,
+              },
+            ]}
+          >
+            <Text style={styles.sectionLabel}>BEST DEAL — {label}</Text>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 17,
+                fontWeight: "700",
+                marginTop: 6,
+              }}
+            >
+              {report.best_deal.player}
+            </Text>
+            <Text
+              style={{
+                color: "#00C853",
+                fontSize: 20,
+                fontWeight: "900",
+                marginTop: 4,
+              }}
+            >
+              +${parseFloat(report.best_deal.profit).toFixed(0)} ·{" "}
+              {report.best_deal.margin}% margin
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Channel breakdown */}
-      <View style={{ marginHorizontal: 20, marginTop: 16 }}>
-        <Text style={[styles.sectionLabel, { marginBottom: 12 }]}>
-          REVENUE BY CHANNEL
-        </Text>
+      <Text
+        style={[
+          styles.sectionLabel,
+          { paddingHorizontal: 20, marginTop: 20, marginBottom: 12 },
+        ]}
+      >
+        REVENUE BY CHANNEL
+      </Text>
+      {loadingChannel ? (
+        <Skeleton />
+      ) : !channelData?.channels?.length ? (
         <View
-          style={{
-            backgroundColor: "#111111",
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: "#2A2A2A",
-            overflow: "hidden",
-          }}
+          style={{ marginHorizontal: 20, padding: 20, alignItems: "center" }}
         >
-          {MOCK_WEEKLY_REPORT.by_channel.map((c, i) => (
+          <Text style={{ color: "#555555", fontSize: 13 }}>
+            No sales data for this period
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.card}>
+          {channelData.channels.map((c, i) => (
             <View
               key={c.channel}
               style={[
                 { padding: 14 },
-                i < MOCK_WEEKLY_REPORT.by_channel.length - 1 && {
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#2A2A2A",
-                },
+                i < channelData.channels.length - 1 && styles.txDivider,
               ]}
             >
               <View
@@ -324,15 +410,29 @@ function WeekView() {
                 }}
               >
                 <Text
-                  style={{ color: "white", fontWeight: "600", fontSize: 14 }}
+                  style={{
+                    color: "white",
+                    fontWeight: "600",
+                    fontSize: 14,
+                    textTransform: "capitalize",
+                  }}
                 >
-                  {c.channel}
+                  {c.channel.replace(/_/g, " ")}
                 </Text>
-                <Text
-                  style={{ color: "white", fontWeight: "700", fontSize: 14 }}
-                >
-                  ${c.revenue.toLocaleString()}
-                </Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text
+                    style={{ color: "white", fontWeight: "700", fontSize: 14 }}
+                  >
+                    {fmt$(c.revenue)}
+                  </Text>
+                  {c.profit > 0 && (
+                    <Text
+                      style={{ color: "#00C853", fontSize: 11, marginTop: 2 }}
+                    >
+                      +{fmt$(c.profit)} profit
+                    </Text>
+                  )}
+                </View>
               </View>
               <View
                 style={{
@@ -353,63 +453,14 @@ function WeekView() {
             </View>
           ))}
         </View>
-      </View>
-    </ScrollView>
-  );
-}
-
-function MonthView() {
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
-    >
-      <View style={styles.metricsRow}>
-        {[
-          { label: "Revenue", value: "$18,240", color: "white" },
-          { label: "Profit", value: "$4,820", color: "#00C853" },
-          { label: "Cards", value: "62", color: "#0057FF" },
-        ].map((m) => (
-          <View key={m.label} style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{m.label}</Text>
-            <Text style={[styles.metricValue, { color: m.color }]}>
-              {m.value}
-            </Text>
-          </View>
-        ))}
-      </View>
-      <View
-        style={{
-          marginHorizontal: 20,
-          marginTop: 20,
-          backgroundColor: "#111111",
-          borderRadius: 16,
-          padding: 20,
-          borderWidth: 1,
-          borderColor: "#2A2A2A",
-        }}
-      >
-        <Text
-          style={{
-            color: "#888888",
-            fontSize: 13,
-            textAlign: "center",
-            lineHeight: 22,
-          }}
-        >
-          April 2026 is tracking{"\n"}
-          <Text style={{ color: "#00C853", fontSize: 22, fontWeight: "900" }}>
-            +26.4%
-          </Text>
-          {"\n"}above your monthly average
-        </Text>
-      </View>
+      )}
     </ScrollView>
   );
 }
 
 function ReportsScreen() {
   const [period, setPeriod] = useState<Period>("today");
+  useRefetchDashboardOnFocus();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
@@ -417,7 +468,6 @@ function ReportsScreen() {
         <Text style={styles.headerTitle}>Reports</Text>
       </View>
 
-      {/* Period tabs */}
       <View style={styles.periodTabs}>
         {(["today", "week", "month"] as Period[]).map((p) => (
           <TouchableOpacity
@@ -438,13 +488,12 @@ function ReportsScreen() {
       </View>
 
       {period === "today" && <TodayView />}
-      {period === "week" && <WeekView />}
-      {period === "month" && <MonthView />}
+      {period === "week" && <PeriodView period="week" />}
+      {period === "month" && <PeriodView period="month" />}
     </SafeAreaView>
   );
 }
 
-// Export without error boundary
 export default ReportsScreen;
 
 const styles = StyleSheet.create({
@@ -469,12 +518,14 @@ const styles = StyleSheet.create({
   periodTabTextActive: { color: "white", fontWeight: "700" },
   metricsRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
     paddingHorizontal: 20,
     marginTop: 4,
   },
   metricCard: {
     flex: 1,
+    minWidth: 80,
     backgroundColor: "#111111",
     borderRadius: 16,
     padding: 14,
@@ -483,19 +534,29 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     color: "#555555",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  metricValue: { fontSize: 18, fontWeight: "700" },
+  metricValue: { fontSize: 17, fontWeight: "700" },
   sectionLabel: {
     color: "#888888",
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1.5,
   },
-  txRow: { flexDirection: "row", alignItems: "center", padding: 14 },
+  card: {
+    marginHorizontal: 20,
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+    overflow: "hidden",
+    padding: 16,
+  },
+  txRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
+  txDivider: { borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
   typeBadge: {
     borderRadius: 6,
     paddingHorizontal: 8,
@@ -505,9 +566,8 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: { fontSize: 11, fontWeight: "700" },
   txPlayer: { color: "white", fontWeight: "600", fontSize: 14 },
-  txMeta: { color: "#555555", fontSize: 11, marginTop: 2 },
-  txPrice: { color: "white", fontWeight: "700", fontSize: 14 },
   txTime: { color: "#555555", fontSize: 11, marginTop: 2 },
+  txPrice: { color: "white", fontWeight: "700", fontSize: 14 },
   aiCard: {
     backgroundColor: "#111111",
     borderRadius: 16,

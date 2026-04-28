@@ -78,6 +78,9 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/listings/${id}`,
     update: (id: string) => `/v1/listings/${id}`,
     delete: (id: string) => `/v1/listings/${id}`,
+    priceHistory: (cardId: string, gradeKey: string) =>
+      `/v1/listings/price-history/${cardId}?grade_key=${gradeKey}`,
+    priceRefreshTrigger: "/v1/listings/price-refresh/trigger",
   },
 
   cards: {
@@ -107,6 +110,8 @@ export const ENDPOINTS = {
     dashboard: "/v1/analytics/dashboard",
     daily: "/v1/analytics/daily",
     todayActivity: "/v1/analytics/today-activity",
-    weekly: "/v1/analytics/weekly",
+    report: (period: string) => `/v1/analytics/report?period=${period}`,
+    profitChannel: (period: string) =>
+      `/v1/analytics/profit/channel?period=${period}`,
   },
 } as const;

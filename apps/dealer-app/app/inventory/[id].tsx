@@ -420,7 +420,12 @@ export default function CardDetailScreen() {
       <View style={styles.bottomActions}>
         <TouchableOpacity
           style={styles.listBtn}
-          onPress={() => router.push("/listings/create")}
+          onPress={() =>
+            router.push({
+              pathname: "/listings/create",
+              params: { inventoryId: card?.id },
+            })
+          }
           activeOpacity={0.85}
         >
           <Text style={styles.listBtnText}>List for Sale</Text>

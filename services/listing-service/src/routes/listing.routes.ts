@@ -8,6 +8,7 @@ import { ListingService } from "../services/listing.service.js";
 import { EbayService } from "../services/ebay.service.js";
 import { ListingController } from "../controllers/listing.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
+import { priceRefreshQueue } from "../config/queue.js";
 
 export async function listingRoutes(app: FastifyInstance) {
   const env = (app as any).env as Env;
@@ -312,6 +313,77 @@ export async function listingRoutes(app: FastifyInstance) {
       const { itemId } = req.params as { itemId: string };
       const result = await ebayService.getItemDetails(itemId);
       return reply.send(result);
+    },
+  );
+
+  // Price history for a card — read from card_price_history table
+  app.get(
+    "/price-history/:cardId",
+    {
+      schema: {
+        tags: ["Prices"],
+        summary: "Get eBay price history for a card (last 90 days)",
+        params: {
+          type: "object",
+          properties: { cardId: { type: "string" } },
+        },
+        querystring: {
+          type: "object",
+          properties: { grade_key: { type: "string" } },
+        },
+      },
+    },
+    async (req: any, reply) => {
+      const { cardId } = req.params as { cardId: string };
+      const gradeKey = (req.query as any).grade_key ?? "RAW";
+      const db = getDb(env);
+
+      const rows = await db.execute(sql`
+        SELECT
+          ph.recorded_date,
+          ph.avg_sold_price,
+          ph.min_sold_price,
+          ph.max_sold_price,
+          ph.sales_count,
+          ph.grade_key
+        FROM card_price_history ph
+        JOIN card_variants cv ON cv.id = ph.variant_id
+        WHERE cv.card_id = ${cardId}
+          AND ph.grade_key = ${gradeKey}
+          AND ph.recorded_date >= NOW() - INTERVAL '90 days'
+        ORDER BY ph.recorded_date ASC
+        LIMIT 180
+      `);
+
+      return reply.send({
+        cardId,
+        gradeKey,
+        history: (rows.rows as any[]).map((r) => ({
+          date: r.recorded_date,
+          avg: parseFloat(r.avg_sold_price ?? "0"),
+          min: parseFloat(r.min_sold_price ?? "0"),
+          max: parseFloat(r.max_sold_price ?? "0"),
+          salesCount: Number(r.sales_count ?? 0),
+        })),
+      });
+    },
+  );
+
+  // Manual trigger — kick off a price refresh immediately
+  app.post(
+    "/price-refresh/trigger",
+    {
+      schema: {
+        tags: ["Prices"],
+        summary:
+          "Manually trigger an immediate eBay price refresh for all inventory",
+      },
+    },
+    async (_req, reply) => {
+      const q = priceRefreshQueue;
+      if (!q) return reply.status(503).send({ error: "queue not ready" });
+      const job = await q.add("refresh-all-manual", {});
+      return reply.send({ triggered: true, jobId: String(job.id) });
     },
   );
 }

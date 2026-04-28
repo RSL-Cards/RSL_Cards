@@ -10,8 +10,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       staleTime: 1000 * 60 * 5, // 5 min default
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -29,13 +29,16 @@ function SessionBootstrap({ children }: { children: React.ReactNode }) {
           // Hydrate latest profile fields (photoUrl etc.) from backend
           try {
             const { data } = await apiClient.get(ENDPOINTS.users.me);
-            setAuth({ ...user, photoUrl: data.photoUrl ?? null });
+            const merged = {
+              ...user,
+              photoUrl: data.photoUrl ?? user.photoUrl ?? null,
+              sellChannels: data.sellChannels ?? user.sellChannels ?? [],
+              sports: data.sports ?? user.sports ?? [],
+            };
+            setAuth(merged);
             // Persist updated user back to storage
             const { tokenStorage } = await import("../lib/tokenStorage");
-            await tokenStorage.setUser({
-              ...user,
-              photoUrl: data.photoUrl ?? null,
-            });
+            await tokenStorage.setUser(merged);
           } catch {
             // Non-fatal — user is still logged in
           }

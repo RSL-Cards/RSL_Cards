@@ -1,7 +1,8 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useAuthStore } from "../../src/stores/authStore";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -105,6 +106,13 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function TabsLayout() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  if (isHydrated && !isAuthenticated) {
+    return <Redirect href="/(auth)/welcome" />;
+  }
+
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}

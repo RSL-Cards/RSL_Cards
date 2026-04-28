@@ -31,8 +31,8 @@ export function useDailyStats() {
       return data;
     },
     enabled: !!userId,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 2,
+    refetchOnMount: false,
   });
 }
 
@@ -45,8 +45,58 @@ export function useTodayActivity() {
       return data.items ?? [];
     },
     enabled: !!userId,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 2,
+    refetchOnMount: false,
+  });
+}
+
+export interface ReportData {
+  period: string;
+  cards_bought: number;
+  cards_sold: number;
+  total_spent: string;
+  total_revenue: string;
+  net_profit: string;
+  avg_margin: number;
+  daily_revenue: { day: string; revenue: number }[];
+  best_deal: { player: string; profit: string; margin: number } | null;
+}
+
+export interface ChannelData {
+  period: string;
+  channels: {
+    channel: string;
+    revenue: number;
+    profit: number;
+    sales: number;
+  }[];
+}
+
+export function useReport(period: "week" | "month") {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery<ReportData>({
+    queryKey: ["analytics", "report", period, userId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(ENDPOINTS.analytics.report(period));
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+export function useProfitByChannel(period: "week" | "month") {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery<ChannelData>({
+    queryKey: ["analytics", "channel", period, userId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(
+        ENDPOINTS.analytics.profitChannel(period),
+      );
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -57,8 +107,16 @@ export function useRefetchDashboardOnFocus() {
   useFocusEffect(
     useCallback(() => {
       if (!userId) return;
-      queryClient.invalidateQueries({ queryKey: ["analytics", "daily", userId] });
-      queryClient.invalidateQueries({ queryKey: ["analytics", "today-activity", userId] });
+      // Only refetch if cached data is older than 2 minutes
+      const refetchIfStale = (queryKey: unknown[]) => {
+        const state = queryClient.getQueryState(queryKey);
+        const age = Date.now() - (state?.dataUpdatedAt ?? 0);
+        if (age > 1000 * 60 * 2) {
+          queryClient.invalidateQueries({ queryKey });
+        }
+      };
+      refetchIfStale(["analytics", "daily", userId]);
+      refetchIfStale(["analytics", "today-activity", userId]);
     }, [queryClient, userId]),
   );
 }

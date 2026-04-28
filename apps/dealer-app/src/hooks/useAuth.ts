@@ -112,6 +112,7 @@ export function useCompleteOnboarding() {
         ...user,
         onboardingCompleted: true,
         sports: res._payload?.sports ?? user?.sports ?? [],
+        sellChannels: res._payload?.sellChannels ?? user?.sellChannels ?? [],
       };
       if (user) setAuth(updatedUser as any);
       tokenStorage.setUser(updatedUser as any);

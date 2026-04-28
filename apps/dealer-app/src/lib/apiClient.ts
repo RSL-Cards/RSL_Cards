@@ -1,6 +1,7 @@
 import axios from "axios";
 import { tokenStorage } from "./tokenStorage";
 import { API_BASE_URL, ENDPOINTS } from "../config/api";
+import { useAuthStore } from "../stores/authStore";
 
 const BASE_URL = API_BASE_URL;
 
@@ -62,6 +63,7 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         await tokenStorage.clearTokens();
+        useAuthStore.getState().clearAuth();
         refreshQueue = [];
         return Promise.reject(error);
       } finally {

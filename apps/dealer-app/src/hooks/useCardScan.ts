@@ -149,6 +149,12 @@ export function useAddToInventory() {
     mutationFn: (item) => inventoryService.addItem(item),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+      queryClient.invalidateQueries({
+        queryKey: ["analytics", "daily", userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["analytics", "today-activity", userId],
+      });
       Toast.show({
         type: "success",
         text1: "Added to inventory",
@@ -181,8 +187,8 @@ export function useInventoryItem(id: string) {
     queryKey: [...QUERY_KEYS.inventory(userId), "item", id],
     queryFn: () => inventoryService.getItem(id),
     enabled: !!userId && !!id,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
   });
 }
 
@@ -197,8 +203,8 @@ export function useInventory(params?: {
     queryKey: [...QUERY_KEYS.inventory(userId), params],
     queryFn: () => inventoryService.list(params),
     enabled: !!userId,
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
   });
 }
 
@@ -209,6 +215,7 @@ export function useInventorySummary() {
     queryKey: [...QUERY_KEYS.inventory(userId), "summary"],
     queryFn: () => inventoryService.getSummary(),
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
   });
 }
