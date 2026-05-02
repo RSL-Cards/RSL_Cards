@@ -17,18 +17,18 @@ interface MetricCardProps {
   color?: 'blue' | 'green' | 'red' | 'default'
 }
 
-export default function MetricCard({ 
-  title, 
-  value, 
-  trend, 
-  subtitle, 
+export default function MetricCard({
+  title,
+  value,
+  trend,
+  subtitle,
   sparklineData,
   format = 'currency',
   color = 'default'
 }: MetricCardProps) {
   const formatValue = (val: string | number) => {
     if (typeof val === 'string') return val
-    
+
     switch (format) {
       case 'currency':
         return new Intl.NumberFormat('en-US', {
@@ -86,14 +86,18 @@ export default function MetricCard({
           )}
         </div>
 
-        {trend && (
-          <div className={`flex items-center gap-1 ${getTrendColor(trend.value)}`}>
-            <getTrendIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {trend.value > 0 ? '+' : ''}{trend.value}%
-            </span>
-          </div>
-        )}
+        {trend && (() => {
+          const TrendIcon = getTrendIcon(trend.value)
+
+          return (
+            <div className={`flex items-center gap-1 ${getTrendColor(trend.value)}`}>
+              <TrendIcon className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                {trend.value > 0 ? '+' : ''}{trend.value}%
+              </span>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Sparkline */}
@@ -103,14 +107,14 @@ export default function MetricCard({
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={getChartColor()} stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor={getChartColor()} stopOpacity={0}/>
+                  <stop offset="5%" stopColor={getChartColor()} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={getChartColor()} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke={getChartColor()} 
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={getChartColor()}
                 strokeWidth={1.5}
                 fill={`url(#gradient-${color})`}
               />

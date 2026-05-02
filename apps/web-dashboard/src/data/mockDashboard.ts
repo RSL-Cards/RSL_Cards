@@ -134,7 +134,17 @@ export const INVENTORY_TABLE_DATA = [
   },
 ]
 
-export const TOP_MOVERS = [
+type MarketMoverTrend = 'up' | 'down'
+
+export const TOP_MOVERS: Array<{
+  player: string
+  change: number
+  price: number
+  grade: string
+  sport: string
+  trend: MarketMoverTrend
+  reason: string
+}> = [
   { player: 'Jayden Daniels',  change: +18.2, price: 58,   grade: 'RAW',    sport: 'Football',    trend: 'up',   reason: 'Record-breaking game' },
   { player: 'Shohei Ohtani',   change: +12.4, price: 445,  grade: 'PSA_10', sport: 'Baseball',    trend: 'up',   reason: 'WBC roster reveal' },
   { player: 'Patrick Mahomes', change: +8.2,  price: 341,  grade: 'PSA_10', sport: 'Football',    trend: 'up',   reason: 'Chiefs playoff momentum' },
@@ -151,7 +161,20 @@ export const PLATFORM_FEE_TABLE = [
   { platform: 'Mercari',   fee_pct: 10.00, shipping: 5,   best_for: 'Raw/budget cards' },
 ]
 
-export const RECENT_TRANSACTIONS = [
+type TransactionType = 'buy' | 'sell'
+
+export const RECENT_TRANSACTIONS: Array<{
+  id: string
+  type: TransactionType
+  player: string
+  grade: string
+  price: number
+  profit: number | null
+  margin: number | null
+  channel: string
+  payment: string
+  time: string
+}> = [
   { id:'tx-001', type:'sell', player:'CJ Stroud',       grade:'PSA 10', price:198, profit:42,   margin:28.9, channel:'Card Show', payment:'Cash',    time:'9:15 AM' },
   { id:'tx-002', type:'buy',  player:'Josh Allen',      grade:'PSA 10', price:389, profit:null, margin:null, channel:'Card Show', payment:'Venmo',   time:'10:30 AM' },
   { id:'tx-003', type:'sell', player:'Jayden Daniels',  grade:'RAW',    price:58,  profit:23,   margin:65.7, channel:'Card Show', payment:'CashApp', time:'11:45 AM' },
@@ -159,7 +182,23 @@ export const RECENT_TRANSACTIONS = [
   { id:'tx-005', type:'buy',  player:'Luka Doncic',    grade:'PSA 10', price:420, profit:null, margin:null, channel:'Card Show', payment:'Zelle',   time:'3:20 PM' },
 ]
 
-export const AI_INSIGHTS = [
+type AIInsightType = 'BREAKOUT' | 'MOMENTUM' | 'DECLINE'
+type AIInsightTrend = 'up' | 'down'
+
+export const AI_INSIGHTS: Array<{
+  id: string
+  type: AIInsightType
+  player: string
+  sport: string
+  headline: string
+  body: string
+  price_change: string
+  price_range: string
+  published: string
+  affected_cards: number
+  trend: AIInsightTrend
+  recommendation: string
+}> = [
   {
     id: 'ai-001',
     type: 'BREAKOUT',

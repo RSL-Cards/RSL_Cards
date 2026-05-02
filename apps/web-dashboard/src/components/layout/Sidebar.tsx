@@ -19,8 +19,8 @@ import { DEALER } from '@/data/mockDashboard'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
-  { icon: Package, label: 'Inventory', href: '/inventory' },
-  { icon: ClipboardList, label: 'Listings', href: '/listings' },
+  { icon: Package, label: 'Inventory', href: '/Inventory' },
+  { icon: ClipboardList, label: 'Listings', href: '/Listings' },
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
   { icon: Zap, label: 'AI Insights', href: '/ai-insights' },
