@@ -24,7 +24,7 @@ const navItems = [
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: BarChart3, label: 'Reports', href: '/Reports' },
   { icon: Zap, label: 'AI Insights', href: '/ai-insights' },
-  { icon: Users, label: 'Customers', href: '/customers' },
+  { icon: Users, label: 'Customers', href: '/Customers' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
