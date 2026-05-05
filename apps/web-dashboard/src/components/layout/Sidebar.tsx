@@ -21,7 +21,7 @@ const navItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
   { icon: Package, label: 'Inventory', href: '/Inventory' },
   { icon: ClipboardList, label: 'Listings', href: '/Listings' },
-  { icon: DollarSign, label: 'Transactions', href: '/transactions' },
+  { icon: DollarSign, label: 'Transactions', href: '/Transactions' },
   { icon: BarChart3, label: 'Reports', href: '/Reports' },
   { icon: Zap, label: 'AI Insights', href: '/ai-insights' },
   { icon: Users, label: 'Customers', href: '/Customers' },

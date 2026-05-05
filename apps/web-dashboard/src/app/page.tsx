@@ -64,13 +64,11 @@ export default function DashboardPage() {
             color="green"
           />
           <MetricCard
-            title="Portfolio Value"
-            value={METRICS.total_inventory_value}
-            trend={{ value: METRICS.unrealized_gain_pct }}
-            subtitle={`+$${METRICS.unrealized_gain.toLocaleString()} unrealized gain`}
-            sparklineData={generateSparklineData(METRICS.total_inventory_value, 1000)}
-            format="currency"
-            color="blue"
+            title="Cards Bought Today"
+            value={METRICS.today.cards_bought}
+             subtitle={`${METRICS.today.cards_sold} sold, net ${METRICS.today.cards_bought - METRICS.today.cards_sold} cards`}
+            format="number"
+            color="default"
           />
           <MetricCard
             title="Cards Sold Today"
