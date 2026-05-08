@@ -10,6 +10,7 @@ import { CUSTOMER_CONTACTS } from '@/data/mockDashboard'
 
 export default function CustomersPage() {
   const [query, setQuery] = useState('')
+  const [customers, setCustomers] = useState(CUSTOMER_CONTACTS)
   const [favorites, setFavorites] = useState(
     () => CUSTOMER_CONTACTS.filter((contact) => contact.favorite).map((contact) => contact.id)
   )
@@ -68,7 +69,10 @@ export default function CustomersPage() {
   return (
     <Shell>
       <div className="space-y-6">
-        <CustomersHeader />
+        <CustomersHeader
+          customers={customers}
+          setCustomers={setCustomers}
+        />
 
         <CustomersMetrics
           favoriteCount={favorites.length}

@@ -10,6 +10,7 @@ import InventoryMetrics from '@/components/inventory/InventoryMetrics'
 import InventorySidePanel from '@/components/inventory/InventorySidePanel'
 import InventoryTable from '@/components/inventory/InventoryTable'
 import ListingModal from '@/components/listings/ListingModal'
+import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
 import {
   formatCurrency,
   InventoryCard,
@@ -199,7 +200,7 @@ export default function InventoryPage() {
           totalPortfolioValue={METRICS.total_inventory_value}
         />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <InventoryTable
             cards={filteredCards}
             selectedCount={selectedCards.length}
@@ -236,12 +237,63 @@ export default function InventoryPage() {
               onStatusFilterChange={setStatusFilter}
             />
           </InventoryTable>
+          <InventoryCardGrid
+  cards={filteredCards}
+  onCardDetail={setActiveCard}
+/>
 
           <InventorySidePanel
             agingCards={agingCards}
             onCardDetail={setActiveCard}
             onOpenImportTool={setImportToolMode}
           />
+        </div> */}
+        <div className="space-y-6">
+
+          {/* ✅ FILTERS (TOP SECTION) */}
+          <InventoryFilters
+            ageFilter={ageFilter}
+            gradeFilter={gradeFilter}
+            grades={grades}
+            maxPrice={maxPrice}
+            minPrice={minPrice}
+            platformFilter={platformFilter}
+            profitFilter={profitFilter}
+            query={query}
+            sportFilter={sportFilter}
+            sports={sports}
+            statusFilter={statusFilter}
+            onAgeFilterChange={setAgeFilter}
+            onClearFilters={clearFilters}
+            onGradeFilterChange={setGradeFilter}
+            onMaxPriceChange={setMaxPrice}
+            onMinPriceChange={setMinPrice}
+            onPlatformFilterChange={setPlatformFilter}
+            onProfitFilterChange={setProfitFilter}
+            onQueryChange={setQuery}
+            onSportFilterChange={setSportFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+
+          {/* ✅ GRID + SIDE PANEL */}
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+
+            {/* CARD GRID */}
+            <div className="xl:col-span-2">
+              <InventoryCardGrid
+                cards={filteredCards}
+                onCardDetail={setActiveCard}
+              />
+            </div>
+
+            {/* SIDE PANEL */}
+            <InventorySidePanel
+              agingCards={agingCards}
+              onCardDetail={setActiveCard}
+              onOpenImportTool={setImportToolMode}
+            />
+
+          </div>
         </div>
       </div>
 

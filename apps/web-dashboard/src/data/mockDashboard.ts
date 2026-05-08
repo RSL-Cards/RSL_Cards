@@ -61,7 +61,8 @@ export const CHANNEL_DATA = [
 
 export const INVENTORY_TABLE_DATA = [
   {
-    id: 'inv-001', player_name: 'Patrick Mahomes', year: 2017,
+    id: 'inv-001', 
+    image_url:'/patrick.webp',player_name: 'Patrick Mahomes', year: 2017,
     set_name: 'Prizm Silver', grade_key: 'PSA_10',
     sport: 'Football', cost_basis: 280, market_value: 341,
     unrealized_gain: 61, unrealized_gain_pct: 21.8,
@@ -70,7 +71,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: [],
   },
   {
-    id: 'inv-002', player_name: 'Jayden Daniels', year: 2024,
+    id: 'inv-002',image_url:'/jayden.webp', player_name: 'Jayden Daniels', year: 2024,
     set_name: 'Prizm Silver', grade_key: 'RAW',
     sport: 'Football', cost_basis: 35, market_value: 58,
     unrealized_gain: 23, unrealized_gain_pct: 65.7,
@@ -79,7 +80,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: [],
   },
   {
-    id: 'inv-003', player_name: 'Mike Trout', year: 2011,
+    id: 'inv-003', player_name: 'Mike Trout',image_url:'/mike_trout.webp', year: 2011,
     set_name: 'Topps Update', grade_key: 'PSA_9',
     sport: 'Baseball', cost_basis: 180, market_value: 155,
     unrealized_gain: -25, unrealized_gain_pct: -13.9,
@@ -88,7 +89,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: [],
   },
   {
-    id: 'inv-004', player_name: 'LeBron James', year: 2003,
+    id: 'inv-004', player_name: 'LeBron James', image_url:'/lebron.webp',year: 2003,
     set_name: 'Topps Chrome', grade_key: 'BGS_9',
     sport: 'Basketball', cost_basis: 890, market_value: 1250,
     unrealized_gain: 360, unrealized_gain_pct: 40.4,
@@ -97,7 +98,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: ['eBay', 'Whatnot'],
   },
   {
-    id: 'inv-005', player_name: 'Aaron Judge', year: 2017,
+    id: 'inv-005', player_name: 'Aaron Judge',image_url:'/aaron.jpg', year: 2017,
     set_name: 'Topps Chrome Refractor', grade_key: 'PSA_10',
     sport: 'Baseball', cost_basis: 520, market_value: 680,
     unrealized_gain: 160, unrealized_gain_pct: 30.8,
@@ -106,7 +107,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: [],
   },
   {
-    id: 'inv-006', player_name: 'Josh Allen', year: 2018,
+    id: 'inv-006', player_name: 'Josh Allen',image_url:'/josh.webp', year: 2018,
     set_name: 'Prizm Silver', grade_key: 'PSA_10',
     sport: 'Football', cost_basis: 389, market_value: 412,
     unrealized_gain: 23, unrealized_gain_pct: 5.9,
@@ -115,7 +116,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: ['eBay'],
   },
   {
-    id: 'inv-007', player_name: 'Bryce Harper', year: 2012,
+    id: 'inv-007', player_name: 'Bryce Harper',image_url:'/bryce.webp', year: 2012,
     set_name: 'Bowman Chrome', grade_key: 'PSA_10',
     sport: 'Baseball', cost_basis: 95, market_value: 88,
     unrealized_gain: -7, unrealized_gain_pct: -7.4,
@@ -124,7 +125,7 @@ export const INVENTORY_TABLE_DATA = [
     platforms_listed: [],
   },
   {
-    id: 'inv-008', player_name: 'Luka Doncic', year: 2018,
+    id: 'inv-008', player_name: 'Luka Doncic',image_url:'/luka.webp', year: 2018,
     set_name: 'Prizm Silver', grade_key: 'PSA_10',
     sport: 'Basketball', cost_basis: 420, market_value: 510,
     unrealized_gain: 90, unrealized_gain_pct: 21.4,

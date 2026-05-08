@@ -18,7 +18,7 @@ import {
   InventoryCard,
   platformOptions,
 } from './inventoryUtils'
-
+import Image from 'next/image'
 interface CardDetailModalProps {
   card: InventoryCard
   onClose: () => void
@@ -90,38 +90,48 @@ export default function CardDetailModal({ card, onClose }: CardDetailModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex gap-4">
-            <div className={`h-24 w-16 rounded-lg border border-white/10 bg-gradient-to-br ${cardImageStyle(card)} p-2`}>
-              <div className="flex h-full flex-col justify-between rounded border border-white/20 bg-black/25 p-1">
-                <span className="font-mono text-xs font-bold text-white">{card.year}</span>
-                <span className="text-lg font-black text-white">{card.player_name.slice(0, 2).toUpperCase()}</span>
-              </div>
+      <div className="relative max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-black/40 backdrop-blur text-text-secondary hover:border-white hover:text-white"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="mb-6 relative flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center text-center">
+
+            {/* BIG IMAGE */}
+            <div className="relative w-56 h-80 rounded-xl overflow-hidden border border-white/10 bg-black/20 mb-4">
+              <Image
+                src={card.image_url || '/placeholder.png'}
+                alt={card.player_name}
+                fill
+                className="object-contain p-2"
+              />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">{card.player_name}</h2>
-              <p className="mt-1 text-text-secondary">
-                {card.year} {card.set_name} - {formatGrade(card.grade_key)}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className={card.status === 'listed' ? 'chip-success capitalize' : 'chip-blue capitalize'}>
-                  {card.status}
-                </span>
-                <span className="rounded-full bg-white/5 px-2 py-1 text-xs font-medium text-text-secondary">
-                  {card.sport}
-                </span>
-              </div>
+
+            {/* NAME */}
+            <h2 className="text-2xl font-bold text-white">
+              {card.player_name}
+            </h2>
+
+            {/* DETAILS */}
+            <p className="mt-1 text-text-secondary">
+              {card.year} {card.set_name} • {formatGrade(card.grade_key)}
+            </p>
+
+            {/* TAGS */}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <span className={card.status === 'listed' ? 'chip-success capitalize' : 'chip-blue capitalize'}>
+                {card.status}
+              </span>
+              <span className="rounded-full bg-white/5 px-2 py-1 text-xs text-text-secondary">
+                {card.sport}
+              </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors duration-200 hover:border-white hover:text-white"
-            aria-label="Close card details"
-          >
-            <X className="h-4 w-4" />
-          </button>
+
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
