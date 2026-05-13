@@ -1,19 +1,106 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native'
 import { useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService, ConnectedPlatform } from '../../src/services/userService';
+import * as WebBrowser from 'expo-web-browser';
 
-const PLATFORMS = [
-  { key: 'ebay',      label: 'eBay',      icon: '🛒', status: 'connected',     handle: 'MikeSherrer1987', color: '#0057FF' },
-  { key: 'whatnot',   label: 'Whatnot',   icon: '📺', status: 'connected',     handle: 'MikeSherrer',    color: '#9B59B6' },
-  { key: 'tcgplayer', label: 'TCGPlayer', icon: '🎮', status: 'disconnected',  handle: '',               color: '#00C853' },
-  { key: 'shopify',   label: 'Shopify',   icon: '🏪', status: 'disconnected',  handle: '',               color: '#96BF48' },
-  { key: 'facebook',  label: 'Facebook',  icon: '📘', status: 'disconnected',  handle: '',               color: '#1877F2' },
-  { key: 'mercari',   label: 'Mercari',   icon: '🛍',  status: 'disconnected',  handle: '',               color: '#FF4F4F' },
+import { useAuthStore } from '../../src/stores/authStore';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const PLATFORM_CONFIGS = [
+  { key: 'ebay',      label: 'eBay',      icon: '🛒', color: '#0057FF' },
+  { key: 'whatnot',   label: 'Whatnot',   icon: '📺', color: '#9B59B6' },
+  { key: 'tcgplayer', label: 'TCGPlayer', icon: '🎮', color: '#00C853' },
+  { key: 'shopify',   label: 'Shopify',   icon: '🏪', color: '#96BF48' },
+  { key: 'facebook',  label: 'Facebook',  icon: '📘', color: '#1877F2' },
+  { key: 'mercari',   label: 'Mercari',   icon: '🛍',  color: '#FF4F4F' },
 ]
+
+const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
+const EBAY_CLIENT_ID = process.env.EXPO_PUBLIC_EBAY_CLIENT_ID;
+const EBAY_RU_NAME = process.env.EXPO_PUBLIC_EBAY_RU_NAME;
 
 export default function PlatformsScreen() {
   const router = useRouter()
+  const queryClient = useQueryClient();
+
+  const user = useAuthStore(s => s.user);
+
+  const { data: connectedPlatforms = [], isLoading } = useQuery({
+    queryKey: ['connected-platforms'],
+    queryFn: userService.getConnectedPlatforms,
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: ({ platform, code }: { platform: string; code: string }) => 
+      userService.connectPlatform(platform, code),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connected-platforms'] });
+      Alert.alert('Success', 'Platform connected successfully!');
+    },
+    onError: (err) => {
+      Alert.alert('Error', `Failed to connect platform: ${err.message}`);
+    }
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: (platform: string) => userService.disconnectPlatform(platform),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connected-platforms'] });
+    },
+  });
+
+  // eBay OAuth (Backend Assisted Flow)
+  const handleEbayConnect = async () => {
+    if (!EBAY_CLIENT_ID || !EBAY_RU_NAME) {
+      Alert.alert('Config Missing', 'eBay Client ID or RU Name not configured.');
+      return;
+    }
+
+    const userId = user?.id || 'current-user';
+    const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')}&state=${userId}`;
+    
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, 'rslcards://oauth/ebay');
+      
+      if (result.type === 'success' && result.url.includes('success')) {
+        queryClient.invalidateQueries({ queryKey: ['connected-platforms'] });
+        Alert.alert('Success', 'eBay connected successfully!');
+      } else if (result.type === 'success' && result.url.includes('error')) {
+        const url = new URL(result.url);
+        const msg = url.searchParams.get('message') || 'Unknown error';
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open eBay login.');
+    }
+  };
+
+  const handlePress = (p: typeof PLATFORM_CONFIGS[0], isConnected: boolean) => {
+    if (isConnected) {
+      Alert.alert(
+        `Disconnect ${p.label}?`,
+        `This will disconnect your ${p.label} account.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Disconnect', 
+            style: 'destructive',
+            onPress: () => disconnectMutation.mutate(p.key)
+          },
+        ]
+      );
+    } else {
+      if (p.key === 'ebay') {
+        handleEbayConnect();
+      } else {
+        Alert.alert('Coming Soon', `${p.label} connection is not yet implemented.`);
+      }
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,45 +117,42 @@ export default function PlatformsScreen() {
           Connect your selling platforms to sync listings, track fees, and get notified when cards sell.
         </Text>
 
-        <View style={styles.platformList}>
-          {PLATFORMS.map((p, i) => {
-            const isConnected = p.status === 'connected'
-            return (
-              <TouchableOpacity
-                key={p.key}
-                style={[styles.platformRow, i < PLATFORMS.length - 1 && styles.rowBorder]}
-                onPress={() => Alert.alert(
-                  isConnected ? `Disconnect ${p.label}?` : `Connect ${p.label}`,
-                  isConnected
-                    ? `This will disconnect your ${p.label} account.`
-                    : `You will be redirected to ${p.label} to authorize RSL Cards.`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: isConnected ? 'Disconnect' : 'Connect', style: isConnected ? 'destructive' : 'default' },
-                  ]
-                )}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.platformIcon, { backgroundColor: `${p.color}22` }]}>
-                  <Text style={{ fontSize: 22 }}>{p.icon}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={styles.platformName}>{p.label}</Text>
-                  {isConnected ? (
-                    <Text style={styles.platformHandle}>{p.handle}</Text>
-                  ) : (
-                    <Text style={styles.platformNotConnected}>Not connected</Text>
-                  )}
-                </View>
-                <View style={[styles.statusPill, { backgroundColor: isConnected ? 'rgba(0,200,83,0.15)' : '#1A1A1A' }]}>
-                  <Text style={[styles.statusPillText, { color: isConnected ? '#00C853' : '#555555' }]}>
-                    {isConnected ? '● Connected' : 'Connect'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )
-          })}
-        </View>
+        {isLoading ? (
+          <ActivityIndicator color="white" style={{ marginTop: 40 }} />
+        ) : (
+          <View style={styles.platformList}>
+            {PLATFORM_CONFIGS.map((p, i) => {
+              const connection = connectedPlatforms.find(c => c.platform === p.key);
+              const isConnected = !!connection && connection.isActive;
+              
+              return (
+                <TouchableOpacity
+                  key={p.key}
+                  style={[styles.platformRow, i < PLATFORM_CONFIGS.length - 1 && styles.rowBorder]}
+                  onPress={() => handlePress(p, isConnected)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.platformIcon, { backgroundColor: `${p.color}22` }]}>
+                    <Text style={{ fontSize: 22 }}>{p.icon}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={styles.platformName}>{p.label}</Text>
+                    {isConnected ? (
+                      <Text style={styles.platformHandle}>{connection.platformUserId || 'Connected'}</Text>
+                    ) : (
+                      <Text style={styles.platformNotConnected}>Not connected</Text>
+                    )}
+                  </View>
+                  <View style={[styles.statusPill, { backgroundColor: isConnected ? 'rgba(0,200,83,0.15)' : '#1A1A1A' }]}>
+                    <Text style={[styles.statusPillText, { color: isConnected ? '#00C853' : '#555555' }]}>
+                      {isConnected ? '● Connected' : 'Connect'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   )

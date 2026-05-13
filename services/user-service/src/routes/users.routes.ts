@@ -9,13 +9,15 @@ import { UserController } from "../controllers/user.controller.js";
 import { internalAuthPreHandler } from "../middleware/internal-auth.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { EbayOauthService } from "../services/ebay.oauth.service.js";
 
 export async function usersRoutes(app: FastifyInstance) {
   const env = (app as any).env as Env;
 
   // Dependency Injection
   const userRepository = new UserRepository(env);
-  const userService = new UserService(userRepository);
+  const ebayOauthService = new EbayOauthService(env);
+  const userService = new UserService(userRepository, ebayOauthService);
   const userController = new UserController(userService);
 
   // Global internal security check
@@ -92,6 +94,9 @@ export async function usersRoutes(app: FastifyInstance) {
     "/me/connected-platforms/:platform",
     userController.deleteConnectedPlatform,
   );
+
+  // eBay OAuth Callback (Browser Redirect)
+  app.get("/ebay/callback", userController.ebayCallback);
 
   // Notifications
   app.get(

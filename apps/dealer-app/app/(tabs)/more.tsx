@@ -209,6 +209,7 @@ function MoreScreen() {
             icon="🛒"
             label="eBay"
             value="⚫ Connect"
+            onPress={() => router.push("/settings/platforms")}
             isLast
           />
           {/* Whatnot — not yet supported

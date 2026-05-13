@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import { dealerProfiles, paymentMethods } from "@rsl/shared-db";
+import { dealerProfiles, paymentMethods, platformConnections } from "@rsl/shared-db";
 import { getDb } from "../config/db.js";
 import type { Env } from "../config/env.js";
 
@@ -163,21 +163,62 @@ export class UserRepository {
   }
 
   async getUsersMeConnectedPlatforms(userId: string) {
-    // TODO: Query connectedPlatforms table when implemented
-    void userId;
-    return [];
+    const platforms = await (this.db
+      .select()
+      .from(platformConnections as any)
+      .where(eq(platformConnections.userId as any, userId) as any) as any);
+    
+    return platforms.map((p: any) => ({
+      platform: p.platform,
+      platformUserId: p.platformUserId,
+      isActive: p.isActive,
+      updatedAt: p.updatedAt,
+    }));
   }
 
-  async postUsersMeConnectedPlatforms(_body: any, _params: any, _query: any) {
-    return { message: `Connect selling platform via OAuth` };
+  async postUsersMeConnectedPlatforms(body: any, _params: any, _query: any) {
+    const { userId, platform, accessToken, refreshToken, tokenExpiresAt, platformUserId } = body;
+    
+    await (this.db.insert(platformConnections as any).values({
+      userId,
+      platform,
+      accessToken,
+      refreshToken,
+      tokenExpiresAt: tokenExpiresAt ? new Date(tokenExpiresAt) : null,
+      platformUserId,
+      isActive: true,
+      updatedAt: new Date(),
+    } as any)
+    .onConflictDoUpdate({
+      target: [platformConnections.userId, platformConnections.platform] as any,
+      set: {
+        accessToken,
+        refreshToken,
+        tokenExpiresAt: tokenExpiresAt ? new Date(tokenExpiresAt) : null,
+        platformUserId,
+        isActive: true,
+        updatedAt: new Date(),
+      }
+    }) as any);
+
+    return { success: true };
   }
 
   async deleteUsersMeConnectedPlatformsPlatform(
-    _body: any,
-    _params: any,
+    body: any,
+    params: any,
     _query: any,
   ) {
-    return { message: `Disconnect a selling platform` };
+    const { userId } = body;
+    const { platform } = params;
+    
+    await (this.db
+      .delete(platformConnections as any)
+      .where(
+        sql`${platformConnections.userId} = ${userId} AND ${platformConnections.platform} = ${platform}`
+      ) as any);
+    
+    return { success: true };
   }
 
   async getUsersMeNotificationPreferences(

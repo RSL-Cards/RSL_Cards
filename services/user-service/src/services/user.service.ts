@@ -2,9 +2,13 @@ import {
   UserRepository,
   OnboardingPayload,
 } from "../repositories/user.repository.js";
+import { EbayOauthService } from "./ebay.oauth.service.js";
 
 export class UserService {
-  constructor(private readonly repository: UserRepository) {}
+  constructor(
+    private readonly repository: UserRepository,
+    private readonly ebayOauthService: EbayOauthService
+  ) {}
 
   async updateOnboarding(
     userId: string,
@@ -41,8 +45,22 @@ export class UserService {
     return this.repository.getUsersMeConnectedPlatforms(userId);
   }
 
-  async postUsersMeConnectedPlatforms(body: any, params: any, query: any) {
-    return this.repository.postUsersMeConnectedPlatforms(body, params, query);
+  async postUsersMeConnectedPlatforms(userId: string, body: any) {
+    const { platform, code } = body;
+
+    if (platform === "ebay" && code) {
+      const tokens = await this.ebayOauthService.exchangeCodeForTokens(code);
+      return this.repository.postUsersMeConnectedPlatforms({
+        userId,
+        platform: "ebay",
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+        platformUserId: "", // We can fetch this from eBay API later if needed
+      }, {}, {});
+    }
+
+    return this.repository.postUsersMeConnectedPlatforms({ ...body, userId }, {}, {});
   }
 
   async deleteUsersMeConnectedPlatformsPlatform(

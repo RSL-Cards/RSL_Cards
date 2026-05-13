@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const dealerProfiles = pgTable('dealer_profiles', {
@@ -53,7 +53,9 @@ export const platformConnections = pgTable('platform_connections', {
   isActive:        boolean('is_active').default(true),
   createdAt:       timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:       timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  userPlatformUnique: uniqueIndex('uq_user_platform').on(t.userId, t.platform)
+}))
 
 export const userPreferences = pgTable('user_preferences', {
   id:               uuid('id').primaryKey().defaultRandom(),

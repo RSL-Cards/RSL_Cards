@@ -70,10 +70,10 @@ export class UserController {
   };
 
   postConnectedPlatform = async (req: FastifyRequest, reply: FastifyReply) => {
+    const userId = this.getUserId(req);
     const result = await this.service.postUsersMeConnectedPlatforms(
-      req.body,
-      req.params,
-      req.query,
+      userId,
+      req.body
     );
     return reply.send(result);
   };
@@ -82,12 +82,34 @@ export class UserController {
     req: FastifyRequest,
     reply: FastifyReply,
   ) => {
+    const userId = this.getUserId(req);
+    const { platform } = req.params as { platform: string };
     const result = await this.service.deleteUsersMeConnectedPlatformsPlatform(
-      req.body,
-      req.params,
+      { userId },
+      { platform },
       req.query,
     );
     return reply.send(result);
+  };
+
+  ebayCallback = async (req: FastifyRequest, reply: FastifyReply) => {
+    const { code, state: userId } = req.query as { code: string; state: string };
+
+    if (!code || !userId) {
+      return reply.status(400).send({ error: "Missing code or state" });
+    }
+
+    try {
+      // Exchange code and save tokens directly
+      await this.service.postUsersMeConnectedPlatforms(userId, { platform: "ebay", code });
+      
+      // Redirect back to the mobile app
+      // We use a success scheme that the app will listen for
+      return reply.redirect("rslcards://oauth/ebay/success");
+    } catch (error: any) {
+      console.error("eBay callback error:", error);
+      return reply.redirect(`rslcards://oauth/ebay/error?message=${encodeURIComponent(error.message)}`);
+    }
   };
 
   getNotificationPreferences = async (
