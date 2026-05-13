@@ -179,6 +179,7 @@ export function useRefetchOnFocus() {
   useFocusEffect(
     useCallback(() => {
       if (userId) {
+        queryClient.invalidateQueries({ queryKey: ["profile", userId] });
         queryClient.invalidateQueries({ queryKey: ["paymentMethods", userId] });
         queryClient.invalidateQueries({
           queryKey: ["connectedPlatforms", userId],

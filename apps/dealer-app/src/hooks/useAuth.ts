@@ -184,6 +184,7 @@ export function useGoogleAuth() {
     clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    redirectUri: "https://auth.expo.io/@gollavinay/dealer-app", // Using the Expo auth proxy URI
   });
 
   useEffect(() => {

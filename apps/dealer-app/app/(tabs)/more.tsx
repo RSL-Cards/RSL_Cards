@@ -18,7 +18,9 @@ import {
   usePaymentMethods,
   paymentMethodIcon,
   useFetchOnFocus,
+  useRefetchOnFocus,
   useUploadAvatar,
+  useProfile,
 } from "../../src/hooks/useProfile";
 // import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
@@ -97,9 +99,14 @@ function MoreScreen() {
 
   // Only fetch data when screen is focused (user clicks More tab)
   const hasFocused = useFetchOnFocus();
+  
+  // Force background refetch when tab becomes active again
+  useRefetchOnFocus();
 
+  const { data: profile } = useProfile(hasFocused);
   const { data: paymentMethods } = usePaymentMethods(hasFocused);
-  const initials = (user?.displayName ?? user?.email ?? "U")
+  
+  const initials = (profile?.displayName ?? user?.displayName ?? user?.email ?? "U")
     .split(" ")
     .map((w: string) => w[0])
     .join("")
@@ -129,9 +136,9 @@ function MoreScreen() {
             onPress={handlePickAvatar}
             style={styles.profileAvatar}
           >
-            {(localUri ?? user?.photoUrl) ? (
+            {(localUri ?? profile?.photoUrl ?? user?.photoUrl) ? (
               <Image
-                source={{ uri: (localUri ?? user?.photoUrl) as string }}
+                source={{ uri: (localUri ?? profile?.photoUrl ?? user?.photoUrl) as string }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
                 resizeMode="cover"
               />
@@ -159,7 +166,7 @@ function MoreScreen() {
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <Text style={styles.profileName}>
-                {user?.displayName ?? user?.email}
+                {profile?.displayName ?? user?.displayName ?? user?.email}
               </Text>
               <View
                 style={[
@@ -185,7 +192,6 @@ function MoreScreen() {
           <SettingsRow
             icon="👥"
             label="Customers"
-            onPress={() => router.push("/customers/index")}
           />
           <SettingsRow icon="📅" label="Card Shows" />
           <SettingsRow
@@ -203,9 +209,6 @@ function MoreScreen() {
             icon="🛒"
             label="eBay"
             value="⚫ Connect"
-            onPress={() =>
-              router.push("/settings/connect-platform?platform=ebay")
-            }
             isLast
           />
           {/* Whatnot — not yet supported

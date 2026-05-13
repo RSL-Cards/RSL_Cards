@@ -1,6 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native'
 import { useRouter } from 'expo-router'
+import { AntDesign } from '@expo/vector-icons'
 import { useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
 export default function WelcomeScreen() {
   const router = useRouter()
@@ -54,10 +55,17 @@ export default function WelcomeScreen() {
           disabled={!request}
           onPress={() => promptGoogleSignIn()}
         >
-          <Text style={styles.googleG}>G</Text>
-          <Text style={styles.socialBtnText}>
-            Continue with Google
-          </Text>
+          <View style={styles.socialInner}>
+            <View style={styles.socialIconWrap}>
+              <Image 
+                source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                style={{ width: 22, height: 22 }}
+              />
+            </View>
+            <Text style={styles.socialBtnText}>
+              Continue with Google
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <View style={{ height: 10 }} />
@@ -67,9 +75,14 @@ export default function WelcomeScreen() {
           activeOpacity={0.85}
           onPress={signInWithApple}
         >
-          <Text style={styles.socialBtnText}>
-            Continue with Apple
-          </Text>
+          <View style={styles.socialInner}>
+            <View style={styles.socialIconWrap}>
+              <AntDesign name="apple" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
+            </View>
+            <Text style={styles.socialBtnText}>
+              Continue with Apple
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -175,12 +188,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
-  googleG: {
-    color: '#0057FF',
-    fontSize: 18,
-    fontWeight: '700',
+  socialInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 200,
+  },
+  socialIconWrap: {
+    width: 32,
+    alignItems: 'center',
+    marginRight: 8,
   },
   appleIcon: {
     color: 'white',

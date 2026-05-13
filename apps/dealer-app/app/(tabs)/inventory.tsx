@@ -15,13 +15,13 @@ import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
 
 const ALL_SPORTS = [
-  { key: "Football", emoji: "�" },
+  { key: "Football", emoji: "🏈" },
   { key: "Baseball", emoji: "⚾" },
   { key: "Basketball", emoji: "🏀" },
-  { key: "Hockey", emoji: "�" },
+  { key: "Hockey", emoji: "🏒" },
   { key: "Soccer", emoji: "⚽" },
   { key: "MMA", emoji: "🥊" },
-  { key: "Other", emoji: "�" },
+  { key: "Other", emoji: "🏅" },
 ];
 
 const GRADE_CONFIG: Record<
@@ -72,6 +72,7 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
+
 function InventoryCard({ item }: { item: any }) {
   const router = useRouter();
   const costBasis = parseFloat(item.cost_basis ?? "0");
@@ -81,8 +82,21 @@ function InventoryCard({ item }: { item: any }) {
     costBasis > 0 && marketValue > 0
       ? Math.round(((marketValue - costBasis) / costBasis) * 100)
       : 0;
-  const addedAt = item.added_at ? new Date(item.added_at) : new Date();
-  const daysHeld = Math.floor((Date.now() - addedAt.getTime()) / 86400000);
+  const dbDate = item.added_at || item.addedAt;
+  let addedAt = new Date();
+  if (dbDate) {
+    let dateStr = dbDate;
+    if (typeof dateStr === "string") {
+      // Convert Postgres "2026-04-28 18:18:26.688438+00" to valid ISO "2026-04-28T18:18:26Z"
+      dateStr = dateStr.replace(" ", "T").replace(/\.\d+/, "");
+      if (dateStr.endsWith("+00")) dateStr = dateStr.replace("+00", "Z");
+    }
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      addedAt = parsed;
+    }
+  }
+  const daysHeld = Math.max(1, Math.ceil((Date.now() - addedAt.getTime()) / 86400000));
   const isAging = daysHeld >= 60;
   const isLoss = unrealizedGain < 0;
   const gainColor = unrealizedGain >= 0 ? "#00C853" : "#E8001C";
@@ -220,6 +234,7 @@ function InventoryCard({ item }: { item: any }) {
 }
 
 function InventoryScreen() {
+  const router = useRouter();
   const userSports = useAuthStore((s) => s.user?.sports ?? []);
   const sportTabs = [
     { key: "All", emoji: "🏆" },
@@ -257,7 +272,7 @@ function InventoryScreen() {
           <Text style={styles.headerTitle}>Inventory</Text>
           <Text style={styles.headerSub}>{totalCards} cards</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/buy/scan")}>
           <Text style={styles.addBtnText}>+ Add</Text>
         </TouchableOpacity>
       </View>
@@ -432,18 +447,17 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
+    height: 44, // using an explicit height to guarantee button size
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 20,
     borderRadius: 100,
     backgroundColor: "#111111",
     borderWidth: 1,
     borderColor: "#1E1E1E",
   },
   filterChipActive: { backgroundColor: "#E8001C", borderColor: "#E8001C" },
-  filterChipEmoji: { fontSize: 13 },
-  filterChipText: { color: "#666666", fontSize: 13, fontWeight: "600" },
+  filterChipEmoji: { fontSize: 16 },
+  filterChipText: { color: "#666666", fontSize: 16, fontWeight: "600" },
   filterChipTextActive: { color: "white" },
   card: {
     backgroundColor: "#0E0E0E",
