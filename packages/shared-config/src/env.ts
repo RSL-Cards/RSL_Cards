@@ -69,6 +69,7 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().optional().default(""),
   AWS_REGION: z.string().optional().default("us-east-1"),
   S3_BUCKET_NAME: z.string().optional().default(""),
+  SOLD_COMPS_KEY: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -48,9 +48,7 @@ export const cards = pgTable(
     setName: varchar("set_name", { length: 255 }),
     cardNumber: varchar("card_number", { length: 50 }),
     manufacturer: varchar("manufacturer", { length: 100 }), // Topps | Panini | Upper Deck
-    sport: varchar("sport", { length: 50 }),
     isRookie: boolean("is_rookie").default(false),
-    stockImageUrl: varchar("stock_image_url", { length: 500 }),
     source: varchar("source", { length: 50 }), // ximilar | tcdb | manual
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -80,20 +78,23 @@ export const cardVariants = pgTable(
     cardId: varchar("card_id", { length: 255 })
       .references(() => cards.id)
       .notNull(),
+    year: integer("year"), // e.g. 2007, 2021
+    setName: varchar("set_name", { length: 255 }), // e.g. Topps Chrome, Prizm
     name: varchar("name", { length: 100 }).notNull(), // Base | Refractor | Gold | Auto | Patch
     isParallel: boolean("is_parallel").default(false),
     isBase: boolean("is_base").default(false),
     isAutograph: boolean("is_autograph").default(false),
-    isRelic: boolean("is_relic").default(false),
-    isMemorabilia: boolean("is_memorabilia").default(false),
+    isRelic: boolean("is_relic").default(false), // Includes memorabilia
     printRun: integer("print_run"), // nullable; e.g. 50, 10, 1
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (t) => ({
     variantCardIdx: index("idx_card_variants_card_id").on(t.cardId),
-    uniqVariant: uniqueIndex("uq_variant_card_name_printrun").on(
+    uniqVariant: uniqueIndex("uq_variant_card_details").on(
       t.cardId,
+      t.year,
+      t.setName,
       t.name,
       t.printRun,
     ),
@@ -254,6 +255,7 @@ export const imageHashes = pgTable(
     cardId: varchar("card_id", { length: 255 })
       .references(() => cards.id)
       .notNull(),
+    variantId: uuid("variant_id").references(() => cardVariants.id),
     confidence: real("confidence").notNull(), // AI confidence score (0-1)
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },

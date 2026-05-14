@@ -100,12 +100,13 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
         year: number;
         set_name: string;
         variation?: string;
+        card_number?: string;
       }) =>
         [
           norm(c.player_name),
           c.year,
           norm(c.set_name),
-          norm(c.variation || "base"),
+          norm(c.card_number || ""),
         ]
           .join("_")
           .slice(0, 255);
@@ -125,14 +126,29 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
         FROM image_hashes ih
         JOIN cards c ON c.id = ih.card_id
         JOIN players p ON p.id = c.player_id
-        LEFT JOIN card_variants cv ON cv.card_id = c.id AND cv.name = COALESCE(c.set_name, 'Base')
+        LEFT JOIN card_variants cv ON cv.id = ih.variant_id
         WHERE ih.image_hash = ${imageHash}
         LIMIT 1
       `);
 
-      if (cached.rows.length > 0) {
+      if (cached.rows.length > 0 && (cached.rows[0] as any).variant_id) {
         const r = cached.rows[0] as any;
-        request.log.info({ cardId: r.card_id }, "scan-card: cache hit");
+        request.log.info({ cardId: r.card_id }, "[DB_CACHE] Image hash hit: card already identified in database");
+
+        // ── 4. Trigger price refresh in background ───────────────────────────
+        if (r.variant_id) {
+          const query = `${r.player_name} ${r.year} ${r.set_name} ${r.variation || ""}`.trim();
+          const listingUrl = `http://listing-service:${env.LISTING_SERVICE_PORT}/v1/listings/ebay/sold?q=${encodeURIComponent(query)}&variant_id=${r.variant_id}&grade_key=RAW`;
+          fetch(listingUrl, {
+            headers: { "x-service-key": env.INTERNAL_SERVICE_KEY },
+          }).catch((err) =>
+            request.log.warn(
+              { err: err.message },
+              "scan-card (cache): failed to trigger price refresh",
+            ),
+          );
+        }
+
         return reply.send({
           card: {
             player_name: r.player_name,
@@ -155,6 +171,7 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
       }
 
       // ── 2. Call Gemini ────────────────────────────────────────────────────
+      request.log.info("[ORIGINAL_API] Identifying card via Gemini AI Vision");
       const genAI = new GoogleGenerativeAI(apiKey);
       const modelsToTry = [
         "gemini-2.5-flash",
@@ -209,73 +226,137 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
       let variantId: string | null = null;
 
       try {
-        // 3a. Upsert player
-        await db.execute(sql`
+        // 3a. Ensure player exists
+        const normPlayerName = geminiCard.player_name;
+        const playerInsert = await db.execute(sql`
           INSERT INTO players (id, name, sport, created_at, updated_at)
-          VALUES (gen_random_uuid(), ${geminiCard.player_name}, ${geminiCard.sport ?? "other"}, NOW(), NOW())
-          ON CONFLICT DO NOTHING
+          VALUES (gen_random_uuid(), ${normPlayerName}, ${geminiCard.sport || "basketball"}, NOW(), NOW())
+          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
+          RETURNING id
         `);
-
-        const playerRow = await db.execute(sql`
-          SELECT id FROM players WHERE name = ${geminiCard.player_name} LIMIT 1
-        `);
-        const playerId = (playerRow.rows[0] as any)?.id;
+        
+        let playerId = (playerInsert.rows[0] as any)?.id;
+        if (!playerId) {
+          const playerLookup = await db.execute(sql`
+            SELECT id FROM players WHERE name = ${normPlayerName} LIMIT 1
+          `);
+          playerId = (playerLookup.rows[0] as any)?.id;
+        }
+        let finalCardId = cardId;
 
         if (playerId) {
-          // 3b. Upsert base card — all columns from carddb.ts schema
+          // 3b. Upsert base card
+          // We use a separate query to handle the multiple unique constraints (id and uq_card_player_year_set_number)
           await db.execute(sql`
             INSERT INTO cards (
-              id, player_id, year, set_name, card_number, sport,
+              id, player_id, year, set_name, card_number,
               manufacturer, is_rookie, source, created_at, updated_at
             ) VALUES (
               ${cardId}, ${playerId}, ${geminiCard.year ?? null},
               ${geminiCard.set_name ?? null}, ${geminiCard.card_number ?? null},
-              ${geminiCard.sport ?? null}, ${geminiCard.manufacturer ?? null},
+              ${geminiCard.manufacturer ?? null},
               ${geminiCard.is_rookie ?? false}, 'gemini', NOW(), NOW()
             )
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (id) DO UPDATE SET updated_at = NOW()
+          `).catch(async (err) => {
+            if (err.message.includes("uq_card_player_year_set_number")) {
+              request.log.info("Card already exists by player/year/set/number constraint");
+            } else {
+              throw err;
+            }
+          });
+
+          // Re-verify cardId in case it already existed under a different ID
+          // We search with a more flexible card_number check to handle cases where OCR might miss it
+          const finalCardRow = await db.execute(sql`
+            SELECT id FROM cards 
+            WHERE player_id = ${playerId} 
+              AND year = ${geminiCard.year ?? null} 
+              AND set_name = ${geminiCard.set_name ?? null}
+              AND (
+                card_number = ${geminiCard.card_number ?? null} 
+                OR card_number IS NULL 
+                OR ${geminiCard.card_number ?? null} IS NULL
+              )
+            ORDER BY (card_number = ${geminiCard.card_number ?? null}) DESC, created_at ASC
+            LIMIT 1
           `);
+          finalCardId = (finalCardRow.rows[0] as any)?.id || cardId;
 
           // 3c. Upsert variant — all columns from card_variants schema
           const variantName = geminiCard.variation || "Base";
-          // is_autograph / is_relic: prefer Gemini's explicit flags, fallback to name heuristic
-          const isAutograph =
-            geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
-          const isRelic =
-            geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
+          const isAutograph = geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
+          const isRelic = geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
           const isParallel = variantName.toLowerCase() !== "base";
-          const isMemorabilia = isRelic;
           const printRunMatch = variantName.match(/\/(\d+)/);
           const printRun = printRunMatch ? parseInt(printRunMatch[1]) : null;
 
+          const setName = geminiCard.set_name || null;
+          const cardYear = geminiCard.year || null;
+
+          // STEP 1: Ensure at least a "Base" variant exists for this card
           await db.execute(sql`
-            INSERT INTO card_variants (
-              id, card_id, name, is_parallel, is_base,
-              is_autograph, is_relic, is_memorabilia, print_run,
-              created_at, updated_at
-            ) VALUES (
-              gen_random_uuid(), ${cardId}, ${variantName},
-              ${isParallel}, ${!isParallel},
-              ${isAutograph}, ${isRelic}, ${isMemorabilia}, ${printRun},
-              NOW(), NOW()
-            )
-            ON CONFLICT (card_id, name, print_run) DO NOTHING
+            INSERT INTO card_variants (id, card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
+            ON CONFLICT (card_id, year, set_name, name, print_run) DO NOTHING
           `);
 
-          const variantRow = await db.execute(sql`
-            SELECT id FROM card_variants WHERE card_id = ${cardId} AND name = ${variantName} LIMIT 1
+          // STEP 2: Upsert the identified variation
+          request.log.info({ cardId: finalCardId, cardYear, setName, variantName }, "Upserting card variant");
+          const insertRes = await db.execute(sql`
+            INSERT INTO card_variants (
+              id, card_id, year, set_name, name, is_parallel, is_base,
+              is_autograph, is_relic, print_run,
+              created_at, updated_at
+            ) VALUES (
+              gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, ${variantName},
+              ${isParallel}, ${!isParallel},
+              ${isAutograph}, ${isRelic}, ${printRun},
+              NOW(), NOW()
+            )
+            ON CONFLICT (card_id, year, set_name, name, print_run) DO NOTHING
+            RETURNING id
           `);
-          variantId = (variantRow.rows[0] as any)?.id ?? null;
+
+          // STEP 3: Robust lookup for variant_id
+          let resolvedId = (insertRes.rows[0] as any)?.id;
+          if (!resolvedId) {
+            const variantRow = await db.execute(sql`
+              SELECT id FROM card_variants 
+              WHERE card_id = ${finalCardId} 
+                AND (year = ${cardYear} OR year IS NULL OR ${cardYear} IS NULL)
+                AND (set_name = ${setName} OR set_name IS NULL OR ${setName} IS NULL)
+                AND (LOWER(name) = LOWER(${variantName}) OR (is_base = true AND LOWER(${variantName}) = 'base'))
+              ORDER BY 
+                (LOWER(name) = LOWER(${variantName})) DESC, 
+                (year = ${cardYear}) DESC,
+                (set_name = ${setName}) DESC,
+                is_base DESC, created_at ASC
+              LIMIT 1
+            `);
+            resolvedId = (variantRow.rows[0] as any)?.id;
+          }
+          
+          // STEP 4: Absolute fallback to Base if still null
+          if (!resolvedId) {
+            const fallbackRow = await db.execute(sql`
+              SELECT id FROM card_variants WHERE card_id = ${finalCardId} AND is_base = true LIMIT 1
+            `);
+            resolvedId = (fallbackRow.rows[0] as any)?.id;
+          }
+          
+          variantId = resolvedId ?? null;
+          request.log.info({ variantId, variantName, cardId: finalCardId }, "Resolved variantId");
         }
 
         // 3d. Save image hash so next scan of same image is instant
         await db.execute(sql`
-          INSERT INTO image_hashes (id, image_hash, card_id, confidence, created_at)
-          VALUES (gen_random_uuid(), ${imageHash}, ${cardId}, ${geminiCard.confidence ?? 0.9}, NOW())
+          INSERT INTO image_hashes (id, image_hash, card_id, variant_id, confidence, created_at)
+          VALUES (gen_random_uuid(), ${imageHash}, ${finalCardId}, ${variantId}, ${geminiCard.confidence ?? 0.9}, NOW())
           ON CONFLICT (image_hash) DO NOTHING
         `);
 
-        request.log.info({ cardId, variantId }, "scan-card: persisted to DB");
+        request.log.info({ cardId: finalCardId, variantId }, "scan-card: persisted to DB");
       } catch (dbErr: any) {
         request.log.warn(
           { err: dbErr.message },
@@ -287,6 +368,25 @@ export async function publicNarrativeRoutes(app: FastifyInstance) {
         { cardId, variantId, source: "gemini-ai" },
         "scan-card: identified via Gemini AI",
       );
+
+      // ── 4. Trigger price refresh in background for common grades ──────────
+      if (variantId) {
+        const query = `${geminiCard.player_name} ${geminiCard.year} ${geminiCard.set_name} ${geminiCard.variation || ""}`.trim();
+        const grades = ["RAW", "PSA_10", "PSA_9"];
+        
+        for (const grade of grades) {
+          const listingUrl = `http://listing-service:${env.LISTING_SERVICE_PORT}/v1/listings/ebay/sold?q=${encodeURIComponent(query)}&variant_id=${variantId}&grade_key=${grade}`;
+          fetch(listingUrl, {
+            headers: { "x-service-key": env.INTERNAL_SERVICE_KEY },
+          }).catch((err) =>
+            request.log.warn(
+              { err: err.message, grade },
+              "scan-card: failed to trigger price refresh",
+            ),
+          );
+        }
+      }
+
       return reply.send({
         card: geminiCard,
         cardId,

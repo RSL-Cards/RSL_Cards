@@ -7,11 +7,13 @@ export interface DealTab {
   cardData?: any;
   cardId?: string;
   variantId?: string;
+  playerId?: string;
   price?: number;
   avgComp?: number;
   paymentMethod?: string;
   channel?: string;
   capturedPhoto?: string;
+  recentSales?: any[];
   createdAt: string;
 }
 

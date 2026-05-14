@@ -106,6 +106,7 @@ export class InventoryRepository {
   async postInventory(
     body: {
       cardId?: string;
+      variantId?: string;
       playerName: string;
       year?: number;
       setName?: string;
@@ -121,6 +122,7 @@ export class InventoryRepository {
       quantity?: number;
       photos?: string[];
       notes?: string;
+      ebaySalesCompleted?: string;
     },
     _params: any,
     _query: any,
@@ -128,6 +130,7 @@ export class InventoryRepository {
   ) {
     const {
       cardId,
+      variantId,
       playerName,
       year,
       setName,
@@ -143,11 +146,12 @@ export class InventoryRepository {
       quantity = 1,
       photos,
       notes,
+      ebaySalesCompleted,
     } = body;
 
     // STEP 1: Check for duplicates
     const duplicateCheck = await this.db.execute(sql`
-      SELECT id, player_name, added_at 
+      SELECT id, added_at 
       FROM inventory 
       WHERE user_id = ${userId}
         AND card_id = ${cardId || null}
@@ -159,22 +163,22 @@ export class InventoryRepository {
     if (duplicateCheck.rows.length > 0) {
       const existing = duplicateCheck.rows[0];
       throw new Error(
-        `You already have this card in your inventory: ${existing.player_name} (added ${existing.added_at})`,
+        `You already have this card in your inventory (added ${existing.added_at})`,
       );
     }
 
     // STEP 2: Insert new inventory item
     const result = await this.db.execute(sql`
       INSERT INTO inventory (
-        user_id, card_id, player_name, year, set_name, variation, card_number, sport,
+        user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, listing_status, added_at, updated_at
+        quantity, photos, notes, ebay_sales_completed, listing_status, added_at, updated_at
       ) VALUES (
-        ${userId}, ${cardId || null}, ${playerName}, ${year || null}, ${setName || null}, 
+        ${userId}, ${cardId || null}, ${variantId || null}, ${body.playerId}, ${year || null}, ${setName || null}, 
         ${variation || null}, ${cardNumber || null}, ${sport || null},
         ${gradeCompany || null}, ${gradeValue || null}, ${gradeKey}, ${certNumber || null},
         ${costBasis}, ${currentMarketValue || null}, ${quantity}, ${photos || null}, ${notes || null}, 
-        'unlisted', NOW(), NOW()
+        ${ebaySalesCompleted || null}, 'unlisted', NOW(), NOW()
       )
       RETURNING *
     `);

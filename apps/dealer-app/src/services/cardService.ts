@@ -24,6 +24,7 @@ export interface ScanResponse {
   confidence: number;
   cardId?: string;
   variantId?: string;
+  playerId?: string;
   fromCache?: boolean;
 }
 
@@ -67,7 +68,7 @@ export interface EbaySearchItem {
 
 export interface AddInventoryItem {
   cardId?: string;
-  playerName: string;
+  playerId: string;
   year?: number;
   setName?: string;
   variation?: string;
@@ -77,9 +78,11 @@ export interface AddInventoryItem {
   gradeValue?: string;
   gradeKey?: string;
   certNumber?: string;
+  variantId?: string;
   costBasis: number;
   currentMarketValue?: number;
   notes?: string;
+  ebaySalesCompleted?: string;
 }
 
 export interface AddInventoryResponse {
@@ -87,7 +90,7 @@ export interface AddInventoryResponse {
   message: string;
   item: {
     id: string;
-    player_name: string;
+    player_id: string;
     cost_basis: string;
     added_at: string;
   };

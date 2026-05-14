@@ -31,6 +31,7 @@ export function useCardScan(type: "buy" | "sell" = "buy") {
         cardData: data.card,
         cardId: data.cardId,
         variantId: data.variantId,
+        playerId: data.playerId,
         capturedPhoto: imageBase64,
       });
       const source = data.fromCache ? "📦 From DB cache" : "🤖 Gemini AI";
@@ -158,7 +159,7 @@ export function useAddToInventory() {
       Toast.show({
         type: "success",
         text1: "Added to inventory",
-        text2: data.item.player_name,
+        text2: "Your card has been saved successfully.",
       });
     },
     onError: (error: any) => {

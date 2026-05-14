@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './auth'
+import { players, cards, cardVariants } from './carddb'
 
 export const listingStatusEnum = pgEnum('listing_status', ['unlisted','listed','sold','archived'])
 export const gradeCompanyEnum  = pgEnum('grade_company', ['PSA','BGS','SGC','CSG','RAW'])
@@ -7,8 +8,9 @@ export const gradeCompanyEnum  = pgEnum('grade_company', ['PSA','BGS','SGC','CSG
 export const inventory = pgTable('inventory', {
   id:                   uuid('id').primaryKey().defaultRandom(),
   userId:               uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  cardId:               varchar('card_id', { length: 255 }),           // FK to cards table
-  playerName:           varchar('player_name', { length: 255 }).notNull(),
+  cardId:               varchar('card_id', { length: 255 }).references(() => cards.id), 
+  variantId:            uuid('variant_id').references(() => cardVariants.id),
+  playerId:             uuid('player_id').references(() => players.id),
   year:                 integer('year'),
   setName:              varchar('set_name', { length: 255 }),
   variation:            varchar('variation', { length: 255 }),
@@ -23,6 +25,7 @@ export const inventory = pgTable('inventory', {
   unrealizedGain:       decimal('unrealized_gain', { precision: 10, scale: 2 }),
   quantity:             integer('quantity').default(1),
   isConsignment:        boolean('is_consignment').default(false),
+  ebaySalesCompleted:   text('ebay_sales_completed'),                  // JSON string of raw ebay sales
   consignmentOwner:     varchar('consignment_owner', { length: 255 }),
   consignmentCommPct:   decimal('consignment_comm_pct', { precision: 5, scale: 2 }),
   listedPlatforms:      text('listed_platforms').array(),              // ['ebay','whatnot']

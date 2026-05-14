@@ -119,7 +119,7 @@ async function main() {
       await db.insert(inventory).values({
         userId: dealerId,
         cardId: c.id,
-        playerName: `Player ${i}`,
+        playerId: playerRows[(inventoryCount + i) % playerRows.length].id,
         year: 2023,
         setName: "Seed Set",
         gradeCompany: "PSA",

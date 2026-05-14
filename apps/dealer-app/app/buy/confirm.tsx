@@ -292,7 +292,8 @@ export default function BuyConfirmScreen() {
             addToInventory(
               {
                 cardId: cardId || undefined,
-                playerName: card.player_name,
+                variantId: variantId || undefined,
+                playerId: activeTab?.playerId ?? "",
                 year: card.year ? Number(card.year) : undefined,
                 setName: card.set_name ?? undefined,
                 variation: card.variation ?? undefined,
@@ -305,6 +306,7 @@ export default function BuyConfirmScreen() {
                 costBasis: price,
                 currentMarketValue: avgComp ?? undefined,
                 notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
+                ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
               },
               {
                 onSuccess: async (data: any) => {
@@ -315,7 +317,7 @@ export default function BuyConfirmScreen() {
                   try {
                     await apiClient.post(ENDPOINTS.transactions.buy, {
                       inventoryId,
-                      playerName: card.player_name,
+                      playerId: activeTab?.playerId,
                       price: String(price),
                       costBasis: String(price),
                       channel,
