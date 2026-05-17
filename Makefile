@@ -39,16 +39,16 @@ dev-ps:                     ## Show dev container status
 	docker compose -f infra/docker/docker-compose.dev.yml ps
 
 dev-migrate:                ## Run DB migrations (dev)
-	pnpm db:migrate:dev
+	bun run db:migrate:dev
 
 dev-generate:               ## Generate Drizzle schema (dev)
-	pnpm db:generate:dev
+	bun run db:generate:dev
 
 dev-seed:                   ## Seed DB (dev)
-	pnpm db:seed:dev
+	bun run db:seed:dev
 
 dev-studio:                 ## Open Drizzle Studio (dev)
-	pnpm db:studio
+	bun run db:studio
 
 # ------------------------------------------------------------
 #  QA
@@ -70,13 +70,13 @@ qa-ps:                      ## Show QA container status
 	docker compose -f infra/docker/docker-compose.qa.yml ps
 
 qa-migrate:                 ## Run DB migrations (qa)
-	pnpm db:migrate:qa
+	bun run db:migrate:qa
 
 qa-generate:                ## Generate Drizzle schema (qa)
-	pnpm db:generate:qa
+	bun run db:generate:qa
 
 qa-seed:                    ## Seed DB (qa)
-	pnpm db:seed
+	bun run db:seed
 
 # ------------------------------------------------------------
 #  PROD
@@ -98,22 +98,22 @@ prod-ps:                    ## Show prod container status
 	docker compose -f infra/docker/docker-compose.prod.yml ps
 
 prod-migrate:               ## Run DB migrations (prod)
-	pnpm db:migrate:prod
+	bun run db:migrate:prod
 
 prod-generate:              ## Generate Drizzle schema (prod)
-	pnpm db:generate:prod
+	bun run db:generate:prod
 
 # ------------------------------------------------------------
 #  MOBILE (DEALER APP)
 # ------------------------------------------------------------
 mobile:                     ## Start Expo dev server
-	pnpm --filter dealer-app start
+	cd apps/dealer-app && pnpm start
 
 mobile-android:             ## Start Expo for Android
-	pnpm --filter dealer-app android
+	cd apps/dealer-app && pnpm android
 
 mobile-ios:                 ## Start Expo for iOS
-	pnpm --filter dealer-app ios
+	cd apps/dealer-app && pnpm ios
 
 mobile-clean:               ## Start Expo with a cleanly wiped cache
 	cd apps/dealer-app && npx expo start --clear
@@ -136,13 +136,13 @@ test-migrate:               ## Run DB migrations (test)
 		echo "Database 'rsldb_test' not ready yet, retrying..."; \
 		sleep 1; \
 	done
-	pnpm db:migrate:test
+	bun run db:migrate:test
 
 test-generate:              ## Generate Drizzle schema (test)
-	pnpm db:generate:test
+	bun run db:generate:test
 
 run-test:                   ## Run all tests
-	pnpm test
+	bun run test
 
 # ------------------------------------------------------------
 #  SHARED
@@ -153,10 +153,10 @@ down:                       ## Stop ALL stacks (dev + qa + prod)
 	docker compose -f infra/docker/docker-compose.prod.yml down 2>/dev/null || true
 
 test:                       ## Run all tests (Vitest)
-	pnpm test
+	bun run test
 
 test-coverage:              ## Run all tests with coverage reporting
-	pnpm test:coverage
+	bun run test:coverage
 
 verify:                     ## Verify all services are healthy
 	./scripts/verify-all-services.sh

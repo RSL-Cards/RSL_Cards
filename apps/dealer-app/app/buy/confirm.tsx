@@ -318,6 +318,7 @@ export default function BuyConfirmScreen() {
                     await apiClient.post(ENDPOINTS.transactions.buy, {
                       inventoryId,
                       playerId: activeTab?.playerId,
+                      playerName: card?.player_name || "Unknown Card",
                       price: String(price),
                       costBasis: String(price),
                       channel,

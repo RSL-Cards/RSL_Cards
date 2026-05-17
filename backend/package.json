@@ -1,0 +1,52 @@
+{
+  "name": "@rsl/backend",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "bun test",
+    "lint": "bun x eslint .",
+    "type-check": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate --config drizzle.dev.config.ts",
+    "db:migrate": "drizzle-kit migrate --config drizzle.dev.config.ts",
+    "db:seed": "bun src/db/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1038.0",
+    "@aws-sdk/s3-request-presigner": "^3.1038.0",
+    "@elysiajs/cors": "latest",
+    "@elysiajs/swagger": "latest",
+    "@google/generative-ai": "^0.24.1",
+    "@sinclair/typebox": "^0.34.0",
+    "@rsl/shared-config": "workspace:*",
+    "@rsl/shared-constants": "workspace:*",
+    "@rsl/shared-db": "workspace:*",
+    "@rsl/shared-types": "workspace:*",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.34.5",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.4",
+    "elysia": "latest",
+    "google-auth-library": "^9.15.0",
+    "ioredis": "^5.4.2",
+    "jose": "^5.9.6",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.20.0",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "uuid": "^11.0.3",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^25.7.0",
+    "@types/pg": "^8.11.10",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.30.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

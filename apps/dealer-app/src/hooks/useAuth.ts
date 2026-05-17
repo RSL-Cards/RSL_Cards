@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import {
@@ -82,10 +82,12 @@ export function useRegister() {
 export function useLogout() {
   const router = useRouter();
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () => authService.logout(),
     onSuccess: () => {
+      queryClient.clear();
       clearAuth();
       router.replace("/(auth)/welcome");
     },

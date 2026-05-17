@@ -32,7 +32,6 @@ export function useDailyStats() {
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 2,
-    refetchOnMount: false,
   });
 }
 
@@ -42,11 +41,10 @@ export function useTodayActivity() {
     queryKey: ["analytics", "today-activity", userId],
     queryFn: async () => {
       const { data } = await apiClient.get(ENDPOINTS.analytics.todayActivity);
-      return data.items ?? [];
+      return data ?? [];
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 2,
-    refetchOnMount: false,
   });
 }
 

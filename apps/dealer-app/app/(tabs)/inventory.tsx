@@ -10,7 +10,8 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
 
@@ -246,15 +247,7 @@ function InventoryScreen() {
   const sport =
     selectedSport === "All" ? undefined : selectedSport.toLowerCase();
   const { data: inventoryData, isLoading, refetch } = useInventory({ sport });
-  const { data: summary, refetch: refetchSummary } = useInventorySummary();
-
-  useFocusEffect(
-    useCallback(() => {
-      refetch();
-      refetchSummary();
-    }, [refetch, refetchSummary]),
-  );
-
+  const { data: summary } = useInventorySummary();
   const items = inventoryData?.items ?? [];
   const totalCards = Number(summary?.total_cards ?? 0);
   const totalCost = parseFloat(summary?.total_cost_basis ?? "0");

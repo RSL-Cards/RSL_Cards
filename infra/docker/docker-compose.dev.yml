@@ -1,7 +1,6 @@
 name: rsl-dev
 
-# Linux containers must not use the host bind-mounted node_modules (macOS/Windows
-# installs pull @esbuild/platform binaries that break tsx inside Docker).
+# Linux containers must not use the host bind-mounted node_modules
 x-node-dev-volumes: &node-dev-volumes
   - ../../:/workspace
   - rsl_dev_node_modules:/workspace/node_modules
@@ -9,6 +8,7 @@ x-node-dev-volumes: &node-dev-volumes
 services:
   rsldb:
     image: postgres:16-alpine
+    container_name: rsl-dev-rsldb-1
     environment:
       POSTGRES_USER: rsl_user
       POSTGRES_PASSWORD: password
@@ -27,6 +27,7 @@ services:
 
   rsldb-read:
     image: postgres:16-alpine
+    container_name: rsl-dev-rsldb-read-1
     environment:
       POSTGRES_USER: rsl_user
       POSTGRES_PASSWORD: password
@@ -40,6 +41,7 @@ services:
 
   rsldb-test:
     image: postgres:16-alpine
+    container_name: rsl-dev-rsldb-test-1
     environment:
       POSTGRES_USER: rsl_user
       POSTGRES_PASSWORD: password
@@ -66,9 +68,9 @@ services:
     networks:
       - rsl-dev
 
-  # One install for Linux-native deps; avoids races from 10 parallel pnpm installs.
+  # One install for Linux-native deps; avoids races from parallel installs.
   dev-install:
-    image: node:22-alpine
+    image: oven/bun:latest
     working_dir: /workspace
     container_name: rsl-dev-install
     volumes: *node-dev-volumes
@@ -77,21 +79,23 @@ services:
     command:
       - sh
       - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm install
+      - bun install
     restart: "no"
     networks:
       - rsl-dev
 
-  auth-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-auth-service-dev
+  # Single backend monorepo service serving all modules
+  backend:
+    image: oven/bun:latest
+    working_dir: /workspace/backend
+    container_name: rsl-backend-dev
     env_file:
       - .env.dev
     environment:
       NODE_ENV: development
       LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3001
+      SERVICE_PUBLIC_PORT: 8080
+      AUTH_SERVICE_PORT: 8080
       AUTH_GATEWAY_IN_DOCKER: "1"
     volumes: *node-dev-volumes
     depends_on:
@@ -102,311 +106,14 @@ services:
       redis-dev:
         condition: service_started
     ports:
-      - "3001:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/auth-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  user-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-user-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3002
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3002:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/user-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  inventory-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-inventory-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3003
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3003:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/inventory-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  transaction-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-transaction-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3004
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3004:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/transaction-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  listing-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-listing-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3005
-      NODE_OPTIONS: --dns-result-order=ipv4first
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3005:3000"
+      - "8080:8080"
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    sysctls:
-      net.ipv4.tcp_syn_retries: 2
     command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/listing-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  card-db-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-card-db-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3006
-      XIMILAR_API_KEY: 77355addaf4c1dcebcacd84e7be3895bed077814
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3006:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/card-db-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  ai-narrative-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-ai-narrative-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3007
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3007:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/ai-narrative-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  notification-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-notification-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3008
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3008:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/notification-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  analytics-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-analytics-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3009
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3009:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/analytics-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  admin-service:
-    image: node:22-alpine
-    working_dir: /workspace
-    container_name: rsl-admin-service-dev
-    env_file:
-      - .env.dev
-    environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 3010
-      ADMIN_HEALTH_IN_DOCKER: "1"
-    volumes: *node-dev-volumes
-    depends_on:
-      dev-install:
-        condition: service_completed_successfully
-      rsldb:
-        condition: service_healthy
-      redis-dev:
-        condition: service_started
-    ports:
-      - "3010:3000"
-    command:
-      - sh
-      - -lc
-      - corepack enable && corepack prepare pnpm@9.15.4 --activate && cd /workspace && pnpm --filter @rsl/admin-service dev
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  loki:
-    image: grafana/loki:3.0.0
-    container_name: rsl-loki-dev
-    ports:
-      - "3101:3100"
-    volumes:
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:3.0.0
-    container_name: rsl-promtail-dev
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./loki/promtail-config.yaml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - rsl-dev
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: rsl-grafana-dev
-    ports:
-      - "3100:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    depends_on:
-      - loki
+      - bun
+      - run
+      - dev
     networks:
       - rsl-dev
     restart: unless-stopped
@@ -419,16 +126,7 @@ services:
     volumes:
       - ../nginx/dev.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - auth-service
-      - user-service
-      - inventory-service
-      - transaction-service
-      - listing-service
-      - card-db-service
-      - ai-narrative-service
-      - notification-service
-      - analytics-service
-      - admin-service
+      - backend
     networks:
       - rsl-dev
     restart: unless-stopped

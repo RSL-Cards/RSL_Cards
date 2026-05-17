@@ -1,0 +1,2 @@
+ALTER TABLE "image_hashes" ADD COLUMN "variant_id" uuid;--> statement-breakpoint
+ALTER TABLE "image_hashes" ADD CONSTRAINT "image_hashes_variant_id_card_variants_id_fk" FOREIGN KEY ("variant_id") REFERENCES "public"."card_variants"("id") ON DELETE no action ON UPDATE no action;

@@ -18,7 +18,6 @@ import {
   usePaymentMethods,
   paymentMethodIcon,
   useFetchOnFocus,
-  useRefetchOnFocus,
   useUploadAvatar,
   useProfile,
 } from "../../src/hooks/useProfile";
@@ -99,9 +98,6 @@ function MoreScreen() {
 
   // Only fetch data when screen is focused (user clicks More tab)
   const hasFocused = useFetchOnFocus();
-  
-  // Force background refetch when tab becomes active again
-  useRefetchOnFocus();
 
   const { data: profile } = useProfile(hasFocused);
   const { data: paymentMethods } = usePaymentMethods(hasFocused);

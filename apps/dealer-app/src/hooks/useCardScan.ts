@@ -189,7 +189,6 @@ export function useInventoryItem(id: string) {
     queryFn: () => inventoryService.getItem(id),
     enabled: !!userId && !!id,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }
 
@@ -205,7 +204,6 @@ export function useInventory(params?: {
     queryFn: () => inventoryService.list(params),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }
 
@@ -217,6 +215,5 @@ export function useInventorySummary() {
     queryFn: () => inventoryService.getSummary(),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }

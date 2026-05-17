@@ -92,6 +92,7 @@ export function usePaymentMethods(enabled = true) {
       return data;
     },
     enabled: !!userId && enabled,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -104,6 +105,7 @@ export function useConnectedPlatforms(enabled = true) {
       return data;
     },
     enabled: !!userId && enabled,
+    staleTime: 2 * 60 * 1000,
   });
 }
 

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { useEffect } from "react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../services/authService";
 import { useAuthStore } from "../stores/authStore";
 import { apiClient } from "../lib/apiClient";
@@ -19,6 +19,13 @@ const queryClient = new QueryClient({
 function SessionBootstrap({ children }: { children: React.ReactNode }) {
   const setAuth = useAuthStore((s) => s.setAuth);
   const setHydrated = useAuthStore((s) => s.setHydrated);
+  const userId = useAuthStore((s) => s.user?.id);
+  const client = useQueryClient();
+
+  // Clear Query Client cache automatically on user session switch or logout to prevent cross-user data leakage
+  useEffect(() => {
+    client.clear();
+  }, [userId, client]);
 
   useEffect(() => {
     authService
