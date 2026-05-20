@@ -10,7 +10,7 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.4"; // physical device — same WiFi as dev machine
+const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
 
 export const API_BASE_URL = __DEV__
   ? `http://${DEV_HOST}:80`

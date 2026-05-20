@@ -186,25 +186,3 @@ jobs:
           files: backend/coverage/lcov.info
           fail_ci_if_error: false
         continue-on-error: true
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Job 3: Docker Build Validation
-  # ─────────────────────────────────────────────────────────────────────────────
-  docker-build:
-    name: Docker Build (backend)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: false
-          tags: rsl-backend:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

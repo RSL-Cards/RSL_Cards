@@ -3,17 +3,18 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../src/stores/authStore";
+import { Ionicons } from "@expo/vector-icons";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const tabs = [
-    { name: "index", icon: "🏠", label: "Home" },
-    { name: "inventory", icon: "📦", label: "Inventory" },
+    { name: "index", icon: "home", label: "Home" },
+    { name: "inventory", icon: "cube", label: "Inventory" },
     null,
-    { name: "reports", icon: "📊", label: "Reports" },
-    { name: "more", icon: "⋯", label: "More" },
+    { name: "reports", icon: "stats-chart", label: "Reports" },
+    { name: "more", icon: "ellipsis-horizontal", label: "More" },
   ];
 
   return (
@@ -87,12 +88,16 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }}
             onPress={() => navigation.navigate(tab.name)}
           >
-            <Text style={{ fontSize: 22 }}>{tab.icon}</Text>
+            <Ionicons
+              name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
+              size={22}
+              color={isActive ? "#E8001C" : "#555555"}
+            />
             <Text
               style={{
                 color: isActive ? "#E8001C" : "#555555",
                 fontSize: 10,
-                marginTop: 2,
+                marginTop: 4,
                 fontWeight: isActive ? "700" : "400",
               }}
             >

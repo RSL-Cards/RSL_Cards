@@ -8,6 +8,7 @@ import {
   Image,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -141,7 +142,7 @@ export default function HomeScreen() {
               onPress={() => router.push("/notifications/index")}
               style={{ position: "relative" }}
             >
-              <Text style={{ fontSize: 22 }}>🔔</Text>
+              <Ionicons name="notifications-outline" size={24} color="white" />
               <View
                 style={{
                   position: "absolute",
@@ -451,7 +452,7 @@ export default function HomeScreen() {
                 marginBottom: 8,
               }}
             >
-              <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
+              <Ionicons name="flash" size={16} color="#E8001C" style={{ marginRight: 8 }} />
               <Text
                 style={{
                   color: "#E8001C",
