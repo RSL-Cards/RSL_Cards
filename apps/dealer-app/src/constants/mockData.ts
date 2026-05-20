@@ -336,22 +336,6 @@ export const MOCK_NOTIFICATIONS = [
     is_read: false,
     created_at: '2026-04-15T08:00:00Z',
   },
-  {
-    id: 'notif-003',
-    type: 'ai_narrative',
-    title: 'AI Insight: Daniels',
-    body: 'Jayden Daniels rookies up 18% after record-breaking Week 3 performance.',
-    is_read: true,
-    created_at: '2026-04-14T20:00:00Z',
-  },
-  {
-    id: 'notif-004',
-    type: 'price_alert',
-    title: 'Price Alert Hit!',
-    body: 'Mahomes PSA 10 average comp crossed your $340 target price.',
-    is_read: true,
-    created_at: '2026-04-14T15:00:00Z',
-  },
 ]
 
 export const MOCK_CUSTOMERS = [

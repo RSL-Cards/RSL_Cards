@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { ENDPOINTS } from "../config/api";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
   children: ReactNode;
@@ -91,7 +92,7 @@ export class ServiceErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.errorIcon}>⚠️</Text>
+            <Ionicons name="warning" size={40} color="#E8001C" style={styles.errorIcon} />
             <Text style={styles.title}>Service Unavailable</Text>
 
             <View style={styles.serviceCard}>

@@ -15,6 +15,7 @@ import {
   useProfitByChannel,
   useRefetchDashboardOnFocus,
 } from "../../src/hooks/useDashboard";
+import { Ionicons } from "@expo/vector-icons";
 
 type Period = "today" | "week" | "month";
 
@@ -76,7 +77,7 @@ function AiSummaryCard() {
       <View
         style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
       >
-        <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
+        <Ionicons name="flash" size={16} color="#E8001C" style={{ marginRight: 8 }} />
         <Text
           style={{
             color: "#E8001C",

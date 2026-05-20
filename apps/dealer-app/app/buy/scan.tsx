@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { Ionicons } from "@expo/vector-icons";
 import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
@@ -225,79 +226,23 @@ export default function BuyScanScreen() {
 
       {/* BARCODE tab */}
       {activeTab === "barcode" && (
-        <View style={styles.scanContent}>
-          <View style={[styles.cameraArea, { aspectRatio: 2 }]}>
-            {[
-              { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-              { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2 },
-              {
-                bottom: 16,
-                left: 16,
-                borderBottomWidth: 2,
-                borderLeftWidth: 2,
-              },
-              {
-                bottom: 16,
-                right: 16,
-                borderBottomWidth: 2,
-                borderRightWidth: 2,
-              },
-            ].map((corner, i) => (
-              <View key={i} style={[styles.corner, corner as any]} />
-            ))}
-            <Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text>
-            <Text style={{ color: "#888888", fontSize: 14 }}>
-              Point at barcode / cert #
-            </Text>
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonCard}>
+            <Ionicons name="barcode-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
+            <Text style={styles.comingSoonTitle}>Barcode Scanner</Text>
+            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
           </View>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={handleSimulateScan}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Simulate Barcode Scan</Text>
-          </TouchableOpacity>
         </View>
       )}
 
       {/* SEARCH tab */}
       {activeTab === "search" && (
-        <View style={{ flex: 1, paddingTop: 16 }}>
-          <View style={styles.searchRow}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search player, year, set..."
-              placeholderTextColor="#555555"
-              value={query}
-              onChangeText={setQuery}
-              autoFocus
-            />
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonCard}>
+            <Ionicons name="search-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
+            <Text style={styles.comingSoonTitle}>Card Database Search</Text>
+            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
           </View>
-          <FlatList
-            data={filtered}
-            keyExtractor={(item: any) => item.id}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                style={styles.searchResultRow}
-                onPress={() => handleSelectCard(item)}
-                activeOpacity={0.75}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.searchResultName}>
-                    {item.player_name}
-                  </Text>
-                  <Text style={styles.searchResultMeta}>
-                    {item.year} · {item.set_name}
-                    {item.variation ? ` · ${item.variation}` : ""}
-                  </Text>
-                </View>
-                <View style={styles.sportChip}>
-                  <Text style={styles.sportChipText}>{item.sport}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
         </View>
       )}
     </SafeAreaView>
@@ -507,4 +452,31 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   sportChipText: { color: "#888888", fontSize: 11, fontWeight: "600" },
+  comingSoonContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  comingSoonCard: {
+    backgroundColor: "#111111",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#222222",
+    padding: 32,
+    alignItems: "center",
+    width: "100%",
+  },
+  comingSoonTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  comingSoonSubtitle: {
+    color: "#888888",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

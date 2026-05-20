@@ -62,8 +62,8 @@ export class InventoryController {
     return await this.service.getInventoryBulkImportJobId(params.jobId);
   };
 
-  exportInventory = async ({ request }: { request: Request }) => {
-    return await this.service.getInventoryExport(this.getUserId(request));
+  exportInventory = async ({ request, query }: { request: Request; query: any }) => {
+    return await this.service.getInventoryExport(this.getUserId(request), query);
   };
 
   getPublicInventory = async ({ params }: { params: any }) => {

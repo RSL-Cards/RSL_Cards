@@ -22,6 +22,7 @@ interface DealTabStore {
   addTab: (tab: Omit<DealTab, "id" | "createdAt">) => string;
   updateTab: (id: string, updates: Partial<DealTab>) => void;
   removeTab: (id: string) => void;
+  setActiveTab: (id: string) => void;
 }
 
 export const useDealTabStore = create<DealTabStore>((set, get) => ({
@@ -40,4 +41,12 @@ export const useDealTabStore = create<DealTabStore>((set, get) => ({
       tabs: get().tabs.map((t) => (t.id === id ? { ...t, ...updates } : t)),
     }),
   removeTab: (id) => set({ tabs: get().tabs.filter((t) => t.id !== id) }),
+  setActiveTab: (id) => {
+    set((state) => {
+      const tab = state.tabs.find((t) => t.id === id);
+      if (!tab) return state;
+      const otherTabs = state.tabs.filter((t) => t.id !== id);
+      return { tabs: [...otherTabs, tab] };
+    });
+  },
 }));

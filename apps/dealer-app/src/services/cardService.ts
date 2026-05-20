@@ -107,6 +107,7 @@ export const inventoryService = {
 
   async list(params?: {
     sport?: string;
+    status?: string;
     page?: number;
     limit?: number;
   }): Promise<{

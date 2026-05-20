@@ -15,12 +15,14 @@ export class InventoryRepository {
     const offset = (Number(page) - 1) * Number(limit);
 
     const result = await db.execute(sql`
-      SELECT * FROM inventory 
-      WHERE user_id = ${userId}
-      ${sport ? sql`AND sport = ${sport}` : sql``}
-      ${grade ? sql`AND grade_key = ${grade}` : sql``}
-      ${status ? sql`AND listing_status = ${status}` : sql``}
-      ORDER BY ${sql.raw(sort)} DESC
+      SELECT i.*, COALESCE(p.name, 'Unknown Player') as player_name 
+      FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.user_id = ${userId}
+      ${sport ? sql`AND i.sport = ${sport}` : sql``}
+      ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
+      ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ORDER BY i.${sql.raw(sort)} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
     `);
 
@@ -67,8 +69,10 @@ export class InventoryRepository {
 
   async getInventoryId(id: string, userId: string) {
     const result = await db.execute(sql`
-      SELECT * FROM inventory 
-      WHERE id = ${id} AND user_id = ${userId}
+      SELECT i.*, COALESCE(p.name, 'Unknown Player') as player_name 
+      FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.id = ${id} AND i.user_id = ${userId}
       LIMIT 1
     `);
 
@@ -255,8 +259,43 @@ export class InventoryRepository {
     return { message: `Poll bulk import job status and progress for ${jobId}` };
   }
 
-  async getInventoryExport(userId: string) {
-    return { message: `Export inventory as CSV for ${userId}` };
+  async getInventoryExport(userId: string, query?: any) {
+    const { dateFrom, dateTo } = query ?? {};
+
+    const result = await db.execute(sql`
+      SELECT 
+        i.id,
+        COALESCE(p.name, 'Unknown Player') as player_name,
+        i.year,
+        i.set_name,
+        i.variation,
+        i.card_number,
+        i.sport,
+        i.grade_company,
+        i.grade_value,
+        i.grade_key,
+        i.cert_number,
+        i.cost_basis,
+        i.current_market_value,
+        COALESCE(i.current_market_value, 0) - i.cost_basis as unrealized_gain,
+        CASE WHEN i.cost_basis > 0 
+          THEN ROUND(((COALESCE(i.current_market_value, 0) - i.cost_basis) / i.cost_basis * 100)::numeric, 1)
+          ELSE 0 END as gain_pct,
+        i.quantity,
+        i.listing_status,
+        i.is_consignment,
+        i.consignment_owner,
+        i.notes,
+        i.added_at
+      FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.user_id = ${userId}
+      ${dateFrom ? sql`AND i.added_at >= ${dateFrom}::timestamptz` : sql``}
+      ${dateTo ? sql`AND i.added_at <= ${dateTo}::timestamptz` : sql``}
+      ORDER BY i.added_at DESC
+    `);
+
+    return { rows: result.rows, total: result.rows.length };
   }
 
   async getInventoryPublicDealerId(dealerId: string) {

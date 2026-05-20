@@ -5,18 +5,19 @@ import { ScrollView } from 'react-native'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService, ConnectedPlatform } from '../../src/services/userService';
 import * as WebBrowser from 'expo-web-browser';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useAuthStore } from '../../src/stores/authStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const PLATFORM_CONFIGS = [
-  { key: 'ebay',      label: 'eBay',      icon: '🛒', color: '#0057FF' },
-  { key: 'whatnot',   label: 'Whatnot',   icon: '📺', color: '#9B59B6' },
-  { key: 'tcgplayer', label: 'TCGPlayer', icon: '🎮', color: '#00C853' },
-  { key: 'shopify',   label: 'Shopify',   icon: '🏪', color: '#96BF48' },
-  { key: 'facebook',  label: 'Facebook',  icon: '📘', color: '#1877F2' },
-  { key: 'mercari',   label: 'Mercari',   icon: '🛍',  color: '#FF4F4F' },
+  { key: 'ebay',      label: 'eBay',      icon: 'cart-outline', color: '#0057FF' },
+  { key: 'whatnot',   label: 'Whatnot',   icon: 'tv-outline', color: '#9B59B6' },
+  { key: 'tcgplayer', label: 'TCGPlayer', icon: 'game-controller-outline', color: '#00C853' },
+  { key: 'shopify',   label: 'Shopify',   icon: 'storefront-outline', color: '#96BF48' },
+  { key: 'facebook',  label: 'Facebook',  icon: 'logo-facebook', color: '#1877F2' },
+  { key: 'mercari',   label: 'Mercari',   icon: 'bag-handle-outline',  color: '#FF4F4F' },
 ]
 
 const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
@@ -133,7 +134,7 @@ export default function PlatformsScreen() {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.platformIcon, { backgroundColor: `${p.color}22` }]}>
-                    <Text style={{ fontSize: 22 }}>{p.icon}</Text>
+                    <Ionicons name={p.icon as any} size={22} color={p.color} />
                   </View>
                   <View style={{ flex: 1, marginLeft: 14 }}>
                     <Text style={styles.platformName}>{p.label}</Text>

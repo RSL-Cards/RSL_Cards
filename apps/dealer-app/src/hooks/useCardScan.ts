@@ -194,6 +194,7 @@ export function useInventoryItem(id: string) {
 
 export function useInventory(params?: {
   sport?: string;
+  status?: string;
   page?: number;
   limit?: number;
 }) {

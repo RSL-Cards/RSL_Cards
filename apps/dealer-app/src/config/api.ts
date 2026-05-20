@@ -51,6 +51,7 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/inventory/${id}`,
     update: (id: string) => `/v1/inventory/${id}`,
     delete: (id: string) => `/v1/inventory/${id}`,
+    export: "/v1/inventory/export",
     photos: (id: string) => `/v1/inventory/${id}/photos`,
     photosConfirm: (id: string) => `/v1/inventory/${id}/photos/confirm`,
   },
@@ -61,6 +62,7 @@ export const ENDPOINTS = {
     buy: "/v1/transactions/buy",
     sell: "/v1/transactions/sell",
     detail: (id: string) => `/v1/transactions/${id}`,
+    export: "/v1/transactions/export",
   },
 
   listings: {

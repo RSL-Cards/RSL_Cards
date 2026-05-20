@@ -45,8 +45,8 @@ export class InventoryService {
     return this.repository.getInventoryBulkImportJobId(jobId);
   }
 
-  async getInventoryExport(userId: string) {
-    return this.repository.getInventoryExport(userId);
+  async getInventoryExport(userId: string, query?: any) {
+    return this.repository.getInventoryExport(userId, query);
   }
 
   async getInventoryPublicDealerId(dealerId: string) {

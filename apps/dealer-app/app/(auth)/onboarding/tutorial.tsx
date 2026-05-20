@@ -2,25 +2,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRef, useState } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
 const SLIDES = [
   {
     bg: '#0057FF',
-    icon: 'BUY',
+    iconText: 'BUY',
     title: 'Tap BUY when you purchase a card',
     subtitle: 'At a show, scan or search, enter price, done in 10 seconds',
   },
   {
     bg: '#E8001C',
-    icon: 'SELL',
+    iconText: 'SELL',
     title: 'Tap SELL when you make a sale',
     subtitle: 'Profit calculated instantly, QR code for digital payment',
   },
   {
     bg: '#00C853',
-    icon: '📊',
+    iconName: 'bar-chart-outline',
     title: 'Track everything in Reports',
     subtitle: 'Daily, weekly, monthly profit — always know your numbers',
   },
@@ -58,7 +59,11 @@ export default function TutorialScreen() {
         {SLIDES.map((slide, i) => (
           <View key={i} style={[styles.slide, { width: SCREEN_WIDTH }]}>
             <View style={[styles.heroCircle, { backgroundColor: slide.bg }]}>
-              <Text style={styles.heroText}>{slide.icon}</Text>
+              {slide.iconName ? (
+                <Ionicons name={slide.iconName as any} size={42} color="white" />
+              ) : (
+                <Text style={styles.heroText}>{slide.iconText}</Text>
+              )}
             </View>
             <Text style={styles.slideTitle}>{slide.title}</Text>
             <Text style={styles.slideSubtitle}>{slide.subtitle}</Text>

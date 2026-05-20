@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { MOCK_LISTINGS } from "../../src/constants/mockData";
 import { format } from "date-fns";
+import { Ionicons } from "@expo/vector-icons";
 
 const PLATFORMS = ["All", "eBay", "Whatnot", "TCGPlayer", "Shopify"];
 
@@ -146,7 +147,7 @@ export default function ListingsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
+            <Ionicons name="clipboard-outline" size={40} color="#555555" style={{ marginBottom: 12 }} />
             <Text style={styles.emptyTitle}>No listings yet</Text>
             <Text style={styles.emptySubtitle}>
               Tap + to create your first listing

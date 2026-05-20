@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
+import { ExportModal } from "../../src/components/ExportModal";
 import {
   usePaymentMethods,
   paymentMethodIcon,
@@ -80,6 +81,7 @@ function MoreScreen() {
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadAvatar();
   const [localUri, setLocalUri] = useState<string | null>(null);
+  const [exportType, setExportType] = useState<"transactions" | "inventory" | null>(null);
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -268,11 +270,10 @@ function MoreScreen() {
           </>
         )}
 
-        {/* Data */}
         <Text style={styles.sectionLabel}>DATA & EXPORTS</Text>
         <SectionCard>
-          <SettingsRow icon="document-text-outline" label="Export Transactions (CSV)" />
-          <SettingsRow icon="cube-outline" label="Export Inventory (CSV)" />
+          <SettingsRow icon="document-text-outline" label="Export Transactions (CSV)" onPress={() => setExportType("transactions")} />
+          <SettingsRow icon="cube-outline" label="Export Inventory (CSV)" onPress={() => setExportType("inventory")} />
           <SettingsRow icon="cash-outline" label="Tax Report (PDF)" isLast />
         </SectionCard>
 
@@ -298,6 +299,15 @@ function MoreScreen() {
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Export Modal */}
+      {exportType && (
+        <ExportModal
+          visible={!!exportType}
+          type={exportType}
+          onClose={() => setExportType(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
