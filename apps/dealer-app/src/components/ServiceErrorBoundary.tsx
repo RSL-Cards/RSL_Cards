@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { ENDPOINTS } from "../config/api";
+import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
   children: ReactNode;
@@ -75,19 +76,7 @@ export class ServiceErrorBoundary extends Component<Props, State> {
   }
 
   private getServicePort(serviceName: string): string {
-    const ports: Record<string, string> = {
-      "Auth Service": "3001",
-      "User Service": "3002",
-      "Inventory Service": "3003",
-      "Transaction Service": "3004",
-      "Listing Service": "3005",
-      "Card DB Service": "3006",
-      "AI Narrative Service": "3007",
-      "Notification Service": "3008",
-      "Analytics Service": "3009",
-      "Admin Service": "3010",
-    };
-    return ports[serviceName] || "unknown";
+    return "8080";
   }
 
   handleReset = () => {
@@ -103,13 +92,13 @@ export class ServiceErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.errorIcon}>⚠️</Text>
+            <Ionicons name="warning" size={40} color="#E8001C" style={styles.errorIcon} />
             <Text style={styles.title}>Service Unavailable</Text>
 
             <View style={styles.serviceCard}>
-              <Text style={styles.serviceLabel}>FAILED SERVICE</Text>
+              <Text style={styles.serviceLabel}>FAILED DOMAIN</Text>
               <Text style={styles.serviceName}>{failedService}</Text>
-              <Text style={styles.servicePort}>Port: {port}</Text>
+              <Text style={styles.servicePort}>Backend Port: {port}</Text>
             </View>
 
             {this.props.endpoints && (
@@ -138,9 +127,8 @@ export class ServiceErrorBoundary extends Component<Props, State> {
             </TouchableOpacity>
 
             <Text style={styles.hint}>
-              Check Docker logs:{"\n"}
-              docker logs rsl-{failedService.toLowerCase().replace(/\s+/g, "-")}
-              -dev
+              Check Backend Docker logs:{"\n"}
+              docker logs rsl-backend-dev
             </Text>
           </ScrollView>
         </View>
@@ -200,7 +188,6 @@ export const AnalyticsErrorBoundary: React.FC<{ children: ReactNode }> = ({
     serviceName="Analytics Service"
     endpoints={[
       ENDPOINTS.analytics.daily,
-      ENDPOINTS.analytics.weekly,
       ENDPOINTS.analytics.dashboard,
     ]}
   >

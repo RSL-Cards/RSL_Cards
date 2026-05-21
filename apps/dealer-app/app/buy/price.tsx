@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
@@ -54,7 +55,8 @@ export default function BuyPriceScreen() {
   const tabs = useDealTabStore((s) => s.tabs);
   const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
-  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+  const [priceInput, setPriceInput] = useState<string>("");
+  const selectedPrice = priceInput ? parseInt(priceInput, 10) || null : null;
   const avgComp = activeTab?.avgComp ?? 0;
   const QUICK_PRICES = buildQuickPrices(avgComp);
 
@@ -89,17 +91,27 @@ export default function BuyPriceScreen() {
           </View>
         </View>
 
-        {/* Selected price display */}
-        {selectedPrice && (
-          <View style={{ alignItems: "center", marginBottom: 16 }}>
-            <Text style={styles.selectedPriceDisplay}>${selectedPrice}</Text>
-            {pctOfComp && (
-              <Text style={{ color: "#888888", fontSize: 14, marginTop: 4 }}>
-                {pctOfComp}% of comp
-              </Text>
-            )}
+        {/* Selected / Custom price input */}
+        <View style={{ alignItems: "center", marginBottom: 16 }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={[styles.selectedPriceDisplay, { marginRight: 2, color: priceInput ? "white" : "#555" }]}>$</Text>
+            <TextInput
+              style={[styles.selectedPriceDisplay, { minWidth: 60 }]}
+              placeholder="0"
+              placeholderTextColor="#555555"
+              keyboardType="number-pad"
+              value={priceInput}
+              onChangeText={setPriceInput}
+              maxLength={6}
+              autoFocus
+            />
           </View>
-        )}
+          {pctOfComp != null && (
+            <Text style={{ color: "#888888", fontSize: 14, marginTop: 4 }}>
+              {pctOfComp}% of comp
+            </Text>
+          )}
+        </View>
 
         {/* Quick price grid */}
         <Text
@@ -119,7 +131,7 @@ export default function BuyPriceScreen() {
                 selectedPrice === p && styles.priceChipSelected,
                 { width: (SCREEN_WIDTH - 56) / 3 },
               ]}
-              onPress={() => setSelectedPrice(selectedPrice === p ? null : p)}
+              onPress={() => setPriceInput(selectedPrice === p ? "" : p.toString())}
               activeOpacity={0.75}
             >
               <Text
@@ -155,7 +167,7 @@ export default function BuyPriceScreen() {
               <TouchableOpacity
                 key={pct}
                 style={[styles.pctChip, isSelected && styles.pctChipSelected]}
-                onPress={() => setSelectedPrice(isSelected ? null : price)}
+                onPress={() => setPriceInput(isSelected ? "" : price.toString())}
                 activeOpacity={0.75}
               >
                 <Text

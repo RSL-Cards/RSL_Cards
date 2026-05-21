@@ -5,6 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import { QueryProvider } from "../src/providers/QueryProvider";
 import Toast from "react-native-toast-message";
 
+import { toastConfig } from "../src/components/ToastConfig";
+
 export default function RootLayout() {
   return (
     <QueryProvider>
@@ -47,7 +49,7 @@ export default function RootLayout() {
               options={{ animation: "slide_from_right" }}
             />
           </Stack>
-          <Toast />
+          <Toast config={toastConfig} />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </QueryProvider>

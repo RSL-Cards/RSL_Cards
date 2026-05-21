@@ -31,6 +31,7 @@ export function useCardScan(type: "buy" | "sell" = "buy") {
         cardData: data.card,
         cardId: data.cardId,
         variantId: data.variantId,
+        playerId: data.playerId,
         capturedPhoto: imageBase64,
       });
       const source = data.fromCache ? "📦 From DB cache" : "🤖 Gemini AI";
@@ -158,7 +159,7 @@ export function useAddToInventory() {
       Toast.show({
         type: "success",
         text1: "Added to inventory",
-        text2: data.item.player_name,
+        text2: "Your card has been saved successfully.",
       });
     },
     onError: (error: any) => {
@@ -188,12 +189,12 @@ export function useInventoryItem(id: string) {
     queryFn: () => inventoryService.getItem(id),
     enabled: !!userId && !!id,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }
 
 export function useInventory(params?: {
   sport?: string;
+  status?: string;
   page?: number;
   limit?: number;
 }) {
@@ -204,7 +205,6 @@ export function useInventory(params?: {
     queryFn: () => inventoryService.list(params),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }
 
@@ -216,6 +216,5 @@ export function useInventorySummary() {
     queryFn: () => inventoryService.getSummary(),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
-    refetchOnMount: false,
   });
 }

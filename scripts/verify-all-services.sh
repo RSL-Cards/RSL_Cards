@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PORTS=(3001 3002 3003 3004 3005 3006 3007 3008 3009 3010)
-NAMES=("auth-service" "user-service" "inventory-service" "transaction-service" "listing-service" "card-db-service" "ai-narrative-service" "notification-service" "analytics-service" "admin-service")
+PORT=8080
+NAME="unified-backend-service"
 
 deadline=$((SECONDS + 60))
 all_ok=1
 
+echo "Waiting for $NAME on port $PORT to start..."
+
 while [ $SECONDS -lt $deadline ]; do
-  ok=0
-  for i in "${!PORTS[@]}"; do
-    p="${PORTS[$i]}"
-    if curl -sf "http://localhost:${p}/health" >/dev/null 2>&1; then
-      ok=$((ok + 1))
-    fi
-  done
-  if [ "$ok" -eq 10 ]; then
+  if curl -sf "http://localhost:${PORT}/health" >/dev/null 2>&1; then
     all_ok=0
     break
   fi
@@ -23,20 +18,21 @@ while [ $SECONDS -lt $deadline ]; do
 done
 
 printf "%-26s %s\n" "SERVICE" "RESULT"
-healthy=0
-for i in "${!PORTS[@]}"; do
-  name="${NAMES[$i]}"
-  p="${PORTS[$i]}"
-  if out=$(curl -sf "http://localhost:${p}/health" 2>/dev/null); then
-    printf "%-26s %s\n" "$name" "PASS"
-    healthy=$((healthy + 1))
+if [ "$all_ok" -eq 0 ]; then
+  printf "%-26s %s\n" "$NAME" "PASS"
+  
+  # Also verify Nginx gateway routing
+  if curl -sf "http://localhost:80/health" >/dev/null 2>&1; then
+    printf "%-26s %s\n" "nginx-gateway" "PASS"
+    echo "Consolidated backend monorepo is fully HEALTHY and proxying perfectly!"
+    exit 0
   else
-    printf "%-26s %s\n" "$name" "FAIL"
+    printf "%-26s %s\n" "nginx-gateway" "FAIL"
+    echo "Backend is healthy but Nginx gateway failed to route traffic."
+    exit 1
   fi
-done
-
-echo "$healthy/10 services healthy"
-if [ "$healthy" -eq 10 ]; then
-  exit 0
+else
+  printf "%-26s %s\n" "$NAME" "FAIL"
+  echo "Backend failed to become healthy within 60 seconds."
+  exit 1
 fi
-exit 1

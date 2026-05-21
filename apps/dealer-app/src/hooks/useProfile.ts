@@ -19,14 +19,14 @@ export interface ConnectedPlatform {
 }
 
 const PAYMENT_METHOD_ICONS: Record<PaymentMethod["type"], string> = {
-  venmo: "💜",
-  cashapp: "💚",
-  zelle: "💙",
-  paypal: "💛",
+  venmo: "wallet-outline",
+  cashapp: "logo-usd",
+  zelle: "card-outline",
+  paypal: "logo-paypal",
 };
 
 export function paymentMethodIcon(type: PaymentMethod["type"]) {
-  return PAYMENT_METHOD_ICONS[type] ?? "💳";
+  return PAYMENT_METHOD_ICONS[type] ?? "card-outline";
 }
 
 export interface UserProfile {
@@ -92,6 +92,7 @@ export function usePaymentMethods(enabled = true) {
       return data;
     },
     enabled: !!userId && enabled,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -104,6 +105,7 @@ export function useConnectedPlatforms(enabled = true) {
       return data;
     },
     enabled: !!userId && enabled,
+    staleTime: 2 * 60 * 1000,
   });
 }
 

@@ -8,27 +8,28 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 
 const STEP_PCT = "80%";
 
 const BUY_CHANNELS = [
-  { key: "card_show", icon: "🏟️", label: "Card Show" },
-  { key: "ebay", icon: "🛒", label: "eBay" },
-  { key: "facebook", icon: "👥", label: "Facebook" },
-  { key: "app", icon: "📱", label: "App/DM" },
-  { key: "comc", icon: "📦", label: "COMC" },
-  { key: "other", icon: "🔍", label: "Other" },
+  { key: "card_show", icon: "business-outline", color: "#FF9800", label: "Card Show" },
+  { key: "ebay", icon: "cart-outline", color: "#E53238", label: "eBay" },
+  { key: "facebook", icon: "logo-facebook", color: "#1877F2", label: "Facebook" },
+  { key: "app", icon: "chatbubbles-outline", color: "#4CAF50", label: "App/DM" },
+  { key: "comc", icon: "cube-outline", color: "#9C27B0", label: "COMC" },
+  { key: "other", icon: "search-outline", color: "#888888", label: "Other" },
 ];
 
 const PAYMENT_METHODS = [
-  { key: "cash", icon: "💵", label: "Cash", lastUsed: false },
-  { key: "venmo", icon: "💜", label: "Venmo", lastUsed: true },
-  { key: "zelle", icon: "💙", label: "Zelle", lastUsed: false },
-  { key: "paypal", icon: "🅿️", label: "PayPal", lastUsed: false },
-  { key: "cashapp", icon: "💚", label: "CashApp", lastUsed: false },
-  { key: "trade", icon: "🔄", label: "Trade", lastUsed: false },
-  { key: "other", icon: "💳", label: "Other", lastUsed: false },
+  { key: "cash", icon: "cash-outline", color: "#00C853", label: "Cash", lastUsed: false },
+  { key: "venmo", icon: "wallet-outline", color: "#008CFF", label: "Venmo", lastUsed: true },
+  { key: "zelle", icon: "card-outline", color: "#6C1CD1", label: "Zelle", lastUsed: false },
+  { key: "paypal", icon: "logo-paypal", color: "#003087", label: "PayPal", lastUsed: false },
+  { key: "cashapp", icon: "logo-usd", color: "#00D632", label: "CashApp", lastUsed: false },
+  { key: "trade", icon: "swap-horizontal-outline", color: "#888888", label: "Trade", lastUsed: false },
+  { key: "other", icon: "card-outline", color: "#888888", label: "Other", lastUsed: false },
 ];
 
 export default function BuyPaymentScreen() {
@@ -73,7 +74,7 @@ export default function BuyPaymentScreen() {
                   <Text style={styles.lastUsedText}>Last used</Text>
                 </View>
               )}
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>{m.icon}</Text>
+              <Ionicons name={m.icon as any} size={28} color={selected === m.key ? "white" : m.color} style={{ marginBottom: 6 }} />
               <Text
                 style={[
                   styles.methodLabel,
@@ -100,7 +101,7 @@ export default function BuyPaymentScreen() {
               onPress={() => setSelectedChannel(c.key)}
               activeOpacity={0.75}
             >
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>{c.icon}</Text>
+              <Ionicons name={c.icon as any} size={28} color={selectedChannel === c.key ? "white" : c.color} style={{ marginBottom: 6 }} />
               <Text
                 style={[
                   styles.methodLabel,

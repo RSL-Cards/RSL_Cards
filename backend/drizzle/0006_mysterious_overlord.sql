@@ -1,0 +1,1 @@
+ALTER TABLE "inventory" ADD COLUMN "ebay_sales_completed" text;

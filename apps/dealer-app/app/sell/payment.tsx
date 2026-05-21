@@ -2,17 +2,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { useDealTabStore } from '../../src/stores/dealTabStore'
 
 const STEP_PCT = '80%'
 
 const PAYMENT_METHODS = [
-  { key: 'cash',    icon: '💵', label: 'Cash',    lastUsed: false, digital: false },
-  { key: 'venmo',   icon: '💜', label: 'Venmo',   lastUsed: true,  digital: true  },
-  { key: 'zelle',   icon: '💙', label: 'Zelle',   lastUsed: false, digital: true  },
-  { key: 'paypal',  icon: '🅿️',  label: 'PayPal',  lastUsed: false, digital: true  },
-  { key: 'cashapp', icon: '💚', label: 'CashApp', lastUsed: false, digital: true  },
-  { key: 'trade',   icon: '🔄', label: 'Trade',   lastUsed: false, digital: false },
-  { key: 'other',   icon: '💳', label: 'Other',   lastUsed: false, digital: false },
+  { key: 'cash',    icon: 'cash-outline',              color: '#00C853', label: 'Cash',    lastUsed: false, digital: false },
+  { key: 'venmo',   icon: 'wallet-outline',             color: '#008CFF', label: 'Venmo',   lastUsed: true,  digital: true  },
+  { key: 'zelle',   icon: 'card-outline',               color: '#6C1CD1', label: 'Zelle',   lastUsed: false, digital: true  },
+  { key: 'paypal',  icon: 'logo-paypal',                color: '#003087', label: 'PayPal',  lastUsed: false, digital: true  },
+  { key: 'cashapp', icon: 'logo-usd',                   color: '#00D632', label: 'CashApp', lastUsed: false, digital: true  },
+  { key: 'trade',   icon: 'swap-horizontal-outline',    color: '#888888', label: 'Trade',   lastUsed: false, digital: false },
+  { key: 'other',   icon: 'card-outline',               color: '#888888', label: 'Other',   lastUsed: false, digital: false },
 ]
 
 function MockQRCode() {
@@ -43,6 +45,9 @@ export default function SellPaymentScreen() {
   const router = useRouter()
   const [selected, setSelected] = useState<string | null>(null)
   const [received, setReceived] = useState(false)
+  const tabs = useDealTabStore((s) => s.tabs)
+  const updateTab = useDealTabStore((s) => s.updateTab)
+  const activeTab = tabs[tabs.length - 1]
 
   const isDigital = selected ? PAYMENT_METHODS.find(m => m.key === selected)?.digital : false
 
@@ -78,7 +83,7 @@ export default function SellPaymentScreen() {
                   <Text style={styles.lastUsedText}>Last used</Text>
                 </View>
               )}
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>{m.icon}</Text>
+              <Ionicons name={m.icon as any} size={28} color={selected === m.key ? 'white' : m.color} style={{ marginBottom: 6 }} />
               <Text style={[styles.methodLabel, selected === m.key && { color: 'white' }]}>{m.label}</Text>
             </TouchableOpacity>
           ))}
@@ -112,7 +117,12 @@ export default function SellPaymentScreen() {
         <TouchableOpacity
           style={[styles.primaryBtn, (!selected) && styles.primaryBtnDisabled]}
           disabled={!selected}
-          onPress={() => router.push('/sell/confirm')}
+          onPress={() => {
+            if (activeTab?.id && selected) {
+              updateTab(activeTab.id, { paymentMethod: selected })
+            }
+            router.push('/sell/confirm')
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>CONTINUE →</Text>

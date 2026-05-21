@@ -7,11 +7,14 @@ import {
   Animated,
   Image,
   StyleSheet,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
-import { useRef } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { MOCK_AI_NARRATIVE } from "../../src/constants/mockData";
+import { MOCK_AI_NARRATIVE, MOCK_NOTIFICATIONS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useAuthStore } from "../../src/stores/authStore";
 import {
@@ -23,6 +26,7 @@ import { useInventorySummary } from "../../src/hooks/useCardScan";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [showNotifications, setShowNotifications] = useState(false);
   const user = useAuthStore((s) => s.user);
   const initials = (user?.displayName ?? user?.email ?? "U")
     .split(" ")
@@ -93,43 +97,11 @@ export default function HomeScreen() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                borderWidth: 1.5,
-                borderColor: "white",
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-              }}
-            >
-              <View
-                style={{
-                  borderBottomWidth: 1,
-                  borderBottomColor: "rgba(255,255,255,0.3)",
-                  marginBottom: 2,
-                }}
-              />
-              <Text
-                style={{
-                  color: "white",
-                  fontSize: 18,
-                  fontWeight: "900",
-                  fontStyle: "italic",
-                }}
-              >
-                RSL
-              </Text>
-              <Text
-                style={{
-                  color: "#E8001C",
-                  fontSize: 8,
-                  fontWeight: "700",
-                  letterSpacing: 3,
-                }}
-              >
-                CARDS
-              </Text>
-            </View>
+            <Image
+              source={require("../../assets/rslicon.jpeg")}
+              style={{ width: 56, height: 56, borderRadius: 8 }}
+              resizeMode="contain"
+            />
             <Text
               style={{ color: "#555555", fontSize: 12, fontStyle: "italic" }}
             >
@@ -138,10 +110,10 @@ export default function HomeScreen() {
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <TouchableOpacity
-              onPress={() => router.push("/notifications/index")}
+              onPress={() => setShowNotifications(true)}
               style={{ position: "relative" }}
             >
-              <Text style={{ fontSize: 22 }}>🔔</Text>
+              <Ionicons name="notifications-outline" size={24} color="white" />
               <View
                 style={{
                   position: "absolute",
@@ -388,11 +360,12 @@ export default function HomeScreen() {
                     borderWidth: 1,
                     borderColor: "#2A2A2A",
                   }}
-                  onPress={() =>
+                  onPress={() => {
+                    useDealTabStore.getState().setActiveTab(tab.id);
                     router.push(
-                      tab.type === "buy" ? "/buy/comps" : "/sell/select",
-                    )
-                  }
+                      tab.type === "buy" ? "/buy/comps" : "/sell/price",
+                    );
+                  }}
                 >
                   <Text
                     style={{
@@ -451,7 +424,7 @@ export default function HomeScreen() {
                 marginBottom: 8,
               }}
             >
-              <Text style={{ fontSize: 16, marginRight: 8 }}>⚡</Text>
+              <Ionicons name="flash" size={16} color="#E8001C" style={{ marginRight: 8 }} />
               <Text
                 style={{
                   color: "#E8001C",
@@ -673,6 +646,104 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Notifications Popover */}
+      <Modal
+        visible={showNotifications}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowNotifications(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <TouchableWithoutFeedback>
+              <View
+                style={{
+                  position: "absolute",
+                  top: 70,
+                  right: 20,
+                  width: 320,
+                  backgroundColor: "#1A1A1A",
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: "#333",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.5,
+                  shadowRadius: 20,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 18,
+                    fontWeight: "800",
+                    marginBottom: 16,
+                  }}
+                >
+                  Notifications
+                </Text>
+                {MOCK_NOTIFICATIONS.map((n, idx) => (
+                  <TouchableOpacity
+                    key={n.id}
+                    style={{
+                      flexDirection: "row",
+                      gap: 12,
+                      paddingVertical: 12,
+                      borderTopWidth: idx > 0 ? 1 : 0,
+                      borderTopColor: "#2A2A2A",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor:
+                          n.type === "sale"
+                            ? "rgba(0,200,83,0.15)"
+                            : "rgba(255,179,0,0.15)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name={
+                          n.type === "sale" ? "cash-outline" : "warning-outline"
+                        }
+                        size={20}
+                        color={n.type === "sale" ? "#00C853" : "#FFB300"}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          color: "white",
+                          fontSize: 15,
+                          fontWeight: "700",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {n.title}
+                      </Text>
+                      <Text
+                        style={{
+                          color: "#888888",
+                          fontSize: 13,
+                          lineHeight: 18,
+                        }}
+                      >
+                        {n.body}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 }

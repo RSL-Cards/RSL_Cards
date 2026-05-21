@@ -129,6 +129,8 @@ export default function BuyCompsScreen() {
 
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 20,
+    variantId: activeTab?.variantId,
+    gradeKey: card?.grade_key || "RAW",
   });
 
   const sold30 = data?.sold30d?.items ?? [];
@@ -328,7 +330,7 @@ export default function BuyCompsScreen() {
                       </View>
                       <Text style={styles.saleDate}>
                         {sale.endDate
-                          ? format(new Date(sale.endDate), "MMM d")
+                          ? format(new Date(sale.endDate), "MMM d, yyyy")
                           : "—"}
                       </Text>
                     </View>
@@ -419,7 +421,7 @@ export default function BuyCompsScreen() {
           style={styles.primaryBtn}
           onPress={() => {
             if (activeTab?.id && avg30 > 0) {
-              updateTab(activeTab.id, { avgComp: avg30 });
+              updateTab(activeTab.id, { avgComp: avg30, recentSales });
             }
             router.push("/buy/price");
           }}

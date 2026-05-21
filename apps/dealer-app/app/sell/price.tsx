@@ -1,22 +1,28 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, TextInput } from 'react-native'
 import { useRouter } from 'expo-router'
-import { MOCK_COMPS } from '../../src/constants/mockData'
+import { useDealTabStore } from '../../src/stores/dealTabStore'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const STEP_PCT = '60%'
 
 const QUICK_PRICES = [5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 500, 1000]
-const COST_BASIS = 280
 
 export default function SellPriceScreen() {
   const router = useRouter()
-  const [selectedPrice, setSelectedPrice] = useState<number | null>(null)
-  const avgComp = MOCK_COMPS.avg_sold_30d
+  const [priceInput, setPriceInput] = useState<string>("")
+  const selectedPrice = priceInput ? parseInt(priceInput, 10) || null : null
+  const tabs = useDealTabStore((s) => s.tabs)
+  const updateTab = useDealTabStore((s) => s.updateTab)
+  const activeTab = tabs[tabs.length - 1]
+  const card = activeTab?.cardData
 
-  const profit = selectedPrice ? selectedPrice - COST_BASIS : null
-  const profitPct = profit && COST_BASIS > 0 ? Math.round((profit / COST_BASIS) * 100) : null
+  const costBasis = parseFloat(card?.cost_basis ?? card?.costBasis ?? '0')
+  const avgComp = parseFloat(card?.current_market_value ?? card?.currentMarketValue ?? '0')
+
+  const profit = selectedPrice ? selectedPrice - costBasis : null
+  const profitPct = profit && costBasis > 0 ? Math.round((profit / costBasis) * 100) : null
 
   return (
     <SafeAreaView style={styles.container}>
@@ -34,27 +40,39 @@ export default function SellPriceScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}>
         {/* Comp reference */}
         <View style={{ alignItems: 'center', marginBottom: 20, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
-          <View style={styles.compPill}>
-            <Text style={styles.compPillText}>Avg comp: ${avgComp.toFixed(0)}</Text>
-          </View>
+          {avgComp > 0 && (
+            <View style={styles.compPill}>
+              <Text style={styles.compPillText}>Market: ${avgComp.toFixed(0)}</Text>
+            </View>
+          )}
           <View style={[styles.compPill, { borderColor: '#2A2A2A' }]}>
-            <Text style={styles.compPillText}>Cost: ${COST_BASIS}</Text>
+            <Text style={styles.compPillText}>Cost: ${costBasis.toFixed(0)}</Text>
           </View>
         </View>
 
-        {/* Selected price & profit */}
-        {selectedPrice && (
-          <View style={{ alignItems: 'center', marginBottom: 16 }}>
-            <Text style={styles.selectedPriceDisplay}>${selectedPrice}</Text>
-            {profit != null && (
-              <View style={[styles.profitPill, { backgroundColor: profit >= 0 ? 'rgba(0,200,83,0.15)' : 'rgba(232,0,28,0.15)' }]}>
-                <Text style={{ color: profit >= 0 ? '#00C853' : '#E8001C', fontSize: 18, fontWeight: '900' }}>
-                  {profit >= 0 ? '+' : ''}${profit} ({profitPct}%)
-                </Text>
-              </View>
-            )}
+        {/* Selected / Custom price input */}
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.selectedPriceDisplay, { marginRight: 2, color: priceInput ? 'white' : '#555' }]}>$</Text>
+            <TextInput
+              style={[styles.selectedPriceDisplay, { minWidth: 60 }]}
+              placeholder="0"
+              placeholderTextColor="#555555"
+              keyboardType="number-pad"
+              value={priceInput}
+              onChangeText={setPriceInput}
+              maxLength={6}
+              autoFocus
+            />
           </View>
-        )}
+          {profit != null && (
+            <View style={[styles.profitPill, { backgroundColor: profit >= 0 ? 'rgba(0,200,83,0.15)' : 'rgba(232,0,28,0.15)', marginTop: 8 }]}>
+              <Text style={{ color: profit >= 0 ? '#00C853' : '#E8001C', fontSize: 18, fontWeight: '900' }}>
+                {profit >= 0 ? '+' : ''}${profit} ({profitPct}%)
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Quick price grid */}
         <Text style={[styles.sectionLabel, { paddingHorizontal: 20, marginBottom: 12 }]}>QUICK SELECT</Text>
@@ -67,15 +85,15 @@ export default function SellPriceScreen() {
                 selectedPrice === p && styles.priceChipSelected,
                 { width: (SCREEN_WIDTH - 56) / 3 },
               ]}
-              onPress={() => setSelectedPrice(selectedPrice === p ? null : p)}
+              onPress={() => setPriceInput(selectedPrice === p ? "" : p.toString())}
               activeOpacity={0.75}
             >
               <Text style={[styles.priceChipText, selectedPrice === p && styles.priceChipTextSelected]}>
                 ${p}
               </Text>
-              {p > COST_BASIS && (
+              {p > costBasis && (
                 <Text style={{ color: selectedPrice === p ? 'rgba(255,255,255,0.6)' : '#00C853', fontSize: 10, marginTop: 2 }}>
-                  +${p - COST_BASIS}
+                  +${p - costBasis}
                 </Text>
               )}
             </TouchableOpacity>
@@ -88,7 +106,12 @@ export default function SellPriceScreen() {
         <TouchableOpacity
           style={[styles.primaryBtn, !selectedPrice && styles.primaryBtnDisabled]}
           disabled={!selectedPrice}
-          onPress={() => router.push('/sell/payment')}
+          onPress={() => {
+            if (activeTab?.id && selectedPrice) {
+              updateTab(activeTab.id, { price: selectedPrice, avgComp: avgComp || undefined })
+            }
+            router.push('/sell/payment')
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>

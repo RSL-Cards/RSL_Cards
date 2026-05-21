@@ -20,6 +20,7 @@ import {
 } from "../../src/hooks/useProfile";
 import { useAuthStore } from "../../src/stores/authStore";
 import Toast from "react-native-toast-message";
+import { Ionicons } from "@expo/vector-icons";
 
 const SPORTS = [
   "Football",
@@ -30,10 +31,10 @@ const SPORTS = [
   "MMA",
 ];
 const PAYMENT_TYPES = [
-  { key: "venmo", icon: "💜", label: "Venmo", placeholder: "@handle" },
-  { key: "cashapp", icon: "💚", label: "CashApp", placeholder: "$cashtag" },
-  { key: "zelle", icon: "💙", label: "Zelle", placeholder: "Phone/Email" },
-  { key: "paypal", icon: "🅿️", label: "PayPal", placeholder: "Email" },
+  { key: "venmo", icon: "wallet-outline", color: "#008CFF", label: "Venmo", placeholder: "@handle" },
+  { key: "cashapp", icon: "logo-usd", color: "#00D632", label: "CashApp", placeholder: "$cashtag" },
+  { key: "zelle", icon: "card-outline", color: "#6C1CD1", label: "Zelle", placeholder: "Phone/Email" },
+  { key: "paypal", icon: "logo-paypal", color: "#003087", label: "PayPal", placeholder: "Email" },
 ] as const;
 
 export default function SettingsScreen() {
@@ -219,7 +220,7 @@ export default function SettingsScreen() {
               </View>
               {!isUploadingAvatar && (
                 <View style={styles.cameraIcon}>
-                  <Text style={{ fontSize: 11 }}>📷</Text>
+                  <Ionicons name="camera" size={12} color="white" />
                 </View>
               )}
             </TouchableOpacity>
@@ -319,7 +320,7 @@ export default function SettingsScreen() {
                 i < PAYMENT_TYPES.length - 1 && styles.rowBorder,
               ]}
             >
-              <Text style={{ fontSize: 20, marginRight: 12 }}>{pm.icon}</Text>
+              <Ionicons name={pm.icon as any} size={20} color={pm.color} style={{ marginRight: 12 }} />
               <Text style={styles.paymentLabel}>{pm.label}</Text>
               <TextInput
                 style={styles.paymentInput}

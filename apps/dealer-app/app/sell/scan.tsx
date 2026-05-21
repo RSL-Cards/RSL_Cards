@@ -12,9 +12,9 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { MOCK_INVENTORY } from "../../src/constants/mockData";
+import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
-import { useCardScan } from "../../src/hooks/useCardScan";
+import { useCardScan, useInventory } from "../../src/hooks/useCardScan";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -31,11 +31,18 @@ export default function SellScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const { mutate: scanImage, isPending: isScanning } = useCardScan("sell");
 
-  const filtered = MOCK_INVENTORY.filter(
-    (c) =>
-      c.player_name.toLowerCase().includes(query.toLowerCase()) ||
-      c.set_name.toLowerCase().includes(query.toLowerCase()),
-  );
+  // Live inventory from API
+  const { data: inventoryData, isLoading: inventoryLoading } = useInventory({ status: 'available' });
+  const allItems = inventoryData?.items ?? [];
+  const filtered =
+    query.trim().length === 0
+      ? allItems
+      : allItems.filter(
+          (c: any) =>
+            c.player_name?.toLowerCase().includes(query.toLowerCase()) ||
+            c.set_name?.toLowerCase().includes(query.toLowerCase()) ||
+            String(c.year ?? "").includes(query),
+        );
 
   const handleCapture = async () => {
     if (!cameraRef.current) return;
@@ -51,12 +58,13 @@ export default function SellScanScreen() {
   };
 
   const handleSimulateScan = () => {
-    const card = MOCK_INVENTORY[0];
+    const card = allItems[0];
+    if (!card) return;
     addTab({ type: "sell", step: 2, cardData: card });
     router.push("/sell/price");
   };
 
-  const handleSelectCard = (card: (typeof MOCK_INVENTORY)[0]) => {
+  const handleSelectCard = (card: any) => {
     addTab({ type: "sell", step: 2, cardData: card });
     router.push("/sell/price");
   };
@@ -217,63 +225,108 @@ export default function SellScanScreen() {
         </View>
       )}
 
-      {/* SEARCH tab — shows inventory */}
+      {/* SEARCH tab */}
       {activeTab === "search" && (
         <View style={{ flex: 1, paddingTop: 16 }}>
+          {/* Search bar */}
           <View style={styles.searchRow}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color="#555555"
+              style={{ marginRight: 8 }}
+            />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search your inventory..."
+              placeholder="Search player, year, set..."
               placeholderTextColor="#555555"
               value={query}
               onChangeText={setQuery}
               autoFocus
             />
-          </View>
-          <Text
-            style={{
-              color: "#888888",
-              fontSize: 11,
-              fontWeight: "700",
-              letterSpacing: 1.5,
-              paddingHorizontal: 20,
-              marginBottom: 8,
-            }}
-          >
-            YOUR INVENTORY
-          </Text>
-          <FlatList
-            data={filtered}
-            keyExtractor={(item: any) => item.id}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                style={styles.inventoryRow}
-                onPress={() => handleSelectCard(item)}
-                activeOpacity={0.75}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.invName}>{item.player_name}</Text>
-                  <Text style={styles.invMeta}>
-                    {item.year} · {item.set_name} ·{" "}
-                    {item.grade_key.replace("_", " ")}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{ color: "white", fontWeight: "700", fontSize: 14 }}
-                  >
-                    ${item.current_market_value}
-                  </Text>
-                  <Text
-                    style={{ color: "#888888", fontSize: 11, marginTop: 2 }}
-                  >
-                    cost ${item.cost_basis}
-                  </Text>
-                </View>
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => setQuery("")}>
+                <Ionicons name="close-circle" size={18} color="#555555" />
               </TouchableOpacity>
             )}
-          />
+          </View>
+
+          {/* Loading state */}
+          {inventoryLoading ? (
+            <View style={styles.centeredState}>
+              <ActivityIndicator color="#E8001C" size="large" />
+              <Text style={styles.stateText}>Loading inventory...</Text>
+            </View>
+          ) : filtered.length === 0 ? (
+            /* Empty state */
+            <View style={styles.centeredState}>
+              <Ionicons
+                name="cube-outline"
+                size={48}
+                color="#333333"
+                style={{ marginBottom: 12 }}
+              />
+              <Text style={styles.stateTitle}>
+                {query.trim().length > 0
+                  ? "No matches found"
+                  : "No inventory yet"}
+              </Text>
+              <Text style={styles.stateText}>
+                {query.trim().length > 0
+                  ? "Try a different player name or set"
+                  : "Add cards via camera scan to see them here"}
+              </Text>
+            </View>
+          ) : (
+            /* Results */
+            <>
+              <Text style={styles.sectionLabel}>
+                {filtered.length} CARD{filtered.length !== 1 ? "S" : ""}
+              </Text>
+              <FlatList
+                data={filtered}
+                keyExtractor={(item: any) => item.id}
+                renderItem={({ item }: any) => {
+                  const gain =
+                    parseFloat(item.current_market_value ?? "0") -
+                    parseFloat(item.cost_basis ?? "0");
+                  const gainPositive = gain >= 0;
+                  return (
+                    <TouchableOpacity
+                      style={styles.inventoryRow}
+                      onPress={() => handleSelectCard(item)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.invName}>{item.player_name}</Text>
+                        <Text style={styles.invMeta}>
+                          {item.year} · {item.set_name} ·{" "}
+                          {(item.grade_key ?? "RAW").replace("_", " ")}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.invPrice}>
+                          $
+                          {parseFloat(item.current_market_value ?? "0").toFixed(
+                            0,
+                          )}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.invGain,
+                            { color: gainPositive ? "#00C853" : "#E8001C" },
+                          ]}
+                        >
+                          {gainPositive ? "+" : ""}
+                          {gain.toFixed(0)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -398,6 +451,15 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  scanningOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disabledBtn: { opacity: 0.5 },
+  simulateBtn: { marginTop: 12, paddingVertical: 10, alignItems: "center" },
+  simulateText: { color: "#555555", fontSize: 13 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -409,8 +471,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#2A2A2A",
   },
-  searchIcon: { fontSize: 18, marginRight: 8 },
   searchInput: { flex: 1, height: 48, color: "white", fontSize: 15 },
+  sectionLabel: {
+    color: "#555555",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    paddingHorizontal: 20,
+    marginBottom: 4,
+  },
   inventoryRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -420,14 +489,52 @@ const styles = StyleSheet.create({
     borderBottomColor: "#1A1A1A",
   },
   invName: { color: "white", fontWeight: "600", fontSize: 15 },
-  invMeta: { color: "#888888", fontSize: 12, marginTop: 2 },
-  scanningOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
+  invMeta: { color: "#555555", fontSize: 12, marginTop: 2 },
+  invPrice: { color: "white", fontWeight: "700", fontSize: 15 },
+  invGain: { fontSize: 12, fontWeight: "600", marginTop: 2 },
+  centeredState: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 8,
   },
-  disabledBtn: { opacity: 0.5 },
-  simulateBtn: { marginTop: 12, paddingVertical: 10, alignItems: "center" },
-  simulateText: { color: "#555555", fontSize: 13 },
+  stateTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  stateText: {
+    color: "#555555",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  comingSoonContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  comingSoonCard: {
+    backgroundColor: "#111111",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#222222",
+    padding: 32,
+    alignItems: "center",
+    width: "100%",
+  },
+  comingSoonTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  comingSoonSubtitle: {
+    color: "#888888",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

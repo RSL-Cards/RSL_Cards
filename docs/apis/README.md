@@ -1,316 +1,236 @@
-# RSL Cards — API Route Reference
+# RSL Cards Ecosystem — Unified API Documentation 📘
 
-> For full endpoint details see the per-service docs below.
+This document serves as the single source of truth for all API endpoints exposed by the consolidated **Bun + Elysia API Monorepo**. 
 
-## Per-Service Docs
-
-| Service                                           | Port | Swagger UI                          | Doc                   |
-| ------------------------------------------------- | ---- | ----------------------------------- | --------------------- |
-| [auth-service](./auth-service.md)                 | 3001 | [/docs](http://localhost:3001/docs) | Auth + API Gateway    |
-| [user-service](./user-service.md)                 | 3002 | [/docs](http://localhost:3002/docs) | Dealer profiles       |
-| [inventory-service](./inventory-service.md)       | 3003 | [/docs](http://localhost:3003/docs) | Card inventory        |
-| [transaction-service](./transaction-service.md)   | 3004 | [/docs](http://localhost:3004/docs) | Buy/sell/trade        |
-| [listing-service](./listing-service.md)           | 3005 | [/docs](http://localhost:3005/docs) | Marketplace + eBay    |
-| [card-db-service](./card-db-service.md)           | 3006 | [/docs](http://localhost:3006/docs) | Card search + scan    |
-| [ai-narrative-service](./ai-narrative-service.md) | 3007 | [/docs](http://localhost:3007/docs) | Gemini scan + AI feed |
-| [notification-service](./notification-service.md) | 3008 | [/docs](http://localhost:3008/docs) | Notifications + shows |
-| [analytics-service](./analytics-service.md)       | 3009 | [/docs](http://localhost:3009/docs) | P&L + tax reports     |
-| [admin-service](./admin-service.md)               | 3010 | [/docs](http://localhost:3010/docs) | Platform admin        |
+Under the unified gateway architecture, all requests are proxied via Nginx to the backend container running at Port `3000`. The base path for all endpoints is `/v1`.
 
 ---
 
-## How Requests Travel
+## 🔑 Authentication (`/v1/auth`)
 
-```
-Mobile App (dealer-app)
-       │  Bearer JWT
-       ▼
-  NGINX Gateway (port 80)
-       │
-       ├─ /v1/auth/*          → auth-service:3000          (rate-limited, no JWT needed)
-       │
-       ├─ /v1/inventory/*  ─┐
-       ├─ /v1/listings/*   ─┤→ auth-service:3000 (API Gateway)
-       ├─ /v1/cards/*      ─┤   validates JWT
-       ├─ /v1/narratives/* ─┘   injects x-service-key
-       │                        proxies to upstream service
-       │
-       ├─ /v1/users/*          → user-service:3000          (JWT validated internally)
-       ├─ /v1/transactions/*   → transaction-service:3000   (JWT validated internally)
-       ├─ /v1/notifications/*  → notification-service:3000  (JWT validated internally)
-       ├─ /v1/analytics/*      → analytics-service:3000     (JWT validated internally)
-       └─ /v1/admin/*          → admin-service:3000         (admin JWT validated internally)
-```
+Handles user sign-up, email validation, session tokens, password resets, and federated identity providers.
 
-**Internal service-to-service calls** bypass NGINX and use `x-service-key` header for authentication.
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/register` | Register schema (Email, Password, Name) | Sign up a new user profile on the platform |
+| `POST` | `/login` | Login credentials (Email, Password) | Authenticate user credentials and issue Access & Refresh tokens |
+| `POST` | `/refresh` | Refresh token schema | Validate refresh token and issue a new short-lived access token |
+| `POST` | `/logout` | Access/Refresh tokens | Blacklist active session tokens and clear credentials |
+| `POST` | `/forgot-password` | Email | Trigger forgotten password reset email with secure verification link |
+| `POST` | `/reset-password` | Token + New Password | Commit new password changes using secure token link |
+| `POST` | `/oauth/google` | Google client token | Authenticate/Register a user seamlessly using Google Sign-In |
+| `POST` | `/oauth/apple` | Apple identity token | Authenticate/Register a user seamlessly using Sign-In with Apple |
+| `GET` | `/admin-demo` | *None* | Utility mock endpoint for role check validation |
 
 ---
 
-## Legend
+## 👤 User Profiles & Preferences (`/v1/users`)
 
-| Symbol | Meaning                                                                    |
-| ------ | -------------------------------------------------------------------------- |
-| 🔓     | Public — no token required                                                 |
-| 🔒     | Requires `Authorization: Bearer <access_token>`                            |
-| 🛡     | Admin role required                                                        |
-| 🔑     | Internal only — requires `x-service-key` header (never exposed to clients) |
-| →→     | Internal proxy — service A calls service B                                 |
+Provides read/write profile controls, dealer profile links, platform integrations (Stripe, eBay), and notification preference configurations.
 
----
-
-## Auth Service — `port 3001`
-
-> **Swagger UI:** http://localhost:3001/docs  
-> **Responsibility:** JWT issuance, token rotation, registration, OAuth, 2FA
-
-| Method   | Path                       | Auth | Travel                                                | Description                                                   |
-| -------- | -------------------------- | ---- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| `POST`   | `/v1/auth/register`        | 🔓   | App → NGINX → auth-service                            | Register new user, returns tokens + `onboardingCompleted`     |
-| `POST`   | `/v1/auth/login`           | 🔓   | App → NGINX → auth-service                            | Login, returns tokens + `displayName` + `onboardingCompleted` |
-| `POST`   | `/v1/auth/logout`          | 🔓   | App → NGINX → auth-service                            | Invalidate refresh token                                      |
-| `POST`   | `/v1/auth/refresh`         | 🔓   | App → NGINX → auth-service                            | Rotate access + refresh tokens                                |
-| `POST`   | `/v1/auth/onboarding`      | 🔒   | App → NGINX → auth-service →→ user-service (internal) | Save dealer sports, sell channels, payment methods            |
-| `POST`   | `/v1/auth/oauth/google`    | 🔓   | App → NGINX → auth-service                            | Google OAuth sign-in/sign-up                                  |
-| `POST`   | `/v1/auth/oauth/apple`     | 🔓   | App → NGINX → auth-service                            | Apple Sign-In                                                 |
-| `POST`   | `/v1/auth/verify-email`    | 🔓   | App → NGINX → auth-service                            | Verify email with OTP token                                   |
-| `POST`   | `/v1/auth/forgot-password` | 🔓   | App → NGINX → auth-service                            | Send password reset email                                     |
-| `POST`   | `/v1/auth/reset-password`  | 🔓   | App → NGINX → auth-service                            | Set new password via reset token                              |
-| `POST`   | `/v1/auth/2fa/setup`       | 🔒   | App → NGINX → auth-service                            | Initiate 2FA setup (TOTP)                                     |
-| `POST`   | `/v1/auth/2fa/verify`      | 🔒   | App → NGINX → auth-service                            | Verify 2FA code                                               |
-| `POST`   | `/v1/auth/2fa/disable`     | 🔒   | App → NGINX → auth-service                            | Disable 2FA                                                   |
-| `POST`   | `/v1/auth/device-token`    | 🔒   | App → NGINX → auth-service                            | Register push notification device token                       |
-| `DELETE` | `/v1/auth/device-token`    | 🔒   | App → NGINX → auth-service                            | Remove push notification device token                         |
-| `POST`   | `/v1/auth/admin-demo`      | 🔒🛡 | App → NGINX → auth-service                            | Admin-only demo endpoint                                      |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/me` | *None* | Retrieve current authenticated user session data |
+| `PATCH` | `/me` | Profile updates | Modify user fields (Phone, Business Name, Location) |
+| `POST` | `/me/avatar` | Multi-part image | Upload and crop profile avatar stored in S3 |
+| `POST` | `/me/onboarding` | Business Details | Set up dealer tier and catalog preferences |
+| `GET` | `/me/payment-methods` | *None* | Get registered credit cards & billing profiles |
+| `POST` | `/me/payment-methods` | Card details | Securely register Stripe payment method token |
+| `PATCH` | `/me/payment-methods/:id` | Card modifications | Modify default card or expiration fields |
+| `DELETE` | `/me/payment-methods/:id` | Card ID | Remove card profile from Stripe customer profile |
+| `GET` | `/me/connected-platforms` | *None* | List connected channels (eBay, Shopify, Mercari, etc.) |
+| `POST` | `/me/connected-platforms` | Platform credentials | Store verified OAuth tokens for channel listings sync |
+| `DELETE` | `/me/connected-platforms/:platform` | Platform Name | Disconnect OAuth channel integration and revoke tokens |
+| `GET` | `/ebay/callback` | OAuth query parameters | Handle eBay seller portal callback redirect to persist store tokens |
+| `GET` | `/me/notification-preferences` | *None* | Retrieve personalized push, email, and alert thresholds |
+| `PATCH` | `/me/notification-preferences` | Preference flags | Toggle mobile push, email newsletters, and pricing alerts |
+| `GET` | `/dealers` | *None* | List all public dealers registered on RSL platform |
+| `GET` | `/dealers/:customUrl` | Dealer URL | Fetch public shop storefront profile for specific custom URL |
+| `GET` | `/me/customers` | *None* | Get CRM list of buyers/sellers linked to dealer store |
+| `POST` | `/me/customers` | Customer details | Add a new customer contact profile |
+| `PATCH` | `/me/customers/:id` | Customer updates | Update customer contact metrics or notes |
+| `DELETE` | `/me/customers/:id` | Customer ID | Delete customer contact card |
+| `POST` | `/me/export` | *None* | Request full zip of catalog data under CCPA/GDPR compliance |
+| `DELETE` | `/me` | *None* | Delete user account and cascade delete inventory records |
 
 ---
 
-## User Service — `port 3002`
+## 🗃️ Inventory Management (`/v1/inventory`)
 
-> **Swagger UI:** http://localhost:3002/docs  
-> **Responsibility:** Dealer/consumer profiles, payment methods, customers, connected platforms
+Manages stock holdings, cost bases, grade metrics, photo hosting, bulk actions, and exports.
 
-| Method   | Path                                         | Auth | Travel                                       | Description                                             |
-| -------- | -------------------------------------------- | ---- | -------------------------------------------- | ------------------------------------------------------- |
-| `POST`   | `/v1/users/me/onboarding`                    | 🔑   | auth-service →→ user-service (internal only) | Write dealer profile + payment methods after onboarding |
-| `GET`    | `/v1/users/me`                               | 🔒   | App → NGINX → user-service                   | Get current user profile                                |
-| `PATCH`  | `/v1/users/me`                               | 🔒   | App → NGINX → user-service                   | Update profile (name, bio, sports, channels)            |
-| `DELETE` | `/v1/users/me`                               | 🔒   | App → NGINX → user-service                   | Delete account (GDPR erasure)                           |
-| `GET`    | `/v1/users/me/payment-methods`               | 🔒   | App → NGINX → user-service                   | List saved payment methods                              |
-| `POST`   | `/v1/users/me/payment-methods`               | 🔒   | App → NGINX → user-service                   | Add payment method (Venmo, Zelle, etc.)                 |
-| `PATCH`  | `/v1/users/me/payment-methods/:id`           | 🔒   | App → NGINX → user-service                   | Update payment handle or set as default                 |
-| `DELETE` | `/v1/users/me/payment-methods/:id`           | 🔒   | App → NGINX → user-service                   | Remove payment method                                   |
-| `GET`    | `/v1/users/me/connected-platforms`           | 🔒   | App → NGINX → user-service                   | List connected selling platforms                        |
-| `POST`   | `/v1/users/me/connected-platforms`           | 🔒   | App → NGINX → user-service                   | Connect platform via OAuth                              |
-| `DELETE` | `/v1/users/me/connected-platforms/:platform` | 🔒   | App → NGINX → user-service                   | Disconnect platform                                     |
-| `GET`    | `/v1/users/me/notification-preferences`      | 🔒   | App → NGINX → user-service                   | Get notification preference settings                    |
-| `PATCH`  | `/v1/users/me/notification-preferences`      | 🔒   | App → NGINX → user-service                   | Update notification preferences                         |
-| `GET`    | `/v1/users/me/customers`                     | 🔒   | App → NGINX → user-service                   | Get dealer customer list                                |
-| `POST`   | `/v1/users/me/customers`                     | 🔒   | App → NGINX → user-service                   | Add customer contact                                    |
-| `PATCH`  | `/v1/users/me/customers/:id`                 | 🔒   | App → NGINX → user-service                   | Update customer (name, notes, star)                     |
-| `DELETE` | `/v1/users/me/customers/:id`                 | 🔒   | App → NGINX → user-service                   | Delete customer contact                                 |
-| `POST`   | `/v1/users/me/export`                        | 🔒   | App → NGINX → user-service                   | Request data export (GDPR)                              |
-| `GET`    | `/v1/users/dealers`                          | 🔒   | App → NGINX → user-service                   | List dealers (filter: near, sport, rating)              |
-| `GET`    | `/v1/users/dealers/:customUrl`               | 🔓   | App → NGINX → user-service                   | Public dealer profile page                              |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | Query filters (Sport, Grade, Status, Page) | Paginated list of inventory cards held by authenticated user |
+| `GET` | `/summary` | *None* | Total portfolio value, cost basis, and unrealized gains |
+| `GET` | `/aging-alerts` | *None* | List of stock items held for >60 days without listing |
+| `GET` | `/:id` | Inventory Item ID | Retrieve detailed record of specific catalog card |
+| `POST` | `/` | Card metadata | Add scanned card to inventory. Auto-resolves missing catalog items |
+| `PATCH` | `/:id` | Details updates | Modify inventory entry details (Quantity, Grade, Cost) |
+| `DELETE` | `/:id` | Inventory Item ID | Delete inventory record and clear active listings |
+| `POST` | `/:id/photos` | Multi-part photos | Request presigned S3 upload URLs for catalog photos |
+| `POST` | `/:id/photos/confirm` | Photo filenames array | Verify S3 uploads succeeded and link URLs to card entry |
+| `DELETE` | `/:id/photos/:photoIndex` | Photo index | Delete a photo attachment from inventory card |
+| `POST` | `/revalue` | *None* | Manually trigger inventory-wide pricing refresh against eBay sold comps |
+| `POST` | `/bulk-import` | CSV/Excel file | Parse card listing lists in background. Returns task `jobId` |
+| `GET` | `/bulk-import/:jobId` | Job ID | Query processing status of active Excel/CSV imports |
+| `GET` | `/export` | Format (`csv` \| `xlsx`) | Generate download link containing full stock collection export |
+| `GET` | `/public/:dealerId` | Dealer ID | Fetch public card showcase of specific dealer shop |
 
 ---
 
-## Inventory Service — `port 3003`
+## 📈 Price comps & Master Catalog (`/v1/cards`)
 
-> **Swagger UI:** http://localhost:3003/docs  
-> **Responsibility:** Card vaults, grading data, collections
+Handles computerized scanning, slab barcodes, card searches, price alerts, and want lists.
 
-| Method   | Path                                   | Auth | Travel                          | Description                             |
-| -------- | -------------------------------------- | ---- | ------------------------------- | --------------------------------------- |
-| `GET`    | `/v1/inventory`                        | 🔒   | App → NGINX → inventory-service | List dealer's inventory with filters    |
-| `POST`   | `/v1/inventory`                        | 🔒   | App → NGINX → inventory-service | Add card to inventory                   |
-| `GET`    | `/v1/inventory/summary`                | 🔒   | App → NGINX → inventory-service | Portfolio summary (cost, market, gains) |
-| `GET`    | `/v1/inventory/aging-alerts`           | 🔒   | App → NGINX → inventory-service | Cards held 60+ days                     |
-| `GET`    | `/v1/inventory/:id`                    | 🔒   | App → NGINX → inventory-service | Get single inventory item detail        |
-| `PATCH`  | `/v1/inventory/:id`                    | 🔒   | App → NGINX → inventory-service | Update card details                     |
-| `DELETE` | `/v1/inventory/:id`                    | 🔒   | App → NGINX → inventory-service | Remove card from inventory              |
-| `POST`   | `/v1/inventory/revalue`                | 🔒   | App → NGINX → inventory-service | Trigger market revalue for all cards    |
-| `POST`   | `/v1/inventory/:id/photos`             | 🔒   | App → NGINX → inventory-service | Upload card photos                      |
-| `DELETE` | `/v1/inventory/:id/photos/:photoIndex` | 🔒   | App → NGINX → inventory-service | Delete a card photo                     |
-| `POST`   | `/v1/inventory/bulk-import`            | 🔒   | App → NGINX → inventory-service | Bulk import cards (CSV/JSON)            |
-| `GET`    | `/v1/inventory/bulk-import/:jobId`     | 🔒   | App → NGINX → inventory-service | Poll bulk import job status             |
-| `GET`    | `/v1/inventory/export`                 | 🔒   | App → NGINX → inventory-service | Export inventory as CSV                 |
-| `GET`    | `/v1/inventory/public/:dealerId`       | 🔓   | App → NGINX → inventory-service | Public view of dealer's listed cards    |
-
----
-
-## Transaction Service — `port 3004`
-
-> **Swagger UI:** http://localhost:3004/docs  
-> **Responsibility:** Buy/sell/trade recording, P&L ledger, financial audit
-
-| Method   | Path                                     | Auth | Travel                            | Description                              |
-| -------- | ---------------------------------------- | ---- | --------------------------------- | ---------------------------------------- |
-| `POST`   | `/v1/transactions/buy`                   | 🔒   | App → NGINX → transaction-service | Record a card purchase                   |
-| `POST`   | `/v1/transactions/sell`                  | 🔒   | App → NGINX → transaction-service | Record a card sale, compute profit       |
-| `POST`   | `/v1/transactions/trade`                 | 🔒   | App → NGINX → transaction-service | Record a card trade                      |
-| `POST`   | `/v1/transactions/sync`                  | 🔒   | App → NGINX → transaction-service | Sync transactions from external platform |
-| `GET`    | `/v1/transactions`                       | 🔒   | App → NGINX → transaction-service | List all transactions with filters       |
-| `GET`    | `/v1/transactions/today`                 | 🔒   | App → NGINX → transaction-service | Today's transactions summary             |
-| `GET`    | `/v1/transactions/:id`                   | 🔒   | App → NGINX → transaction-service | Get single transaction detail            |
-| `GET`    | `/v1/transactions/customers/:customerId` | 🔒   | App → NGINX → transaction-service | Transactions for a specific customer     |
-| `GET`    | `/v1/transactions/export`                | 🔒   | App → NGINX → transaction-service | Export transactions as CSV               |
-| `DELETE` | `/v1/transactions/:id`                   | 🔒   | App → NGINX → transaction-service | Void/delete a transaction                |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/scan` | Image bytes | Submit cropped card image to Ximilar API to resolve base card ID |
+| `POST` | `/scan-barcode` | Barcode string | Parse PSA/BGS slab certification barcode number to fetch specs |
+| `GET` | `/search` | Query `q` + filters | Unified catalog search across all sports, years, and sets |
+| `GET` | `/offline-db` | *None* | Fetch base sqlite database file for offline search cache on device |
+| `GET` | `/deal-rating` | Market vs Cost | Calculate index rating score for listing prices |
+| `GET` | `/price-alerts` | *None* | Retrieve want list alert thresholds set by user |
+| `POST` | `/price-alerts` | Target price alert specs | Create target alert on specific variant & grade (PSA 10, PSA 9, etc.) |
+| `DELETE` | `/price-alerts/:id` | Alert ID | Delete pricing alert |
+| `GET` | `/want-list` | *None* | Retrieve dealer's desired purchase want list |
+| `POST` | `/want-list` | Want details | Add base card target to want list catalog |
+| `DELETE` | `/want-list/:id` | Want Item ID | Remove card target from want list |
+| `GET` | `/:id` | Card ID | Get master catalog card metadata, attributes, and variants |
+| `GET` | `/:id/comps` | Grade + Platform filters | List recent completed eBay & WhatNot sold listings matching card specs |
+| `GET` | `/:id/price-history` | Timeframe filters | Fetch sparkline dataset representing historical average valuations |
 
 ---
 
-## Listing Service — `port 3005`
+## 🤝 Buy, Sell & Trade Ledger (`/v1/transactions`)
 
-> **Swagger UI:** http://localhost:3005/docs  
-> **Responsibility:** Marketplace listings, pricing, multi-platform webhooks
+Records transaction ledgers and customer invoicing, and triggers automated inventory updates.
 
-| Method   | Path                                         | Auth | Travel                                                          | Description                                             |
-| -------- | -------------------------------------------- | ---- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| `GET`    | `/v1/listings`                               | 🔒   | App → NGINX → listing-service                                   | List active listings                                    |
-| `POST`   | `/v1/listings`                               | 🔒   | App → NGINX → listing-service                                   | Create new listing on a platform                        |
-| `GET`    | `/v1/listings/:id`                           | 🔒   | App → NGINX → listing-service                                   | Get listing detail                                      |
-| `PATCH`  | `/v1/listings/:id/price`                     | 🔒   | App → NGINX → listing-service                                   | Update listing price                                    |
-| `DELETE` | `/v1/listings/:id`                           | 🔒   | App → NGINX → listing-service                                   | Delist / remove listing                                 |
-| `POST`   | `/v1/listings/:id/relist`                    | 🔒   | App → NGINX → listing-service                                   | Relist expired listing                                  |
-| `GET`    | `/v1/listings/price-comparison/:inventoryId` | 🔒   | App → NGINX → listing-service                                   | Compare prices across platforms                         |
-| `GET`    | `/v1/listings/fee-calculator`                | 🔒   | App → NGINX → listing-service                                   | Calculate platform fees for a price                     |
-| `POST`   | `/v1/listings/generate-content`              | 🔒   | App → NGINX → listing-service                                   | AI-generate title/description for listing               |
-| `GET`    | `/v1/listings/analytics`                     | 🔒   | App → NGINX → listing-service                                   | Listing performance analytics                           |
-| `POST`   | `/v1/listings/webhooks/ebay`                 | 🔓   | eBay → NGINX → listing-service                                  | Incoming eBay sale webhook                              |
-| `POST`   | `/v1/listings/webhooks/whatnot`              | 🔓   | Whatnot → NGINX → listing-service                               | Incoming Whatnot sale webhook                           |
-| `POST`   | `/v1/listings/webhooks/mercari`              | 🔓   | Mercari → NGINX → listing-service                               | Incoming Mercari sale webhook                           |
-| `POST`   | `/v1/listings/webhooks/tcgplayer`            | 🔓   | TCGPlayer → NGINX → listing-service                             | Incoming TCGPlayer sale webhook                         |
-| `POST`   | `/v1/listings/webhooks/shopify`              | 🔓   | Shopify → NGINX → listing-service                               | Incoming Shopify order webhook                          |
-| `GET`    | `/v1/listings/ebay/search`                   | 🔒   | App → NGINX → auth-service → listing-service → eBay Browse API  | Search active eBay listings by keyword (`?q=&limit=`)   |
-| `GET`    | `/v1/listings/ebay/sold`                     | 🔒   | App → NGINX → auth-service → listing-service → eBay Finding API | Sold items for last 7 & 30 days combined (`?q=&limit=`) |
-| `GET`    | `/v1/listings/ebay/items/by-name`            | 🔒   | App → NGINX → auth-service → listing-service → eBay Browse API  | Full item detail by search name (`?name=`)              |
-| `GET`    | `/v1/listings/ebay/items/:itemId`            | 🔒   | App → NGINX → auth-service → listing-service → eBay Browse API  | Full item detail by eBay item ID                        |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/buy` | Card specs + Cost + Seller | Record purchase. Creates inventory row automatically |
+| `POST` | `/sell` | Inventory ID + Price + Buyer | Record sale. Mark inventory item as listed/sold automatically |
+| `POST` | `/trade` | Give cards + Take cards + Customer | Record multi-card trade. Automates stock deductions & additions |
+| `POST` | `/sync` | *None* | Resync transactions logs from external platforms (e.g. eBay sales) |
+| `GET` | `/` | Query filters | Retrieve paginated ledger of historical transactions |
+| `GET` | `/today` | *None* | Today's aggregate transaction statistics (Sales, Buys, Profit) |
+| `GET` | `/customers/:customerId` | Customer ID | Get full transactional trade history with a specific customer contact |
+| `GET` | `/export` | *None* | Generate bookkeeping PDF/CSV transaction statements |
+| `GET` | `/:id` | Transaction ID | Retrieve detailed transaction receipt audit log |
+| `DELETE` | `/:id` | Transaction ID | Roll back transaction logs and restore inventory stock states |
 
 ---
 
-## Card DB Service — `port 3006`
+## 🛍️ Multi-Channel Listings (`/v1/listings`)
 
-> **Swagger UI:** http://localhost:3006/docs  
-> **Responsibility:** Global sports card index, AI scanning, comps, price history
+Syncs inventory stock to active marketplaces, calculates vendor fees, and handles incoming webhooks.
 
-| Method   | Path                          | Auth | Travel                        | Description                      |
-| -------- | ----------------------------- | ---- | ----------------------------- | -------------------------------- |
-| `POST`   | `/v1/cards/scan`              | 🔒   | App → NGINX → card-db-service | AI image scan to identify card   |
-| `POST`   | `/v1/cards/scan/barcode`      | 🔒   | App → NGINX → card-db-service | Barcode/QR scan to identify card |
-| `GET`    | `/v1/cards/search`            | 🔒   | App → NGINX → card-db-service | Search card database             |
-| `GET`    | `/v1/cards/:id`               | 🔒   | App → NGINX → card-db-service | Get card metadata                |
-| `GET`    | `/v1/cards/:id/comps`         | 🔒   | App → NGINX → card-db-service | Recent comparable sales          |
-| `GET`    | `/v1/cards/:id/price-history` | 🔒   | App → NGINX → card-db-service | Historical price chart data      |
-| `GET`    | `/v1/cards/offline-db`        | 🔒   | App → NGINX → card-db-service | Download offline card database   |
-| `GET`    | `/v1/cards/price-alerts`      | 🔒   | App → NGINX → card-db-service | List user's price alerts         |
-| `POST`   | `/v1/cards/price-alerts`      | 🔒   | App → NGINX → card-db-service | Set price alert for a card       |
-| `DELETE` | `/v1/cards/price-alerts/:id`  | 🔒   | App → NGINX → card-db-service | Remove price alert               |
-| `GET`    | `/v1/cards/want-list`         | 🔒   | App → NGINX → card-db-service | List user's want list            |
-| `POST`   | `/v1/cards/want-list`         | 🔒   | App → NGINX → card-db-service | Add card to want list            |
-| `DELETE` | `/v1/cards/want-list/:id`     | 🔒   | App → NGINX → card-db-service | Remove card from want list       |
-| `GET`    | `/v1/cards/deal-rating`       | 🔒   | App → NGINX → card-db-service | Rate a deal good/bad vs comps    |
-
----
-
-## AI Narrative Service — `port 3007`
-
-> **Swagger UI:** http://localhost:3007/docs  
-> **Responsibility:** Generative market insights, inventory narratives, weekly recaps
-
-| Method  | Path                                | Auth | Travel                             | Description                         |
-| ------- | ----------------------------------- | ---- | ---------------------------------- | ----------------------------------- |
-| `GET`   | `/v1/narratives/feed`               | 🔒   | App → NGINX → ai-narrative-service | Personalised narrative feed         |
-| `GET`   | `/v1/narratives/inventory`          | 🔒   | App → NGINX → ai-narrative-service | AI commentary on user's inventory   |
-| `GET`   | `/v1/narratives/:id`                | 🔒   | App → NGINX → ai-narrative-service | Single narrative detail             |
-| `GET`   | `/v1/narratives/player/:playerName` | 🔒   | App → NGINX → ai-narrative-service | Narratives for a player             |
-| `GET`   | `/v1/narratives/card/:cardId`       | 🔒   | App → NGINX → ai-narrative-service | Narratives for a specific card      |
-| `GET`   | `/v1/narratives/daily-insight`      | 🔒   | App → NGINX → ai-narrative-service | Today's market insight              |
-| `GET`   | `/v1/narratives/weekly-recap`       | 🔒   | App → NGINX → ai-narrative-service | Weekly portfolio recap              |
-| `POST`  | `/v1/narratives/admin/generate`     | 🔒🛡 | App → NGINX → ai-narrative-service | Admin: trigger narrative generation |
-| `PATCH` | `/v1/narratives/admin/:id/approve`  | 🔒🛡 | App → NGINX → ai-narrative-service | Admin: approve narrative            |
-| `PATCH` | `/v1/narratives/admin/:id/reject`   | 🔒🛡 | App → NGINX → ai-narrative-service | Admin: reject narrative             |
-| `PATCH` | `/v1/narratives/admin/:id`          | 🔒🛡 | App → NGINX → ai-narrative-service | Admin: edit narrative               |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | Status, Platform filters | Retrieve list of active shop listings across connected platforms |
+| `POST` | `/` | Inventory ID + Platforms | Publish inventory card as listings on chosen channels (eBay, WhatNot) |
+| `GET` | `/analytics` | Timeframe filters | Get channel performance breakdown (Ebay fees vs WhatNot margins) |
+| `GET` | `/fee-calculator` | Platform + Price | Calculate projected net payout after platform fees & commissions |
+| `POST` | `/generate-content` | Card specs | Generate high-converting eBay listing title & description using AI |
+| `GET` | `/price-comparison/:inventoryId` | Inventory ID | Compare listing price with current lowest active listings across web |
+| `GET` | `/ebay/search` | Query keywords | Query current active eBay listings |
+| `GET` | `/ebay/sold` | Query keywords | Query completed eBay sold sales comps |
+| `GET` | `/:id` | Listing ID | Get status, platform item IDs, and active price of listing |
+| `PATCH` | `/:id/price` | New Price | Update listing price simultaneously across all published channels |
+| `POST` | `/:id/relist` | Relist rules | Relist ended or unsold platform item listings |
+| `DELETE` | `/:id` | Listing ID | End active listings and remove from external marketplaces |
+| `POST` | `/webhooks/ebay` | eBay Event XML/JSON | Listen to eBay sold events to mark inventory sold in real-time |
+| `POST` | `/webhooks/whatnot` | WhatNot sold hooks | Process WhatNot bidding room sold alerts |
+| `POST` | `/webhooks/mercari` | Mercari sold hooks | Process Mercari store purchase alerts |
+| `POST` | `/webhooks/tcgplayer` | TCGPlayer sold hooks | Process TCGPlayer store sales notifications |
+| `POST` | `/webhooks/shopify` | Shopify checkout hook | Listen to Shopify cart checkout events for stock sync |
 
 ---
 
-## Notification Service — `port 3008`
+## 🤖 AI Vision & Narratives (`/v1/narratives`)
 
-> **Swagger UI:** http://localhost:3008/docs  
-> **Responsibility:** Push notifications, card show events, in-app alerts
+Triggers vision models and handles curated pricing highlights.
 
-| Method   | Path                             | Auth | Travel                             | Description                    |
-| -------- | -------------------------------- | ---- | ---------------------------------- | ------------------------------ |
-| `GET`    | `/v1/notifications`              | 🔒   | App → NGINX → notification-service | List user notifications        |
-| `PATCH`  | `/v1/notifications/:id/read`     | 🔒   | App → NGINX → notification-service | Mark notification as read      |
-| `PATCH`  | `/v1/notifications/read-all`     | 🔒   | App → NGINX → notification-service | Mark all notifications as read |
-| `GET`    | `/v1/notifications/unread-count` | 🔒   | App → NGINX → notification-service | Get unread notification count  |
-| `GET`    | `/v1/shows`                      | 🔒   | App → NGINX → notification-service | List upcoming card shows       |
-| `GET`    | `/v1/shows/:id`                  | 🔒   | App → NGINX → notification-service | Card show detail               |
-| `POST`   | `/v1/shows/:id/attend`           | 🔒   | App → NGINX → notification-service | RSVP to attend a show          |
-| `DELETE` | `/v1/shows/:id/attend`           | 🔒   | App → NGINX → notification-service | Cancel attendance              |
-| `GET`    | `/v1/shows/:id/dealers`          | 🔒   | App → NGINX → notification-service | List dealers attending a show  |
-| `POST`   | `/v1/shows/admin`                | 🔒🛡 | App → NGINX → notification-service | Admin: create card show        |
-| `PATCH`  | `/v1/shows/admin/:id`            | 🔒🛡 | App → NGINX → notification-service | Admin: update card show        |
-| `DELETE` | `/v1/shows/admin/:id`            | 🔒🛡 | App → NGINX → notification-service | Admin: delete card show        |
-
----
-
-## Analytics Service — `port 3009`
-
-> **Swagger UI:** http://localhost:3009/docs  
-> **Responsibility:** P&L reports, tax exports, platform performance, market trends
-
-| Method   | Path                                    | Auth | Travel                          | Description                            |
-| -------- | --------------------------------------- | ---- | ------------------------------- | -------------------------------------- |
-| `GET`    | `/v1/analytics/daily`                   | 🔒   | App → NGINX → analytics-service | Today's P&L summary                    |
-| `GET`    | `/v1/analytics/report`                  | 🔒   | App → NGINX → analytics-service | Full analytics report with date range  |
-| `GET`    | `/v1/analytics/profit-by-sport`         | 🔒   | App → NGINX → analytics-service | Profit breakdown by sport              |
-| `GET`    | `/v1/analytics/profit-by-channel`       | 🔒   | App → NGINX → analytics-service | Profit breakdown by sales channel      |
-| `GET`    | `/v1/analytics/top-cards`               | 🔒   | App → NGINX → analytics-service | Best performing cards                  |
-| `GET`    | `/v1/analytics/inventory-value-trend`   | 🔒   | App → NGINX → analytics-service | Portfolio value over time              |
-| `GET`    | `/v1/analytics/platform-performance`    | 🔒   | App → NGINX → analytics-service | Sales performance per platform         |
-| `GET`    | `/v1/analytics/tax/:year`               | 🔒   | App → NGINX → analytics-service | Annual tax summary                     |
-| `GET`    | `/v1/analytics/tax/:year/export`        | 🔒   | App → NGINX → analytics-service | Export tax report (CSV/PDF)            |
-| `GET`    | `/v1/analytics/export`                  | 🔒   | App → NGINX → analytics-service | Export full analytics report           |
-| `GET`    | `/v1/analytics/expenses`                | 🔒   | App → NGINX → analytics-service | List expenses (supplies, fees, travel) |
-| `POST`   | `/v1/analytics/expenses`                | 🔒   | App → NGINX → analytics-service | Log new expense                        |
-| `PATCH`  | `/v1/analytics/expenses/:id`            | 🔒   | App → NGINX → analytics-service | Update expense                         |
-| `DELETE` | `/v1/analytics/expenses/:id`            | 🔒   | App → NGINX → analytics-service | Delete expense                         |
-| `GET`    | `/v1/analytics/collection`              | 🔒   | App → NGINX → analytics-service | Collection value stats                 |
-| `GET`    | `/v1/analytics/collection/weekly-recap` | 🔒   | App → NGINX → analytics-service | Weekly collection recap                |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/scan-card` | Image URL / bytes | Call Gemini Vision model to extract card properties (Year, Set, Rookie flag) |
+| `GET` | `/trigger-ingestion` | *None* | Ingest latest daily sport index cards catalog |
+| `GET` | `/feed` | Page filters | Get high-engagement public feed cards (scans, major sales, portfolio jumps) |
+| `GET` | `/inventory` | *None* | Get generated descriptive copywriting cards in stock |
+| `GET` | `/daily-insight` | *None* | Get curated daily narrative portfolio analysis (market drops, top gainers) |
+| `GET` | `/weekly-recap` | *None* | Get portfolio recap digest generated for active collectors |
+| `GET` | `/player/:playerName` | Player Name | Fetch AI narrative profile detailing player cards market performance |
+| `GET` | `/card/:cardId` | Card ID | Fetch specific card AI narrative card report |
+| `GET` | `/:id` | Narrative ID | Get detailed view of specific generated card text insight |
+| `POST` | `/admin/generate` | Admin override prompt | Trigger manual bulk narrative regeneration for target cards |
+| `PATCH` | `/admin/:id/approve` | Narrative ID | Approve generated narrative to appear on public feed |
+| `PATCH` | `/admin/:id/reject` | Narrative ID | Reject generated narrative and queue for deletion |
+| `PATCH` | `/admin/:id` | Edits payload | Manually edit generated narrative description text |
 
 ---
 
-## Admin Service — `port 3010`
+## 🔔 Regional Shows & Push Alerts (`/v1/notifications`)
 
-> **Swagger UI:** http://localhost:3010/docs  
-> **Responsibility:** Internal control panel, user management, feature flags, audit logs
+Manages firebase notifications, alert feeds, card shows, and RSVP tables.
 
-| Method   | Path                            | Auth | Travel                      | Description                        |
-| -------- | ------------------------------- | ---- | --------------------------- | ---------------------------------- |
-| `GET`    | `/v1/admin/users`               | 🔒🛡 | App → NGINX → admin-service | List all platform users            |
-| `GET`    | `/v1/admin/users/:id`           | 🔒🛡 | App → NGINX → admin-service | Get user detail                    |
-| `PATCH`  | `/v1/admin/users/:id/role`      | 🔒🛡 | App → NGINX → admin-service | Change user role                   |
-| `PATCH`  | `/v1/admin/users/:id/suspend`   | 🔒🛡 | App → NGINX → admin-service | Suspend user account               |
-| `PATCH`  | `/v1/admin/users/:id/unsuspend` | 🔒🛡 | App → NGINX → admin-service | Unsuspend user account             |
-| `DELETE` | `/v1/admin/users/:id`           | 🔒🛡 | App → NGINX → admin-service | Delete user account                |
-| `GET`    | `/v1/admin/narratives/pending`  | 🔒🛡 | App → NGINX → admin-service | List pending narrative approvals   |
-| `GET`    | `/v1/admin/feature-flags`       | 🔒🛡 | App → NGINX → admin-service | List all feature flags             |
-| `PATCH`  | `/v1/admin/feature-flags/:key`  | 🔒🛡 | App → NGINX → admin-service | Toggle feature flag                |
-| `GET`    | `/v1/admin/reviews/pending`     | 🔒🛡 | App → NGINX → admin-service | List pending dealer reviews        |
-| `PATCH`  | `/v1/admin/reviews/:id/approve` | 🔒🛡 | App → NGINX → admin-service | Approve review                     |
-| `DELETE` | `/v1/admin/reviews/:id`         | 🔒🛡 | App → NGINX → admin-service | Remove review                      |
-| `GET`    | `/v1/admin/audit-logs`          | 🔒🛡 | App → NGINX → admin-service | Platform audit log                 |
-| `GET`    | `/v1/admin/stats`               | 🔒🛡 | App → NGINX → admin-service | Platform-wide stats                |
-| `GET`    | `/v1/config/feature-flags`      | 🔒   | App → NGINX → admin-service | Read feature flags (client-facing) |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/` | Page / Type filters | Fetch in-app notifications inbox feed |
+| `GET` | `/unread-count` | *None* | Get unread notification counts for mobile badge |
+| `PATCH` | `/read-all` | *None* | Mark all notifications in inbox as read |
+| `PATCH` | `/:id/read` | Notification ID | Mark a specific notification as read |
+| `GET` | `/shows` | Date/Location filters | List upcoming regional sports card shows & conventions |
+| `GET` | `/shows/:id` | Show ID | Get detailed schedule, location map, and attending dealers for show |
+| `POST` | `/shows/:id/attend` | *None* | Register dealer attendance RSVP for a specific show |
+| `DELETE` | `/shows/:id/attend` | *None* | Cancel RSVP attendance registration for card show |
+| `GET` | `/shows/:id/dealers` | Show ID | List all dealers attending or setting up tables at card show |
+| `POST` | `/shows/admin` | Show specs | Add an upcoming card show event to regional database catalog |
+| `PATCH` | `/shows/admin/:id` | Edits payload | Edit card show location, dates, or contact links |
+| `DELETE` | `/shows/admin/:id` | Show ID | Remove card show event from index listings |
 
 ---
 
-## Internal Service Communication
+## 📈 Portfolio Analytics (`/v1/analytics`)
 
-These routes are **never routed through NGINX** and are only accessible between containers on the `rsl-dev` Docker network.
+Specialized read-replica data reporting for collections, tax audits, and monthly trends.
 
-| Caller       | Target       | Path                           | Header                        | Purpose                                             |
-| ------------ | ------------ | ------------------------------ | ----------------------------- | --------------------------------------------------- |
-| auth-service | user-service | `POST /v1/users/me/onboarding` | `x-service-key` + `x-user-id` | Persist dealer onboarding data after JWT validation |
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/daily` | *None* | Portfolio snapshot containing daily profits and holds values |
+| `GET` | `/today-activity` | *None* | Summary count of cards scanned, listed, sold, and traded today |
+| `GET` | `/report` | Period (`week` \| `month` \| `year`) | Generate detailed portfolio value chart coordinates |
+| `GET` | `/profit/channel` | Period | Retrieve net income comparison per platform (eBay vs WhatNot) |
+| `GET` | `/profit/sport` | Period | Retrieve net profit comparison per sport type (baseball vs football) |
+| `GET` | `/top-cards` | *None* | Get list of highest-value cards currently in stock portfolio |
+| `GET` | `/inventory-trend` | *None* | Historical trend coords mapping stock valuation changes over time |
+| `GET` | `/platforms` | *None* | Detailed channel analytics showing sales speed, listing fees, and volume |
+| `GET` | `/tax/:year` | Tax Year | Generate taxable transactions ledger for filing schedule C forms |
+| `GET` | `/expenses` | *None* | Retrieve business expense transactions (booth rentals, supplies) |
+| `POST` | `/expenses` | Expense details | Log a new business operating expense |
+| `PATCH` | `/expenses/:id` | Expense modifications | Edit logged business operating expense |
+| `DELETE` | `/expenses/:id` | Expense ID | Delete business operating expense |
+| `GET` | `/collection` | *None* | Long-term hold collections portfolio statistics |
+| `GET` | `/collection/recap` | *None* | Weekly summary recap comparing long-term holds vs short-term inventory flips |
 
-Authentication: `x-service-key` must match `INTERNAL_SERVICE_KEY` env variable (verified via `timingSafeEqual` SHA-256 hash comparison).
+---
+
+## 🛡️ Admin Controls (`/v1/admin`)
+
+Privileged endpoints for system monitoring, roles verification, audit logs, and toggle flags.
+
+| Method | Endpoint | Payload / Params | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/users` | Pagination / Roles filters | List all platform users and dealer subscription tiers |
+| `GET` | `/users/:id` | User ID | Fetch comprehensive user profile, metrics, and security limits |
+| `PATCH` | `/users/:id/role` | New Role | Update user system permissions (Dealer, Admin, Moderator) |
+| `PATCH` | `/users/:id/suspend` | Suspend duration / reason | Temporarily or permanently suspend user access for terms violations |
+| `PATCH` | `/users/:id/unsuspend` | *None* | Restore suspended user profile and reactivate session tokens |
+| `DELETE` | `/users/:id` | User ID | Hard delete user profile, catalog data, and Stripe tokens |
+| `GET` | `/narratives/pending` | *None* | Moderate AI narrative feed drafts awaiting publication approval |
+| `GET` | `/reviews/pending` | *None* | Moderate customer dealer store feedback reviews |
+| `PATCH` | `/reviews/:id/approve` | Review ID | Approve review rating to display on public dealer profile |
+| `DELETE` | `/reviews/:id` | Review ID | Flag and reject customer dealer review |
+| `GET` | `/feature-flags` | *None* | View active platform feature flags (e.g. Google auth enabled, scan limits) |
+| `PATCH` | `/feature-flags/:key` | Flag values | Enable, disable, or adjust values of global feature flags |
+| `GET` | `/audit-logs` | User / Event type filters | Retrieve secure system-wide logs tracking critical user actions |
+| `GET` | `/stats` | *None* | Get system metrics (CPU utilization, database pool load, active websocket conns) |

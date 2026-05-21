@@ -10,26 +10,17 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.4"; // physical device — same WiFi as dev machine
+const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
 
 export const API_BASE_URL = __DEV__
   ? `http://${DEV_HOST}:80`
   : "https://api.rslcards.com";
 
 /**
- * All endpoint paths grouped by microservice domain.
- * The Nginx gateway routes each prefix to the correct service:
+ * All endpoint paths mapped to the unified backend monorepo.
+ * The Nginx gateway routes all /v1/* traffic directly to:
  *
- *   /v1/auth/*        → auth-service      :3001
- *   /v1/users/*       → user-service      :3002
- *   /v1/inventory/*   → inventory-service :3003
- *   /v1/transactions/*→ transaction-service:3004
- *   /v1/listings/*    → listing-service   :3005
- *   /v1/cards/*       → auth-service:3001 →→ card-db-service   :3006 (API Gateway)
- *   /v1/narratives/*  → ai-narrative-service:3007
- *   /v1/notifications/*→notification-service:3008
- *   /v1/analytics/*   → analytics-service :3009
- *   /v1/admin/*       → admin-service     :3010
+ *   /v1/*   →  backend:8080  (Consolidated Backend Container)
  */
 export const ENDPOINTS = {
   auth: {
@@ -49,7 +40,7 @@ export const ENDPOINTS = {
     me: "/v1/users/me",
     updateProfile: "/v1/users/me",
     avatarUpload: "/v1/users/me/avatar",
-    preferences: "/v1/auth/me/preferences",
+    preferences: "/v1/users/me/preferences",
     paymentMethods: "/v1/users/me/payment-methods",
     connectedPlatforms: "/v1/users/me/connected-platforms",
   },
@@ -60,6 +51,7 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/inventory/${id}`,
     update: (id: string) => `/v1/inventory/${id}`,
     delete: (id: string) => `/v1/inventory/${id}`,
+    export: "/v1/inventory/export",
     photos: (id: string) => `/v1/inventory/${id}/photos`,
     photosConfirm: (id: string) => `/v1/inventory/${id}/photos/confirm`,
   },
@@ -70,6 +62,7 @@ export const ENDPOINTS = {
     buy: "/v1/transactions/buy",
     sell: "/v1/transactions/sell",
     detail: (id: string) => `/v1/transactions/${id}`,
+    export: "/v1/transactions/export",
   },
 
   listings: {

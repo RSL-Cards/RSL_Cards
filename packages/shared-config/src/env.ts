@@ -15,16 +15,8 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRY: z.string().default("15m"),
   JWT_REFRESH_EXPIRY: z.string().default("7d"),
   INTERNAL_SERVICE_KEY: z.string().min(8),
-  AUTH_SERVICE_PORT: z.coerce.number(),
-  USER_SERVICE_PORT: z.coerce.number(),
-  INVENTORY_SERVICE_PORT: z.coerce.number(),
-  TRANSACTION_SERVICE_PORT: z.coerce.number(),
-  LISTING_SERVICE_PORT: z.coerce.number(),
-  CARD_DB_SERVICE_PORT: z.coerce.number(),
-  AI_NARRATIVE_SERVICE_PORT: z.coerce.number(),
-  NOTIFICATION_SERVICE_PORT: z.coerce.number(),
-  ANALYTICS_SERVICE_PORT: z.coerce.number(),
-  ADMIN_SERVICE_PORT: z.coerce.number(),
+  PORT: z.coerce.number().optional().default(8080),
+  AUTH_SERVICE_PORT: z.coerce.number().optional().default(8080),
   XIMILAR_API_KEY: z.string().optional().default(""),
   EBAY_ENV: z.enum(["sandbox", "production"]).optional().default("sandbox"),
   EBAY_MARKETPLACE_ID: z.string().optional().default("EBAY_US"),
@@ -69,6 +61,7 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().optional().default(""),
   AWS_REGION: z.string().optional().default("us-east-1"),
   S3_BUCKET_NAME: z.string().optional().default(""),
+  SOLD_COMPS_KEY: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

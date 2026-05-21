@@ -11,11 +11,11 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container}>
       {/* Logo Card */}
       <View style={styles.centerContent}>
-        <View style={styles.cardFrame}>
-          <View style={styles.cardTopLine} />
-          <Text style={styles.rslText}>RSL</Text>
-          <Text style={styles.cardsText}>CARDS</Text>
-        </View>
+        <Image
+          source={require('../../assets/rslicon.jpeg')}
+          style={{ width: 160, height: 160, borderRadius: 24 }}
+          resizeMode="contain"
+        />
         <Text style={styles.tagline}>Run. Sell. Log.</Text>
       </View>
 
@@ -57,10 +57,7 @@ export default function WelcomeScreen() {
         >
           <View style={styles.socialInner}>
             <View style={styles.socialIconWrap}>
-              <Image 
-                source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-                style={{ width: 22, height: 22 }}
-              />
+              <AntDesign name="google" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
             </View>
             <Text style={styles.socialBtnText}>
               Continue with Google

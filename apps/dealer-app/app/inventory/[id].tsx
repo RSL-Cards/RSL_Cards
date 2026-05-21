@@ -130,11 +130,11 @@ export default function CardDetailScreen() {
     .slice(0, 2)
     .toUpperCase();
 
-  const recentSales = ebayData?.fromCache
-    ? []
-    : (ebayData?.sold30d?.items ?? [])
-        .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
-        .slice(0, 6);
+  // Priority: 1. Locally saved sales in inventory record, 2. Live data from hook
+  const localSales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : null;
+  const recentSales = (localSales || (ebayData?.sold30d?.items ?? []))
+    .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
+    .slice(0, 8);
 
   const snapshot = ebayData?.fromCache ? ebayData.snapshots?.[0] : null;
 
@@ -339,6 +339,17 @@ export default function CardDetailScreen() {
                   >
                     {sale.title}
                   </Text>
+                  {sale.endDate && (
+                    <Text
+                      style={{
+                        color: "#444444",
+                        fontSize: 10,
+                        marginHorizontal: 8,
+                      }}
+                    >
+                      {format(new Date(sale.endDate), "MMM d, yyyy")}
+                    </Text>
+                  )}
                   <View
                     style={[
                       styles.platformBadge,
