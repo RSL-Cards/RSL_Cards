@@ -52,11 +52,45 @@ export const REVENUE_CHART_DATA = [
 ]
 
 export const CHANNEL_DATA = [
-  { channel: 'Card Shows', revenue: 8200,  profit: 2460, pct: 44.5, color: '#E8001C' },
-  { channel: 'eBay',       revenue: 6800,  profit: 1820, pct: 36.9, color: '#0057FF' },
-  { channel: 'Whatnot',    revenue: 2100,  profit: 490,  pct: 11.4, color: '#7B2FFF' },
-  { channel: 'TCGPlayer',  revenue: 980,   profit: 220,  pct: 5.3,  color: '#00BCD4' },
-  { channel: 'Other',      revenue: 340,   profit: 80,   pct: 1.9,  color: '#555555' },
+  {
+    channel: 'Card Shows',
+    revenue: 8200,
+    profit: 2460,
+    pct: 44.5,
+    color: '#3B82F6',
+  },
+
+  {
+    channel: 'eBay',
+    revenue: 6800,
+    profit: 1820,
+    pct: 36.9,
+    color: '#60A5FA',
+  },
+
+  {
+    channel: 'Whatnot',
+    revenue: 2100,
+    profit: 490,
+    pct: 11.4,
+    color: '#93C5FD',
+  },
+
+  {
+    channel: 'TCGPlayer',
+    revenue: 980,
+    profit: 220,
+    pct: 5.3,
+    color: '#BFDBFE',
+  },
+
+  {
+    channel: 'Other',
+    revenue: 340,
+    profit: 80,
+    pct: 1.9,
+    color: '#D1D5DB',
+  },
 ]
 
 export const INVENTORY_TABLE_DATA = [

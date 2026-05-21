@@ -10,7 +10,7 @@ interface ShellProps {
 
 export default function Shell({ children }: ShellProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F5F7FB]">
       <Sidebar />
       <div className="ml-64">
         <Topbar />
