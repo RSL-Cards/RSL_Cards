@@ -58,16 +58,57 @@ function getTimelineSuggestions(): TimelineSuggestion[] {
   ];
 }
 
+// ─── Helpers ───
+
+function safeFormatDate(val: any): string {
+  if (!val) return "";
+  // If it's already a string like "2026-05-20T18:00:00.000Z", parse it
+  const str = typeof val === "string" ? val : String(val);
+  // Try ISO parse
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  }
+  // Fallback: try to extract date portion from PG format "2026-05-20 18:00:00+05:30"
+  const match = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[2]}/${match[3]}/${match[1]}`;
+  }
+  return str;
+}
+
 // ─── CSV Generators ───
 
-function transactionsToCsv(rows: any[]): string {
+function transactionsToCsv(rows: any[], periodLabel?: string): string {
+  const now = new Date();
+  const genDate = safeFormatDate(now.toISOString());
+  const genTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  // ── Company Header Block ──
+  const brandHeader = [
+    "RSL CARDS",
+    "Run. Sell. Log. — Sports Card Dealer Platform",
+    "",
+    "REPORT:,Transaction History",
+    `PERIOD:,${periodLabel ?? "All Time"}`,
+    `GENERATED:,${genDate} at ${genTime}`,
+    `TOTAL RECORDS:,${rows.length}`,
+    "",
+    "═══════════════════════════════════════════════════════",
+    "",
+  ];
+
   const headers = [
+    "#",
     "Date",
     "Type",
     "Player Name",
     "Grade",
     "Channel",
-    "Sell Price ($)",
+    "Price ($)",
     "Cost Basis ($)",
     "Profit ($)",
     "Profit %",
@@ -76,9 +117,10 @@ function transactionsToCsv(rows: any[]): string {
     "Comp at Time ($)",
   ];
 
-  const lines = rows.map((r) => {
-    const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-US") : "";
+  const lines = rows.map((r, i) => {
+    const date = safeFormatDate(r.created_at);
     return [
+      i + 1,
       date,
       (r.type ?? "").toUpperCase(),
       `"${(r.player_name ?? "").replace(/"/g, '""')}"`,
@@ -94,31 +136,59 @@ function transactionsToCsv(rows: any[]): string {
     ].join(",");
   });
 
-  // Summary row
+  // ── Summary Footer ──
   const totalBuys = rows.filter((r) => r.type === "buy").length;
   const totalSells = rows.filter((r) => r.type === "sell").length;
   const totalSpent = rows.filter((r) => r.type === "buy").reduce((s, r) => s + parseFloat(r.price ?? 0), 0);
   const totalRevenue = rows.filter((r) => r.type === "sell").reduce((s, r) => s + parseFloat(r.price ?? 0), 0);
   const totalProfit = rows.filter((r) => r.type === "sell").reduce((s, r) => s + parseFloat(r.profit ?? 0), 0);
+  const avgDealSize = rows.length > 0 ? (totalSpent + totalRevenue) / rows.length : 0;
 
   const summary = [
     "",
-    "SUMMARY",
+    "═══════════════════════════════════════════════════════",
+    "",
+    "FINANCIAL SUMMARY",
+    "",
+    `Metric,Value`,
     `Total Transactions,${rows.length}`,
     `Total Buys,${totalBuys}`,
     `Total Sells,${totalSells}`,
-    `Total Spent,$${totalSpent.toFixed(2)}`,
-    `Total Revenue,$${totalRevenue.toFixed(2)}`,
+    `───────────────────,───────────`,
+    `Total Spent (Buys),$${totalSpent.toFixed(2)}`,
+    `Total Revenue (Sells),$${totalRevenue.toFixed(2)}`,
     `Total Profit,$${totalProfit.toFixed(2)}`,
-    `Net Margin,${totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}%`,
-    `Generated,${new Date().toLocaleDateString("en-US")} ${new Date().toLocaleTimeString("en-US")}`,
+    `Net Margin,${totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : "0.0"}%`,
+    `Avg Deal Size,$${avgDealSize.toFixed(2)}`,
+    "",
+    "───────────────────────────────────────────────────────",
+    `© RSL Cards — Confidential`,
   ];
 
-  return [headers.join(","), ...lines, ...summary].join("\n");
+  return [...brandHeader, headers.join(","), ...lines, ...summary].join("\n");
 }
 
-function inventoryToCsv(rows: any[]): string {
+function inventoryToCsv(rows: any[], periodLabel?: string): string {
+  const now = new Date();
+  const genDate = safeFormatDate(now.toISOString());
+  const genTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  // ── Company Header Block ──
+  const brandHeader = [
+    "RSL CARDS",
+    "Run. Sell. Log. — Sports Card Dealer Platform",
+    "",
+    "REPORT:,Inventory Export",
+    `PERIOD:,${periodLabel ?? "All Time"}`,
+    `GENERATED:,${genDate} at ${genTime}`,
+    `TOTAL RECORDS:,${rows.length}`,
+    "",
+    "═══════════════════════════════════════════════════════",
+    "",
+  ];
+
   const headers = [
+    "#",
     "Player Name",
     "Year",
     "Set Name",
@@ -138,9 +208,10 @@ function inventoryToCsv(rows: any[]): string {
     "Date Added",
   ];
 
-  const lines = rows.map((r) => {
-    const dateAdded = r.added_at ? new Date(r.added_at).toLocaleDateString("en-US") : "";
+  const lines = rows.map((r, i) => {
+    const dateAdded = safeFormatDate(r.added_at);
     return [
+      i + 1,
       `"${(r.player_name ?? "").replace(/"/g, '""')}"`,
       r.year ?? "",
       `"${(r.set_name ?? "").replace(/"/g, '""')}"`,
@@ -154,14 +225,14 @@ function inventoryToCsv(rows: any[]): string {
       r.unrealized_gain != null ? parseFloat(r.unrealized_gain).toFixed(2) : "",
       r.gain_pct != null ? `${r.gain_pct}%` : "",
       r.quantity ?? 1,
-      r.listing_status ?? "unlisted",
+      (r.listing_status ?? "unlisted").toUpperCase(),
       r.is_consignment ? `Yes — ${r.consignment_owner ?? ""}` : "No",
       `"${(r.notes ?? "").replace(/"/g, '""')}"`,
       dateAdded,
     ].join(",");
   });
 
-  // Summary row
+  // ── Summary Footer ──
   const totalCards = rows.reduce((s, r) => s + (r.quantity ?? 1), 0);
   const totalCost = rows.reduce((s, r) => s + parseFloat(r.cost_basis ?? 0), 0);
   const totalMarket = rows.reduce((s, r) => s + parseFloat(r.current_market_value ?? 0), 0);
@@ -169,22 +240,32 @@ function inventoryToCsv(rows: any[]): string {
   const unlisted = rows.filter((r) => r.listing_status === "unlisted").length;
   const listed = rows.filter((r) => r.listing_status === "listed").length;
   const sold = rows.filter((r) => r.listing_status === "sold").length;
+  const avgCost = rows.length > 0 ? totalCost / rows.length : 0;
 
   const summary = [
     "",
-    "SUMMARY",
+    "═══════════════════════════════════════════════════════",
+    "",
+    "INVENTORY SUMMARY",
+    "",
+    `Metric,Value`,
     `Total Cards,${totalCards}`,
+    `───────────────────,───────────`,
     `Total Cost Basis,$${totalCost.toFixed(2)}`,
     `Total Market Value,$${totalMarket.toFixed(2)}`,
     `Total Unrealized Gain,$${totalGain.toFixed(2)}`,
-    `Gain %,${totalCost > 0 ? ((totalGain / totalCost) * 100).toFixed(1) : 0}%`,
+    `Gain %,${totalCost > 0 ? ((totalGain / totalCost) * 100).toFixed(1) : "0.0"}%`,
+    `Avg Cost per Card,$${avgCost.toFixed(2)}`,
+    `───────────────────,───────────`,
     `Unlisted,${unlisted}`,
     `Listed,${listed}`,
     `Sold,${sold}`,
-    `Generated,${new Date().toLocaleDateString("en-US")} ${new Date().toLocaleTimeString("en-US")}`,
+    "",
+    "───────────────────────────────────────────────────────",
+    `© RSL Cards — Confidential`,
   ];
 
-  return [headers.join(","), ...lines, ...summary].join("\n");
+  return [...brandHeader, headers.join(","), ...lines, ...summary].join("\n");
 }
 
 // ─── Component ───
@@ -224,7 +305,7 @@ export function ExportModal({ visible, type, onClose }: ExportModalProps) {
         return;
       }
 
-      const csv = isTransactions ? transactionsToCsv(rows) : inventoryToCsv(rows);
+      const csv = isTransactions ? transactionsToCsv(rows, suggestion.label) : inventoryToCsv(rows, suggestion.label);
 
       const fileName = isTransactions
         ? `RSL_Transactions_${suggestion.key}_${Date.now()}.csv`
