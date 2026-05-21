@@ -2,7 +2,7 @@
 #   docker build -f backend/Dockerfile -t rsl-backend .
 FROM oven/bun:latest AS deps
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json bun.lock ./
 COPY packages ./packages
 COPY backend/package.json ./backend/
 RUN bun install --frozen-lockfile
@@ -11,7 +11,7 @@ FROM oven/bun:latest AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json bun.lock ./
 COPY backend ./backend
 WORKDIR /app/backend
 RUN bun x tsc --noEmit
