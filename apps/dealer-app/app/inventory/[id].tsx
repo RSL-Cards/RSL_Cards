@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useInventoryItem } from "../../src/hooks/useCardScan";
-import { useEbaySold } from "../../src/hooks/useCardScan";
 import { format, isValid } from "date-fns";
 
 function GradeChip({ gradeKey }: { gradeKey?: string }) {
@@ -45,34 +44,11 @@ function GradeChip({ gradeKey }: { gradeKey?: string }) {
   );
 }
 
-function buildEbayQuery(card: any): string {
-  if (!card) return "";
-  const parts: string[] = [];
-  if (card.player_name) parts.push(card.player_name);
-  if (card.year) parts.push(String(card.year));
-  if (card.set_name) parts.push(card.set_name);
-  if (card.variation && card.variation.toLowerCase() !== "base")
-    parts.push(card.variation);
-  if (card.grade_key && card.grade_key !== "RAW") {
-    const [company, grade] = card.grade_key.split("_");
-    parts.push(`${company} ${grade}`);
-  }
-  return parts.join(" ");
-}
-
 export default function CardDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: card, isLoading, isError } = useInventoryItem(id ?? "");
-
-  const ebayQuery = buildEbayQuery(card);
-  const { data: ebayData } = useEbaySold(ebayQuery, {
-    enabled: !!card?.player_name,
-    limit: 8,
-    variantId: card?.variant_id ?? undefined,
-    gradeKey: card?.grade_key ?? "RAW",
-  });
 
   if (isLoading) {
     return (
@@ -130,22 +106,20 @@ export default function CardDetailScreen() {
     .slice(0, 2)
     .toUpperCase();
 
-  // Priority: 1. Locally saved sales in inventory record, 2. Live data from hook
-  const localSales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : null;
-  const recentSales = (localSales || (ebayData?.sold30d?.items ?? []))
+  // All data from DB — no live API calls
+  const localSales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const recentSales = localSales
     .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
     .slice(0, 8);
 
-  const snapshot = ebayData?.fromCache ? ebayData.snapshots?.[0] : null;
+  const localActiveListings = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
 
-  const avgSold = snapshot
-    ? parseFloat(snapshot.avgSoldPrice ?? "0")
-    : recentSales.length > 0
-      ? recentSales.reduce(
-          (sum: number, s: any) => sum + parseFloat(s.soldPrice?.value ?? "0"),
-          0,
-        ) / recentSales.length
-      : 0;
+  const avgSold = recentSales.length > 0
+    ? recentSales.reduce(
+        (sum: number, s: any) => sum + parseFloat(s.soldPrice?.value ?? "0"),
+        0,
+      ) / recentSales.length
+    : 0;
 
   const stats = [
     {
@@ -368,41 +342,49 @@ export default function CardDetailScreen() {
           </View>
         )}
 
-        {snapshot && (
+        {/* Active listings at purchase */}
+        {localActiveListings.length > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>EBAY COMPS (CACHED)</Text>
+            <Text style={styles.sectionLabel}>ACTIVE LISTINGS AT PURCHASE</Text>
             <View style={styles.sectionCard}>
-              {[
-                {
-                  label: "Avg Sold",
-                  value: `$${parseFloat(snapshot.avgSoldPrice ?? "0").toFixed(2)}`,
-                },
-                {
-                  label: "Last Sold",
-                  value: `$${parseFloat(snapshot.lastSoldPrice ?? "0").toFixed(2)}`,
-                },
-                {
-                  label: "Lowest Active",
-                  value: `$${parseFloat(snapshot.lowestActive ?? "0").toFixed(2)}`,
-                },
-                {
-                  label: "Sales (30d)",
-                  value: String(snapshot.salesCount30d ?? 0),
-                },
-              ].map((row, i, arr) => (
+              {localActiveListings.map((item: any, i: number) => (
                 <View
-                  key={row.label}
+                  key={item.itemId}
                   style={[
-                    styles.detailRow,
-                    i < arr.length - 1 && {
-                      borderBottomWidth: 1,
-                      borderBottomColor: "#1A1A1A",
-                    },
+                    styles.saleRow,
+                    i < localActiveListings.length - 1 && styles.saleRowBorder,
                   ]}
                 >
-                  <Text style={styles.detailLabel}>{row.label}</Text>
-                  <Text style={[styles.detailValue, { color: "#00C853" }]}>
-                    {row.value}
+                  <View style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+                    {item.image?.imageUrl && (
+                      <Image
+                        source={{ uri: item.image.imageUrl }}
+                        style={{
+                          width: 36,
+                          height: 50,
+                          borderRadius: 4,
+                          marginRight: 10,
+                          backgroundColor: "#222222",
+                        }}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{ color: "white", fontSize: 13, fontWeight: "600" }}
+                        numberOfLines={2}
+                      >
+                        {item.title}
+                      </Text>
+                      {item.condition && (
+                        <Text style={{ color: "#555555", fontSize: 10, marginTop: 2 }}>
+                          {item.condition}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Text style={styles.salePrice}>
+                    ${parseFloat(item.price?.value ?? "0").toFixed(2)}
                   </Text>
                 </View>
               ))}
@@ -410,9 +392,9 @@ export default function CardDetailScreen() {
           </View>
         )}
 
-        {recentSales.length === 0 && !snapshot && !!card.player_name && (
+        {recentSales.length === 0 && localActiveListings.length === 0 && !!card.player_name && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>RECENT EBAY SALES</Text>
+            <Text style={styles.sectionLabel}>EBAY DATA</Text>
             <View
               style={[
                 styles.sectionCard,
@@ -420,7 +402,7 @@ export default function CardDetailScreen() {
               ]}
             >
               <Text style={{ color: "#555555", fontSize: 13 }}>
-                No recent sales found
+                No eBay data stored for this card
               </Text>
             </View>
           </View>

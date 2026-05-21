@@ -9,7 +9,7 @@ export class InventoryRepository {
       status,
       sort = "added_at",
       page = 1,
-      limit = 20,
+      limit = 5,
     } = query;
 
     const offset = (Number(page) - 1) * Number(limit);
@@ -27,7 +27,11 @@ export class InventoryRepository {
     `);
 
     const countResult = await db.execute(sql`
-      SELECT COUNT(*) as total FROM inventory WHERE user_id = ${userId}
+      SELECT COUNT(*) as total FROM inventory 
+      WHERE user_id = ${userId}
+      ${sport ? sql`AND sport = ${sport}` : sql``}
+      ${grade ? sql`AND grade_key = ${grade}` : sql``}
+      ${status === 'available' ? sql`AND listing_status IN ('unlisted', 'listed')` : status ? sql`AND listing_status = ${status}` : sql``}
     `);
 
     return {
@@ -103,6 +107,7 @@ export class InventoryRepository {
       photos,
       notes,
       ebaySalesCompleted,
+      ebayActiveListings,
     } = body;
 
     // Sanitize empty strings to null for strict typed columns (UUID, integer, etc.)
@@ -120,9 +125,13 @@ export class InventoryRepository {
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
     const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
     const cleanQuantity = quantity && quantity !== "" ? Number(quantity) : 1;
-    const cleanPhotos = photos && photos !== "" ? photos : null;
+    // Convert JS string[] to PostgreSQL array literal e.g. {"url1","url2"}
+    const cleanPhotos = Array.isArray(photos) && photos.length > 0
+      ? `{${photos.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
+      : null;
     const cleanNotes = notes && notes !== "" ? notes : null;
     const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
+    const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
 
     const duplicateCheck = await db.execute(sql`
       SELECT id, added_at 
@@ -217,13 +226,13 @@ export class InventoryRepository {
       INSERT INTO inventory (
         user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, ebay_sales_completed, listing_status, added_at, updated_at
+        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, listing_status, added_at, updated_at
       ) VALUES (
         ${userId}, ${cleanCardId}, ${resolvedVariantId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, 
         ${cleanVariation}, ${cleanCardNumber}, ${cleanSport},
         ${cleanGradeCompany}, ${cleanGradeValue}, ${gradeKey}, ${cleanCertNumber},
-        ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}, ${cleanNotes}, 
-        ${cleanEbaySalesCompleted}, 'unlisted', NOW(), NOW()
+        ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}::text[], ${cleanNotes},
+        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, 'unlisted', NOW(), NOW()
       )
       RETURNING *
     `);

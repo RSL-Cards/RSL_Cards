@@ -104,7 +104,7 @@ export class AiNarrativeService {
     }
 
     // Helpers
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const norm = (s: string | null | undefined) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const generateCardId = (c: {
       player_name: string;
       year: number;

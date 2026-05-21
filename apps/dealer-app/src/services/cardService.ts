@@ -83,6 +83,8 @@ export interface AddInventoryItem {
   currentMarketValue?: number;
   notes?: string;
   ebaySalesCompleted?: string;
+  ebayActiveListings?: string;
+  photos?: string[];
 }
 
 export interface AddInventoryResponse {

@@ -256,7 +256,7 @@ export class ListingRepository {
       }
     }
 
-    const [soldData, activeData] = await Promise.all([
+    const [soldResult, activeResult] = await Promise.allSettled([
       soldCompsService.getSoldItems(query),
       ebayService.searchListings({
         q: query,
@@ -264,6 +264,22 @@ export class ListingRepository {
         sort: "pricePlusShippingLowest",
       }),
     ]);
+
+    const soldData = soldResult.status === "fulfilled"
+      ? soldResult.value
+      : { keyword: query, totalItems: 0, hasNextPage: false, items: [] };
+
+    if (soldResult.status === "rejected") {
+      console.warn("Failed to fetch sold comps from soldCompsService:", soldResult.reason?.message || soldResult.reason);
+    }
+
+    const activeData = activeResult.status === "fulfilled"
+      ? activeResult.value
+      : { total: 0, itemSummaries: [] };
+
+    if (activeResult.status === "rejected") {
+      console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
+    }
 
     const prices = soldData.items
       .map((i) => parseFloat(i.soldPrice))
@@ -278,7 +294,8 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? activePrices[0] : 0;
 
-    if (effectiveVariantId) {
+    // Only save snapshot cache if we successfully retrieved sold comps data
+    if (effectiveVariantId && soldResult.status === "fulfilled" && soldData.items.length > 0) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)

@@ -15,6 +15,7 @@ import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useAddToInventory } from "../../src/hooks/useCardScan";
 import { apiClient } from "../../src/lib/apiClient";
 import { ENDPOINTS } from "../../src/config/api";
+import * as FileSystem from "expo-file-system/legacy";
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: "💵",
@@ -32,6 +33,7 @@ async function uploadCardPhoto(
   inventoryId: string,
   base64: string,
 ): Promise<void> {
+  let tempUri: string | null = null;
   try {
     const { data: presign } = await apiClient.post(
       ENDPOINTS.inventory.photos(inventoryId),
@@ -39,19 +41,37 @@ async function uploadCardPhoto(
     );
     const { uploadUrl, publicUrl } = presign;
 
-    const imgRes = await fetch(`data:image/jpeg;base64,${base64}`);
-    const blob = await imgRes.blob();
-
-    await fetch(uploadUrl, {
-      method: "PUT",
-      body: blob,
+    // React Native's fetch() does not support data: URIs, so write to a temp file first
+    tempUri = `${FileSystem.cacheDirectory}temp-card-scan-${Date.now()}.jpg`;
+    await FileSystem.writeAsStringAsync(tempUri, base64, {
+      encoding: FileSystem.EncodingType.Base64,
     });
+
+    const s3Res = await FileSystem.uploadAsync(uploadUrl, tempUri, {
+      httpMethod: "PUT",
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        "Content-Type": "image/jpeg",
+      },
+    });
+
+    if (s3Res.status < 200 || s3Res.status >= 300) {
+      throw new Error(`S3 upload failed ${s3Res.status}: ${s3Res.body}`);
+    }
 
     await apiClient.post(ENDPOINTS.inventory.photosConfirm(inventoryId), {
       url: publicUrl,
     });
   } catch (e) {
     console.warn("[PHOTO UPLOAD] failed:", e);
+  } finally {
+    if (tempUri) {
+      try {
+        await FileSystem.deleteAsync(tempUri, { idempotent: true });
+      } catch (err) {
+        console.warn("[PHOTO CLEANUP] failed:", err);
+      }
+    }
   }
 }
 
@@ -138,7 +158,13 @@ export default function BuyConfirmScreen() {
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.cardThumb}>
-            {capturedPhoto ? (
+            {activeTab?.bestMatchImageUrl ? (
+              <Image
+                source={{ uri: activeTab.bestMatchImageUrl }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+                resizeMode="cover"
+              />
+            ) : capturedPhoto ? (
               <Image
                 source={{ uri: `data:image/jpeg;base64,${capturedPhoto}` }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
@@ -307,11 +333,13 @@ export default function BuyConfirmScreen() {
                 currentMarketValue: avgComp ?? undefined,
                 notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
                 ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
+                ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,
+                photos: activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined,
               },
               {
                 onSuccess: async (data: any) => {
                   const inventoryId = data?.item?.id ?? null;
-                  if (inventoryId && capturedPhoto) {
+                  if (inventoryId && !activeTab?.bestMatchImageUrl && capturedPhoto) {
                     uploadCardPhoto(inventoryId, capturedPhoto);
                   }
                   try {

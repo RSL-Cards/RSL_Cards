@@ -16,7 +16,7 @@ export const inventory = pgTable('inventory', {
   variation:            varchar('variation', { length: 255 }),
   cardNumber:           varchar('card_number', { length: 50 }),
   sport:                varchar('sport', { length: 50 }),
-  gradeCompany:         gradeCompanyEnum('grade_company'),             // PSA | BGS | SGC | RAW
+  gradeCompany:         varchar('grade_company', { length: 50 }),             // PSA | BGS | SGC | RAW | GMA
   gradeValue:           varchar('grade_value', { length: 10 }),        // 10 | 9.5 | 9 | NM-MT
   gradeKey:             varchar('grade_key', { length: 30 }),          // PSA_10 | BGS_9.5 | RAW
   certNumber:           varchar('cert_number', { length: 50 }),        // PSA/BGS cert for barcode scan
@@ -26,6 +26,7 @@ export const inventory = pgTable('inventory', {
   quantity:             integer('quantity').default(1),
   isConsignment:        boolean('is_consignment').default(false),
   ebaySalesCompleted:   text('ebay_sales_completed'),                  // JSON string of raw ebay sales
+  ebayActiveListings:   text('ebay_active_listings'),                  // JSON string of raw active listings
   consignmentOwner:     varchar('consignment_owner', { length: 255 }),
   consignmentCommPct:   decimal('consignment_comm_pct', { precision: 5, scale: 2 }),
   listedPlatforms:      text('listed_platforms').array(),              // ['ebay','whatnot']

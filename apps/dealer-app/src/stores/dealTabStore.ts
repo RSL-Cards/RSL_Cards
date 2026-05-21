@@ -15,6 +15,8 @@ export interface DealTab {
   capturedPhoto?: string;
   recentSales?: any[];
   createdAt: string;
+  bestMatchImageUrl?: string;
+  activeListings?: any[];
 }
 
 interface DealTabStore {

@@ -6,13 +6,13 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from "react-native";
-import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
-import { useEbaySold } from "../../src/hooks/useCardScan";
+import { useEbaySold, useEbaySearch } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
-import type { EbaySoldItem } from "../../src/services/cardService";
+import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
 
 const STEP_PCT = "40%";
 
@@ -121,17 +121,20 @@ export default function BuyCompsScreen() {
   const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
-  const [nameOnly, setNameOnly] = useState(false);
 
-  const fullQuery = buildEbayQuery(card);
-  const nameQuery = card?.player_name ?? "";
-  const ebayQuery = nameOnly ? nameQuery : fullQuery;
+  const ebayQuery = buildEbayQuery(card);
 
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 20,
     variantId: activeTab?.variantId,
     gradeKey: card?.grade_key || "RAW",
   });
+
+  const { data: activeSearchData } = useEbaySearch(ebayQuery, {
+    enabled: !!ebayQuery,
+  });
+
+  const activeItems = activeSearchData?.items?.slice(0, 5) ?? [];
 
   const sold30 = data?.sold30d?.items ?? [];
   const sold7 = data?.sold7d?.items ?? [];
@@ -359,59 +362,58 @@ export default function BuyCompsScreen() {
               </View>
             )}
 
-            {/* eBay query pill + name-only toggle */}
-            <View style={{ paddingHorizontal: 20, marginTop: 16, gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => setNameOnly((v) => !v)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  alignSelf: "flex-start",
-                  backgroundColor: nameOnly ? "#0057FF" : "#1A1A1A",
-                  borderRadius: 100,
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
-                  borderWidth: 1,
-                  borderColor: nameOnly ? "#0057FF" : "#2A2A2A",
-                  gap: 6,
-                }}
-                activeOpacity={0.75}
-              >
-                <Text style={{ fontSize: 12 }}>🔍</Text>
-                <Text
-                  style={{
-                    color: nameOnly ? "white" : "#888888",
-                    fontSize: 12,
-                    fontWeight: "700",
-                  }}
-                >
-                  {nameOnly ? "Name only" : "Full details"} search
-                </Text>
-              </TouchableOpacity>
-              <View
-                style={{
-                  backgroundColor: "#111111",
-                  borderRadius: 12,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: "#2A2A2A",
-                }}
-              >
-                <Text
-                  style={{
-                    color: "#555555",
-                    fontSize: 10,
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  EBAY QUERY
-                </Text>
-                <Text style={{ color: "#888888", fontSize: 12, marginTop: 4 }}>
-                  {ebayQuery || "—"}
-                </Text>
+            {/* Current eBay Active Listings */}
+            {activeItems.length > 0 && (
+              <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+                <Text style={styles.sectionLabel}>CURRENT EBAY ACTIVE LISTINGS</Text>
+                <View style={styles.sectionCard}>
+                  {activeItems.map((item, i) => (
+                    <View
+                      key={item.itemId}
+                      style={[
+                        styles.saleRow,
+                        i < activeItems.length - 1 && styles.rowBorder,
+                      ]}
+                    >
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                        {item.image?.imageUrl && (
+                          <Image
+                            source={{ uri: item.image.imageUrl }}
+                            style={{
+                              width: 36,
+                              height: 50,
+                              borderRadius: 4,
+                              marginRight: 10,
+                              backgroundColor: "#222222",
+                            }}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
+                            {item.title}
+                          </Text>
+                          {item.condition && (
+                            <Text
+                              style={{
+                                color: "#555555",
+                                fontSize: 10,
+                                marginTop: 2,
+                              }}
+                            >
+                              {item.condition}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <Text style={styles.salePrice}>
+                        ${parseFloat(item.price?.value ?? "0").toFixed(2)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -420,8 +422,14 @@ export default function BuyCompsScreen() {
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => {
-            if (activeTab?.id && avg30 > 0) {
-              updateTab(activeTab.id, { avgComp: avg30, recentSales });
+            if (activeTab?.id) {
+              const bestMatchItem = activeItems.find((item) => item.image?.imageUrl);
+              const bestMatchImageUrl = bestMatchItem?.image?.imageUrl;
+              updateTab(activeTab.id, {
+                ...(avg30 > 0 ? { avgComp: avg30, recentSales } : {}),
+                bestMatchImageUrl,
+                activeListings: activeItems.length > 0 ? activeItems : undefined,
+              });
             }
             router.push("/buy/price");
           }}

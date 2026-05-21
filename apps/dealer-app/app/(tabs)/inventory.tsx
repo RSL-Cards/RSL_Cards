@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -246,9 +246,79 @@ function InventoryScreen() {
   const [selectedSport, setSelectedSport] = useState("All");
   const sport =
     selectedSport === "All" ? undefined : selectedSport.toLowerCase();
-  const { data: inventoryData, isLoading, refetch } = useInventory({ sport });
+
+  const [page, setPage] = useState(1);
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+
+  const { data: inventoryData, isLoading, refetch } = useInventory({ sport, page, limit: 5 });
   const { data: summary } = useInventorySummary();
-  const items = inventoryData?.items ?? [];
+
+  useEffect(() => {
+    setPage(1);
+    setAllItems([]);
+  }, [selectedSport]);
+
+  useEffect(() => {
+    if (inventoryData?.items) {
+      if (page === 1) {
+        setAllItems(inventoryData.items);
+      } else {
+        setAllItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const newItems = inventoryData.items.filter((i: any) => !existingIds.has(i.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setIsFetchingNextPage(false);
+    }
+  }, [inventoryData, page]);
+
+  const totalFilteredCards = inventoryData?.pagination?.total ?? 0;
+  const hasMore = allItems.length < totalFilteredCards;
+
+  const handleLoadMore = () => {
+    if (hasMore && !isFetchingNextPage) {
+      setIsFetchingNextPage(true);
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setPage(1);
+    setAllItems([]);
+    await refetch();
+  };
+
+  const renderFooter = () => {
+    if (allItems.length === 0) return null;
+    if (!hasMore) {
+      return (
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerText}>Showing all {totalFilteredCards} cards</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.footerContainer}>
+        {isFetchingNextPage ? (
+          <ActivityIndicator color="#E8001C" size="small" style={{ marginVertical: 8 }} />
+        ) : (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={handleLoadMore}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loadMoreBtnText}>
+              Load More (Showing {allItems.length} of {totalFilteredCards})
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   const totalCards = Number(summary?.total_cards ?? 0);
   const totalCost = parseFloat(summary?.total_cost_basis ?? "0");
   const totalMarket = parseFloat(summary?.total_market_value ?? "0");
@@ -361,17 +431,18 @@ function InventoryScreen() {
       />
 
       {/* ── LIST ── */}
-      {isLoading ? (
+      {isLoading && allItems.length === 0 ? (
         <ActivityIndicator color="#E8001C" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={items}
+          data={allItems}
           keyExtractor={(item: any) => item.id}
           renderItem={({ item }: any) => <InventoryCard item={item} />}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
-          onRefresh={refetch}
-          refreshing={isLoading}
+          onRefresh={handleRefresh}
+          refreshing={isLoading && allItems.length === 0}
+          ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingTop: 60 }}>
               <Text style={{ color: "#555555", fontSize: 15 }}>
@@ -521,6 +592,28 @@ const styles = StyleSheet.create({
   },
   pctText: { fontSize: 11, fontWeight: "700" },
   daysText: { fontSize: 11, fontWeight: "600" },
+  footerContainer: {
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerText: {
+    color: "#555555",
+    fontSize: 13,
+  },
+  loadMoreBtn: {
+    backgroundColor: "#111111",
+    borderWidth: 1,
+    borderColor: "#1E1E1E",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  loadMoreBtnText: {
+    color: "#E8001C",
+    fontWeight: "700",
+    fontSize: 13,
+  },
 });
 
 // Export without error boundary for now

@@ -117,6 +117,7 @@ export class UserService {
     const cmd = new PutObjectCommand({
       Bucket: env.S3_BUCKET_NAME,
       Key: key,
+      ContentType: contentType,
     });
 
     const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 300 });

@@ -16,7 +16,7 @@ export const inventory = pgTable('inventory', {
   variation:            varchar('variation', { length: 255 }),
   cardNumber:           varchar('card_number', { length: 50 }),
   sport:                varchar('sport', { length: 50 }),
-  gradeCompany:         gradeCompanyEnum('grade_company'),             // PSA | BGS | SGC | RAW
+  gradeCompany:         varchar('grade_company', { length: 50 }),             // PSA | BGS | SGC | RAW | GMA
   gradeValue:           varchar('grade_value', { length: 10 }),        // 10 | 9.5 | 9 | NM-MT
   gradeKey:             varchar('grade_key', { length: 30 }),          // PSA_10 | BGS_9.5 | RAW
   certNumber:           varchar('cert_number', { length: 50 }),        // PSA/BGS cert for barcode scan
