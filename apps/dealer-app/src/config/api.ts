@@ -28,7 +28,7 @@ export const ENDPOINTS = {
     register: "/v1/auth/register",
     logout: "/v1/auth/logout",
     refresh: "/v1/auth/refresh",
-    onboarding: "/v1/auth/onboarding",
+    onboarding: "/v1/users/me/onboarding",
     forgotPassword: "/v1/auth/forgot-password",
     resetPassword: "/v1/auth/reset-password",
     verifyEmail: "/v1/auth/verify-email",

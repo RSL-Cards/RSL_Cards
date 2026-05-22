@@ -1,9 +1,10 @@
 import { Elysia } from "elysia";
 import { AppError } from "./app-error.js";
+import { BaseAppError } from "@rsl/shared-types";
 import { logger } from "../lib/logger.js";
 
 export const errorMiddleware = new Elysia({ name: "error-middleware" })
-  .onError(({ code, error, set }) => {
+  .onError({ as: "global" }, ({ code, error, set }) => {
     const err = error as any;
     // 1. Log error details with high visibility
     logger.error(`[ERROR HANDLER] ${err.name || "Error"} (${code}): ${err.message || "Unknown error"}`);
@@ -12,7 +13,7 @@ export const errorMiddleware = new Elysia({ name: "error-middleware" })
     }
 
     // 2. Resolve the response structure based on the error type
-    if (error instanceof AppError) {
+    if (error instanceof AppError || error instanceof BaseAppError) {
       set.status = error.statusCode;
       return {
         success: false,
