@@ -129,7 +129,8 @@ export class ListingRepository {
         SELECT cv.id 
         FROM card_variants cv
         JOIN cards c ON c.id = cv.card_id
-        WHERE (c.player_name || ' ' || c.year || ' ' || c.set_name || ' ' || COALESCE(cv.name, 'Base')) ILIKE ${'%' + query + '%'}
+        JOIN players p ON p.id = c.player_id
+        WHERE (p.name || ' ' || c.year || ' ' || c.set_name || ' ' || COALESCE(cv.name, 'Base')) ILIKE ${'%' + query + '%'}
         LIMIT 1
       `);
       if (found.rows.length > 0) {

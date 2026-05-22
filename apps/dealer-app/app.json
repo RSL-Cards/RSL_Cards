@@ -25,6 +25,8 @@
       "package": "com.rslcards.dealer",
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -44,6 +46,12 @@
       "eas": {
         "projectId": "86eb0b34-2701-4527-9e2e-6474e164b77e"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/86eb0b34-2701-4527-9e2e-6474e164b77e"
     }
   }
 }

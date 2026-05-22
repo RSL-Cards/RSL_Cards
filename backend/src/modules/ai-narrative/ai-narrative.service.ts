@@ -300,8 +300,8 @@ export class AiNarrativeService {
           SELECT id FROM card_variants 
           WHERE card_id = ${finalCardId} 
             AND name = 'Base'
-            AND (year = ${cardYear} OR (year IS NULL AND ${cardYear} IS NULL))
-            AND (set_name = ${setName} OR (set_name IS NULL AND ${setName} IS NULL))
+            AND (year = ${cardYear}::integer OR (year IS NULL AND ${cardYear}::integer IS NULL))
+            AND (set_name = ${setName}::varchar OR (set_name IS NULL AND ${setName}::varchar IS NULL))
           LIMIT 1
         `);
         
@@ -317,9 +317,9 @@ export class AiNarrativeService {
           SELECT id FROM card_variants 
           WHERE card_id = ${finalCardId} 
             AND name = ${variantName}
-            AND (year = ${cardYear} OR (year IS NULL AND ${cardYear} IS NULL))
-            AND (set_name = ${setName} OR (set_name IS NULL AND ${setName} IS NULL))
-            AND (print_run = ${printRun} OR (print_run IS NULL AND ${printRun} IS NULL))
+            AND (year = ${cardYear}::integer OR (year IS NULL AND ${cardYear}::integer IS NULL))
+            AND (set_name = ${setName}::varchar OR (set_name IS NULL AND ${setName}::varchar IS NULL))
+            AND (print_run = ${printRun}::integer OR (print_run IS NULL AND ${printRun}::integer IS NULL))
           LIMIT 1
         `);
         

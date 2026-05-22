@@ -102,126 +102,27 @@ export default function SellScanScreen() {
 
       {/* SCAN tab */}
       {activeTab === "scan" && (
-        <View style={styles.scanContent}>
-          {!permission?.granted ? (
-            <View style={{ alignItems: "center", paddingTop: 40, gap: 16 }}>
-              <Text
-                style={{ color: "#888888", fontSize: 14, textAlign: "center" }}
-              >
-                Camera permission needed to scan cards
-              </Text>
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={requestPermission}
-              >
-                <Text style={styles.primaryBtnText}>Grant Permission</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.cameraWrapper}>
-                <CameraView
-                  ref={cameraRef}
-                  style={StyleSheet.absoluteFill}
-                  facing="back"
-                  mode="picture"
-                />
-
-                {/* Dark masks */}
-                <View style={styles.maskTop} />
-                <View style={styles.maskBottom} />
-                <View style={styles.maskLeft} />
-                <View style={styles.maskRight} />
-
-                {/* Card frame */}
-                <View style={styles.cardFrame} pointerEvents="none">
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        top: -2,
-                        left: -2,
-                        borderTopWidth: 3,
-                        borderLeftWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        top: -2,
-                        right: -2,
-                        borderTopWidth: 3,
-                        borderRightWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        bottom: -2,
-                        left: -2,
-                        borderBottomWidth: 3,
-                        borderLeftWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        bottom: -2,
-                        right: -2,
-                        borderBottomWidth: 3,
-                        borderRightWidth: 3,
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* Hint */}
-                <View style={styles.hintBadge}>
-                  <Text style={styles.hintText}>
-                    Align card within the frame
-                  </Text>
-                </View>
-
-                {isScanning && (
-                  <View style={styles.scanningOverlay}>
-                    <ActivityIndicator color="#E8001C" size="large" />
-                    <Text
-                      style={{
-                        color: "white",
-                        marginTop: 10,
-                        fontWeight: "700",
-                      }}
-                    >
-                      Identifying card...
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <TouchableOpacity
-                style={[styles.primaryBtn, isScanning && styles.disabledBtn]}
-                onPress={handleCapture}
-                disabled={isScanning}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isScanning ? "Scanning..." : "Capture Card"}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.simulateBtn}
-                onPress={handleSimulateScan}
-                disabled={isScanning}
-              >
-                <Text style={styles.simulateText}>Simulate Scan (Debug)</Text>
-              </TouchableOpacity>
-            </>
-          )}
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonCard}>
+            <Ionicons
+              name="camera-outline"
+              size={56}
+              color="#E8001C"
+              style={{ marginBottom: 20 }}
+            />
+            <Text style={styles.comingSoonTitle}>Card Scanning Coming Soon</Text>
+            <Text style={styles.comingSoonSubtitle}>
+              We are currently perfecting our computer vision model to identify raw and graded cards.
+              {"\n\n"}
+              In the meantime, please use the **Search** tab to select cards from your inventory.
+            </Text>
+            <TouchableOpacity
+              style={[styles.primaryBtn, { marginTop: 28 }]}
+              onPress={() => setActiveTab("search")}
+            >
+              <Text style={styles.primaryBtnText}>Use Inventory Search</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
