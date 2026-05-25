@@ -31,11 +31,18 @@ const app = new Elysia()
   .onAfterResponse((ctx: any) => {
     const startTime = (ctx as any).requestStartTime || Date.now();
     const duration = Date.now() - startTime;
-    const url = new URL(ctx.request.url);
     const status = ctx.set.status || 200;
     
+    let urlPath = "";
+    try {
+      const url = new URL(ctx.request.url);
+      urlPath = `${url.pathname}${url.search}`;
+    } catch {
+      urlPath = ctx.request.url;
+    }
+    
     // Log API transaction with high visibility
-    logger.info(`[HTTP] ${ctx.request.method} ${url.pathname}${url.search} - ${status} (${duration}ms)`);
+    logger.info(`[HTTP] ${ctx.request.method} ${urlPath} - ${status} (${duration}ms)`);
   })
   .onBeforeHandle((ctx: any) => {
     const request = ctx.request;
