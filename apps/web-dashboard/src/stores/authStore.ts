@@ -8,6 +8,7 @@ import {
   type AuthUser,
   type ForgotPasswordPayload,
   type LoginPayload,
+  type OAuthPayload,
   type RegisterPayload,
   type ResetPasswordPayload,
 } from '@/services/authService'
@@ -21,6 +22,8 @@ interface AuthStore {
   error: string | null
   login: (payload: LoginPayload) => Promise<AuthUser>
   register: (payload: RegisterPayload) => Promise<AuthUser>
+  googleLogin: (payload: OAuthPayload) => Promise<AuthUser>
+  appleLogin: (payload: OAuthPayload) => Promise<AuthUser>
   refreshAuth: () => Promise<AuthTokens | null>
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<string>
   resetPassword: (payload: ResetPasswordPayload) => Promise<string>
@@ -76,6 +79,46 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Registration failed.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      googleLogin: async (payload) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const data = await authService.googleLogin(payload)
+          set({
+            user: data.user,
+            tokens: data.tokens,
+            isAuthenticated: true,
+            isLoading: false,
+          })
+          return data.user
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Google sign in failed.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      appleLogin: async (payload) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const data = await authService.appleLogin(payload)
+          set({
+            user: data.user,
+            tokens: data.tokens,
+            isAuthenticated: true,
+            isLoading: false,
+          })
+          return data.user
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Apple sign in failed.'
           set({ error: message, isLoading: false })
           throw error
         }

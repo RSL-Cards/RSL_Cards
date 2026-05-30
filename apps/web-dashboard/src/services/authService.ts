@@ -42,6 +42,11 @@ export interface ResetPasswordPayload {
   newPassword: string
 }
 
+export interface OAuthPayload {
+  idToken: string
+  role?: 'dealer' | 'consumer'
+}
+
 export interface AuthMessageResponse {
   message: string
   otp?: string
@@ -120,6 +125,26 @@ export const authService = {
     return authRequest<AuthMessageResponse, ResetPasswordPayload>(
       ENDPOINTS.auth.resetPassword,
       payload,
+    )
+  },
+
+  googleLogin(payload: OAuthPayload) {
+    return authRequest<AuthResponse, OAuthPayload>(
+      ENDPOINTS.auth.oauthGoogle,
+      {
+        ...payload,
+        role: payload.role ?? 'dealer',
+      },
+    )
+  },
+
+  appleLogin(payload: OAuthPayload) {
+    return authRequest<AuthResponse, OAuthPayload>(
+      ENDPOINTS.auth.oauthApple,
+      {
+        ...payload,
+        role: payload.role ?? 'dealer',
+      },
     )
   },
 
