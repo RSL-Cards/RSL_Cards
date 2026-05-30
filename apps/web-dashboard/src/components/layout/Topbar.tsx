@@ -1,18 +1,35 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   Bell,
   Wifi,
   WifiOff,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function Topbar() {
+  const router = useRouter()
   const isOnline = true
   const lastSync = '2 min ago'
   const notificationCount = 2
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
+  const isLoading = useAuthStore((state) => state.isLoading)
+  const displayValue = user?.displayName?.trim() || user?.email?.trim() || 'Dealer'
+  const avatarInitial = displayValue.charAt(0).toUpperCase()
+
+  const handleLogout = async () => {
+    await logout()
+    setIsUserMenuOpen(false)
+    router.replace('/login')
+  }
 
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
@@ -105,13 +122,54 @@ export default function Topbar() {
         </div>
 
         {/* User */}
-        <button className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-            MS
-          </div>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsUserMenuOpen((open) => !open)}
+            className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+            aria-expanded={isUserMenuOpen}
+            aria-haspopup="menu"
+          >
+            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+              {avatarInitial}
+            </div>
 
-          <ChevronDown className="w-4 h-4 text-gray-500" />
-        </button>
+            <ChevronDown
+              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                isUserMenuOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {isUserMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+            >
+              <div className="border-b border-gray-100 px-3 py-2">
+                <div className="truncate text-sm font-semibold text-gray-900">
+                  {displayValue}
+                </div>
+                {user?.email && (
+                  <div className="truncate text-xs text-gray-500">
+                    {user.email}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleLogout}
+                disabled={isLoading}
+                className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LogOut className="h-4 w-4" />
+                {isLoading ? 'Logging out...' : 'Logout'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

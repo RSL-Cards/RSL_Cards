@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Crown
 } from 'lucide-react'
-import { DEALER } from '@/data/mockDashboard'
+import { useAuthStore } from '@/stores/authStore'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
@@ -31,6 +31,13 @@ const navItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const user = useAuthStore((state) => state.user)
+  const displayName =
+    user?.displayName?.trim() ||
+    user?.email?.split('@')[0] ||
+    'Dealer'
+  const email = user?.email ?? 'dealer@rslcards.com'
+  const avatarInitial = displayName.charAt(0).toUpperCase()
 
   return (
     <div
@@ -118,20 +125,17 @@ export default function Sidebar() {
         )}
 
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-sm"
-            style={{ backgroundColor: DEALER.avatar_color }}
-          >
-            {DEALER.initials}
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+            {avatarInitial}
           </div>
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <div className="text-gray-900 font-medium text-sm truncate">
-                {DEALER.name}
+                {displayName}
               </div>
               <div className="text-gray-500 text-xs truncate">
-                {DEALER.email}
+                {email}
               </div>
             </div>
           )}
