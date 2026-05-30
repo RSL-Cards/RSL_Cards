@@ -1,45 +1,135 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react'
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Alert } from 'react-native'
-import { useRouter } from 'expo-router'
-import { MOCK_INVENTORY } from '../../src/constants/mockData'
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useInventory } from "../../src/hooks/useCardScan";
+import { useAuthStore } from "../../src/stores/authStore";
 
-const PLATFORMS = [
-  { key: 'ebay',      label: 'eBay',      feePct: 0.1285, flatFee: 5,  color: '#0057FF' },
-  { key: 'whatnot',   label: 'Whatnot',   feePct: 0.08,   flatFee: 5,  color: '#9B59B6' },
-  { key: 'tcgplayer', label: 'TCGPlayer', feePct: 0.1025, flatFee: 5,  color: '#00C853' },
-  { key: 'shopify',   label: 'Shopify',   feePct: 0.02,   flatFee: 0,  color: '#96BF48' },
-]
+const PLATFORM_DEFS = [
+  {
+    key: "ebay",
+    label: "eBay",
+    icon: "",
+    feePct: 0.1285,
+    flatFee: 0,
+    color: "#0057FF",
+  },
+  {
+    key: "whatnot",
+    label: "Whatnot",
+    icon: "",
+    feePct: 0.08,
+    flatFee: 0,
+    color: "#9B59B6",
+  },
+  {
+    key: "tcgplayer",
+    label: "TCGPlayer",
+    icon: "",
+    feePct: 0.1025,
+    flatFee: 0,
+    color: "#00C853",
+  },
+  {
+    key: "shopify",
+    label: "Shopify",
+    icon: "",
+    feePct: 0.02,
+    flatFee: 0,
+    color: "#96BF48",
+  },
+  {
+    key: "mercari",
+    label: "Mercari",
+    icon: "",
+    feePct: 0.1,
+    flatFee: 0,
+    color: "#FF4F4F",
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    icon: "",
+    feePct: 0.05,
+    flatFee: 0,
+    color: "#1877F2",
+  },
+];
 
 export default function CreateListingScreen() {
-  const router = useRouter()
-  const [selectedCard, setSelectedCard] = useState<typeof MOCK_INVENTORY[0] | null>(null)
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
-  const [price, setPrice] = useState('')
+  const router = useRouter();
+  const { inventoryId } = useLocalSearchParams<{ inventoryId?: string }>();
 
-  const numPrice = parseFloat(price) || 0
+  const { data: inventoryData, isLoading } = useInventory();
+  const cards = inventoryData?.items ?? [];
+  const userSellChannels = useAuthStore((s) => s.user?.sellChannels ?? []);
 
-  const platformData = PLATFORMS.map(p => {
-    const fee = numPrice * p.feePct
-    const net = numPrice - fee - p.flatFee
-    return { ...p, fee, net }
-  }).sort((a, b) => b.net - a.net)
+  // Mark a platform connected if user selected it during onboarding
+  // Normalise to lowercase for comparison ("eBay" → "ebay")
+  const PLATFORMS = PLATFORM_DEFS.map((p) => ({
+    ...p,
+    connected: userSellChannels.some(
+      (ch) => ch.toLowerCase() === p.label.toLowerCase(),
+    ),
+  }));
+
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(
+    inventoryId ?? null,
+  );
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [price, setPrice] = useState("");
+
+  // Pre-select the card passed in from inventory detail
+  useEffect(() => {
+    if (inventoryId) setSelectedCardId(inventoryId);
+  }, [inventoryId]);
+
+  const selectedCard = cards.find((c: any) => c.id === selectedCardId) ?? null;
+  const numPrice = parseFloat(price) || 0;
+
+  const connectedPlatforms = PLATFORMS.filter((p) => p.connected);
+  const platformFeeData = connectedPlatforms
+    .map((p) => {
+      const fee = numPrice * p.feePct + p.flatFee;
+      const net = numPrice - fee;
+      return { ...p, fee, net };
+    })
+    .sort((a, b) => b.net - a.net);
 
   const togglePlatform = (key: string) => {
-    setSelectedPlatforms(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    )
-  }
+    setSelectedPlatforms((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  };
 
   const autoTitle = selectedCard
-    ? `${selectedCard.year} ${selectedCard.set_name} ${selectedCard.player_name}${selectedCard.variation ? ` ${selectedCard.variation}` : ''} ${selectedCard.grade_key.replace('_', ' ')}`
-    : ''
+    ? [
+        selectedCard.year,
+        selectedCard.player_name,
+        selectedCard.set_name,
+        selectedCard.variation,
+        selectedCard.grade_key?.replace("_", " "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
 
   const handlePublish = () => {
-    Alert.alert('Listed!', 'Your card has been listed successfully.', [
-      { text: 'OK', onPress: () => router.back() },
-    ])
-  }
+    Alert.alert("Listed!", "Your card has been listed successfully.", [
+      { text: "OK", onPress: () => router.back() },
+    ]);
+  };
+
+  const canPublish = !!selectedCard && !!price && selectedPlatforms.length > 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,30 +141,58 @@ export default function CreateListingScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {/* Card selector */}
         <Text style={styles.sectionLabel}>SELECT CARD</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 10, paddingBottom: 8 }}
-        >
-          {MOCK_INVENTORY.filter(i => i.status !== 'listed').map(card => (
-            <TouchableOpacity
-              key={card.id}
-              style={[styles.cardChip, selectedCard?.id === card.id && styles.cardChipSelected]}
-              onPress={() => setSelectedCard(card)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.cardChipName, selectedCard?.id === card.id && { color: 'white' }]} numberOfLines={1}>
-                {card.player_name}
-              </Text>
-              <Text style={[styles.cardChipMeta, selectedCard?.id === card.id && { color: 'rgba(255,255,255,0.6)' }]}>
-                {card.grade_key.replace('_', ' ')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {isLoading ? (
+          <ActivityIndicator color="#333" style={{ marginLeft: 20 }} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              gap: 10,
+              paddingBottom: 8,
+            }}
+          >
+            {cards.map((card: any) => {
+              const isSelected = card.id === selectedCardId;
+              return (
+                <TouchableOpacity
+                  key={card.id}
+                  style={[
+                    styles.cardChip,
+                    isSelected && styles.cardChipSelected,
+                  ]}
+                  onPress={() => setSelectedCardId(card.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.cardChipName,
+                      isSelected && { color: "white" },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {card.player_name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.cardChipMeta,
+                      isSelected && { color: "rgba(255,255,255,0.6)" },
+                    ]}
+                  >
+                    {card.grade_key?.replace("_", " ") ?? "RAW"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
 
         {/* Auto-title preview */}
         {autoTitle.length > 0 && (
@@ -84,30 +202,83 @@ export default function CreateListingScreen() {
           </View>
         )}
 
-        {/* Platform selector */}
-        <Text style={[styles.sectionLabel, { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 }]}>
-          PLATFORMS
-        </Text>
-        <View style={styles.platformGrid}>
-          {PLATFORMS.map(p => {
-            const isSelected = selectedPlatforms.includes(p.key)
-            return (
-              <TouchableOpacity
-                key={p.key}
-                style={[styles.platformChip, isSelected && { borderColor: p.color, backgroundColor: `${p.color}18` }]}
-                onPress={() => togglePlatform(p.key)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.platformChipText, isSelected && { color: p.color }]}>{p.label}</Text>
-              </TouchableOpacity>
-            )
-          })}
+        {/* Platforms */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PLATFORMS</Text>
+        <View style={{ paddingHorizontal: 20, gap: 10 }}>
+          {PLATFORMS.filter((p) => p.connected).length === 0 ? (
+            <TouchableOpacity
+              style={styles.platformRowDisconnected}
+              onPress={() => router.push("/settings/platforms" as any)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.platformLabelDisconnected}>
+                No platforms connected
+              </Text>
+              <View style={styles.connectBtn}>
+                <Text style={styles.connectBtnText}>Connect →</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            PLATFORMS.filter((p) => p.connected).map((p) => {
+              const isSelected = selectedPlatforms.includes(p.key);
+              return (
+                <TouchableOpacity
+                  key={p.key}
+                  style={[
+                    styles.platformRow,
+                    isSelected && {
+                      borderColor: p.color,
+                      backgroundColor: `${p.color}12`,
+                    },
+                  ]}
+                  onPress={() => togglePlatform(p.key)}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      styles.platformIcon,
+                      { backgroundColor: `${p.color}22` },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>{p.icon}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.platformLabel,
+                      isSelected && { color: "white" },
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      isSelected && {
+                        backgroundColor: p.color,
+                        borderColor: p.color,
+                      },
+                    ]}
+                  >
+                    {isSelected && (
+                      <Text
+                        style={{
+                          color: "white",
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        ✓
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         {/* Price input */}
-        <Text style={[styles.sectionLabel, { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 }]}>
-          YOUR PRICE
-        </Text>
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>YOUR PRICE</Text>
         <View style={styles.priceInputWrapper}>
           <Text style={styles.priceDollar}>$</Text>
           <TextInput
@@ -120,19 +291,21 @@ export default function CreateListingScreen() {
           />
         </View>
 
-        {/* Fee comparison table */}
-        {numPrice > 0 && (
-          <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={[styles.sectionLabel, { marginBottom: 10 }]}>FEE COMPARISON</Text>
+        {/* Fee comparison — only connected platforms */}
+        {numPrice > 0 && connectedPlatforms.length > 0 && (
+          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 10 }]}>
+              FEE COMPARISON
+            </Text>
             <View style={styles.feeTable}>
-              {platformData.map((p, i) => {
-                const isBest = i === 0
+              {platformFeeData.map((p, i) => {
+                const isBest = i === 0;
                 return (
                   <View
                     key={p.key}
                     style={[
                       styles.feeRow,
-                      i < platformData.length - 1 && styles.feeRowBorder,
+                      i < platformFeeData.length - 1 && styles.feeRowBorder,
                       isBest && styles.feeRowBest,
                     ]}
                   >
@@ -141,11 +314,19 @@ export default function CreateListingScreen() {
                         <Text style={styles.bestBadgeText}>BEST</Text>
                       </View>
                     )}
-                    <Text style={[styles.feePlatform, isBest && { color: 'white' }]}>{p.label}</Text>
+                    <Text
+                      style={[styles.feePlatform, isBest && { color: "white" }]}
+                    >
+                      {p.label}
+                    </Text>
                     <Text style={styles.feeAmount}>-${p.fee.toFixed(2)}</Text>
-                    <Text style={[styles.feeNet, isBest && { color: '#00C853' }]}>${p.net.toFixed(2)}</Text>
+                    <Text
+                      style={[styles.feeNet, isBest && { color: "#00C853" }]}
+                    >
+                      ${p.net.toFixed(2)}
+                    </Text>
                   </View>
-                )
+                );
               })}
             </View>
           </View>
@@ -155,67 +336,199 @@ export default function CreateListingScreen() {
       {/* Publish button */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.publishBtn, (!selectedCard || !price || selectedPlatforms.length === 0) && styles.publishBtnDisabled]}
-          disabled={!selectedCard || !price || selectedPlatforms.length === 0}
+          style={[styles.publishBtn, !canPublish && styles.publishBtnDisabled]}
+          disabled={!canPublish}
           onPress={handlePublish}
           activeOpacity={0.85}
         >
           <Text style={styles.publishBtnText}>
-            Publish on {selectedPlatforms.length > 0 ? `${selectedPlatforms.length} platform${selectedPlatforms.length > 1 ? 's' : ''}` : 'platforms'}
+            {canPublish
+              ? `Publish on ${selectedPlatforms.length} platform${selectedPlatforms.length > 1 ? "s" : ""}`
+              : "Select card, platform & price"}
           </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: "#000000" },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  headerTitle: { color: 'white', fontSize: 22, fontWeight: '700' },
-  closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1A1A1A', borderRadius: 18 },
-  closeBtnText: { color: '#888888', fontSize: 16 },
-  sectionLabel: { color: '#888888', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, paddingHorizontal: 20, marginBottom: 10 },
+  headerTitle: { color: "white", fontSize: 22, fontWeight: "700" },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 18,
+  },
+  closeBtnText: { color: "#888888", fontSize: 16 },
+  sectionLabel: {
+    color: "#888888",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
   cardChip: {
-    width: 120, backgroundColor: '#111111', borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: '#2A2A2A',
+    width: 120,
+    backgroundColor: "#111111",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
   },
-  cardChipSelected: { backgroundColor: '#0057FF', borderColor: '#0057FF' },
-  cardChipName: { color: '#888888', fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  cardChipMeta: { color: '#555555', fontSize: 11 },
-  titlePreview: { marginHorizontal: 20, marginTop: 12, backgroundColor: '#111111', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#2A2A2A' },
-  titlePreviewText: { color: 'white', fontSize: 13, lineHeight: 18 },
-  platformGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 20 },
-  platformChip: {
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
-    backgroundColor: '#111111', borderWidth: 1.5, borderColor: '#2A2A2A',
+  cardChipSelected: { backgroundColor: "#0057FF", borderColor: "#0057FF" },
+  cardChipName: {
+    color: "#888888",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 4,
   },
-  platformChipText: { color: '#888888', fontSize: 14, fontWeight: '600' },
+  cardChipMeta: { color: "#555555", fontSize: 11 },
+  titlePreview: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: "#111111",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+  titlePreviewText: { color: "white", fontSize: 13, lineHeight: 18 },
+  platformRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#111111",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: "#2A2A2A",
+  },
+  platformRowDisconnected: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#0A0A0A",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#1A1A1A",
+    opacity: 0.7,
+  },
+  platformIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  platformLabel: { flex: 1, color: "#AAAAAA", fontSize: 15, fontWeight: "600" },
+  platformLabelDisconnected: {
+    flex: 1,
+    color: "#444444",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  connectedBadge: {
+    backgroundColor: "rgba(0,200,83,0.12)",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  connectedText: { color: "#00C853", fontSize: 11, fontWeight: "600" },
+  connectBtn: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  connectBtnText: { color: "#555555", fontSize: 12, fontWeight: "600" },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   priceInputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 20, backgroundColor: '#111111',
-    borderRadius: 16, borderWidth: 1, borderColor: '#2A2A2A',
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 20,
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
     paddingHorizontal: 20,
   },
-  priceDollar: { color: '#555555', fontSize: 32, fontWeight: '700', marginRight: 4 },
-  priceInput: { flex: 1, color: 'white', fontSize: 40, fontWeight: '900', paddingVertical: 16 },
-  feeTable: { backgroundColor: '#111111', borderRadius: 16, borderWidth: 1, borderColor: '#2A2A2A', overflow: 'hidden' },
-  feeRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 8 },
-  feeRowBorder: { borderBottomWidth: 1, borderBottomColor: '#2A2A2A' },
-  feeRowBest: { borderLeftWidth: 3, borderLeftColor: '#00C853' },
-  bestBadge: {
-    backgroundColor: 'rgba(255,215,0,0.2)', borderRadius: 4,
-    paddingHorizontal: 6, paddingVertical: 2,
+  priceDollar: {
+    color: "#555555",
+    fontSize: 32,
+    fontWeight: "700",
+    marginRight: 4,
   },
-  bestBadgeText: { color: '#FFD700', fontSize: 9, fontWeight: '700' },
-  feePlatform: { flex: 1, color: '#888888', fontSize: 14, fontWeight: '600' },
-  feeAmount: { color: '#E8001C', fontSize: 13, marginRight: 12 },
-  feeNet: { color: 'white', fontSize: 15, fontWeight: '700', minWidth: 64, textAlign: 'right' },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#000000', borderTopWidth: 1, borderTopColor: '#2A2A2A' },
-  publishBtn: { backgroundColor: '#0057FF', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  publishBtnDisabled: { backgroundColor: '#1A1A1A' },
-  publishBtnText: { color: 'white', fontWeight: '700', fontSize: 16 },
-})
+  priceInput: {
+    flex: 1,
+    color: "white",
+    fontSize: 40,
+    fontWeight: "900",
+    paddingVertical: 16,
+  },
+  feeTable: {
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+    overflow: "hidden",
+  },
+  feeRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 8 },
+  feeRowBorder: { borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
+  feeRowBest: { borderLeftWidth: 3, borderLeftColor: "#00C853" },
+  bestBadge: {
+    backgroundColor: "rgba(255,215,0,0.2)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  bestBadgeText: { color: "#FFD700", fontSize: 9, fontWeight: "700" },
+  feePlatform: { flex: 1, color: "#888888", fontSize: 14, fontWeight: "600" },
+  feeAmount: { color: "#E8001C", fontSize: 13, marginRight: 12 },
+  feeNet: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "700",
+    minWidth: 64,
+    textAlign: "right",
+  },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: "#000000",
+    borderTopWidth: 1,
+    borderTopColor: "#1A1A1A",
+  },
+  publishBtn: {
+    backgroundColor: "#0057FF",
+    height: 56,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  publishBtnDisabled: { backgroundColor: "#1A1A1A" },
+  publishBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+});

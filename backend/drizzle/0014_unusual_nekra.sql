@@ -1,0 +1,1 @@
+ALTER TABLE "inventory" ALTER COLUMN "grade_company" SET DATA TYPE varchar(50);

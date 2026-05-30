@@ -6,14 +6,22 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Image,
+  ActivityIndicator,
 } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
+import { ExportModal } from "../../src/components/ExportModal";
 import {
   usePaymentMethods,
   paymentMethodIcon,
   useFetchOnFocus,
+  useUploadAvatar,
+  useProfile,
 } from "../../src/hooks/useProfile";
 // import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
@@ -32,6 +40,8 @@ function SettingsRow({
   isLast?: boolean;
   accentColor?: string;
 }) {
+  const isEmoji = !icon || icon.length <= 2 || /\p{Emoji}/u.test(icon);
+
   return (
     <TouchableOpacity
       style={[styles.row, !isLast && styles.rowBorder]}
@@ -41,7 +51,16 @@ function SettingsRow({
       }
       activeOpacity={0.7}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      {isEmoji ? (
+        <Text style={styles.rowIcon}>{icon}</Text>
+      ) : (
+        <Ionicons
+          name={icon as any}
+          size={20}
+          color="#888888"
+          style={{ marginRight: 12, width: 24, textAlign: "center" }}
+        />
+      )}
       <Text style={[styles.rowLabel, accentColor && { color: accentColor }]}>
         {label}
       </Text>
@@ -59,12 +78,45 @@ function MoreScreen() {
   const router = useRouter();
   const { mutate: logout } = useLogout();
   const user = useAuthStore((s) => s.user);
+  const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
+    useUploadAvatar();
+  const [localUri, setLocalUri] = useState<string | null>(null);
+  const [exportType, setExportType] = useState<"transactions" | "inventory" | null>(null);
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Allow photo library access to change your avatar.",
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"] as any,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      const uri = result.assets[0].uri;
+      setLocalUri(uri);
+      uploadAvatar(uri, {
+        onError: (e: any) => {
+          setLocalUri(null);
+          Alert.alert("Upload failed", e?.message ?? String(e));
+        },
+      });
+    }
+  };
 
   // Only fetch data when screen is focused (user clicks More tab)
   const hasFocused = useFetchOnFocus();
 
+  const { data: profile } = useProfile(hasFocused);
   const { data: paymentMethods } = usePaymentMethods(hasFocused);
-  const initials = (user?.displayName ?? user?.email ?? "U")
+  
+  const initials = (profile?.displayName ?? user?.displayName ?? user?.email ?? "U")
     .split(" ")
     .map((w: string) => w[0])
     .join("")
@@ -90,15 +142,41 @@ function MoreScreen() {
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>{initials}</Text>
-          </View>
+          <TouchableOpacity
+            onPress={handlePickAvatar}
+            style={styles.profileAvatar}
+          >
+            {(localUri ?? profile?.photoUrl ?? user?.photoUrl) ? (
+              <Image
+                source={{ uri: (localUri ?? profile?.photoUrl ?? user?.photoUrl) as string }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.profileAvatarText}>{initials}</Text>
+            )}
+            {isUploadingAvatar && (
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  {
+                    backgroundColor: "rgba(0,0,0,0.5)",
+                    borderRadius: 24,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+              >
+                <ActivityIndicator color="white" size="small" />
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
               <Text style={styles.profileName}>
-                {user?.displayName ?? user?.email}
+                {profile?.displayName ?? user?.displayName ?? user?.email}
               </Text>
               <View
                 style={[
@@ -113,7 +191,7 @@ function MoreScreen() {
             </View>
             <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/settings/index")}>
+          <TouchableOpacity onPress={() => router.push("/settings")}>
             <Text style={{ color: "#0057FF", fontSize: 13 }}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -122,13 +200,12 @@ function MoreScreen() {
         <Text style={styles.sectionLabel}>BUSINESS</Text>
         <SectionCard>
           <SettingsRow
-            icon="👥"
+            icon="people-outline"
             label="Customers"
-            onPress={() => router.push("/customers/index")}
           />
-          <SettingsRow icon="📅" label="Card Shows" />
+          <SettingsRow icon="calendar-outline" label="Card Shows" />
           <SettingsRow
-            icon="📋"
+            icon="list-outline"
             label="My Listings"
             onPress={() => router.push("/listings/index")}
             isLast
@@ -139,13 +216,13 @@ function MoreScreen() {
         <Text style={styles.sectionLabel}>PLATFORMS</Text>
         <SectionCard>
           <SettingsRow
-            icon="🛒"
+            icon="cart-outline"
             label="eBay"
             value="⚫ Connect"
-            onPress={() =>
-              router.push("/settings/connect-platform?platform=ebay")
-            }
+            onPress={() => router.push("/settings/platforms")}
+            isLast
           />
+          {/* Whatnot — not yet supported
           <SettingsRow
             icon="📺"
             label="Whatnot"
@@ -153,7 +230,8 @@ function MoreScreen() {
             onPress={() =>
               router.push("/settings/connect-platform?platform=whatnot")
             }
-          />
+          /> */}
+          {/* TCGPlayer — not yet supported
           <SettingsRow
             icon="🎮"
             label="TCGPlayer"
@@ -161,7 +239,8 @@ function MoreScreen() {
             onPress={() =>
               router.push("/settings/connect-platform?platform=tcgplayer")
             }
-          />
+          /> */}
+          {/* Shopify — not yet supported
           <SettingsRow
             icon="🏪"
             label="Shopify"
@@ -170,7 +249,7 @@ function MoreScreen() {
               router.push("/settings/connect-platform?platform=shopify")
             }
             isLast
-          />
+          /> */}
         </SectionCard>
 
         {/* Payments */}
@@ -191,25 +270,24 @@ function MoreScreen() {
           </>
         )}
 
-        {/* Data */}
         <Text style={styles.sectionLabel}>DATA & EXPORTS</Text>
         <SectionCard>
-          <SettingsRow icon="📄" label="Export Transactions (CSV)" />
-          <SettingsRow icon="📦" label="Export Inventory (CSV)" />
-          <SettingsRow icon="💰" label="Tax Report (PDF)" isLast />
+          <SettingsRow icon="document-text-outline" label="Export Transactions (CSV)" onPress={() => setExportType("transactions")} />
+          <SettingsRow icon="cube-outline" label="Export Inventory (CSV)" onPress={() => setExportType("inventory")} />
+          <SettingsRow icon="cash-outline" label="Tax Report (PDF)" isLast />
         </SectionCard>
 
         {/* App */}
         <Text style={styles.sectionLabel}>APP</Text>
         <SectionCard>
           <SettingsRow
-            icon="🔔"
+            icon="notifications-outline"
             label="Notifications"
-            onPress={() => router.push("/settings/index")}
+            onPress={() => router.push("/settings")}
           />
-          <SettingsRow icon="❓" label="Help & Support" />
-          <SettingsRow icon="ℹ️" label="About RSL Cards" />
-          <SettingsRow icon="📱" label="Version" value="1.0.0" isLast />
+          <SettingsRow icon="help-circle-outline" label="Help & Support" />
+          <SettingsRow icon="information-circle-outline" label="About RSL Cards" />
+          <SettingsRow icon="phone-portrait-outline" label="Version" value="1.0.0" isLast />
         </SectionCard>
 
         {/* Logout */}
@@ -221,6 +299,15 @@ function MoreScreen() {
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Export Modal */}
+      {exportType && (
+        <ExportModal
+          visible={!!exportType}
+          type={exportType}
+          onClose={() => setExportType(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -250,6 +337,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E8001C",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   profileAvatarText: { color: "white", fontSize: 20, fontWeight: "700" },
   profileName: { color: "white", fontSize: 16, fontWeight: "700" },

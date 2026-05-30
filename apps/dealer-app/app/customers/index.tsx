@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router'
 import { FlashList } from '@shopify/flash-list'
 import { MOCK_CUSTOMERS } from '../../src/constants/mockData'
 import { formatDistanceToNow } from 'date-fns'
+import { Ionicons } from '@expo/vector-icons'
 
 const AVATAR_COLORS: Record<string, string> = {
   A: '#0057FF', B: '#0057FF', C: '#0057FF', D: '#0057FF', E: '#0057FF',
@@ -43,7 +44,7 @@ export default function CustomersScreen() {
 
       {/* Search */}
       <View style={styles.searchRow}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Ionicons name="search" size={18} color="#888888" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search customers..."
@@ -87,7 +88,7 @@ export default function CustomersScreen() {
             <View style={{ flex: 1, marginLeft: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.customerName}>{item.name}</Text>
-                {item.is_favorite && <Text style={{ fontSize: 14 }}>⭐</Text>}
+                {item.is_favorite && <Ionicons name="star" size={14} color="#FFD700" />}
               </View>
               <Text style={styles.customerMeta}>
                 Last seen {formatDistanceToNow(new Date(item.last_seen_at), { addSuffix: true })}

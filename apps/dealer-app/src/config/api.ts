@@ -10,26 +10,15 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.36"; // physical device — same WiFi as dev machine
+const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
 
-export const API_BASE_URL = __DEV__
-  ? `http://${DEV_HOST}:80`
-  : "https://api.rslcards.com";
+export const API_BASE_URL = "http://3.231.19.101";
 
 /**
- * All endpoint paths grouped by microservice domain.
- * The Nginx gateway routes each prefix to the correct service:
+ * All endpoint paths mapped to the unified backend monorepo.
+ * The Nginx gateway routes all /v1/* traffic directly to:
  *
- *   /v1/auth/*        → auth-service      :3001
- *   /v1/users/*       → user-service      :3002
- *   /v1/inventory/*   → inventory-service :3003
- *   /v1/transactions/*→ transaction-service:3004
- *   /v1/listings/*    → listing-service   :3005
- *   /v1/cards/*       → auth-service:3001 →→ card-db-service   :3006 (API Gateway)
- *   /v1/narratives/*  → ai-narrative-service:3007
- *   /v1/notifications/*→notification-service:3008
- *   /v1/analytics/*   → analytics-service :3009
- *   /v1/admin/*       → admin-service     :3010
+ *   /v1/*   →  backend:8080  (Consolidated Backend Container)
  */
 export const ENDPOINTS = {
   auth: {
@@ -37,7 +26,7 @@ export const ENDPOINTS = {
     register: "/v1/auth/register",
     logout: "/v1/auth/logout",
     refresh: "/v1/auth/refresh",
-    onboarding: "/v1/auth/onboarding",
+    onboarding: "/v1/users/me/onboarding",
     forgotPassword: "/v1/auth/forgot-password",
     resetPassword: "/v1/auth/reset-password",
     verifyEmail: "/v1/auth/verify-email",
@@ -46,11 +35,12 @@ export const ENDPOINTS = {
   },
 
   users: {
-    me: "/v1/auth/me", // auth-service validates JWT, proxies to user-service
-    updateProfile: "/v1/auth/me",
-    preferences: "/v1/auth/me/preferences",
-    paymentMethods: "/v1/auth/me/payment-methods", // auth → user-service (internal)
-    connectedPlatforms: "/v1/auth/me/connected-platforms", // auth → user-service (internal)
+    me: "/v1/users/me",
+    updateProfile: "/v1/users/me",
+    avatarUpload: "/v1/users/me/avatar",
+    preferences: "/v1/users/me/preferences",
+    paymentMethods: "/v1/users/me/payment-methods",
+    connectedPlatforms: "/v1/users/me/connected-platforms",
   },
 
   inventory: {
@@ -59,12 +49,18 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/inventory/${id}`,
     update: (id: string) => `/v1/inventory/${id}`,
     delete: (id: string) => `/v1/inventory/${id}`,
+    export: "/v1/inventory/export",
+    photos: (id: string) => `/v1/inventory/${id}/photos`,
+    photosConfirm: (id: string) => `/v1/inventory/${id}/photos/confirm`,
   },
 
   transactions: {
     list: "/v1/transactions",
     create: "/v1/transactions",
+    buy: "/v1/transactions/buy",
+    sell: "/v1/transactions/sell",
     detail: (id: string) => `/v1/transactions/${id}`,
+    export: "/v1/transactions/export",
   },
 
   listings: {
@@ -73,14 +69,23 @@ export const ENDPOINTS = {
     detail: (id: string) => `/v1/listings/${id}`,
     update: (id: string) => `/v1/listings/${id}`,
     delete: (id: string) => `/v1/listings/${id}`,
+    priceHistory: (cardId: string, gradeKey: string) =>
+      `/v1/listings/price-history/${cardId}?grade_key=${gradeKey}`,
+    priceRefreshTrigger: "/v1/listings/price-refresh/trigger",
   },
 
   cards: {
-    scan: "/v1/cards/scan",
+    scan: "/v1/narratives/scan-card",
     scanBarcode: "/v1/cards/scan/barcode",
     search: "/v1/cards/search",
     detail: (id: string) => `/v1/cards/${id}`,
     comps: (id: string) => `/v1/cards/${id}/comps`,
+  },
+
+  ebay: {
+    sold: "/v1/listings/ebay/sold",
+    search: "/v1/listings/ebay/search",
+    itemByName: "/v1/listings/ebay/items/by-name",
   },
 
   narratives: {
@@ -95,6 +100,9 @@ export const ENDPOINTS = {
   analytics: {
     dashboard: "/v1/analytics/dashboard",
     daily: "/v1/analytics/daily",
-    weekly: "/v1/analytics/weekly",
+    todayActivity: "/v1/analytics/today-activity",
+    report: (period: string) => `/v1/analytics/report?period=${period}`,
+    profitChannel: (period: string) =>
+      `/v1/analytics/profit/channel?period=${period}`,
   },
 } as const;

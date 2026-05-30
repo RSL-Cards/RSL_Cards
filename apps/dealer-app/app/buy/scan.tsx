@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { Ionicons } from "@expo/vector-icons";
 import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
@@ -117,37 +118,80 @@ export default function BuyScanScreen() {
             </View>
           ) : (
             <>
-              <View style={styles.cameraContainer}>
+              <View style={styles.cameraWrapper}>
+                {/* Full-screen camera feed */}
                 <CameraView
                   ref={cameraRef}
-                  style={styles.camera}
+                  style={StyleSheet.absoluteFill}
                   facing="back"
                   mode="picture"
                 />
-                {/* Corner brackets overlay */}
-                {[
-                  { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-                  {
-                    top: 16,
-                    right: 16,
-                    borderTopWidth: 2,
-                    borderRightWidth: 2,
-                  },
-                  {
-                    bottom: 16,
-                    left: 16,
-                    borderBottomWidth: 2,
-                    borderLeftWidth: 2,
-                  },
-                  {
-                    bottom: 16,
-                    right: 16,
-                    borderBottomWidth: 2,
-                    borderRightWidth: 2,
-                  },
-                ].map((corner, i) => (
-                  <View key={i} style={[styles.corner, corner as any]} />
-                ))}
+
+                {/* Dark mask — top */}
+                <View style={styles.maskTop} />
+                {/* Dark mask — bottom */}
+                <View style={styles.maskBottom} />
+                {/* Dark mask — left */}
+                <View style={styles.maskLeft} />
+                {/* Dark mask — right */}
+                <View style={styles.maskRight} />
+
+                {/* Card frame */}
+                <View style={styles.cardFrame} pointerEvents="none">
+                  {/* Corner accents */}
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        left: -2,
+                        borderTopWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        top: -2,
+                        right: -2,
+                        borderTopWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        left: -2,
+                        borderBottomWidth: 3,
+                        borderLeftWidth: 3,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.frameCorner,
+                      {
+                        bottom: -2,
+                        right: -2,
+                        borderBottomWidth: 3,
+                        borderRightWidth: 3,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Hint label */}
+                <View style={styles.hintBadge}>
+                  <Text style={styles.hintText}>
+                    Align card within the frame
+                  </Text>
+                </View>
+
                 {(isScanning || isScanningBarcode) && (
                   <View style={styles.scanningOverlay}>
                     <ActivityIndicator color="#0057FF" size="large" />
@@ -182,79 +226,23 @@ export default function BuyScanScreen() {
 
       {/* BARCODE tab */}
       {activeTab === "barcode" && (
-        <View style={styles.scanContent}>
-          <View style={[styles.cameraArea, { aspectRatio: 2 }]}>
-            {[
-              { top: 16, left: 16, borderTopWidth: 2, borderLeftWidth: 2 },
-              { top: 16, right: 16, borderTopWidth: 2, borderRightWidth: 2 },
-              {
-                bottom: 16,
-                left: 16,
-                borderBottomWidth: 2,
-                borderLeftWidth: 2,
-              },
-              {
-                bottom: 16,
-                right: 16,
-                borderBottomWidth: 2,
-                borderRightWidth: 2,
-              },
-            ].map((corner, i) => (
-              <View key={i} style={[styles.corner, corner as any]} />
-            ))}
-            <Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text>
-            <Text style={{ color: "#888888", fontSize: 14 }}>
-              Point at barcode / cert #
-            </Text>
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonCard}>
+            <Ionicons name="barcode-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
+            <Text style={styles.comingSoonTitle}>Barcode Scanner</Text>
+            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
           </View>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={handleSimulateScan}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Simulate Barcode Scan</Text>
-          </TouchableOpacity>
         </View>
       )}
 
       {/* SEARCH tab */}
       {activeTab === "search" && (
-        <View style={{ flex: 1, paddingTop: 16 }}>
-          <View style={styles.searchRow}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search player, year, set..."
-              placeholderTextColor="#555555"
-              value={query}
-              onChangeText={setQuery}
-              autoFocus
-            />
+        <View style={styles.comingSoonContainer}>
+          <View style={styles.comingSoonCard}>
+            <Ionicons name="search-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
+            <Text style={styles.comingSoonTitle}>Card Database Search</Text>
+            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
           </View>
-          <FlatList
-            data={filtered}
-            keyExtractor={(item: any) => item.id}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                style={styles.searchResultRow}
-                onPress={() => handleSelectCard(item)}
-                activeOpacity={0.75}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.searchResultName}>
-                    {item.player_name}
-                  </Text>
-                  <Text style={styles.searchResultMeta}>
-                    {item.year} · {item.set_name}
-                    {item.variation ? ` · ${item.variation}` : ""}
-                  </Text>
-                </View>
-                <View style={styles.sportChip}>
-                  <Text style={styles.sportChipText}>{item.sport}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
         </View>
       )}
     </SafeAreaView>
@@ -301,22 +289,82 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     alignItems: "center",
   },
-  cameraContainer: {
-    width: "100%",
-    aspectRatio: 1,
-    borderRadius: 20,
-    overflow: "hidden",
-    position: "relative",
+  cameraWrapper: {
+    width: SCREEN_WIDTH - 40,
+    height: (SCREEN_WIDTH - 40) * (3.5 / 2.5),
+    alignSelf: "center",
     marginBottom: 24,
-    backgroundColor: "#0D0D0D",
+    position: "relative",
+    overflow: "hidden",
+    backgroundColor: "#000",
+    borderRadius: 4,
   },
-  camera: {
-    width: "100%",
-    height: "100%",
+  maskTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "8%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskLeft: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    left: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  maskRight: {
+    position: "absolute",
+    top: "8%",
+    bottom: "8%",
+    right: 0,
+    width: "5%",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  cardFrame: {
+    position: "absolute",
+    top: "8%",
+    left: "5%",
+    right: "5%",
+    bottom: "8%",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(0,87,255,0.5)",
+  },
+  frameCorner: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    borderColor: "#0057FF",
+    borderRadius: 3,
+  },
+  hintBadge: {
+    position: "absolute",
+    bottom: "10%",
+    alignSelf: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  hintText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "600",
   },
   cameraArea: {
     width: "100%",
-    aspectRatio: 1,
+    aspectRatio: 2,
     backgroundColor: "#0D0D0D",
     borderRadius: 20,
     alignItems: "center",
@@ -344,10 +392,9 @@ const styles = StyleSheet.create({
   },
   scanningOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.72)",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
   },
   scanningText: {
     color: "white",
@@ -405,4 +452,31 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   sportChipText: { color: "#888888", fontSize: 11, fontWeight: "600" },
+  comingSoonContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  comingSoonCard: {
+    backgroundColor: "#111111",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#222222",
+    padding: 32,
+    alignItems: "center",
+    width: "100%",
+  },
+  comingSoonTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  comingSoonSubtitle: {
+    color: "#888888",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

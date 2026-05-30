@@ -1,50 +1,37 @@
 {
   "name": "rsl-cards",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
   "engines": {
     "node": ">=22"
   },
-  "pnpm": {
-    "overrides": {
-      "react": "19.1.0",
-      "react-native": "0.81.5",
-      "react-dom": "19.1.0",
-      "@types/react": "~19.1.10"
-    }
-  },
+  "workspaces": [
+    "packages/*",
+    "backend"
+  ],
   "scripts": {
-    "dev": "turbo run dev --filter=./services/*",
+    "dev": "bun --filter @rsl/backend run dev",
     "build": "turbo build",
     "test": "turbo test",
     "test:coverage": "turbo test -- --coverage",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "db:generate:dev": "pnpm --filter @rsl/shared-db generate:dev",
-    "db:generate:qa": "pnpm --filter @rsl/shared-db generate:qa",
-    "db:generate:prod": "pnpm --filter @rsl/shared-db generate:prod",
-    "db:generate:test": "pnpm --filter @rsl/shared-db generate:test",
-    "db:generate": "pnpm --filter @rsl/shared-db generate:dev",
-    "db:migrate:dev": "pnpm --filter @rsl/shared-db migrate:dev",
-    "db:migrate:qa": "pnpm --filter @rsl/shared-db migrate:qa",
-    "db:migrate:prod": "pnpm --filter @rsl/shared-db migrate:prod",
-    "db:migrate:test": "pnpm --filter @rsl/shared-db migrate:test",
-    "db:seed": "pnpm --filter @rsl/shared-db seed:dev",
-    "db:seed:dev": "pnpm --filter @rsl/shared-db seed:dev",
-    "db:studio": "pnpm --filter @rsl/shared-db studio",
-    "dev:auth": "turbo dev --filter=@rsl/auth-service",
-    "dev:user": "turbo dev --filter=@rsl/user-service",
-    "dev:inventory": "turbo dev --filter=@rsl/inventory-service",
-    "dev:transaction": "turbo dev --filter=@rsl/transaction-service",
-    "dev:listing": "turbo dev --filter=@rsl/listing-service",
-    "dev:cards": "turbo dev --filter=@rsl/card-db-service",
-    "dev:narrative": "turbo dev --filter=@rsl/ai-narrative-service",
-    "dev:notification": "turbo dev --filter=@rsl/notification-service",
-    "dev:analytics": "turbo dev --filter=@rsl/analytics-service",
-    "dev:admin": "turbo dev --filter=@rsl/admin-service"
+    "db:generate:dev": "bun --filter @rsl/shared-db run generate:dev",
+    "db:generate:qa": "bun --filter @rsl/shared-db run generate:qa",
+    "db:generate:prod": "bun --filter @rsl/shared-db run generate:prod",
+    "db:generate:test": "bun --filter @rsl/shared-db run generate:test",
+    "db:generate": "bun --filter @rsl/shared-db run generate:dev",
+    "db:migrate:dev": "bun --filter @rsl/shared-db run migrate:dev",
+    "db:migrate:qa": "bun --filter @rsl/shared-db run migrate:qa",
+    "db:migrate:prod": "bun --filter @rsl/shared-db run migrate:prod",
+    "db:migrate:test": "bun --filter @rsl/shared-db run migrate:test",
+    "db:seed": "bun --filter @rsl/shared-db run seed:dev",
+    "db:seed:dev": "bun --filter @rsl/shared-db run seed:dev",
+    "db:studio": "bun --filter @rsl/shared-db run studio"
   },
   "devDependencies": {
+    "@sinclair/typebox": "^0.34.0",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "ws": "8"
   }
 }

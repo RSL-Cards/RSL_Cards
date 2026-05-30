@@ -2,81 +2,194 @@ import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 
 export interface ScannedCard {
-  id: string;
   player_name: string;
   year: number;
   set_name: string;
   variation?: string;
   sport: string;
   card_number?: string;
+  manufacturer?: string;
+  is_rookie?: boolean;
+  is_autograph?: boolean;
+  is_relic?: boolean;
   grading?: {
     company: string;
     grade: string;
     cert_number: string;
   };
-  image_url?: string;
 }
 
 export interface ScanResponse {
   card: ScannedCard;
   confidence: number;
-  alternatives?: ScannedCard[];
+  cardId?: string;
+  variantId?: string;
+  playerId?: string;
+  fromCache?: boolean;
 }
 
-export interface CompItem {
-  id: string;
+export interface EbaySoldItem {
+  itemId: string;
+  title: string;
+  soldPrice: { value: string; currency: string };
+  condition?: string;
+  endDate?: string;
+  shippingCost?: string;
+  itemWebUrl?: string;
+  location?: string;
+}
+
+export interface EbayCompSnapshot {
   platform: string;
-  price: number;
-  condition: string;
-  date: string;
-  url?: string;
+  avgSoldPrice: string;
+  lastSoldPrice: string;
+  lowestActive: string;
+  salesCount30d: number;
+  priceTrend30d: string | null;
 }
 
-export interface CompsResponse {
-  card_id: string;
-  comps: CompItem[];
-  median_price: number;
-  average_price: number;
-  high_price: number;
-  low_price: number;
+export interface EbaySoldResponse {
+  query: string;
+  fromCache: boolean;
+  fetchedAt?: string;
+  snapshots?: EbayCompSnapshot[];
+  sold7d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
+  sold30d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
 }
+
+export interface EbaySearchItem {
+  itemId: string;
+  title: string;
+  price?: { value: string; currency: string };
+  condition?: string;
+  itemWebUrl?: string;
+  image?: { imageUrl: string };
+}
+
+export interface AddInventoryItem {
+  cardId?: string;
+  playerId: string;
+  year?: number;
+  setName?: string;
+  variation?: string;
+  cardNumber?: string;
+  sport?: string;
+  gradeCompany?: string;
+  gradeValue?: string;
+  gradeKey?: string;
+  certNumber?: string;
+  variantId?: string;
+  costBasis: number;
+  currentMarketValue?: number;
+  notes?: string;
+  ebaySalesCompleted?: string;
+  ebayActiveListings?: string;
+  photos?: string[];
+}
+
+export interface AddInventoryResponse {
+  success: boolean;
+  message: string;
+  item: {
+    id: string;
+    player_id: string;
+    cost_basis: string;
+    added_at: string;
+  };
+}
+
+export const inventoryService = {
+  async addItem(data: AddInventoryItem): Promise<AddInventoryResponse> {
+    const { data: res } = await apiClient.post<AddInventoryResponse>(
+      ENDPOINTS.inventory.create,
+      data,
+    );
+    return res;
+  },
+
+  async list(params?: {
+    sport?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: any[];
+    pagination: { page: number; limit: number; total: number };
+  }> {
+    const { data } = await apiClient.get(ENDPOINTS.inventory.list, { params });
+    return data;
+  },
+
+  async getSummary(): Promise<{
+    total_cards: string;
+    total_cost_basis: string;
+    total_market_value: string;
+    total_unrealized_gain: string;
+  }> {
+    const { data } = await apiClient.get(`${ENDPOINTS.inventory.list}/summary`);
+    return data;
+  },
+
+  async getItem(id: string): Promise<any> {
+    const { data } = await apiClient.get(ENDPOINTS.inventory.detail(id));
+    return data;
+  },
+};
 
 export const cardService = {
-  /**
-   * Scan card image using AI to identify the card
-   * @param imageBase64 - Base64 encoded image string (without data URI prefix)
-   */
   async scanImage(imageBase64: string): Promise<ScanResponse> {
+    const base64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const { data } = await apiClient.post<ScanResponse>(ENDPOINTS.cards.scan, {
-      image: imageBase64,
+      image: base64,
+      mimeType: "image/jpeg",
     });
     return data;
   },
 
-  /**
-   * Scan barcode/QR code to identify card
-   * @param barcode - Barcode or certification number
-   */
   async scanBarcode(barcode: string): Promise<ScanResponse> {
-    const { data } = await apiClient.post<ScanResponse>(ENDPOINTS.cards.scanBarcode, {
-      barcode,
-    });
+    const { data } = await apiClient.post<ScanResponse>(
+      ENDPOINTS.cards.scanBarcode,
+      {
+        barcode,
+      },
+    );
     return data;
   },
 
-  /**
-   * Get card details by ID
-   */
-  async getCardDetail(id: string): Promise<ScannedCard> {
-    const { data } = await apiClient.get<ScannedCard>(ENDPOINTS.cards.detail(id));
-    return data;
+  async getEbaySold(
+    query: string,
+    limit = 10,
+    variantId?: string,
+    gradeKey?: string,
+  ): Promise<EbaySoldResponse> {
+    const params: Record<string, any> = { q: query, limit };
+    if (variantId) params.variant_id = variantId;
+    if (gradeKey) params.grade_key = gradeKey;
+    const { data } = await apiClient.get<any>(ENDPOINTS.ebay.sold, { params });
+    if (data.fromCache && data.snapshots) {
+      return {
+        query: data.query,
+        fromCache: true,
+        fetchedAt: data.fetchedAt,
+        snapshots: data.snapshots,
+      };
+    }
+    return {
+      query: data.query,
+      fromCache: false,
+      sold7d: data.last7Days,
+      sold30d: data.last30Days,
+    };
   },
 
-  /**
-   * Get comparable sales (comps) for a card
-   */
-  async getComps(id: string): Promise<CompsResponse> {
-    const { data } = await apiClient.get<CompsResponse>(ENDPOINTS.cards.comps(id));
-    return data;
+  async searchEbay(
+    query: string,
+    limit = 20,
+  ): Promise<{ total: number; items: EbaySearchItem[] }> {
+    const { data } = await apiClient.get<{
+      total: number;
+      itemSummaries?: EbaySearchItem[];
+    }>(ENDPOINTS.ebay.search, { params: { q: query, limit } });
+    return { total: data.total, items: data.itemSummaries ?? [] };
   },
 };

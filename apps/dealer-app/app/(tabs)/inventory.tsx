@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,21 +6,23 @@ import {
   ScrollView,
   StyleSheet,
   FlatList,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  MOCK_INVENTORY,
-  MOCK_INVENTORY_SUMMARY,
-} from "../../src/constants/mockData";
-// import { InventoryErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
+import { useAuthStore } from "../../src/stores/authStore";
 
-const SPORTS = [
-  { key: "All", emoji: "🏆" },
+const ALL_SPORTS = [
   { key: "Football", emoji: "🏈" },
   { key: "Baseball", emoji: "⚾" },
   { key: "Basketball", emoji: "🏀" },
   { key: "Hockey", emoji: "🏒" },
+  { key: "Soccer", emoji: "⚽" },
+  { key: "MMA", emoji: "🥊" },
+  { key: "Other", emoji: "🏅" },
 ];
 
 const GRADE_CONFIG: Record<
@@ -71,11 +73,35 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
+
+function InventoryCard({ item }: { item: any }) {
   const router = useRouter();
-  const isAging = item.days_held >= 60;
-  const isLoss = item.unrealized_gain < 0;
-  const gainColor = item.unrealized_gain >= 0 ? "#00C853" : "#E8001C";
+  const costBasis = parseFloat(item.cost_basis ?? "0");
+  const marketValue = parseFloat(item.current_market_value ?? "0");
+  const unrealizedGain = marketValue > 0 ? marketValue - costBasis : 0;
+  const unrealizedGainPct =
+    costBasis > 0 && marketValue > 0
+      ? Math.round(((marketValue - costBasis) / costBasis) * 100)
+      : 0;
+  const dbDate = item.added_at || item.addedAt;
+  let addedAt = new Date();
+  if (dbDate) {
+    let dateStr = dbDate;
+    if (typeof dateStr === "string") {
+      // Convert Postgres "2026-04-28 18:18:26.688438+00" to valid ISO "2026-04-28T18:18:26Z"
+      dateStr = dateStr.replace(" ", "T").replace(/\.\d+/, "");
+      if (dateStr.endsWith("+00")) dateStr = dateStr.replace("+00", "Z");
+    }
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      addedAt = parsed;
+    }
+  }
+  const daysHeld = Math.max(1, Math.ceil((Date.now() - addedAt.getTime()) / 86400000));
+  const isAging = daysHeld >= 60;
+  const isLoss = unrealizedGain < 0;
+  const gainColor = unrealizedGain >= 0 ? "#00C853" : "#E8001C";
+  const status = item.listing_status ?? "unlisted";
 
   const accentColor =
     isAging && isLoss
@@ -86,9 +112,9 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
           ? "#E8001C"
           : null;
 
-  const initials = item.player_name
+  const initials = (item.player_name ?? "?")
     .split(" ")
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
@@ -107,7 +133,15 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         {/* Thumbnail */}
         <View style={styles.thumb}>
-          <Text style={styles.thumbText}>{initials}</Text>
+          {item.photos?.[0] ? (
+            <Image
+              source={{ uri: item.photos[0] }}
+              style={StyleSheet.absoluteFill}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={styles.thumbText}>{initials}</Text>
+          )}
           {item.quantity > 1 && (
             <View style={styles.qtyBadge}>
               <Text style={styles.qtyText}>×{item.quantity}</Text>
@@ -136,46 +170,54 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>COST</Text>
               <Text style={styles.priceMuted}>
-                ${item.cost_basis.toLocaleString()}
+                ${costBasis.toLocaleString()}
               </Text>
             </View>
             <View style={[styles.priceDivider]} />
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>MARKET</Text>
               <Text style={styles.priceValue}>
-                ${item.current_market_value.toLocaleString()}
+                {marketValue > 0 ? `$${marketValue.toLocaleString()}` : "—"}
               </Text>
             </View>
             <View style={[styles.priceDivider]} />
             <View style={styles.priceBlock}>
               <Text style={styles.priceLabel}>P&L</Text>
-              <Text style={[styles.priceValue, { color: gainColor }]}>
-                {item.unrealized_gain >= 0 ? "+" : ""}$
-                {Math.abs(item.unrealized_gain).toFixed(0)}
+              <Text
+                style={[
+                  styles.priceValue,
+                  { color: marketValue > 0 ? gainColor : "#444444" },
+                ]}
+              >
+                {marketValue > 0
+                  ? `${unrealizedGain >= 0 ? "+" : ""}$${Math.abs(unrealizedGain).toFixed(0)}`
+                  : "—"}
               </Text>
             </View>
           </View>
 
           {/* Row 4 — status + days + pct */}
           <View style={[styles.row, { marginTop: 8, alignItems: "center" }]}>
-            <StatusDot status={item.status} />
+            <StatusDot status={status} />
             <View style={{ flex: 1 }} />
-            <View
-              style={[
-                styles.pctPill,
-                {
-                  backgroundColor:
-                    item.unrealized_gain >= 0
-                      ? "rgba(0,200,83,0.12)"
-                      : "rgba(232,0,28,0.12)",
-                },
-              ]}
-            >
-              <Text style={[styles.pctText, { color: gainColor }]}>
-                {item.unrealized_gain_pct >= 0 ? "+" : ""}
-                {item.unrealized_gain_pct}%
-              </Text>
-            </View>
+            {marketValue > 0 && (
+              <View
+                style={[
+                  styles.pctPill,
+                  {
+                    backgroundColor:
+                      unrealizedGain >= 0
+                        ? "rgba(0,200,83,0.12)"
+                        : "rgba(232,0,28,0.12)",
+                  },
+                ]}
+              >
+                <Text style={[styles.pctText, { color: gainColor }]}>
+                  {unrealizedGainPct >= 0 ? "+" : ""}
+                  {unrealizedGainPct}%
+                </Text>
+              </View>
+            )}
             <Text
               style={[
                 styles.daysText,
@@ -183,7 +225,7 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
               ]}
             >
               {isAging ? "⚠ " : ""}
-              {item.days_held}d
+              {daysHeld}d
             </Text>
           </View>
         </View>
@@ -193,14 +235,97 @@ function InventoryCard({ item }: { item: (typeof MOCK_INVENTORY)[0] }) {
 }
 
 function InventoryScreen() {
+  const router = useRouter();
+  const userSports = useAuthStore((s) => s.user?.sports ?? []);
+  const sportTabs = [
+    { key: "All", emoji: "🏆" },
+    ...ALL_SPORTS.filter((s) =>
+      userSports.some((us) => us.toLowerCase() === s.key.toLowerCase()),
+    ),
+  ];
   const [selectedSport, setSelectedSport] = useState("All");
+  const sport =
+    selectedSport === "All" ? undefined : selectedSport.toLowerCase();
 
-  const filtered =
-    selectedSport === "All"
-      ? MOCK_INVENTORY
-      : MOCK_INVENTORY.filter((i) => i.sport === selectedSport);
+  const [page, setPage] = useState(1);
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
-  const S = MOCK_INVENTORY_SUMMARY;
+  const { data: inventoryData, isLoading, refetch } = useInventory({ sport, page, limit: 5 });
+  const { data: summary } = useInventorySummary();
+
+  useEffect(() => {
+    setPage(1);
+    setAllItems([]);
+  }, [selectedSport]);
+
+  useEffect(() => {
+    if (inventoryData?.items) {
+      if (page === 1) {
+        setAllItems(inventoryData.items);
+      } else {
+        setAllItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const newItems = inventoryData.items.filter((i: any) => !existingIds.has(i.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setIsFetchingNextPage(false);
+    }
+  }, [inventoryData, page]);
+
+  const totalFilteredCards = inventoryData?.pagination?.total ?? 0;
+  const hasMore = allItems.length < totalFilteredCards;
+
+  const handleLoadMore = () => {
+    if (hasMore && !isFetchingNextPage) {
+      setIsFetchingNextPage(true);
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setPage(1);
+    setAllItems([]);
+    await refetch();
+  };
+
+  const renderFooter = () => {
+    if (allItems.length === 0) return null;
+    if (!hasMore) {
+      return (
+        <View style={styles.footerContainer}>
+          <Text style={styles.footerText}>Showing all {totalFilteredCards} cards</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.footerContainer}>
+        {isFetchingNextPage ? (
+          <ActivityIndicator color="#E8001C" size="small" style={{ marginVertical: 8 }} />
+        ) : (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={handleLoadMore}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loadMoreBtnText}>
+              Load More (Showing {allItems.length} of {totalFilteredCards})
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const totalCards = Number(summary?.total_cards ?? 0);
+  const totalCost = parseFloat(summary?.total_cost_basis ?? "0");
+  const totalMarket = parseFloat(summary?.total_market_value ?? "0");
+  const totalGain = parseFloat(summary?.total_unrealized_gain ?? "0");
+  const totalGainPct =
+    totalCost > 0 ? Math.round((totalGain / totalCost) * 100) : 0;
+  const gainColor = totalGain >= 0 ? "#00C853" : "#E8001C";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
@@ -208,11 +333,9 @@ function InventoryScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Inventory</Text>
-          <Text style={styles.headerSub}>
-            {S.total_cards} cards · {S.listed_count} listed
-          </Text>
+          <Text style={styles.headerSub}>{totalCards} cards</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn}>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/buy/scan")}>
           <Text style={styles.addBtnText}>+ Add</Text>
         </TouchableOpacity>
       </View>
@@ -222,23 +345,29 @@ function InventoryScreen() {
         {[
           {
             label: "COST BASIS",
-            value: `$${S.total_cost_basis.toLocaleString()}`,
+            value: `$${totalCost.toLocaleString()}`,
             color: "#888888",
           },
           {
             label: "MARKET VAL",
-            value: `$${S.total_market_value.toLocaleString()}`,
+            value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—",
             color: "white",
           },
           {
             label: "UNREALIZED",
-            value: `+$${S.total_unrealized_gain.toLocaleString()}`,
-            color: "#00C853",
+            value:
+              totalMarket > 0
+                ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}`
+                : "—",
+            color: gainColor,
           },
           {
             label: "GAIN %",
-            value: `+${S.total_unrealized_gain_pct}%`,
-            color: "#00C853",
+            value:
+              totalMarket > 0
+                ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%`
+                : "—",
+            color: gainColor,
           },
         ].map((s, i, arr) => (
           <View
@@ -268,43 +397,24 @@ function InventoryScreen() {
           alignItems: "center",
         }}
       >
-        {SPORTS.map((sport) => {
-          const isActive = selectedSport === sport.key;
-          const count =
-            sport.key === "All"
-              ? MOCK_INVENTORY.length
-              : MOCK_INVENTORY.filter((i) => i.sport === sport.key).length;
+        {sportTabs.map((s) => {
+          const isActive = selectedSport === s.key;
           return (
             <TouchableOpacity
-              key={sport.key}
+              key={s.key}
               style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => setSelectedSport(sport.key)}
+              onPress={() => setSelectedSport(s.key)}
               activeOpacity={0.75}
             >
-              <Text style={styles.filterChipEmoji}>{sport.emoji}</Text>
+              <Text style={styles.filterChipEmoji}>{s.emoji}</Text>
               <Text
                 style={[
                   styles.filterChipText,
                   isActive && styles.filterChipTextActive,
                 ]}
               >
-                {sport.key}
+                {s.key}
               </Text>
-              <View
-                style={[
-                  styles.filterChipCount,
-                  isActive && styles.filterChipCountActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterChipCountText,
-                    isActive && styles.filterChipCountTextActive,
-                  ]}
-                >
-                  {count}
-                </Text>
-              </View>
             </TouchableOpacity>
           );
         })}
@@ -321,20 +431,30 @@ function InventoryScreen() {
       />
 
       {/* ── LIST ── */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item: any) => item.id}
-        renderItem={({ item }: any) => <InventoryCard item={item} />}
-        contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={{ alignItems: "center", paddingTop: 60 }}>
-            <Text style={{ color: "#555555", fontSize: 15 }}>
-              No cards in this category
-            </Text>
-          </View>
-        }
-      />
+      {isLoading && allItems.length === 0 ? (
+        <ActivityIndicator color="#E8001C" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={allItems}
+          keyExtractor={(item: any) => item.id}
+          renderItem={({ item }: any) => <InventoryCard item={item} />}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          onRefresh={handleRefresh}
+          refreshing={isLoading && allItems.length === 0}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={
+            <View style={{ alignItems: "center", paddingTop: 60 }}>
+              <Text style={{ color: "#555555", fontSize: 15 }}>
+                No cards yet
+              </Text>
+              <Text style={{ color: "#333333", fontSize: 13, marginTop: 6 }}>
+                Cards added via buy flow appear here
+              </Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -391,32 +511,18 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
+    height: 44, // using an explicit height to guarantee button size
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 20,
     borderRadius: 100,
     backgroundColor: "#111111",
     borderWidth: 1,
     borderColor: "#1E1E1E",
   },
   filterChipActive: { backgroundColor: "#E8001C", borderColor: "#E8001C" },
-  filterChipEmoji: { fontSize: 13 },
-  filterChipText: { color: "#666666", fontSize: 13, fontWeight: "600" },
+  filterChipEmoji: { fontSize: 16 },
+  filterChipText: { color: "#666666", fontSize: 16, fontWeight: "600" },
   filterChipTextActive: { color: "white" },
-  filterChipCount: {
-    backgroundColor: "#1E1E1E",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 5,
-  },
-  filterChipCountActive: { backgroundColor: "rgba(255,255,255,0.25)" },
-  filterChipCountText: { color: "#555555", fontSize: 10, fontWeight: "700" },
-  filterChipCountTextActive: { color: "white" },
-
   card: {
     backgroundColor: "#0E0E0E",
     borderRadius: 14,
@@ -435,6 +541,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#222222",
+    overflow: "hidden",
   },
   thumbText: { color: "#444444", fontSize: 16, fontWeight: "800" },
   qtyBadge: {
@@ -485,6 +592,28 @@ const styles = StyleSheet.create({
   },
   pctText: { fontSize: 11, fontWeight: "700" },
   daysText: { fontSize: 11, fontWeight: "600" },
+  footerContainer: {
+    paddingVertical: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerText: {
+    color: "#555555",
+    fontSize: 13,
+  },
+  loadMoreBtn: {
+    backgroundColor: "#111111",
+    borderWidth: 1,
+    borderColor: "#1E1E1E",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  loadMoreBtnText: {
+    color: "#E8001C",
+    fontWeight: "700",
+    fontSize: 13,
+  },
 });
 
 // Export without error boundary for now

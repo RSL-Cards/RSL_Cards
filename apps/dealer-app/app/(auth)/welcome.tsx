@@ -1,19 +1,21 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native'
 import { useRouter } from 'expo-router'
-
+import { AntDesign } from '@expo/vector-icons'
+import { useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
 export default function WelcomeScreen() {
   const router = useRouter()
-
+  const { promptGoogleSignIn, request } = useGoogleAuth();
+  const { signInWithApple } = useAppleAuth();
   return (
     <SafeAreaView style={styles.container}>
       {/* Logo Card */}
       <View style={styles.centerContent}>
-        <View style={styles.cardFrame}>
-          <View style={styles.cardTopLine} />
-          <Text style={styles.rslText}>RSL</Text>
-          <Text style={styles.cardsText}>CARDS</Text>
-        </View>
+        <Image
+          source={require('../../assets/rslicon.jpeg')}
+          style={{ width: 160, height: 160, borderRadius: 24 }}
+          resizeMode="contain"
+        />
         <Text style={styles.tagline}>Run. Sell. Log.</Text>
       </View>
 
@@ -47,16 +49,37 @@ export default function WelcomeScreen() {
 
         <View style={{ height: 16 }} />
 
-        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
-          <Text style={styles.googleG}>G</Text>
-          <Text style={styles.socialBtnText}>Continue with Google</Text>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          activeOpacity={0.85}
+          disabled={!request}
+          onPress={() => promptGoogleSignIn()}
+        >
+          <View style={styles.socialInner}>
+            <View style={styles.socialIconWrap}>
+              <AntDesign name="google" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
+            </View>
+            <Text style={styles.socialBtnText}>
+              Continue with Google
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <View style={{ height: 10 }} />
 
-        <TouchableOpacity style={styles.socialBtn} activeOpacity={0.85}>
-          <Text style={styles.appleIcon}></Text>
-          <Text style={styles.socialBtnText}>Continue with Apple</Text>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          activeOpacity={0.85}
+          onPress={signInWithApple}
+        >
+          <View style={styles.socialInner}>
+            <View style={styles.socialIconWrap}>
+              <AntDesign name="apple" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
+            </View>
+            <Text style={styles.socialBtnText}>
+              Continue with Apple
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -162,12 +185,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
   },
-  googleG: {
-    color: '#0057FF',
-    fontSize: 18,
-    fontWeight: '700',
+  socialInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 200,
+  },
+  socialIconWrap: {
+    width: 32,
+    alignItems: 'center',
+    marginRight: 8,
   },
   appleIcon: {
     color: 'white',

@@ -2,17 +2,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useOnboardingStore } from "../../../src/stores/onboardingStore";
 
 const METHODS = [
-  { label: "Card Shows", emoji: "🏪" },
-  { label: "eBay", emoji: "🛒" },
-  { label: "Whatnot", emoji: "📺" },
-  { label: "Facebook", emoji: "📘" },
-  { label: "Mercari", emoji: "🛍" },
-  { label: "COMC", emoji: "🃏" },
-  { label: "TCGPlayer", emoji: "🎮" },
-  { label: "Shopify", emoji: "🏪" },
+  { label: "Card Shows", icon: "business-outline" },
+  { label: "eBay", icon: "cart-outline" },
+  { label: "Whatnot", icon: "tv-outline" },
+  { label: "Facebook", icon: "logo-facebook" },
+  { label: "Mercari", icon: "bag-handle-outline" },
+  { label: "COMC", icon: "cube-outline" },
+  { label: "TCGPlayer", icon: "game-controller-outline" },
+  { label: "Shopify", icon: "storefront-outline" },
 ];
 
 export default function SellMethodsScreen() {
@@ -46,7 +47,7 @@ export default function SellMethodsScreen() {
                 onPress={() => toggle(m.label)}
                 activeOpacity={0.75}
               >
-                <Text style={styles.chipEmoji}>{m.emoji}</Text>
+                <Ionicons name={m.icon as any} size={18} color={isSelected ? "white" : "#888888"} />
                 <Text
                   style={[
                     styles.chipLabel,
