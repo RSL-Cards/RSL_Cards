@@ -77,7 +77,7 @@ export function validateEnv(
 ): Env {
   const parsed = envSchema.safeParse(overrides);
   if (!parsed.success) {
-    const msg = parsed.error.errors
+    const msg = parsed.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join("; ");
     throw new Error(`Environment validation failed: ${msg}`);
