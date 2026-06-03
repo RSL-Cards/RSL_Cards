@@ -226,7 +226,10 @@ export class UserRepository {
   }
 
   async getCustomers(userId: string) {
-    return { message: `Get dealer's customer list for ${userId}` };
+    const result = await db.execute(sql`
+      SELECT * FROM customers WHERE user_id = ${userId}
+    `);
+    return result.rows;
   }
 
   async postCustomer(userId: string, _body: any) {

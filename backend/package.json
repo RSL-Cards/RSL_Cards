@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "test": "bun test",
+    "test": "bun test --sequence",
+    "test:docker": "docker compose -f ../infra/docker/docker-compose.dev.yml run --rm backend-test",
     "lint": "bun x eslint .",
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config drizzle.dev.config.ts",

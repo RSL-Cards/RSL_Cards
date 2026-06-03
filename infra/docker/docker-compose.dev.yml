@@ -113,6 +113,36 @@ services:
       - rsl-dev
     restart: unless-stopped
 
+  backend-test:
+    image: oven/bun:latest
+    working_dir: /workspace/backend
+    container_name: rsl-backend-test
+    env_file:
+      - .env.dev
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      NODE_ENV: test
+    volumes:
+      - ../../:/workspace
+      - rsl_dev_node_modules:/workspace/node_modules
+      - ~/.config/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+    depends_on:
+      dev-install:
+        condition: service_completed_successfully
+      rsldb-test:
+        condition: service_healthy
+      redis-dev:
+        condition: service_started
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command:
+      - sh
+      - -c
+      - "DATABASE_URL=$$TEST_DATABASE_URL bun run db:migrate && bun test --sequence"
+    networks:
+      - rsl-dev
+
   nginx-dev:
     image: nginx:alpine
     container_name: rsl-nginx-dev
