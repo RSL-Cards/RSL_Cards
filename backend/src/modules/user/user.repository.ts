@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { dealerProfiles, paymentMethods, platformConnections, users } from "../../db/schema/index.js";
 import { db } from "../../db/index.js";
 
@@ -200,7 +200,10 @@ export class UserRepository {
     await db
       .delete(platformConnections as any)
       .where(
-        sql`${platformConnections.userId} = ${userId} AND ${platformConnections.platform} = ${platform}`
+        and(
+          eq((platformConnections as any).userId, userId),
+          eq((platformConnections as any).platform, platform)
+        )
       );
     
     return { success: true };

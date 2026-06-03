@@ -12,6 +12,10 @@ import {
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { userService } from "../../src/services/userService";
 import { Ionicons } from "@expo/vector-icons";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -24,6 +28,10 @@ import {
   useProfile,
 } from "../../src/hooks/useProfile";
 // import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
+
+const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
+const EBAY_CLIENT_ID = process.env.EXPO_PUBLIC_EBAY_CLIENT_ID;
+const EBAY_RU_NAME = process.env.EXPO_PUBLIC_EBAY_RU_NAME;
 
 function SettingsRow({
   icon,
@@ -82,6 +90,57 @@ function MoreScreen() {
     useUploadAvatar();
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [exportType, setExportType] = useState<"transactions" | "inventory" | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: connectedPlatforms = [] } = useQuery({
+    queryKey: ['connected-platforms'],
+    queryFn: userService.getConnectedPlatforms,
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: (platform: string) => userService.disconnectPlatform(platform),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connected-platforms'] });
+    },
+  });
+
+  const handleEbayConnect = async () => {
+    if (!EBAY_CLIENT_ID || !EBAY_RU_NAME) {
+      Alert.alert('Config Missing', 'eBay Client ID or RU Name not configured.');
+      return;
+    }
+
+    // Generate a deep link return URL that works perfectly in Expo Go and Production
+    const returnUrl = makeRedirectUri({ path: 'oauth/ebay' });
+
+    const userId = user?.id || 'current-user';
+    
+    // Pass both the userId and the Expo return URL in the state param so the backend knows where to redirect back to
+    // Pass both the userId and the Expo return URL in the state param so the backend knows where to redirect back to
+    // We avoid JSON or base64 because eBay's sandbox gets confused by special characters
+    const stateStr = `${userId}___${returnUrl}`;
+    
+    const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')}&state=${encodeURIComponent(stateStr)}`;
+    
+    console.log("Opening eBay Auth:");
+    console.log("authUrl:", authUrl);
+    console.log("returnUrl:", returnUrl);
+    
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl);
+      
+      if (result.type === 'success' && result.url.includes('status=success')) {
+        queryClient.invalidateQueries({ queryKey: ['connected-platforms'] });
+        Alert.alert('Success', 'eBay connected and active listings synced successfully!');
+      } else if (result.type === 'success' && result.url.includes('status=error')) {
+        const url = new URL(result.url);
+        const msg = url.searchParams.get('message') || 'Unknown error';
+        Alert.alert('Error', msg);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to open eBay login.');
+    }
+  };
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -215,41 +274,65 @@ function MoreScreen() {
         {/* Platforms */}
         <Text style={styles.sectionLabel}>PLATFORMS</Text>
         <SectionCard>
-          <SettingsRow
-            icon="cart-outline"
-            label="eBay"
-            value="⚫ Connect"
-            onPress={() => router.push("/settings/platforms")}
-            isLast
-          />
-          {/* Whatnot — not yet supported
-          <SettingsRow
-            icon="📺"
-            label="Whatnot"
-            value="⚫ Connect"
-            onPress={() =>
-              router.push("/settings/connect-platform?platform=whatnot")
-            }
-          /> */}
-          {/* TCGPlayer — not yet supported
-          <SettingsRow
-            icon="🎮"
-            label="TCGPlayer"
-            value="⚫ Connect"
-            onPress={() =>
-              router.push("/settings/connect-platform?platform=tcgplayer")
-            }
-          /> */}
-          {/* Shopify — not yet supported
-          <SettingsRow
-            icon="🏪"
-            label="Shopify"
-            value="⚫ Connect"
-            onPress={() =>
-              router.push("/settings/connect-platform?platform=shopify")
-            }
-            isLast
-          /> */}
+          {(() => {
+            const ebayConnection = connectedPlatforms.find((c: any) => c.platform === 'ebay');
+            const isEbayConnected = !!ebayConnection && ebayConnection.isActive;
+            return (
+              <SettingsRow
+                icon="cart-outline"
+                label="eBay"
+                value={isEbayConnected ? "🟢 Connected" : "⚫ Connect"}
+                onPress={() => {
+                  if (isEbayConnected) {
+                    Alert.alert(
+                      "Disconnect eBay?",
+                      "This will disconnect your eBay account.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        { 
+                          text: "Disconnect", 
+                          style: "destructive",
+                          onPress: () => disconnectMutation.mutate('ebay')
+                        },
+                      ]
+                    );
+                  } else {
+                    handleEbayConnect();
+                  }
+                }}
+              />
+            );
+          })()}
+          {(() => {
+            const myslabsConnection = connectedPlatforms.find((c: any) => c.platform === 'myslabs');
+            const isMyslabsConnected = !!myslabsConnection && myslabsConnection.isActive;
+            return (
+              <SettingsRow
+                icon="albums-outline"
+                label="MySlabs"
+                value={isMyslabsConnected ? "🟢 Connected" : "⚫ Connect"}
+                onPress={() => {
+                  if (isMyslabsConnected) {
+                    Alert.alert(
+                      "Disconnect MySlabs?",
+                      "This will disconnect your MySlabs account.",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        { 
+                          text: "Disconnect", 
+                          style: "destructive",
+                          onPress: () => disconnectMutation.mutate('myslabs')
+                        },
+                      ]
+                    );
+                  } else {
+                    Alert.alert("Coming Soon", "MySlabs connection is not yet implemented.");
+                  }
+                }}
+                isLast
+              />
+            );
+          })()}
         </SectionCard>
 
         {/* Payments */}

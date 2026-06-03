@@ -18,11 +18,14 @@ export class EbayOauthService {
       clientSecret: isProd ? this.env.EBAY_PROD_CLIENT_SECRET : this.env.EBAY_SANDBOX_CLIENT_SECRET,
       tokenUrl: isProd ? this.env.EBAY_PROD_TOKEN_URL : this.env.EBAY_SANDBOX_TOKEN_URL,
       ruName: isProd ? this.env.EBAY_PROD_RU_NAME : this.env.EBAY_SANDBOX_RU_NAME,
+      apiUrl: isProd ? this.env.EBAY_PROD_API_URL : this.env.EBAY_SANDBOX_API_URL,
     };
   }
 
   async exchangeCodeForTokens(code: string): Promise<EbayTokenResponse> {
     const { clientId, clientSecret, tokenUrl, ruName } = this.config;
+    
+    console.log("Token Exchange debug:", { clientId, ruName, tokenUrl, EBAY_ENV: this.env.EBAY_ENV });
     
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
@@ -71,5 +74,45 @@ export class EbayOauthService {
     }
 
     return response.json() as Promise<EbayTokenResponse>;
+  }
+
+  async fetchEbayActiveListings(accessToken: string): Promise<any[]> {
+    const { apiUrl } = this.config;
+    let items: any[] = [];
+    let offset = 0;
+    const limit = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await fetch(`${apiUrl}/sell/inventory/v1/inventory_item?offset=${offset}&limit=${limit}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`eBay inventory fetch failed: ${error}`);
+        // If it fails, return whatever we have so far instead of throwing, 
+        // to avoid breaking the whole OAuth flow
+        break;
+      }
+
+      const data = await response.json() as any;
+      if (data.inventoryItems && Array.isArray(data.inventoryItems)) {
+        items = items.concat(data.inventoryItems);
+      }
+
+      if (data.total > offset + limit) {
+        offset += limit;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return items;
   }
 }
