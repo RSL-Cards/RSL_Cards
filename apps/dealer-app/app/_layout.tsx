@@ -41,6 +41,10 @@ export default function RootLayout() {
               options={{ animation: "slide_from_right" }}
             />
             <Stack.Screen
+              name="listings/index"
+              options={{ animation: "slide_from_right" }}
+            />
+            <Stack.Screen
               name="listings/create"
               options={{ presentation: "modal" }}
             />

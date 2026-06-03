@@ -266,7 +266,7 @@ function MoreScreen() {
           <SettingsRow
             icon="list-outline"
             label="My Listings"
-            onPress={() => router.push("/listings/index")}
+            onPress={() => router.push("/listings")}
             isLast
           />
         </SectionCard>

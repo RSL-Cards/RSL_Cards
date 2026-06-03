@@ -9,9 +9,10 @@ import {
   FlatList,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MOCK_LISTINGS } from "../../src/constants/mockData";
 import { format } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../src/lib/apiClient";
 
 const PLATFORMS = ["All", "eBay", "Whatnot", "TCGPlayer", "Shopify"];
 
@@ -26,10 +27,22 @@ export default function ListingsScreen() {
   const router = useRouter();
   const [selectedPlatform, setSelectedPlatform] = useState("All");
 
+  const { data: listings = [], isLoading } = useQuery({
+    queryKey: ["my-listings"],
+    queryFn: async () => {
+      const res = await apiClient.get("/v1/listings");
+      return res.data;
+    },
+  });
+
   const filtered =
     selectedPlatform === "All"
-      ? MOCK_LISTINGS
-      : MOCK_LISTINGS.filter((l) => l.platform === selectedPlatform);
+      ? listings
+      : listings.filter((l: any) => {
+          const platforms = l.listed_platforms || ["eBay"];
+          return platforms.includes(selectedPlatform.toLowerCase()) || 
+                 platforms.includes(selectedPlatform);
+        });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,6 +64,7 @@ export default function ListingsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, maxHeight: 56, minHeight: 56, marginBottom: 8 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
           gap: 8,
@@ -78,83 +92,98 @@ export default function ListingsScreen() {
         ))}
       </ScrollView>
 
-      {/* Listings */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item: any) => item.id}
-        renderItem={({ item }: any) => {
-          const platformColor = PLATFORM_COLORS[item.platform] || "#888888";
-          return (
-            <View style={styles.listingCard}>
-              {/* Row 1 */}
-              <View style={styles.row}>
-                <Text style={styles.playerName} numberOfLines={1}>
-                  {item.player_name}
-                </Text>
-                <View
-                  style={[
-                    styles.platformBadge,
-                    { backgroundColor: `${platformColor}22` },
-                  ]}
-                >
-                  <Text
-                    style={[styles.platformBadgeText, { color: platformColor }]}
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <Text style={{ color: "#888888" }}>Loading listings...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item: any) => item.id}
+          renderItem={({ item }: any) => {
+            const platform = "eBay"; // Currently eBay is primary
+            const platformColor = PLATFORM_COLORS[platform] || "#888888";
+            
+            const listPrice = parseFloat(item.current_market_value ?? "0");
+            const feeAmt = listPrice * 0.13; // Approx eBay fee 13%
+            const netAmt = listPrice - feeAmt;
+            
+            return (
+              <View style={styles.listingCard}>
+                {/* Row 1 */}
+                <View style={styles.row}>
+                  <Text style={styles.playerName} numberOfLines={1}>
+                    {item.player_name}
+                  </Text>
+                  <View
+                    style={[
+                      styles.platformBadge,
+                      { backgroundColor: `${platformColor}22` },
+                    ]}
                   >
-                    {item.platform}
-                  </Text>
+                    <Text
+                      style={[styles.platformBadgeText, { color: platformColor }]}
+                    >
+                      {platform}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* Row 2 - price breakdown */}
-              <View style={[styles.row, { marginTop: 10 }]}>
-                <View style={styles.priceBlock}>
-                  <Text style={styles.priceBlockLabel}>LIST</Text>
-                  <Text style={styles.priceBlockValue}>
-                    ${item.list_price.toLocaleString()}
-                  </Text>
+                {/* Row 2 - price breakdown */}
+                <View style={[styles.row, { marginTop: 10 }]}>
+                  <View style={styles.priceBlock}>
+                    <Text style={styles.priceBlockLabel}>LIST</Text>
+                    <Text style={styles.priceBlockValue}>
+                      ${listPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <View style={styles.priceBlock}>
+                    <Text style={styles.priceBlockLabel}>EST. FEE</Text>
+                    <Text style={[styles.priceBlockValue, { color: "#E8001C" }]}>
+                      -${feeAmt.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.priceBlock}>
+                    <Text style={styles.priceBlockLabel}>NET</Text>
+                    <Text style={[styles.priceBlockValue, { color: "#00C853" }]}>
+                      ${netAmt.toFixed(2)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.priceBlock}>
-                  <Text style={styles.priceBlockLabel}>FEE</Text>
-                  <Text style={[styles.priceBlockValue, { color: "#E8001C" }]}>
-                    -${item.platform_fee_amt.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.priceBlock}>
-                  <Text style={styles.priceBlockLabel}>NET</Text>
-                  <Text style={[styles.priceBlockValue, { color: "#00C853" }]}>
-                    ${item.net_to_dealer.toFixed(2)}
-                  </Text>
-                </View>
-              </View>
 
-              {/* Row 3 - status */}
-              <View style={[styles.row, { marginTop: 10 }]}>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>● Active</Text>
+                {/* Row 3 - status */}
+                <View style={[styles.row, { marginTop: 10 }]}>
+                  <View style={styles.activeBadge}>
+                    <Text style={styles.activeBadgeText}>● Active</Text>
+                  </View>
+                  <Text style={styles.metaText}>
+                    Listed {(() => {
+                      const dateStr = item.updated_at || item.added_at;
+                      if (!dateStr) return "Recently";
+                      const d = new Date(dateStr);
+                      return !isNaN(d.getTime()) ? format(d, "MMM d") : "Recently";
+                    })()}
+                  </Text>
+                  <TouchableOpacity style={styles.menuBtn}>
+                    <Text style={styles.menuBtnText}>···</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.metaText}>
-                  Listed {format(new Date(item.listed_at), "MMM d")} ·{" "}
-                  {item.views} views · {item.watchers} watchers
-                </Text>
-                <TouchableOpacity style={styles.menuBtn}>
-                  <Text style={styles.menuBtnText}>···</Text>
-                </TouchableOpacity>
               </View>
+            );
+          }}
+          contentContainerStyle={{ paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="clipboard-outline" size={40} color="#555555" style={{ marginBottom: 12 }} />
+              <Text style={styles.emptyTitle}>No listings yet</Text>
+              <Text style={styles.emptySubtitle}>
+                Tap + to create your first listing
+              </Text>
             </View>
-          );
-        }}
-        contentContainerStyle={{ paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="clipboard-outline" size={40} color="#555555" style={{ marginBottom: 12 }} />
-            <Text style={styles.emptyTitle}>No listings yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap + to create your first listing
-            </Text>
-          </View>
-        }
-      />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
