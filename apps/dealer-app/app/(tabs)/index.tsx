@@ -518,9 +518,10 @@ export default function HomeScreen() {
                 },
                 {
                   label: "Gain",
-                  value: `${parseFloat(summary?.total_unrealized_gain ?? "0") >= 0 ? "+" : ""}$${parseFloat(summary?.total_unrealized_gain ?? "0").toFixed(0)}`,
+                  value: `${parseFloat(summary?.total_unrealized_gain ?? "0") >= 0 ? "+" : "-"}$${Math.abs(parseFloat(summary?.total_unrealized_gain ?? "0")).toFixed(0)}`,
+                  isNegative: parseFloat(summary?.total_unrealized_gain ?? "0") < 0,
                 },
-              ].map((item) => (
+              ].map((item: any) => (
                 <View key={item.label} style={{ alignItems: "center" }}>
                   <Text
                     style={{ color: "#888888", fontSize: 11, marginBottom: 4 }}
@@ -529,7 +530,7 @@ export default function HomeScreen() {
                   </Text>
                   <Text
                     style={{
-                      color: item.label === "Gain" ? "#00C853" : "white",
+                      color: item.label === "Gain" ? (item.isNegative ? "#E8001C" : "#00C853") : "white",
                       fontSize: 17,
                       fontWeight: "700",
                     }}
