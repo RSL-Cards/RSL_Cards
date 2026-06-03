@@ -15,6 +15,10 @@ export class ListingController {
     return await this.service.postListings(this.getUserId(request), body);
   };
 
+  publishEbay = async ({ request, body }: { request: Request; body: any }) => {
+    return await this.service.publishEbayListing(this.getUserId(request), body);
+  };
+
   getListing = async ({ params }: { params: any }) => {
     return await this.service.getListingsId(params.id);
   };

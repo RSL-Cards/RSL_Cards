@@ -13,6 +13,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useInventory } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
+import { apiClient } from "../../src/lib/apiClient";
 
 const PLATFORM_DEFS = [
   {
@@ -87,6 +88,10 @@ export default function CreateListingScreen() {
   );
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [condition, setCondition] = useState("USED_EXCELLENT");
+  const [format, setFormat] = useState("FIXED_PRICE");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Pre-select the card passed in from inventory detail
   useEffect(() => {
@@ -123,10 +128,28 @@ export default function CreateListingScreen() {
         .join(" ")
     : "";
 
-  const handlePublish = () => {
-    Alert.alert("Listed!", "Your card has been listed successfully.", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+  const handlePublish = async () => {
+    if (!selectedCardId || !price || selectedPlatforms.length === 0) return;
+    
+    setIsPublishing(true);
+    try {
+      await apiClient.post("/v1/listings/publish-ebay", {
+        inventoryId: selectedCardId,
+        price: parseFloat(price),
+        description,
+        condition,
+        format,
+        platforms: selectedPlatforms,
+      });
+
+      Alert.alert("Listed!", "Your card has been listed successfully.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error: any) {
+      Alert.alert("Publish Failed", error.message || "Something went wrong.");
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   const canPublish = !!selectedCard && !!price && selectedPlatforms.length > 0;
@@ -291,6 +314,69 @@ export default function CreateListingScreen() {
           />
         </View>
 
+        {/* eBay specific details */}
+        {selectedPlatforms.includes("ebay") && (
+          <View>
+            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>CONDITION</Text>
+            <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 10 }}>
+              {[
+                { label: "New", value: "NEW" },
+                { label: "Used - Excellent", value: "USED_EXCELLENT" },
+                { label: "Used - Poor", value: "USED_POOR" },
+              ].map(c => (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[
+                    styles.chipBtn,
+                    condition === c.value && styles.chipBtnActive
+                  ]}
+                  onPress={() => setCondition(c.value)}
+                >
+                  <Text style={[
+                    styles.chipBtnText,
+                    condition === c.value && styles.chipBtnTextActive
+                  ]}>{c.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>FORMAT</Text>
+            <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 10 }}>
+              {[
+                { label: "Buy It Now", value: "FIXED_PRICE" },
+                { label: "Auction", value: "AUCTION" },
+              ].map(f => (
+                <TouchableOpacity
+                  key={f.value}
+                  style={[
+                    styles.chipBtn,
+                    format === f.value && styles.chipBtnActive
+                  ]}
+                  onPress={() => setFormat(f.value)}
+                >
+                  <Text style={[
+                    styles.chipBtnText,
+                    format === f.value && styles.chipBtnTextActive
+                  ]}>{f.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: 24 }]}>DESCRIPTION</Text>
+            <View style={styles.descriptionWrapper}>
+              <TextInput
+                style={styles.descriptionInput}
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Enter a description for your eBay listing..."
+                placeholderTextColor="#555555"
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+          </View>
+        )}
+
         {/* Fee comparison — only connected platforms */}
         {numPrice > 0 && connectedPlatforms.length > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
@@ -336,16 +422,20 @@ export default function CreateListingScreen() {
       {/* Publish button */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.publishBtn, !canPublish && styles.publishBtnDisabled]}
-          disabled={!canPublish}
+          style={[styles.publishBtn, (!canPublish || isPublishing) && styles.publishBtnDisabled]}
+          disabled={!canPublish || isPublishing}
           onPress={handlePublish}
           activeOpacity={0.85}
         >
-          <Text style={styles.publishBtnText}>
-            {canPublish
-              ? `Publish on ${selectedPlatforms.length} platform${selectedPlatforms.length > 1 ? "s" : ""}`
-              : "Select card, platform & price"}
-          </Text>
+          {isPublishing ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.publishBtnText}>
+              {canPublish
+                ? `Publish on ${selectedPlatforms.length} platform${selectedPlatforms.length > 1 ? "s" : ""}`
+                : "Select card, platform & price"}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -531,4 +621,38 @@ const styles = StyleSheet.create({
   },
   publishBtnDisabled: { backgroundColor: "#1A1A1A" },
   publishBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  chipBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#111111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+  chipBtnActive: {
+    backgroundColor: "rgba(0, 87, 255, 0.15)",
+    borderColor: "#0057FF",
+  },
+  chipBtnText: {
+    color: "#888888",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  chipBtnTextActive: {
+    color: "#0057FF",
+  },
+  descriptionWrapper: {
+    marginHorizontal: 20,
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+    padding: 16,
+    minHeight: 120,
+  },
+  descriptionInput: {
+    color: "white",
+    fontSize: 15,
+    textAlignVertical: "top",
+  },
 });

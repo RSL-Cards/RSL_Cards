@@ -8,7 +8,7 @@ export class ListingRepository {
   async getListings(userId: string) {
     const result = await db.execute(sql`
       SELECT * FROM inventory
-      WHERE user_id = ${userId} AND listing_status = 'active'
+      WHERE user_id = ${userId} AND listing_status = 'listed'
       ORDER BY updated_at DESC
     `);
     return result.rows;
@@ -18,7 +18,7 @@ export class ListingRepository {
     const { inventoryId, price, platforms } = body;
     const result = await db.execute(sql`
       UPDATE inventory
-      SET listing_status = 'active', current_market_value = ${price}, updated_at = NOW()
+      SET listing_status = 'listed', current_market_value = ${price}, updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
       RETURNING *
     `);
@@ -56,7 +56,7 @@ export class ListingRepository {
   async postListingsIdRelist(id: string) {
     const result = await db.execute(sql`
       UPDATE inventory
-      SET listing_status = 'active', updated_at = NOW()
+      SET listing_status = 'listed', updated_at = NOW()
       WHERE id = ${id}
       RETURNING *
     `);
@@ -111,7 +111,7 @@ export class ListingRepository {
         COUNT(*) as active_listings,
         COALESCE(SUM(current_market_value), 0) as total_listed_value
       FROM inventory
-      WHERE user_id = ${userId} AND listing_status = 'active'
+      WHERE user_id = ${userId} AND listing_status = 'listed'
     `);
     return result.rows[0];
   }
