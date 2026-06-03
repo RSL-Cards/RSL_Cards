@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
@@ -305,38 +306,61 @@ export default function BuyCompsScreen() {
                 <Text style={styles.sectionLabel}>RECENT EBAY SALES</Text>
                 <View style={styles.sectionCard}>
                   {recentSales.map((sale, i) => (
-                    <View
+                    <TouchableOpacity
                       key={sale.itemId}
+                      activeOpacity={sale.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (sale.itemWebUrl) {
+                          Linking.openURL(sale.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
                       style={[
                         styles.saleRow,
                         i < recentSales.length - 1 && styles.rowBorder,
                       ]}
                     >
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                        {sale.image?.imageUrl && (
+                          <Image
+                            source={{ uri: sale.image.imageUrl }}
+                            style={{
+                              width: 36,
+                              height: 50,
+                              borderRadius: 4,
+                              marginRight: 10,
+                              backgroundColor: "#222222",
+                            }}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
+                            {sale.title}
+                          </Text>
+                          {sale.condition && (
+                            <Text
+                              style={{
+                                color: "#555555",
+                                fontSize: 10,
+                                marginTop: 2,
+                              }}
+                            >
+                              {sale.condition}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
                         <Text style={styles.salePrice}>
                           ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
                         </Text>
-                        {sale.condition && (
-                          <Text
-                            style={{
-                              color: "#555555",
-                              fontSize: 10,
-                              marginTop: 1,
-                            }}
-                          >
-                            {sale.condition}
-                          </Text>
-                        )}
+                        <Text style={styles.saleDate}>
+                          {sale.endDate
+                            ? format(new Date(sale.endDate), "MMM d, yyyy")
+                            : "—"}
+                        </Text>
                       </View>
-                      <View style={styles.platformChip}>
-                        <Text style={styles.platformChipText}>eBay</Text>
-                      </View>
-                      <Text style={styles.saleDate}>
-                        {sale.endDate
-                          ? format(new Date(sale.endDate), "MMM d, yyyy")
-                          : "—"}
-                      </Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -368,8 +392,14 @@ export default function BuyCompsScreen() {
                 <Text style={styles.sectionLabel}>CURRENT EBAY ACTIVE LISTINGS</Text>
                 <View style={styles.sectionCard}>
                   {activeItems.map((item, i) => (
-                    <View
+                    <TouchableOpacity
                       key={item.itemId}
+                      activeOpacity={item.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (item.itemWebUrl) {
+                          Linking.openURL(item.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
                       style={[
                         styles.saleRow,
                         i < activeItems.length - 1 && styles.rowBorder,
@@ -409,7 +439,7 @@ export default function BuyCompsScreen() {
                       <Text style={styles.salePrice}>
                         ${parseFloat(item.price?.value ?? "0").toFixed(2)}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>

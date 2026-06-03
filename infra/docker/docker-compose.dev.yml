@@ -97,7 +97,11 @@ services:
       SERVICE_PUBLIC_PORT: 8080
       AUTH_SERVICE_PORT: 8080
       AUTH_GATEWAY_IN_DOCKER: "1"
-    volumes: *node-dev-volumes
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+    volumes:
+      - ../../:/workspace
+      - rsl_dev_node_modules:/workspace/node_modules
+      - ~/.config/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
     depends_on:
       dev-install:
         condition: service_completed_successfully

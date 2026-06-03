@@ -251,7 +251,7 @@ function InventoryScreen() {
   const [allItems, setAllItems] = useState<any[]>([]);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
-  const { data: inventoryData, isLoading, refetch } = useInventory({ sport, page, limit: 5 });
+  const { data: inventoryData, isLoading, isRefetching, refetch } = useInventory({ sport, page, limit: 5 });
   const { data: summary } = useInventorySummary();
 
   useEffect(() => {
@@ -286,7 +286,6 @@ function InventoryScreen() {
 
   const handleRefresh = async () => {
     setPage(1);
-    setAllItems([]);
     await refetch();
   };
 
@@ -441,7 +440,7 @@ function InventoryScreen() {
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefresh}
-          refreshing={isLoading && allItems.length === 0}
+          refreshing={isRefetching}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingTop: 60 }}>

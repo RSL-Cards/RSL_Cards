@@ -36,6 +36,7 @@ export interface EbaySoldItem {
   endDate?: string;
   shippingCost?: string;
   itemWebUrl?: string;
+  image?: { imageUrl: string };
   location?: string;
 }
 
