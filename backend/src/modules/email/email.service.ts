@@ -21,7 +21,11 @@ type EmailEnv = Env & {
   RESEND_FROM_NAME?: string;
   APP_WEB_URL?: string;
 };
-
+type ResendResponse = {
+  id?: string;
+  message?: string;
+  error?: string;
+};
 export class EmailService {
   private readonly resendUrl = "https://api.resend.com/emails";
 
@@ -70,7 +74,12 @@ async sendEmail(input: SendEmailInput) {
     }),
   });
 
-  const data = await response.json().catch(() => null);
+const rawData: unknown = await response.json().catch(() => null);
+
+const data: ResendResponse | null =
+  typeof rawData === "object" && rawData !== null
+    ? rawData as ResendResponse
+    : null;
 
   console.log("📨 RESEND RESPONSE");
   console.log("Status:", response.status);
