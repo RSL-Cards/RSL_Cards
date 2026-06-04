@@ -166,13 +166,14 @@ export class ListingRepository {
           title: item.title,
           soldPrice: { value: item.sold_price, currency: "USD" },
           condition: item.condition || "Used",
-          endDate: item.sold_at,
+          endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
           shippingCost: "0.00",
           itemWebUrl: `https://www.ebay.com/itm/${item.platform_item_id}`,
         }));
 
         const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
         if (ageMs >= 15 * 60 * 1000) {
+          console.log(`[COMPS] Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh from LIVE APIs...`);
           (async () => {
             try {
               const soldData = await soldCompsService.getSoldItems(query);
@@ -231,10 +232,11 @@ export class ListingRepository {
           })();
         }
 
+        console.log(`[COMPS] ✅ Returning comps from DB CACHE for: ${query}`);
         return {
           query,
           fromCache: true,
-          fetchedAt: rows[0].fetched_at,
+          fetchedAt: rows[0].fetched_at instanceof Date ? rows[0].fetched_at.toISOString() : new Date(rows[0].fetched_at).toISOString(),
           snapshots: rows.map((r) => ({
             platform: r.platform,
             avgSoldPrice: r.avg_sold_price,
@@ -257,6 +259,7 @@ export class ListingRepository {
       }
     }
 
+    console.log(`[COMPS] 📡 Fetching LIVE comps from eBay APIs for: ${query}`);
     const [soldResult, activeResult] = await Promise.allSettled([
       soldCompsService.getSoldItems(query),
       ebayService.searchListings({
@@ -346,6 +349,7 @@ export class ListingRepository {
       priceTrend30d: null,
     };
 
+    console.log(`[COMPS] ✅ Returning LIVE comps from eBay APIs for: ${query}`);
     return {
       query,
       fromCache: false,

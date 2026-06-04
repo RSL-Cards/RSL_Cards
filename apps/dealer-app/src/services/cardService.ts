@@ -173,6 +173,8 @@ export const cardService = {
         fromCache: true,
         fetchedAt: data.fetchedAt,
         snapshots: data.snapshots,
+        sold7d: data.last7Days,
+        sold30d: data.last30Days,
       };
     }
     return {
