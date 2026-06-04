@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
+import { index as drizzleIndex, pgTable, uuid, varchar, decimal, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 import { customers } from './user'
@@ -31,8 +31,11 @@ export const transactions = pgTable('transactions', {
   cardSnapshot:    text('card_snapshot'),                       // full JSON card at time of tx
   isOffline:       boolean('is_offline').default(false),
   localId:         varchar('local_id', { length: 255 }).unique(), // mobile SQLite UUID dedup
+  rslCardId:       varchar('rsl_card_id', { length: 255 }),     // global catalog link
   createdAt:       timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  rslCardIdIdx: drizzleIndex('idx_transactions_rsl_card_id').on(t.rslCardId),
+}))
 
 export const tradeItems = pgTable('trade_items', {
   id:             uuid('id').primaryKey().defaultRandom(),

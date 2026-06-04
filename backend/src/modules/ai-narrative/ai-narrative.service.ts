@@ -95,7 +95,7 @@ export class AiNarrativeService {
         c.id AS card_id, c.year, c.set_name, c.card_number, c.manufacturer,
         c.is_rookie, c.source,
         p.name AS player_name, p.sport AS player_sport,
-        cv.id AS variant_id, cv.name AS variation, cv.is_autograph, cv.is_relic,
+        cv.id AS variant_id, cv.rsl_card_id, cv.name AS variation, cv.is_autograph, cv.is_relic,
         cv.is_parallel, cv.print_run,
         ih.confidence
       FROM image_hashes ih
@@ -135,6 +135,7 @@ export class AiNarrativeService {
         },
         cardId: r.card_id,
         variantId: r.variant_id,
+        rslCardId: r.rsl_card_id,
         fromCache: true,
         confidence: r.confidence,
       };
@@ -146,7 +147,7 @@ export class AiNarrativeService {
 
     // We can still try a fallback chain if needed, but we'll stick to the requested model.
     const modelsToTry = [
-      "gemini-2.5-flash"
+      "gemini-2.5-pro"
     ];
 
     for (const modelName of modelsToTry) {
@@ -181,12 +182,13 @@ export class AiNarrativeService {
     // 3. Persist to DB (best-effort, fire-and-forget errors)
     const cardId = generateCardId(geminiCard);
     let variantId: string | null = null;
+    let finalCardId = cardId;
 
     try {
       // 3a. Ensure player exists
       const normPlayerName = geminiCard.player_name;
       const playerLookup = await db.execute(sql`
-        SELECT id FROM players WHERE name = ${normPlayerName} LIMIT 1
+        SELECT id FROM players WHERE LOWER(name) = LOWER(${normPlayerName}) LIMIT 1
       `);
       let playerId = (playerLookup.rows[0] as any)?.id;
 
@@ -194,12 +196,11 @@ export class AiNarrativeService {
         const playerInsert = await db.execute(sql`
           INSERT INTO players (id, name, sport, created_at, updated_at)
           VALUES (gen_random_uuid(), ${normPlayerName}, ${geminiCard.sport || "basketball"}, NOW(), NOW())
+          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
           RETURNING id
         `);
         playerId = (playerInsert.rows[0] as any)?.id;
       }
-
-      let finalCardId = cardId;
 
       if (playerId) {
         // 3b. Ensure base card exists
@@ -250,6 +251,7 @@ export class AiNarrativeService {
 
         // 3c. Upsert variant
         const variantName = geminiCard.variation || "Base";
+        const rslCardId = `${finalCardId}_${norm(variantName)}`;
         const isAutograph = geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
         const isRelic = geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
         const isParallel = variantName.toLowerCase() !== "base";
@@ -270,9 +272,10 @@ export class AiNarrativeService {
         `);
 
         if (baseVariantRes.rows.length === 0) {
+          const baseRslCardId = `${finalCardId}_base`;
           await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
+            INSERT INTO card_variants (id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${finalCardId}, ${baseRslCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
           `);
         }
 
@@ -291,11 +294,11 @@ export class AiNarrativeService {
         if (varRes.rows.length === 0) {
           const insertRes = await db.execute(sql`
             INSERT INTO card_variants (
-              id, card_id, year, set_name, name, is_parallel, is_base,
+              id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base,
               is_autograph, is_relic, print_run,
               created_at, updated_at
             ) VALUES (
-              gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, ${variantName},
+              gen_random_uuid(), ${finalCardId}, ${rslCardId}, ${cardYear}, ${setName}, ${variantName},
               ${isParallel}, ${!isParallel},
               ${isAutograph}, ${isRelic}, ${printRun},
               NOW(), NOW()
@@ -345,6 +348,7 @@ export class AiNarrativeService {
       card: geminiCard,
       cardId,
       variantId,
+      rslCardId: variantId ? `${finalCardId}_${norm(geminiCard.variation || "Base")}` : null,
       fromCache: false,
       confidence: geminiCard.confidence ?? 0.9,
     };

@@ -20,7 +20,7 @@ export const players = pgTable(
   "players",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: varchar("name", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull().unique(),
     sport: varchar("sport", { length: 50 }).notNull(), // basketball | baseball | football | etc.
     team: varchar("team", { length: 100 }),
     position: varchar("position", { length: 50 }),
@@ -78,6 +78,7 @@ export const cardVariants = pgTable(
     cardId: varchar("card_id", { length: 255 })
       .references(() => cards.id)
       .notNull(),
+    rslCardId: varchar("rsl_card_id", { length: 255 }).unique(),
     year: integer("year"), // e.g. 2007, 2021
     setName: varchar("set_name", { length: 255 }), // e.g. Topps Chrome, Prizm
     name: varchar("name", { length: 100 }).notNull(), // Base | Refractor | Gold | Auto | Patch
@@ -98,6 +99,7 @@ export const cardVariants = pgTable(
       t.name,
       t.printRun,
     ),
+    rslCardIdIdx: index("idx_card_variants_rsl_card_id").on(t.rslCardId),
   }),
 );
 
