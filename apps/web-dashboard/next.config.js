@@ -4,7 +4,10 @@ const nextConfig = {
     appDir: true,
   },
   images: {
-    domains: ['localhost'],
+    domains: [
+      'localhost',
+      'i.ebayimg.com',
+    ],
   },
 }
 

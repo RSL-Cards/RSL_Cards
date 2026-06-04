@@ -12,7 +12,8 @@
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
 const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
 
-export const API_BASE_URL = "http://3.231.19.101";
+// export const API_BASE_URL = "http://3.231.19.101";
+export const API_BASE_URL="http://192.168.31.38:8080"
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.

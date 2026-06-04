@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { ImportToolMode, platformOptions } from './inventoryUtils'
+import { useInventoryStore } from '@/stores/inventoryStore'
 
 interface ImportToolsModalProps {
   initialMode: ImportToolMode
@@ -20,39 +21,6 @@ interface ImportToolsModalProps {
 type MappingField = 'cardName' | 'grade' | 'sport' | 'year' | 'set' | 'costBasis' | 'marketValue' | 'platform'
 
 const csvColumns = ['Player', 'Grade', 'Sport', 'Year', 'Set Name', 'Buy Price', 'Market Price', 'Listed Channel']
-
-const previewRows = [
-  {
-    Player: 'Shohei Ohtani',
-    Grade: 'PSA 10',
-    Sport: 'Baseball',
-    Year: '2018',
-    'Set Name': 'Topps Chrome Refractor',
-    'Buy Price': '$310',
-    'Market Price': '$445',
-    'Listed Channel': 'eBay',
-  },
-  {
-    Player: 'CJ Stroud',
-    Grade: 'PSA 10',
-    Sport: 'Football',
-    Year: '2023',
-    'Set Name': 'Prizm Silver',
-    'Buy Price': '$156',
-    'Market Price': '$198',
-    'Listed Channel': 'Whatnot',
-  },
-  {
-    Player: 'Victor Wembanyama',
-    Grade: 'RAW',
-    Sport: 'Basketball',
-    Year: '2023',
-    'Set Name': 'Select Courtside',
-    'Buy Price': '$72',
-    'Market Price': '$91',
-    'Listed Channel': 'Unlisted',
-  },
-]
 
 const mappingDefaults: Record<MappingField, string> = {
   cardName: 'Player',
@@ -64,6 +32,26 @@ const mappingDefaults: Record<MappingField, string> = {
   marketValue: 'Market Price',
   platform: 'Listed Channel',
 }
+
+const parseCsv = (content: string) => {
+  const [headerLine, ...lines] = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const headers = headerLine?.split(',').map((header) => header.trim()) ?? []
+
+  return lines.map((line) => {
+    const values = line.split(',').map((value) => value.trim())
+    return headers.reduce<Record<string, string>>((row, header, index) => {
+      row[header] = values[index] ?? ''
+      return row
+    }, {})
+  })
+}
+
+const cleanMoney = (value: string) => value.replace(/[$,\s]/g, '')
+
+const normalizeGrade = (grade: string) => grade.trim().replace(/\s+/g, '_').toUpperCase()
 
 const fieldLabels: Record<MappingField, string> = {
   cardName: 'Card Name',
@@ -77,8 +65,13 @@ const fieldLabels: Record<MappingField, string> = {
 }
 
 export default function ImportToolsModal({ initialMode, onClose }: ImportToolsModalProps) {
+  const addItem = useInventoryStore((state) => state.addItem)
+  const bulkImport = useInventoryStore((state) => state.bulkImport)
+  const isMutating = useInventoryStore((state) => state.isMutating)
   const [mode, setMode] = useState<ImportToolMode>(initialMode)
   const [fileName, setFileName] = useState('')
+  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([])
+  const [csvColumns, setCsvColumns] = useState<string[]>([])
   const [mapping, setMapping] = useState<Record<MappingField, string>>(mappingDefaults)
   const [importStatus, setImportStatus] = useState('')
   const [rapidCard, setRapidCard] = useState({
@@ -93,7 +86,7 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
   })
 
   const mappedPreview = useMemo(() => {
-    return previewRows.map((row) => ({
+    return csvRows.map((row) => ({
       cardName: row[mapping.cardName as keyof typeof row],
       grade: row[mapping.grade as keyof typeof row],
       sport: row[mapping.sport as keyof typeof row],
@@ -103,21 +96,71 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
       marketValue: row[mapping.marketValue as keyof typeof row],
       platform: row[mapping.platform as keyof typeof row],
     }))
-  }, [mapping])
+  }, [csvRows, mapping])
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     setFileName(file?.name ?? '')
-    setImportStatus(file ? 'File loaded. Preview rows are ready for mapping.' : '')
+    setImportStatus('')
+
+    if (!file) {
+      setCsvRows([])
+      setCsvColumns([])
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const rows = parseCsv(String(reader.result ?? ''))
+      const columns = Object.keys(rows[0] ?? {})
+      setCsvRows(rows)
+      setCsvColumns(columns)
+      setMapping((current) => ({
+        ...current,
+        cardName: columns.find((column) => /player|card/i.test(column)) ?? current.cardName,
+        grade: columns.find((column) => /grade/i.test(column)) ?? current.grade,
+        sport: columns.find((column) => /sport/i.test(column)) ?? current.sport,
+        year: columns.find((column) => /year/i.test(column)) ?? current.year,
+        set: columns.find((column) => /set/i.test(column)) ?? current.set,
+        costBasis: columns.find((column) => /buy|cost/i.test(column)) ?? current.costBasis,
+        marketValue: columns.find((column) => /market|value|price/i.test(column)) ?? current.marketValue,
+        platform: columns.find((column) => /platform|channel|listed/i.test(column)) ?? current.platform,
+      }))
+      setImportStatus(`${rows.length} rows loaded. Preview rows are ready for mapping.`)
+    }
+    reader.readAsText(file)
   }
 
-  const completeImport = () => {
-    setImportStatus(`${mappedPreview.length} preview rows validated and queued for import.`)
+  const completeImport = async () => {
+    const rows = mappedPreview.map((row) => ({
+      playerName: row.cardName,
+      gradeKey: normalizeGrade(row.grade),
+      sport: row.sport,
+      year: row.year,
+      setName: row.set,
+      costBasis: cleanMoney(row.costBasis),
+      currentMarketValue: cleanMoney(row.marketValue),
+      platform: row.platform,
+    }))
+    const message = await bulkImport(rows)
+    setImportStatus(message)
   }
 
-  const addRapidCard = () => {
+  const addRapidCard = async () => {
+    await addItem({
+      playerName: rapidCard.cardName,
+      playerId: '',
+      cardId: '',
+      year: rapidCard.year,
+      setName: rapidCard.set,
+      sport: rapidCard.sport,
+      gradeKey: normalizeGrade(rapidCard.grade),
+      costBasis: rapidCard.costBasis,
+      currentMarketValue: rapidCard.marketValue,
+      listedPlatforms: rapidCard.platform === 'Unlisted' ? [] : [rapidCard.platform],
+    })
     const label = rapidCard.cardName || 'New card'
-    setImportStatus(`${label} added to the import queue.`)
+    setImportStatus(`${label} added to inventory.`)
     setRapidCard({
       cardName: '',
       grade: 'RAW',
@@ -231,7 +274,8 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
                 <button
                   type="button"
                   onClick={completeImport}
-                  className="btn-primary inline-flex items-center gap-2 text-sm"
+                  disabled={mappedPreview.length === 0 || isMutating}
+                  className="btn-primary inline-flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   Import Rows
@@ -262,6 +306,13 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
                         <td className="py-3 text-text-secondary">{row.platform}</td>
                       </tr>
                     ))}
+                    {mappedPreview.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center text-sm text-text-secondary">
+                          Upload a CSV file to preview mapped inventory rows.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -293,7 +344,7 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
               </select>
               <input value={rapidCard.costBasis} onChange={(event) => setRapidCard((card) => ({ ...card, costBasis: event.target.value }))} placeholder="Cost Basis" type="number" className="dashboard-input" />
               <input value={rapidCard.marketValue} onChange={(event) => setRapidCard((card) => ({ ...card, marketValue: event.target.value }))} placeholder="Market Value" type="number" className="dashboard-input" />
-              <button type="button" onClick={addRapidCard} className="btn-primary inline-flex items-center justify-center gap-2 text-sm md:col-span-2">
+              <button type="button" onClick={addRapidCard} disabled={isMutating} className="btn-primary inline-flex items-center justify-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 md:col-span-2">
                 <Plus className="h-4 w-4" />
                 Add To Queue
               </button>

@@ -113,13 +113,19 @@ export default function AuthCard({ mode }: AuthCardProps) {
     }
 
     if (isForgotPassword) {
+      console.log("🔥 Forgot Password Button Clicked");
+      console.log("📧 Email:", trimmedEmail);
       setToastError(null)
       setToastSuccess(null)
 
       try {
         const message = await forgotPassword({ email: trimmedEmail })
+        console.log("✅ Forgot Password Success");
+        console.log("📨 Response:", message);
         setToastSuccess(message)
       } catch {
+        console.error("❌ Forgot Password Failed");
+        console.error(error);
         // The store owns the user-facing error message.
       }
 

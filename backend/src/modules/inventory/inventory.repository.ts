@@ -92,6 +92,7 @@ export class InventoryRepository {
       cardId,
       variantId,
       playerId,
+      playerName,
       year,
       setName,
       variation,
@@ -106,6 +107,7 @@ export class InventoryRepository {
       quantity = 1,
       photos,
       notes,
+      listedPlatforms,
       ebaySalesCompleted,
       ebayActiveListings,
     } = body;
@@ -114,6 +116,7 @@ export class InventoryRepository {
     const cleanCardId = cardId && cardId !== "" ? cardId : null;
     const cleanVariantId = variantId && variantId !== "" ? variantId : null;
     const cleanPlayerId = playerId && playerId !== "" ? playerId : null;
+    const cleanPlayerName = playerName && playerName !== "" ? playerName : null;
     const cleanYear = year && year !== "" ? Number(year) : null;
     const cleanSetName = setName && setName !== "" ? setName : null;
     const cleanVariation = variation && variation !== "" ? variation : null;
@@ -130,6 +133,10 @@ export class InventoryRepository {
       ? `{${photos.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
       : null;
     const cleanNotes = notes && notes !== "" ? notes : null;
+    const cleanListedPlatforms = Array.isArray(listedPlatforms) && listedPlatforms.length > 0
+      ? `{${listedPlatforms.map((platform: string) => `"${platform.replace(/"/g, '\\"')}"`).join(",")}}`
+      : null;
+    const cleanListingStatus = cleanListedPlatforms ? "listed" : "unlisted";
     const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
     const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
 
@@ -153,6 +160,26 @@ export class InventoryRepository {
     // Defensive Programming layer: Ensure target card exists in master cards catalog to prevent foreign key errors.
     let resolvedVariantId = cleanVariantId;
     let resolvedPlayerId = cleanPlayerId;
+
+    if (!resolvedPlayerId && cleanPlayerName) {
+      const existingPlayer = await db.execute(sql`
+        SELECT id FROM players
+        WHERE LOWER(name) = LOWER(${cleanPlayerName})
+          AND sport = ${cleanSport || "basketball"}
+        LIMIT 1
+      `);
+
+      if (existingPlayer.rows.length > 0) {
+        resolvedPlayerId = (existingPlayer.rows[0] as any).id;
+      } else {
+        const insertPlayer = await db.execute(sql`
+          INSERT INTO players (id, name, sport, created_at, updated_at)
+          VALUES (gen_random_uuid(), ${cleanPlayerName}, ${cleanSport || "basketball"}, NOW(), NOW())
+          RETURNING id
+        `);
+        resolvedPlayerId = (insertPlayer.rows[0] as any).id;
+      }
+    }
 
     if (cleanCardId) {
       const cardExists = await db.execute(sql`
@@ -226,13 +253,13 @@ export class InventoryRepository {
       INSERT INTO inventory (
         user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, listing_status, added_at, updated_at
+        quantity, photos, notes, listed_platforms, ebay_sales_completed, ebay_active_listings, listing_status, added_at, updated_at
       ) VALUES (
         ${userId}, ${cleanCardId}, ${resolvedVariantId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, 
         ${cleanVariation}, ${cleanCardNumber}, ${cleanSport},
         ${cleanGradeCompany}, ${cleanGradeValue}, ${gradeKey}, ${cleanCertNumber},
-        ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}::text[], ${cleanNotes},
-        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, 'unlisted', NOW(), NOW()
+        ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}::text[], ${cleanNotes}, ${cleanListedPlatforms}::text[],
+        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, ${cleanListingStatus}, NOW(), NOW()
       )
       RETURNING *
     `);
@@ -244,7 +271,7 @@ export class InventoryRepository {
     };
   }
 
-  async patchInventoryId(id: string, body: any, userId: string) {
+   async patchInventoryId(id: string, body: any, userId: string) {
     // Basic implementation, can be expanded to dynamic updates
     return { message: `Update card details for ${id}` };
   }
@@ -260,8 +287,39 @@ export class InventoryRepository {
     return { message: `Trigger manual market value refresh for all cards for ${userId}` };
   }
 
-  async postInventoryBulkImport(userId: string, _body: any) {
-    return { message: `Upload CSV/Excel file for bulk import for ${userId}. Returns jobId` };
+  async postInventoryBulkImport(userId: string, body: any) {
+    const rows = Array.isArray(body?.rows) ? body.rows : [];
+    const results = [];
+
+    for (const row of rows) {
+      try {
+        const platform = row.platform && row.platform !== "Unlisted" ? row.platform : null;
+        const result = await this.postInventory(
+          {
+            playerName: row.playerName,
+            year: row.year,
+            setName: row.setName,
+            sport: row.sport,
+            gradeKey: row.gradeKey,
+            costBasis: row.costBasis,
+            currentMarketValue: row.currentMarketValue,
+            listedPlatforms: platform ? [platform] : [],
+          },
+          userId,
+        );
+        results.push({ success: true, item: result.item });
+      } catch (error: any) {
+        results.push({ success: false, message: error.message ?? "Import failed" });
+      }
+    }
+
+    return {
+      success: true,
+      imported: results.filter((result) => result.success).length,
+      failed: results.filter((result) => !result.success).length,
+      results,
+      message: `Imported ${results.filter((result) => result.success).length} of ${rows.length} rows`,
+    };
   }
 
   async getInventoryBulkImportJobId(jobId: string) {

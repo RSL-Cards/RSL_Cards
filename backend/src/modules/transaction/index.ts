@@ -3,9 +3,10 @@ import { TransactionRepository } from "./transaction.repository.ts";
 import { TransactionService } from "./transaction.service.ts";
 import { TransactionController } from "./transaction.controller.ts";
 import { requireDealer } from "../../middleware/auth.js";
+import { emailService } from "../email/index.js";
 
 const repository = new TransactionRepository();
-const service = new TransactionService(repository);
+const service = new TransactionService(repository, emailService);
 const controller = new TransactionController(service);
 
 export const transactionModule = new Elysia({ prefix: "/v1/transactions" })

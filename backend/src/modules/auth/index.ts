@@ -3,9 +3,10 @@ import { AuthRepository } from "./auth.repository.js";
 import { AuthService } from "./auth.service.js";
 import { AuthController } from "./auth.controller.js";
 import { env } from "../../config/index.js";
+import { emailService } from "../email/index.js";
 
 const repository = new AuthRepository();
-const service = new AuthService(repository, env);
+const service = new AuthService(repository, env, emailService);
 const controller = new AuthController(service);
 
 export const authModule = new Elysia({ prefix: "/v1/auth" })

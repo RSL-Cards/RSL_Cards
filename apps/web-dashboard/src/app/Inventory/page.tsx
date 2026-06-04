@@ -1,57 +1,78 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Shell from '@/components/layout/Shell'
 import CardDetailModal from '@/components/inventory/CardDetailModal'
 import ImportToolsModal from '@/components/inventory/ImportToolsModal'
+import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
 import InventoryFilters from '@/components/inventory/InventoryFilters'
 import InventoryHeader from '@/components/inventory/InventoryHeader'
+import InventoryItemFormModal from '@/components/inventory/InventoryItemFormModal'
 import InventoryMetrics from '@/components/inventory/InventoryMetrics'
 import InventorySidePanel from '@/components/inventory/InventorySidePanel'
-import InventoryTable from '@/components/inventory/InventoryTable'
-import ListingModal from '@/components/listings/ListingModal'
-import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
 import {
   formatCurrency,
-  InventoryCard,
   ImportToolMode,
+  InventoryCard,
   ProfitFilter,
   SortDirection,
   SortKey,
 } from '@/components/inventory/inventoryUtils'
-import { INVENTORY_TABLE_DATA, METRICS } from '@/data/mockDashboard'
+import { useAuthStore } from '@/stores/authStore'
+import { useInventoryStore } from '@/stores/inventoryStore'
 
 export default function InventoryPage() {
+  const isHydrated = useAuthStore((state) => state.isHydrated)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const {
+    items,
+    agingAlerts,
+    summary,
+    isLoading,
+    error,
+    getItem,
+    addItem,
+    deleteItem,
+    isMutating,
+    refreshInventoryPage,
+  } = useInventoryStore()
   const [query, setQuery] = useState('')
   const [sportFilter, setSportFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [gradeFilter, setGradeFilter] = useState('all')
   const [ageFilter, setAgeFilter] = useState('all')
-  const [sortKey, setSortKey] = useState<SortKey>('market_value')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sortKey] = useState<SortKey>('market_value')
+  const [sortDirection] = useState<SortDirection>('desc')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [profitFilter, setProfitFilter] = useState<ProfitFilter>('all')
   const [platformFilter, setPlatformFilter] = useState('all')
   const [activeCard, setActiveCard] = useState<InventoryCard | null>(null)
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
   const [importToolMode, setImportToolMode] = useState<ImportToolMode | null>(null)
-  const [isListingOpen, setIsListingOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return
+
+    refreshInventoryPage()
+  }, [isAuthenticated, isHydrated, refreshInventoryPage])
 
   const sports = useMemo(
-    () => Array.from(new Set(INVENTORY_TABLE_DATA.map((card) => card.sport))),
-    []
+    () => Array.from(new Set(items.map((card) => card.sport))).sort(),
+    [items],
   )
 
   const grades = useMemo(
-    () => Array.from(new Set(INVENTORY_TABLE_DATA.map((card) => card.grade_key))),
-    []
+    () => Array.from(new Set(items.map((card) => card.grade_key))).sort(),
+    [items],
   )
 
   const filteredCards = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    return INVENTORY_TABLE_DATA.filter((card) => {
+    return items.filter((card) => {
       const searchable = [
         card.player_name,
         card.grade_key,
@@ -95,15 +116,13 @@ export default function InventoryPage() {
         (ageFilter === 'aging' && card.days_held > 60) ||
         (ageFilter === 'watch' && card.days_held > 30 && card.days_held <= 60)
       const matchesPrice =
-        (!min || card.market_value >= min) &&
-        (!max || card.market_value <= max)
+        (!min || card.market_value >= min) && (!max || card.market_value <= max)
       const matchesProfit =
         profitFilter === 'all' ||
         (profitFilter === 'profit' && card.unrealized_gain > 0) ||
         (profitFilter === 'loss' && card.unrealized_gain < 0)
       const matchesPlatform =
-        platformFilter === 'all' ||
-        card.platforms_listed.includes(platformFilter)
+        platformFilter === 'all' || card.platforms_listed.includes(platformFilter)
 
       return (
         matchesQuery &&
@@ -133,6 +152,7 @@ export default function InventoryPage() {
   }, [
     ageFilter,
     gradeFilter,
+    items,
     maxPrice,
     minPrice,
     platformFilter,
@@ -144,35 +164,13 @@ export default function InventoryPage() {
     statusFilter,
   ])
 
-  const agingCards = filteredCards.filter((card) => card.days_held > 60)
+  const agingIds = new Set(agingAlerts.map((card) => card.id))
+  const agingCards = filteredCards.filter(
+    (card) => agingIds.has(card.id) || card.days_held > 60,
+  )
   const listedCards = filteredCards.filter((card) => card.status === 'listed').length
-  const selectedCards = filteredCards.filter((card) => selectedIds.includes(card.id))
   const filteredValue = filteredCards.reduce((sum, card) => sum + card.market_value, 0)
   const filteredGain = filteredCards.reduce((sum, card) => sum + card.unrealized_gain, 0)
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
-      return
-    }
-
-    setSortKey(key)
-    setSortDirection('asc')
-  }
-
-  const toggleSelected = (cardId: string) => {
-    setSelectedIds((current) =>
-      current.includes(cardId)
-        ? current.filter((id) => id !== cardId)
-        : [...current, cardId]
-    )
-  }
-
-  const toggleSelectAll = () => {
-    setSelectedIds((current) =>
-      current.length === filteredCards.length ? [] : filteredCards.map((card) => card.id)
-    )
-  }
 
   const clearFilters = () => {
     setQuery('')
@@ -186,10 +184,57 @@ export default function InventoryPage() {
     setPlatformFilter('all')
   }
 
+  const openCardDetail = async (card: InventoryCard) => {
+    setActiveCard(card)
+    setIsDetailLoading(true)
+    setDetailError(null)
+
+    try {
+      const item = await getItem(card.id)
+      setActiveCard(item)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Could not load card details.'
+      setDetailError(message)
+    } finally {
+      setIsDetailLoading(false)
+    }
+  }
+
+  const closeCardDetail = () => {
+    setActiveCard(null)
+    setDetailError(null)
+    setIsDetailLoading(false)
+  }
+
+  const openAddForm = () => {
+    setIsAddFormOpen(true)
+  }
+
+  const closeForm = () => {
+    setIsAddFormOpen(false)
+  }
+
+  const submitInventoryForm = async (payload: Parameters<typeof addItem>[0]) => {
+    await addItem(payload)
+    closeForm()
+  }
+
+  const handleDeleteItem = async (card: InventoryCard) => {
+    const confirmed = window.confirm(`Delete ${card.player_name} from inventory?`)
+    if (!confirmed) return
+
+    await deleteItem(card.id)
+    closeCardDetail()
+  }
+
   return (
     <Shell>
       <div className="space-y-6">
-        <InventoryHeader onOpenImportTool={setImportToolMode} />
+        <InventoryHeader
+          onAddItem={openAddForm}
+          onOpenImportTool={setImportToolMode}
+        />
 
         <InventoryMetrics
           agingCount={agingCards.length}
@@ -197,121 +242,85 @@ export default function InventoryPage() {
           filteredGain={filteredGain}
           filteredValue={filteredValue}
           listedCount={listedCards}
-          totalPortfolioValue={METRICS.total_inventory_value}
+          totalPortfolioValue={summary?.total_market_value ?? filteredValue}
         />
 
-        {/* <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <InventoryTable
-            cards={filteredCards}
-            selectedCount={selectedCards.length}
-            selectedIds={selectedIds}
-            sortDirection={sortDirection}
-            sortKey={sortKey}
-            onCardDetail={setActiveCard}
-            onListAll={() => setIsListingOpen(true)}
-            onSelectAll={toggleSelectAll}
-            onSort={toggleSort}
-            onToggleSelected={toggleSelected}
-          >
-            <InventoryFilters
-              ageFilter={ageFilter}
-              gradeFilter={gradeFilter}
-              grades={grades}
-              maxPrice={maxPrice}
-              minPrice={minPrice}
-              platformFilter={platformFilter}
-              profitFilter={profitFilter}
-              query={query}
-              sportFilter={sportFilter}
-              sports={sports}
-              statusFilter={statusFilter}
-              onAgeFilterChange={setAgeFilter}
-              onClearFilters={clearFilters}
-              onGradeFilterChange={setGradeFilter}
-              onMaxPriceChange={setMaxPrice}
-              onMinPriceChange={setMinPrice}
-              onPlatformFilterChange={setPlatformFilter}
-              onProfitFilterChange={setProfitFilter}
-              onQueryChange={setQuery}
-              onSportFilterChange={setSportFilter}
-              onStatusFilterChange={setStatusFilter}
-            />
-          </InventoryTable>
-          <InventoryCardGrid
-  cards={filteredCards}
-  onCardDetail={setActiveCard}
-/>
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
+        <InventoryFilters
+          ageFilter={ageFilter}
+          gradeFilter={gradeFilter}
+          grades={grades}
+          maxPrice={maxPrice}
+          minPrice={minPrice}
+          platformFilter={platformFilter}
+          profitFilter={profitFilter}
+          query={query}
+          sportFilter={sportFilter}
+          sports={sports}
+          statusFilter={statusFilter}
+          onAgeFilterChange={setAgeFilter}
+          onClearFilters={clearFilters}
+          onGradeFilterChange={setGradeFilter}
+          onMaxPriceChange={setMaxPrice}
+          onMinPriceChange={setMinPrice}
+          onPlatformFilterChange={setPlatformFilter}
+          onProfitFilterChange={setProfitFilter}
+          onQueryChange={setQuery}
+          onSportFilterChange={setSportFilter}
+          onStatusFilterChange={setStatusFilter}
+        />
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+            {isLoading ? (
+              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                Loading inventory...
+              </div>
+            ) : (
+              <InventoryCardGrid
+                cards={filteredCards}
+                onCardDetail={openCardDetail}
+              />
+            )}
+          </div>
 
           <InventorySidePanel
             agingCards={agingCards}
-            onCardDetail={setActiveCard}
+            onCardDetail={openCardDetail}
             onOpenImportTool={setImportToolMode}
           />
-        </div> */}
-        <div className="space-y-6">
-
-          {/* ✅ FILTERS (TOP SECTION) */}
-          <InventoryFilters
-            ageFilter={ageFilter}
-            gradeFilter={gradeFilter}
-            grades={grades}
-            maxPrice={maxPrice}
-            minPrice={minPrice}
-            platformFilter={platformFilter}
-            profitFilter={profitFilter}
-            query={query}
-            sportFilter={sportFilter}
-            sports={sports}
-            statusFilter={statusFilter}
-            onAgeFilterChange={setAgeFilter}
-            onClearFilters={clearFilters}
-            onGradeFilterChange={setGradeFilter}
-            onMaxPriceChange={setMaxPrice}
-            onMinPriceChange={setMinPrice}
-            onPlatformFilterChange={setPlatformFilter}
-            onProfitFilterChange={setProfitFilter}
-            onQueryChange={setQuery}
-            onSportFilterChange={setSportFilter}
-            onStatusFilterChange={setStatusFilter}
-          />
-
-          {/* ✅ GRID + SIDE PANEL */}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-
-            {/* CARD GRID */}
-            <div className="xl:col-span-2">
-              <InventoryCardGrid
-                cards={filteredCards}
-                onCardDetail={setActiveCard}
-              />
-            </div>
-
-            {/* SIDE PANEL */}
-            <InventorySidePanel
-              agingCards={agingCards}
-              onCardDetail={setActiveCard}
-              onOpenImportTool={setImportToolMode}
-            />
-
-          </div>
         </div>
       </div>
 
       {activeCard && (
-        <CardDetailModal card={activeCard} onClose={() => setActiveCard(null)} />
+        <CardDetailModal
+          card={activeCard}
+          error={detailError}
+          isLoading={isDetailLoading}
+          onClose={closeCardDetail}
+          onDelete={handleDeleteItem}
+        />
+      )}
+
+      {isAddFormOpen && (
+        <InventoryItemFormModal
+          card={null}
+          isSaving={isMutating}
+          mode="add"
+          onClose={closeForm}
+          onSubmit={submitInventoryForm}
+        />
       )}
 
       {importToolMode && (
         <ImportToolsModal
           initialMode={importToolMode}
           onClose={() => setImportToolMode(null)}
-        />
-      )}
-
-      {isListingOpen && (
-        <ListingModal
-          selectedCards={selectedCards}
-          onClose={() => setIsListingOpen(false)}
         />
       )}
     </Shell>

@@ -1,14 +1,32 @@
 import { TransactionRepository } from "./transaction.repository.js";
+import type { EmailService } from "../email/email.service.js";
 
 export class TransactionService {
-  constructor(private readonly repository: TransactionRepository) {}
+  constructor(
+    private readonly repository: TransactionRepository,
+    private readonly emailService?: EmailService,
+  ) {}
 
   async postTransactionsBuy(userId: string, body: any) {
     return this.repository.postTransactionsBuy(userId, body);
   }
 
   async postTransactionsSell(userId: string, body: any) {
-    return this.repository.postTransactionsSell(userId, body);
+    const result = await this.repository.postTransactionsSell(userId, body);
+
+    if (body.customerEmail) {
+      await this.emailService?.sendOrderConfirmation(body.customerEmail, {
+        displayName: body.customerName,
+        orderId: result.id,
+        itemName: body.playerName,
+        total: `$${Number(body.price || 0).toFixed(2)}`,
+        orderUrl: body.orderUrl,
+      }).catch((error) => {
+        console.error(`Failed to send order confirmation to ${body.customerEmail}:`, error);
+      });
+    }
+
+    return result;
   }
 
   async postTransactionsTrade(userId: string, body: any) {

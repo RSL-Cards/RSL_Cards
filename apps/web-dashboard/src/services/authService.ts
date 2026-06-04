@@ -71,25 +71,25 @@ async function authRequest<TResponse, TBody extends object>(
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify(body),
-  })
-
+  });
   if (!response.ok) {
-    let errorBody: ApiErrorBody | null = null
+    let errorBody: ApiErrorBody | null = null;
 
     try {
-      errorBody = await response.json()
+      errorBody = await response.json();
     } catch {
-      errorBody = null
+      errorBody = null;
     }
 
     throw new Error(
       errorBody?.error?.message ??
-        errorBody?.message ??
-        'Something went wrong. Please try again.',
-    )
+      errorBody?.message ??
+      'Something went wrong. Please try again.',
+    );
   }
 
-  return response.json() as Promise<TResponse>
+  const json = await response.json();
+  return json as TResponse;
 }
 
 export const authService = {

@@ -1,6 +1,34 @@
-import { INVENTORY_TABLE_DATA } from '@/data/mockDashboard'
+export interface InventoryCard {
+  id: string
+  image_url: string
+  player_name: string
+  year: number | null
+  set_name: string
+  grade_key: string
+  sport: string
+  cost_basis: number
+  market_value: number
+  unrealized_gain: number
+  unrealized_gain_pct: number
+  status: string
+  days_held: number
+  comp_avg: number
+  comp_trend: number
+  platforms_listed: string[]
+  quantity?: number
+  card_number?: string | null
+  variation?: string | null
+  cert_number?: string | null
+  notes?: string | null
+  added_at?: string | null
+}
 
-export type InventoryCard = (typeof INVENTORY_TABLE_DATA)[number]
+export interface InventorySummary {
+  total_cards: number
+  total_cost_basis: number
+  total_market_value: number
+  total_unrealized_gain: number
+}
 
 export type SortKey =
   | 'player_name'
@@ -43,6 +71,24 @@ export const formatCurrency = (value: number) =>
   }).format(value)
 
 export const formatGrade = (grade: string) => grade.replace('_', ' ')
+
+export const toDisplaySport = (sport: string | null | undefined) => {
+  if (!sport) return 'Unspecified'
+  return sport
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
+export const calculateDaysHeld = (date: string | null | undefined) => {
+  if (!date) return 0
+  const addedAt = new Date(date).getTime()
+
+  if (Number.isNaN(addedAt)) return 0
+
+  return Math.max(0, Math.floor((Date.now() - addedAt) / 86_400_000))
+}
 
 export const cardImageStyle = (card: InventoryCard) => {
   const palette: Record<string, string> = {
