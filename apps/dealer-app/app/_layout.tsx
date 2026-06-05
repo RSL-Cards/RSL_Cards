@@ -8,6 +8,16 @@ import Toast from "react-native-toast-message";
 import { useAuthStore } from "../src/stores/authStore";
 
 import { toastConfig } from "../src/components/ToastConfig";
+import { COLORS } from "../src/constants/theme";
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  Inter_900Black,
+} from "@expo-google-fonts/inter";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrated } = useAuthStore();
@@ -26,16 +36,29 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    Inter_900Black,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <QueryProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000000" }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
         <SafeAreaProvider>
           <StatusBar style="light" />
           <AuthGuard>
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: "#000000" },
+                contentStyle: { backgroundColor: COLORS.background },
               }}
             >
               <Stack.Screen name="index" />

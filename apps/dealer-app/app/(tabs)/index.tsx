@@ -1,17 +1,14 @@
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
-  Pressable,
-  Animated,
   Image,
-  StyleSheet,
   Modal,
   TouchableWithoutFeedback,
+  StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MOCK_AI_NARRATIVE, MOCK_NOTIFICATIONS } from "../../src/constants/mockData";
@@ -23,6 +20,10 @@ import {
   useRefetchDashboardOnFocus,
 } from "../../src/hooks/useDashboard";
 import { useInventorySummary } from "../../src/hooks/useCardScan";
+import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
+import { Typography } from "../../src/components/ui/Typography";
+import { Surface } from "../../src/components/ui/Surface";
+import { Button } from "../../src/components/ui/Button";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -42,49 +43,14 @@ export default function HomeScreen() {
   const { data: todayActivity } = useTodayActivity();
   useRefetchDashboardOnFocus();
 
-  const buyScale = useRef(new Animated.Value(1)).current;
-  const sellScale = useRef(new Animated.Value(1)).current;
-
-  const buyStyle = { transform: [{ scale: buyScale }] };
-  const sellStyle = { transform: [{ scale: sellScale }] };
-
-  const handleBuy = () => {
-    Animated.sequence([
-      Animated.spring(buyScale, {
-        toValue: 0.93,
-        useNativeDriver: true,
-        speed: 50,
-      }),
-      Animated.spring(buyScale, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-      }),
-    ]).start();
-    router.push("/buy/scan");
-  };
-
-  const handleSell = () => {
-    Animated.sequence([
-      Animated.spring(sellScale, {
-        toValue: 0.93,
-        useNativeDriver: true,
-        speed: 50,
-      }),
-      Animated.spring(sellScale, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-      }),
-    ]).start();
-    router.push("/sell/scan");
-  };
+  const handleBuy = () => router.push("/buy/scan");
+  const handleSell = () => router.push("/sell/scan");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: SPACING.lg }}
       >
         {/* ── HEADER ── */}
         <View
@@ -92,46 +58,37 @@ export default function HomeScreen() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingHorizontal: 20,
-            paddingVertical: 12,
+            paddingHorizontal: SPACING.lg,
+            paddingVertical: SPACING.md,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
             <Image
               source={require("../../assets/rslicon.jpeg")}
-              style={{ width: 56, height: 56, borderRadius: 8 }}
+              style={{ width: 44, height: 44, borderRadius: RADIUS.sm }}
               resizeMode="contain"
             />
-            <Text
-              style={{ color: "#555555", fontSize: 12, fontStyle: "italic" }}
-            >
-              Pro
-            </Text>
+            <Typography variant="label" color={COLORS.zinc400} style={{ fontStyle: 'italic' }}>PRO</Typography>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <TouchableOpacity
-              onPress={() => setShowNotifications(true)}
-              style={{ position: "relative" }}
-            >
-              <Ionicons name="notifications-outline" size={24} color="white" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
+            <TouchableOpacity onPress={() => setShowNotifications(true)} style={{ position: "relative" }}>
+              <Ionicons name="notifications-outline" size={24} color={COLORS.zinc100} />
               <View
                 style={{
                   position: "absolute",
                   top: -2,
                   right: -2,
-                  backgroundColor: "#E8001C",
-                  borderRadius: 8,
+                  backgroundColor: COLORS.destructive,
+                  borderRadius: RADIUS.full,
                   width: 16,
                   height: 16,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Text
-                  style={{ color: "white", fontSize: 9, fontWeight: "700" }}
-                >
+                <Typography variant="caption" weight="800" color={COLORS.white} style={{ fontSize: 9 }}>
                   2
-                </Text>
+                </Typography>
               </View>
             </TouchableOpacity>
             <TouchableOpacity
@@ -139,25 +96,21 @@ export default function HomeScreen() {
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 18,
-                backgroundColor: "#E8001C",
+                borderRadius: RADIUS.full,
+                backgroundColor: COLORS.zinc800,
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",
+                borderWidth: 1,
+                borderColor: COLORS.border,
               }}
             >
               {user?.photoUrl ? (
-                <Image
-                  source={{ uri: user.photoUrl }}
-                  style={StyleSheet.absoluteFill}
-                  resizeMode="cover"
-                />
+                <Image source={{ uri: user.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
               ) : (
-                <Text
-                  style={{ color: "white", fontSize: 14, fontWeight: "700" }}
-                >
+                <Typography variant="body" weight="700" color={COLORS.zinc100}>
                   {initials}
-                </Text>
+                </Typography>
               )}
             </TouchableOpacity>
           </View>
@@ -168,225 +121,78 @@ export default function HomeScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{
-            paddingHorizontal: 20,
-            gap: 10,
-            paddingVertical: 8,
+            paddingHorizontal: SPACING.lg,
+            gap: SPACING.sm,
+            paddingVertical: SPACING.sm,
           }}
         >
           {[
-            {
-              label: "Bought",
-              value: `${dailyStats?.cards_bought ?? 0}`,
-              unit: "cards",
-              color: "#0057FF",
-            },
-            {
-              label: "Sold",
-              value: `${dailyStats?.cards_sold ?? 0}`,
-              unit: "cards",
-              color: "#E8001C",
-            },
-            {
-              label: "Spent",
-              value: `$${dailyStats?.total_spent ?? "0.00"}`,
-              unit: "",
-              color: "#888888",
-            },
-            {
-              label: "Revenue",
-              value: `$${dailyStats?.total_revenue ?? "0.00"}`,
-              unit: "",
-              color: "#FFFFFF",
-            },
-            {
-              label: "Profit",
-              value: `$${dailyStats?.net_profit ?? "0.00"}`,
-              unit: "",
-              color: "#00C853",
-            },
+            { label: "Bought", value: `${dailyStats?.cards_bought ?? 0}`, unit: "cards", color: COLORS.primaryLight },
+            { label: "Sold", value: `${dailyStats?.cards_sold ?? 0}`, unit: "cards", color: COLORS.destructive },
+            { label: "Spent", value: `$${dailyStats?.total_spent ?? "0.00"}`, color: COLORS.zinc400 },
+            { label: "Revenue", value: `$${dailyStats?.total_revenue ?? "0.00"}`, color: COLORS.zinc50 },
+            { label: "Profit", value: `$${dailyStats?.net_profit ?? "0.00"}`, color: COLORS.success },
           ].map((stat) => (
-            <TouchableOpacity
-              key={stat.label}
-              onPress={() => router.push("/reports/daily")}
-              style={{
-                backgroundColor: "#111111",
-                borderRadius: 14,
-                padding: 14,
-                minWidth: 90,
-                borderWidth: 1,
-                borderColor: "#2A2A2A",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#888888",
-                  fontSize: 10,
-                  fontWeight: "600",
-                  letterSpacing: 1,
-                  marginBottom: 6,
-                }}
-              >
-                {stat.label.toUpperCase()}
-              </Text>
-              <Text
-                style={{ color: stat.color, fontSize: 18, fontWeight: "700" }}
-              >
-                {stat.value}
-              </Text>
-              {stat.unit ? (
-                <Text style={{ color: "#555555", fontSize: 10 }}>
-                  {stat.unit}
-                </Text>
-              ) : null}
+            <TouchableOpacity key={stat.label} onPress={() => router.push("/reports/daily")}>
+              <Surface variant="glass" padding="md" style={{ minWidth: 100 }}>
+                <Typography variant="label" color={COLORS.zinc400} style={{ marginBottom: SPACING.xs }}>
+                  {stat.label}
+                </Typography>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING.xs }}>
+                  <Typography variant="h3" weight="800" color={stat.color}>
+                    {stat.value}
+                  </Typography>
+                  {stat.unit && <Typography variant="caption" color={COLORS.zinc500}>{stat.unit}</Typography>}
+                </View>
+              </Surface>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* ── BUY / SELL BUTTONS (HERO) ── */}
-        <View
-          style={{
-            flexDirection: "row",
-            gap: 12,
-            paddingHorizontal: 20,
-            marginTop: 8,
-          }}
-        >
-          <Animated.View style={[{ flex: 1 }, buyStyle]}>
-            <Pressable
-              onPress={handleBuy}
-              style={{
-                height: 160,
-                borderRadius: 20,
-                backgroundColor: "#0057FF",
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: "#0057FF",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                elevation: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: "white",
-                  fontSize: 46,
-                  fontWeight: "900",
-                  fontStyle: "italic",
-                  lineHeight: 50,
-                }}
-              >
-                BUY
-              </Text>
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.65)",
-                  fontSize: 13,
-                  marginTop: 6,
-                }}
-              >
-                Buy a card
-              </Text>
-            </Pressable>
-          </Animated.View>
-          <Animated.View style={[{ flex: 1 }, sellStyle]}>
-            <Pressable
-              onPress={handleSell}
-              style={{
-                height: 160,
-                borderRadius: 20,
-                backgroundColor: "#E8001C",
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: "#E8001C",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.5,
-                shadowRadius: 16,
-                elevation: 12,
-              }}
-            >
-              <Text
-                style={{
-                  color: "white",
-                  fontSize: 46,
-                  fontWeight: "900",
-                  fontStyle: "italic",
-                  lineHeight: 50,
-                }}
-              >
-                SELL
-              </Text>
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.65)",
-                  fontSize: 13,
-                  marginTop: 6,
-                }}
-              >
-                Sell a card
-              </Text>
-            </Pressable>
-          </Animated.View>
+        <View style={{ flexDirection: "row", gap: SPACING.md, paddingHorizontal: SPACING.lg, marginTop: SPACING.md }}>
+          <Button
+            label="Buy"
+            variant="primary"
+            size="hero"
+            onPress={handleBuy}
+            style={{ flex: 1 }}
+          />
+          <Button
+            label="Sell"
+            variant="destructive"
+            size="hero"
+            onPress={handleSell}
+            style={{ flex: 1 }}
+          />
         </View>
 
         {/* ── ACTIVE DEAL TABS ── */}
         {tabs.length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <Text
-              style={{
-                color: "#888888",
-                fontSize: 11,
-                fontWeight: "700",
-                letterSpacing: 1.5,
-                paddingHorizontal: 20,
-                marginBottom: 10,
-              }}
-            >
+          <View style={{ marginTop: SPACING.xl }}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm }}>
               ACTIVE DEALS
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-            >
+            </Typography>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.lg, gap: SPACING.md }}>
               {tabs.map((tab) => (
                 <TouchableOpacity
                   key={tab.id}
-                  style={{
-                    backgroundColor: "#111111",
-                    borderRadius: 14,
-                    padding: 14,
-                    width: 160,
-                    borderWidth: 1,
-                    borderColor: "#2A2A2A",
-                  }}
                   onPress={() => {
                     useDealTabStore.getState().setActiveTab(tab.id);
-                    router.push(
-                      tab.type === "buy" ? "/buy/comps" : "/sell/price",
-                    );
+                    router.push(tab.type === "buy" ? "/buy/comps" : "/sell/price");
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "white",
-                      fontSize: 13,
-                      fontWeight: "600",
-                      marginBottom: 4,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {tab.cardData?.player_name || "Unknown Card"}
-                  </Text>
-                  <Text style={{ color: "#888888", fontSize: 11 }}>
-                    Step {tab.step}/5 · {tab.type.toUpperCase()}
-                  </Text>
-                  <TouchableOpacity
-                    style={{ position: "absolute", top: 8, right: 8 }}
-                    onPress={() => removeTab(tab.id)}
-                  >
-                    <Text style={{ color: "#555555", fontSize: 16 }}>✕</Text>
-                  </TouchableOpacity>
+                  <Surface variant="glass" padding="md" style={{ width: 180 }}>
+                    <Typography variant="body" weight="600" numberOfLines={1} style={{ marginBottom: SPACING.xs }}>
+                      {tab.cardData?.player_name || "Unknown Card"}
+                    </Typography>
+                    <Typography variant="caption" color={COLORS.zinc400}>
+                      Step {tab.step}/5 · {tab.type.toUpperCase()}
+                    </Typography>
+                    <TouchableOpacity style={{ position: "absolute", top: SPACING.sm, right: SPACING.sm, padding: 4 }} onPress={() => removeTab(tab.id)}>
+                      <Ionicons name="close" size={16} color={COLORS.zinc400} />
+                    </TouchableOpacity>
+                  </Surface>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -394,349 +200,175 @@ export default function HomeScreen() {
         )}
 
         {/* ── AI INSIGHT CARD ── */}
-        <View style={{ marginHorizontal: 20, marginTop: 20 }}>
-          <Text
-            style={{
-              color: "#888888",
-              fontSize: 11,
-              fontWeight: "700",
-              letterSpacing: 1.5,
-              marginBottom: 10,
-            }}
-          >
+        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
+          <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
             AI INSIGHT
-          </Text>
-          <View
-            style={{
-              backgroundColor: "#111111",
-              borderRadius: 16,
-              padding: 16,
-              borderLeftWidth: 3,
-              borderLeftColor: "#E8001C",
-              borderWidth: 1,
-              borderColor: "#2A2A2A",
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 8,
-              }}
-            >
-              <Ionicons name="flash" size={16} color="#E8001C" style={{ marginRight: 8 }} />
-              <Text
-                style={{
-                  color: "#E8001C",
-                  fontSize: 11,
-                  fontWeight: "700",
-                  letterSpacing: 1,
-                }}
-              >
-                {MOCK_AI_NARRATIVE.narrative_type.toUpperCase()}
-              </Text>
+          </Typography>
+          <Surface variant="elevated" padding="lg" style={{ borderLeftWidth: 3, borderLeftColor: COLORS.primary }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
+              <Ionicons name="flash" size={16} color={COLORS.primary} style={{ marginRight: SPACING.xs }} />
+              <Typography variant="label" color={COLORS.primaryLight}>
+                {MOCK_AI_NARRATIVE.narrative_type}
+              </Typography>
               <View style={{ marginLeft: "auto" }}>
-                <Text
-                  style={{ color: "#00C853", fontSize: 13, fontWeight: "700" }}
-                >
+                <Typography variant="body" weight="700" color={COLORS.success}>
                   +{MOCK_AI_NARRATIVE.price_change_pct}%
-                </Text>
+                </Typography>
               </View>
             </View>
-            <Text
-              style={{
-                color: "white",
-                fontSize: 15,
-                fontWeight: "700",
-                marginBottom: 6,
-              }}
-            >
+            <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
               {MOCK_AI_NARRATIVE.headline}
-            </Text>
-            <Text style={{ color: "#888888", fontSize: 13, lineHeight: 19 }}>
+            </Typography>
+            <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.md }}>
               {MOCK_AI_NARRATIVE.short_summary}
-            </Text>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 12,
-              }}
-            >
-              <Text style={{ color: "#555555", fontSize: 12 }}>
-                {MOCK_AI_NARRATIVE.affected_in_inventory} cards in your
-                inventory affected
-              </Text>
-            </View>
-          </View>
+            </Typography>
+            <Typography variant="caption" color={COLORS.zinc500}>
+              {MOCK_AI_NARRATIVE.affected_in_inventory} cards in your inventory affected
+            </Typography>
+          </Surface>
         </View>
 
         {/* ── INVENTORY SNAPSHOT ── */}
-        <View style={{ marginHorizontal: 20, marginTop: 20 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: "#888888",
-                fontSize: 11,
-                fontWeight: "700",
-                letterSpacing: 1.5,
-              }}
-            >
-              INVENTORY
-            </Text>
+        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.sm }}>
+            <Typography variant="label" color={COLORS.zinc500}>INVENTORY</Typography>
             <TouchableOpacity onPress={() => router.push("/(tabs)/inventory")}>
-              <Text style={{ color: "#0057FF", fontSize: 13 }}>See all →</Text>
+              <Typography variant="body" color={COLORS.primaryLight}>See all →</Typography>
             </TouchableOpacity>
           </View>
-          <View
-            style={{
-              backgroundColor: "#111111",
-              borderRadius: 16,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: "#2A2A2A",
-            }}
-          >
-            <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
-            >
+          <Surface padding="lg" variant="elevated">
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               {[
-                {
-                  label: "Cards",
-                  value: `${summary?.total_cards ?? 0}`,
-                },
-                {
-                  label: "Value",
-                  value: `$${parseFloat(summary?.total_market_value ?? "0").toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
-                },
+                { label: "Cards", value: `${summary?.total_cards ?? 0}` },
+                { label: "Value", value: `$${parseFloat(summary?.total_market_value ?? "0").toLocaleString("en-US", { maximumFractionDigits: 0 })}` },
                 {
                   label: "Gain",
                   value: `${parseFloat(summary?.total_unrealized_gain ?? "0") >= 0 ? "+" : "-"}$${Math.abs(parseFloat(summary?.total_unrealized_gain ?? "0")).toFixed(0)}`,
                   isNegative: parseFloat(summary?.total_unrealized_gain ?? "0") < 0,
                 },
-              ].map((item: any) => (
+              ].map((item) => (
                 <View key={item.label} style={{ alignItems: "center" }}>
-                  <Text
-                    style={{ color: "#888888", fontSize: 11, marginBottom: 4 }}
-                  >
+                  <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>
                     {item.label}
-                  </Text>
-                  <Text
-                    style={{
-                      color: item.label === "Gain" ? (item.isNegative ? "#E8001C" : "#00C853") : "white",
-                      fontSize: 17,
-                      fontWeight: "700",
-                    }}
-                  >
+                  </Typography>
+                  <Typography variant="h3" weight="800" color={item.label === "Gain" ? (item.isNegative ? COLORS.destructive : COLORS.success) : COLORS.zinc50}>
                     {item.value}
-                  </Text>
+                  </Typography>
                 </View>
               ))}
             </View>
-          </View>
+          </Surface>
         </View>
 
         {/* ── TODAY'S ACTIVITY ── */}
         {todayActivity && todayActivity.length > 0 && (
-          <View style={{ marginHorizontal: 20, marginTop: 20 }}>
-            <Text
-              style={{
-                color: "#888888",
-                fontSize: 11,
-                fontWeight: "700",
-                letterSpacing: 1.5,
-                marginBottom: 10,
-              }}
-            >
+          <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
               TODAY'S ACTIVITY
-            </Text>
-            <View
-              style={{
-                backgroundColor: "#111111",
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: "#2A2A2A",
-                overflow: "hidden",
-              }}
-            >
+            </Typography>
+            <Surface padding="none" variant="elevated">
               {todayActivity.map((tx, i) => (
                 <View
                   key={tx.id}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    padding: 14,
+                    padding: SPACING.md,
                     borderBottomWidth: i < todayActivity.length - 1 ? 1 : 0,
-                    borderBottomColor: "#2A2A2A",
+                    borderBottomColor: COLORS.border,
                   }}
                 >
                   <View
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 8,
-                      backgroundColor:
-                        tx.type === "buy"
-                          ? "rgba(0,87,255,0.15)"
-                          : "rgba(232,0,28,0.15)",
+                      width: 40,
+                      height: 40,
+                      borderRadius: RADIUS.sm,
+                      backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : 'rgba(225,29,72,0.15)',
                       alignItems: "center",
                       justifyContent: "center",
-                      marginRight: 12,
+                      marginRight: SPACING.md,
                     }}
                   >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "700",
-                        color: tx.type === "buy" ? "#0057FF" : "#E8001C",
-                      }}
-                    >
+                    <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : COLORS.destructive}>
                       {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
-                    </Text>
+                    </Typography>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: "white",
-                        fontWeight: "600",
-                        fontSize: 14,
-                      }}
-                      numberOfLines={1}
-                    >
+                    <Typography variant="body" weight="600" numberOfLines={1}>
                       {tx.playerName}
-                    </Text>
-                    <Text
-                      style={{ color: "#555555", fontSize: 11, marginTop: 2 }}
-                    >
+                    </Typography>
+                    <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>
                       {tx.time}
-                    </Text>
+                    </Typography>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text
-                      style={{
-                        color: "white",
-                        fontWeight: "700",
-                        fontSize: 14,
-                      }}
-                    >
+                    <Typography variant="body" weight="700">
                       ${tx.price}
-                    </Text>
+                    </Typography>
                     {tx.profit && (
-                      <Text
-                        style={{
-                          color:
-                            parseFloat(tx.profit) >= 0 ? "#00C853" : "#E8001C",
-                          fontSize: 12,
-                          marginTop: 2,
-                        }}
-                      >
+                      <Typography variant="caption" weight="600" color={parseFloat(tx.profit) >= 0 ? COLORS.success : COLORS.destructive} style={{ marginTop: 2 }}>
                         {parseFloat(tx.profit) >= 0 ? "+" : ""}${tx.profit}
-                      </Text>
+                      </Typography>
                     )}
                   </View>
                 </View>
               ))}
-            </View>
+            </Surface>
           </View>
         )}
       </ScrollView>
 
-      {/* Notifications Popover */}
-      <Modal
-        visible={showNotifications}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowNotifications(false)}
-      >
+      <Modal visible={showNotifications} transparent={true} animationType="fade" onRequestClose={() => setShowNotifications(false)}>
         <TouchableWithoutFeedback onPress={() => setShowNotifications(false)}>
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)" }}>
             <TouchableWithoutFeedback>
               <View
                 style={{
                   position: "absolute",
                   top: 70,
-                  right: 20,
+                  right: SPACING.lg,
                   width: 320,
-                  backgroundColor: "#1A1A1A",
-                  borderRadius: 16,
-                  padding: 16,
+                  backgroundColor: COLORS.surface,
+                  borderRadius: RADIUS.lg,
+                  padding: SPACING.md,
                   borderWidth: 1,
-                  borderColor: "#333",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 10 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 20,
+                  borderColor: COLORS.border,
+                  ...SHADOWS.lg,
                 }}
               >
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 18,
-                    fontWeight: "800",
-                    marginBottom: 16,
-                  }}
-                >
+                <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.md }}>
                   Notifications
-                </Text>
+                </Typography>
                 {MOCK_NOTIFICATIONS.map((n, idx) => (
                   <TouchableOpacity
                     key={n.id}
                     style={{
                       flexDirection: "row",
-                      gap: 12,
-                      paddingVertical: 12,
+                      gap: SPACING.sm,
+                      paddingVertical: SPACING.md,
                       borderTopWidth: idx > 0 ? 1 : 0,
-                      borderTopColor: "#2A2A2A",
+                      borderTopColor: COLORS.border,
                     }}
                   >
                     <View
                       style={{
                         width: 40,
                         height: 40,
-                        borderRadius: 20,
-                        backgroundColor:
-                          n.type === "sale"
-                            ? "rgba(0,200,83,0.15)"
-                            : "rgba(255,179,0,0.15)",
+                        borderRadius: RADIUS.full,
+                        backgroundColor: n.type === "sale" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Ionicons
-                        name={
-                          n.type === "sale" ? "cash-outline" : "warning-outline"
-                        }
-                        size={20}
-                        color={n.type === "sale" ? "#00C853" : "#FFB300"}
-                      />
+                      <Ionicons name={n.type === "sale" ? "cash-outline" : "warning-outline"} size={20} color={n.type === "sale" ? COLORS.success : COLORS.warning} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          color: "white",
-                          fontSize: 15,
-                          fontWeight: "700",
-                          marginBottom: 4,
-                        }}
-                      >
+                      <Typography variant="body" weight="700" style={{ marginBottom: SPACING.xs }}>
                         {n.title}
-                      </Text>
-                      <Text
-                        style={{
-                          color: "#888888",
-                          fontSize: 13,
-                          lineHeight: 18,
-                        }}
-                      >
+                      </Typography>
+                      <Typography variant="caption" color={COLORS.zinc400}>
                         {n.body}
-                      </Text>
+                      </Typography>
                     </View>
                   </TouchableOpacity>
                 ))}

@@ -14,6 +14,10 @@ import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
+import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
+import { Typography } from "../../src/components/ui/Typography";
+import { Surface } from "../../src/components/ui/Surface";
+import { Button } from "../../src/components/ui/Button";
 
 const ALL_SPORTS = [
   { key: "Football", emoji: "🏈" },
@@ -29,46 +33,38 @@ const GRADE_CONFIG: Record<
   string,
   { bg: string; color: string; label: string }
 > = {
-  PSA_10: { bg: "#FFD700", color: "#000000", label: "PSA 10" },
-  PSA_9: { bg: "#1A1A1A", color: "#FFD700", label: "PSA 9" },
-  BGS_9: { bg: "#0057FF", color: "#FFFFFF", label: "BGS 9" },
-  BGS_95: { bg: "#0057FF", color: "#FFFFFF", label: "BGS 9.5" },
-  RAW: { bg: "#1E1E1E", color: "#666666", label: "RAW" },
+  PSA_10: { bg: "#FFD700", color: COLORS.zinc950, label: "PSA 10" },
+  PSA_9: { bg: COLORS.zinc800, color: "#FFD700", label: "PSA 9" },
+  BGS_9: { bg: COLORS.primaryLight, color: COLORS.white, label: "BGS 9" },
+  BGS_95: { bg: COLORS.primaryLight, color: COLORS.white, label: "BGS 9.5" },
+  RAW: { bg: COLORS.zinc800, color: COLORS.zinc400, label: "RAW" },
 };
 
 function GradeChip({ gradeKey }: { gradeKey: string }) {
   const cfg = GRADE_CONFIG[gradeKey] ?? {
-    bg: "#1E1E1E",
-    color: "#666666",
+    bg: COLORS.zinc800,
+    color: COLORS.zinc400,
     label: gradeKey,
   };
   return (
     <View style={[styles.gradeChip, { backgroundColor: cfg.bg }]}>
-      <Text style={[styles.gradeChipText, { color: cfg.color }]}>
+      <Typography variant="label" color={cfg.color} style={{ fontWeight: '800' }}>
         {cfg.label}
-      </Text>
+      </Typography>
     </View>
   );
 }
 
 function StatusDot({ status }: { status: string }) {
-  const color = status === "listed" ? "#00C853" : "#555555";
+  const color = status === "listed" ? COLORS.success : COLORS.zinc500;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>
       <View
         style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }}
       />
-      <Text
-        style={{
-          color,
-          fontSize: 10,
-          fontWeight: "600",
-          textTransform: "uppercase",
-          letterSpacing: 0.5,
-        }}
-      >
+      <Typography variant="caption" weight="600" color={color} style={{ textTransform: "uppercase", letterSpacing: 0.5, fontSize: 10 }}>
         {status}
-      </Text>
+      </Typography>
     </View>
   );
 }
@@ -100,16 +96,16 @@ function InventoryCard({ item }: { item: any }) {
   const daysHeld = Math.max(1, Math.ceil((Date.now() - addedAt.getTime()) / 86400000));
   const isAging = daysHeld >= 60;
   const isLoss = unrealizedGain < 0;
-  const gainColor = unrealizedGain >= 0 ? "#00C853" : "#E8001C";
+  const gainColor = unrealizedGain >= 0 ? COLORS.success : COLORS.destructive;
   const status = item.listing_status ?? "unlisted";
 
   const accentColor =
     isAging && isLoss
-      ? "#E8001C"
+      ? COLORS.destructive
       : isAging
-        ? "#FFB300"
+        ? COLORS.warning
         : isLoss
-          ? "#E8001C"
+          ? COLORS.destructive
           : null;
 
   const initials = (item.player_name ?? "?")
@@ -120,116 +116,94 @@ function InventoryCard({ item }: { item: any }) {
     .toUpperCase();
 
   return (
-    <TouchableOpacity
-      onPress={() => router.push(`/inventory/${item.id}`)}
-      style={[
-        styles.card,
-        accentColor
-          ? { borderLeftColor: accentColor, borderLeftWidth: 3 }
-          : null,
-      ]}
-      activeOpacity={0.75}
-    >
-      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-        {/* Thumbnail */}
-        <View style={styles.thumb}>
-          {item.photos?.[0] ? (
-            <Image
-              source={{ uri: item.photos[0] }}
-              style={StyleSheet.absoluteFill}
-              resizeMode="cover"
-            />
-          ) : (
-            <Text style={styles.thumbText}>{initials}</Text>
-          )}
-          {item.quantity > 1 && (
-            <View style={styles.qtyBadge}>
-              <Text style={styles.qtyText}>×{item.quantity}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Main content */}
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          {/* Row 1 — name + grade */}
-          <View style={styles.row}>
-            <Text style={styles.playerName} numberOfLines={1}>
-              {item.player_name}
-            </Text>
-            <GradeChip gradeKey={item.grade_key} />
-          </View>
-
-          {/* Row 2 — set info */}
-          <Text style={styles.setInfo} numberOfLines={1}>
-            {item.year} {item.set_name}
-            {item.variation ? ` · ${item.variation}` : ""}
-          </Text>
-
-          {/* Row 3 — prices */}
-          <View style={[styles.row, { marginTop: 10 }]}>
-            <View style={styles.priceBlock}>
-              <Text style={styles.priceLabel}>COST</Text>
-              <Text style={styles.priceMuted}>
-                ${costBasis.toLocaleString()}
-              </Text>
-            </View>
-            <View style={[styles.priceDivider]} />
-            <View style={styles.priceBlock}>
-              <Text style={styles.priceLabel}>MARKET</Text>
-              <Text style={styles.priceValue}>
-                {marketValue > 0 ? `$${marketValue.toLocaleString()}` : "—"}
-              </Text>
-            </View>
-            <View style={[styles.priceDivider]} />
-            <View style={styles.priceBlock}>
-              <Text style={styles.priceLabel}>P&L</Text>
-              <Text
-                style={[
-                  styles.priceValue,
-                  { color: marketValue > 0 ? gainColor : "#444444" },
-                ]}
-              >
-                {marketValue > 0
-                  ? `${unrealizedGain >= 0 ? "+" : ""}$${Math.abs(unrealizedGain).toFixed(0)}`
-                  : "—"}
-              </Text>
-            </View>
-          </View>
-
-          {/* Row 4 — status + days + pct */}
-          <View style={[styles.row, { marginTop: 8, alignItems: "center" }]}>
-            <StatusDot status={status} />
-            <View style={{ flex: 1 }} />
-            {marketValue > 0 && (
-              <View
-                style={[
-                  styles.pctPill,
-                  {
-                    backgroundColor:
-                      unrealizedGain >= 0
-                        ? "rgba(0,200,83,0.12)"
-                        : "rgba(232,0,28,0.12)",
-                  },
-                ]}
-              >
-                <Text style={[styles.pctText, { color: gainColor }]}>
-                  {unrealizedGainPct >= 0 ? "+" : ""}
-                  {unrealizedGainPct}%
-                </Text>
+    <TouchableOpacity onPress={() => router.push(`/inventory/${item.id}`)} activeOpacity={0.75}>
+      <Surface
+        variant="elevated"
+        style={[
+          styles.card,
+          accentColor ? { borderLeftColor: accentColor, borderLeftWidth: 3 } : null,
+        ]}
+      >
+        <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+          {/* Thumbnail */}
+          <View style={styles.thumb}>
+            {item.photos?.[0] ? (
+              <Image source={{ uri: item.photos[0] }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ) : (
+              <Typography variant="h3" weight="800" color={COLORS.zinc500}>{initials}</Typography>
+            )}
+            {item.quantity > 1 && (
+              <View style={styles.qtyBadge}>
+                <Typography variant="caption" weight="700" color={COLORS.white} style={{ fontSize: 9 }}>×{item.quantity}</Typography>
               </View>
             )}
-            <Text
-              style={[
-                styles.daysText,
-                { color: isAging ? "#FFB300" : "#444444" },
-              ]}
-            >
-              {isAging ? "⚠ " : ""}
-              {daysHeld}d
-            </Text>
+          </View>
+
+          {/* Main content */}
+          <View style={{ flex: 1, marginLeft: SPACING.md }}>
+            {/* Row 1 — name + grade */}
+            <View style={styles.row}>
+              <Typography variant="body" weight="700" numberOfLines={1} style={{ flex: 1, marginRight: SPACING.sm }}>
+                {item.player_name}
+              </Typography>
+              <GradeChip gradeKey={item.grade_key} />
+            </View>
+
+            {/* Row 2 — set info */}
+            <Typography variant="caption" color={COLORS.zinc500} numberOfLines={1} style={{ marginTop: 2 }}>
+              {item.year} {item.set_name}
+              {item.variation ? ` · ${item.variation}` : ""}
+            </Typography>
+
+            {/* Row 3 — prices */}
+            <View style={[styles.row, { marginTop: SPACING.sm }]}>
+              <View style={styles.priceBlock}>
+                <Typography variant="label" color={COLORS.zinc500}>COST</Typography>
+                <Typography variant="body" weight="600" color={COLORS.zinc400}>
+                  ${costBasis.toLocaleString()}
+                </Typography>
+              </View>
+              <View style={styles.priceDivider} />
+              <View style={styles.priceBlock}>
+                <Typography variant="label" color={COLORS.zinc500}>MARKET</Typography>
+                <Typography variant="body" weight="700" color={COLORS.white}>
+                  {marketValue > 0 ? `$${marketValue.toLocaleString()}` : "—"}
+                </Typography>
+              </View>
+              <View style={styles.priceDivider} />
+              <View style={styles.priceBlock}>
+                <Typography variant="label" color={COLORS.zinc500}>P&L</Typography>
+                <Typography variant="body" weight="700" color={marketValue > 0 ? gainColor : COLORS.zinc500}>
+                  {marketValue > 0 ? `${unrealizedGain >= 0 ? "+" : ""}$${Math.abs(unrealizedGain).toFixed(0)}` : "—"}
+                </Typography>
+              </View>
+            </View>
+
+            {/* Row 4 — status + days + pct */}
+            <View style={[styles.row, { marginTop: SPACING.sm, alignItems: "center" }]}>
+              <StatusDot status={status} />
+              <View style={{ flex: 1 }} />
+              {marketValue > 0 && (
+                <View
+                  style={[
+                    styles.pctPill,
+                    { backgroundColor: unrealizedGain >= 0 ? "rgba(16,185,129,0.12)" : "rgba(225,29,72,0.12)" },
+                  ]}
+                >
+                  <Typography variant="caption" weight="700" color={gainColor}>
+                    {unrealizedGainPct >= 0 ? "+" : ""}
+                    {unrealizedGainPct}%
+                  </Typography>
+                </View>
+              )}
+              <Typography variant="caption" weight="600" color={isAging ? COLORS.warning : COLORS.zinc400}>
+                {isAging ? "⚠ " : ""}
+                {daysHeld}d
+              </Typography>
+            </View>
           </View>
         </View>
-      </View>
+      </Surface>
     </TouchableOpacity>
   );
 }
@@ -294,7 +268,7 @@ function InventoryScreen() {
     if (!hasMore) {
       return (
         <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>Showing all {totalFilteredCards} cards</Text>
+          <Typography variant="caption" color={COLORS.zinc500}>Showing all {totalFilteredCards} cards</Typography>
         </View>
       );
     }
@@ -302,17 +276,13 @@ function InventoryScreen() {
     return (
       <View style={styles.footerContainer}>
         {isFetchingNextPage ? (
-          <ActivityIndicator color="#E8001C" size="small" style={{ marginVertical: 8 }} />
+          <ActivityIndicator color={COLORS.primary} size="small" style={{ marginVertical: 8 }} />
         ) : (
-          <TouchableOpacity
-            style={styles.loadMoreBtn}
+          <Button
+            label={`Load More (${allItems.length} of ${totalFilteredCards})`}
+            variant="secondary"
             onPress={handleLoadMore}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loadMoreBtnText}>
-              Load More (Showing {allItems.length} of {totalFilteredCards})
-            </Text>
-          </TouchableOpacity>
+          />
         )}
       </View>
     );
@@ -324,65 +294,33 @@ function InventoryScreen() {
   const totalGain = parseFloat(summary?.total_unrealized_gain ?? "0");
   const totalGainPct =
     totalCost > 0 ? Math.round((totalGain / totalCost) * 100) : 0;
-  const gainColor = totalGain >= 0 ? "#00C853" : "#E8001C";
+  const gainColor = totalGain >= 0 ? COLORS.success : COLORS.destructive;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       {/* ── HEADER ── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Inventory</Text>
-          <Text style={styles.headerSub}>{totalCards} cards</Text>
+          <Typography variant="h1" weight="800">Inventory</Typography>
+          <Typography variant="caption" color={COLORS.zinc400}>{totalCards} cards</Typography>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push("/buy/scan")}>
-          <Text style={styles.addBtnText}>+ Add</Text>
-        </TouchableOpacity>
+        <Button label="+ Add" onPress={() => router.push("/buy/scan")} size="sm" />
       </View>
 
       {/* ── SUMMARY STRIP ── */}
-      <View style={styles.summaryStrip}>
+      <Surface variant="glass" padding="none" style={styles.summaryStrip}>
         {[
-          {
-            label: "COST BASIS",
-            value: `$${totalCost.toLocaleString()}`,
-            color: "#888888",
-          },
-          {
-            label: "MARKET VAL",
-            value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—",
-            color: "white",
-          },
-          {
-            label: "UNREALIZED",
-            value:
-              totalMarket > 0
-                ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}`
-                : "—",
-            color: gainColor,
-          },
-          {
-            label: "GAIN %",
-            value:
-              totalMarket > 0
-                ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%`
-                : "—",
-            color: gainColor,
-          },
+          { label: "COST BASIS", value: `$${totalCost.toLocaleString()}`, color: COLORS.zinc400 },
+          { label: "MARKET VAL", value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—", color: COLORS.white },
+          { label: "UNREALIZED", value: totalMarket > 0 ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}` : "—", color: gainColor },
+          { label: "GAIN %", value: totalMarket > 0 ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%` : "—", color: gainColor },
         ].map((s, i, arr) => (
-          <View
-            key={s.label}
-            style={[
-              styles.summaryCell,
-              i < arr.length - 1 && styles.summaryCellBorder,
-            ]}
-          >
-            <Text style={styles.summaryLabel}>{s.label}</Text>
-            <Text style={[styles.summaryValue, { color: s.color }]}>
-              {s.value}
-            </Text>
+          <View key={s.label} style={[styles.summaryCell, i < arr.length - 1 && styles.summaryCellBorder]}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{s.label}</Typography>
+            <Typography variant="body" weight="700" color={s.color}>{s.value}</Typography>
           </View>
         ))}
-      </View>
+      </Surface>
 
       {/* ── SPORT FILTERS ── */}
       <ScrollView
@@ -405,51 +343,35 @@ function InventoryScreen() {
               onPress={() => setSelectedSport(s.key)}
               activeOpacity={0.75}
             >
-              <Text style={styles.filterChipEmoji}>{s.emoji}</Text>
-              <Text
-                style={[
-                  styles.filterChipText,
-                  isActive && styles.filterChipTextActive,
-                ]}
-              >
+              <Typography variant="body">{s.emoji}</Typography>
+              <Typography variant="body" weight={isActive ? "700" : "600"} color={isActive ? COLORS.white : COLORS.zinc400}>
                 {s.key}
-              </Text>
+              </Typography>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
       {/* ── DIVIDER ── */}
-      <View
-        style={{
-          height: 1,
-          backgroundColor: "#1A1A1A",
-          marginHorizontal: 20,
-          marginBottom: 4,
-        }}
-      />
+      <View style={{ height: 1, backgroundColor: COLORS.border, marginHorizontal: SPACING.lg, marginBottom: 4 }} />
 
       {/* ── LIST ── */}
       {isLoading && allItems.length === 0 ? (
-        <ActivityIndicator color="#E8001C" style={{ marginTop: 40 }} />
+        <ActivityIndicator color={COLORS.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={allItems}
           keyExtractor={(item: any) => item.id}
           renderItem={({ item }: any) => <InventoryCard item={item} />}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingTop: SPACING.sm, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefresh}
           refreshing={isRefetching}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <View style={{ alignItems: "center", paddingTop: 60 }}>
-              <Text style={{ color: "#555555", fontSize: 15 }}>
-                No cards yet
-              </Text>
-              <Text style={{ color: "#333333", fontSize: 13, marginTop: 6 }}>
-                Cards added via buy flow appear here
-              </Text>
+              <Typography variant="body" color={COLORS.zinc500}>No cards yet</Typography>
+              <Typography variant="caption" color={COLORS.zinc600} style={{ marginTop: 6 }}>Cards added via buy flow appear here</Typography>
             </View>
           }
         />
@@ -463,155 +385,76 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -0.5,
-  },
-  headerSub: { fontSize: 12, color: "#555555", marginTop: 2 },
-  addBtn: {
-    backgroundColor: "#E8001C",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  addBtnText: { color: "white", fontWeight: "700", fontSize: 13 },
-
   summaryStrip: {
     flexDirection: "row",
-    marginHorizontal: 20,
-    backgroundColor: "#111111",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#1E1E1E",
-    marginBottom: 4,
-    overflow: "hidden",
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
   },
   summaryCell: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     alignItems: "center",
   },
-  summaryCellBorder: { borderRightWidth: 1, borderRightColor: "#1E1E1E" },
-  summaryLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#444444",
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  summaryValue: { fontSize: 13, fontWeight: "700" },
+  summaryCellBorder: { borderRightWidth: 1, borderRightColor: COLORS.border },
 
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    height: 44, // using an explicit height to guarantee button size
+    height: 40,
     gap: 6,
-    paddingHorizontal: 20,
-    borderRadius: 100,
-    backgroundColor: "#111111",
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: "#1E1E1E",
+    borderColor: COLORS.border,
   },
-  filterChipActive: { backgroundColor: "#E8001C", borderColor: "#E8001C" },
-  filterChipEmoji: { fontSize: 16 },
-  filterChipText: { color: "#666666", fontSize: 16, fontWeight: "600" },
-  filterChipTextActive: { color: "white" },
+  filterChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   card: {
-    backgroundColor: "#0E0E0E",
-    borderRadius: 14,
-    marginBottom: 8,
-    padding: 14,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: "#1A1A1A",
+    marginBottom: SPACING.sm,
+    marginHorizontal: SPACING.lg,
   },
   thumb: {
     width: 56,
     height: 76,
-    backgroundColor: "#181818",
-    borderRadius: 8,
+    backgroundColor: COLORS.zinc800,
+    borderRadius: RADIUS.sm,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#222222",
+    borderColor: COLORS.border,
     overflow: "hidden",
   },
-  thumbText: { color: "#444444", fontSize: 16, fontWeight: "800" },
   qtyBadge: {
     position: "absolute",
     bottom: -6,
     right: -6,
-    backgroundColor: "#E8001C",
-    borderRadius: 8,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  qtyText: { color: "white", fontSize: 9, fontWeight: "700" },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  playerName: {
-    color: "white",
-    fontWeight: "700",
-    fontSize: 15,
-    flex: 1,
-    marginRight: 8,
-  },
-  setInfo: { color: "#555555", fontSize: 11, marginTop: 3 },
-
-  gradeChip: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
-  gradeChipText: { fontSize: 11, fontWeight: "800" },
-
+  gradeChip: { borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 2 },
   priceBlock: { flex: 1, alignItems: "center" },
-  priceLabel: {
-    color: "#444444",
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    marginBottom: 3,
-  },
-  priceMuted: { color: "#666666", fontSize: 13, fontWeight: "600" },
-  priceValue: { color: "white", fontSize: 13, fontWeight: "700" },
-  priceDivider: { width: 1, height: 28, backgroundColor: "#1E1E1E" },
-
+  priceDivider: { width: 1, height: 28, backgroundColor: COLORS.border },
   pctPill: {
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     marginRight: 8,
   },
-  pctText: { fontSize: 11, fontWeight: "700" },
-  daysText: { fontSize: 11, fontWeight: "600" },
   footerContainer: {
-    paddingVertical: 24,
+    paddingVertical: SPACING.xl,
     alignItems: "center",
     justifyContent: "center",
-  },
-  footerText: {
-    color: "#555555",
-    fontSize: 13,
-  },
-  loadMoreBtn: {
-    backgroundColor: "#111111",
-    borderWidth: 1,
-    borderColor: "#1E1E1E",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  loadMoreBtnText: {
-    color: "#E8001C",
-    fontWeight: "700",
-    fontSize: 13,
   },
 });
 

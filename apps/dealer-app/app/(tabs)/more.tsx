@@ -1,7 +1,6 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
-  Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -27,6 +26,9 @@ import {
   useUploadAvatar,
   useProfile,
 } from "../../src/hooks/useProfile";
+import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
+import { Typography } from "../../src/components/ui/Typography";
+import { Surface } from "../../src/components/ui/Surface";
 // import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
@@ -60,26 +62,26 @@ function SettingsRow({
       activeOpacity={0.7}
     >
       {isEmoji ? (
-        <Text style={styles.rowIcon}>{icon}</Text>
+        <Typography variant="h3" style={styles.rowIcon}>{icon}</Typography>
       ) : (
         <Ionicons
           name={icon as any}
           size={20}
-          color="#888888"
+          color={COLORS.zinc400}
           style={{ marginRight: 12, width: 24, textAlign: "center" }}
         />
       )}
-      <Text style={[styles.rowLabel, accentColor && { color: accentColor }]}>
+      <Typography variant="body" weight="600" style={[{ flex: 1 }, accentColor && { color: accentColor }]}>
         {label}
-      </Text>
-      {value && <Text style={styles.rowValue}>{value}</Text>}
-      {!accentColor && <Text style={styles.chevron}>›</Text>}
+      </Typography>
+      {value && <Typography variant="caption" color={COLORS.zinc400} style={styles.rowValue}>{value}</Typography>}
+      {!accentColor && <Typography variant="h3" color={COLORS.zinc600}>›</Typography>}
     </TouchableOpacity>
   );
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
-  return <View style={styles.sectionCard}>{children}</View>;
+  return <Surface variant="elevated" padding="none" style={styles.sectionCard}>{children}</Surface>;
 }
 
 function MoreScreen() {
@@ -190,17 +192,17 @@ function MoreScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>More</Text>
+          <Typography variant="h1" weight="800">More</Typography>
         </View>
 
         {/* Profile card */}
-        <View style={styles.profileCard}>
+        <Surface variant="glass" style={styles.profileCard}>
           <TouchableOpacity
             onPress={handlePickAvatar}
             style={styles.profileAvatar}
@@ -208,11 +210,11 @@ function MoreScreen() {
             {(localUri ?? profile?.photoUrl ?? user?.photoUrl) ? (
               <Image
                 source={{ uri: (localUri ?? profile?.photoUrl ?? user?.photoUrl) as string }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+                style={[StyleSheet.absoluteFill, { borderRadius: 28 }]}
                 resizeMode="cover"
               />
             ) : (
-              <Text style={styles.profileAvatarText}>{initials}</Text>
+              <Typography variant="h3" weight="800" color={COLORS.white}>{initials}</Typography>
             )}
             {isUploadingAvatar && (
               <View
@@ -220,43 +222,36 @@ function MoreScreen() {
                   StyleSheet.absoluteFill,
                   {
                     backgroundColor: "rgba(0,0,0,0.5)",
-                    borderRadius: 24,
+                    borderRadius: 28,
                     alignItems: "center",
                     justifyContent: "center",
                   },
                 ]}
               >
-                <ActivityIndicator color="white" size="small" />
+                <ActivityIndicator color={COLORS.white} size="small" />
               </View>
             )}
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              <Text style={styles.profileName}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Typography variant="body" weight="800">
                 {profile?.displayName ?? user?.displayName ?? user?.email}
-              </Text>
-              <View
-                style={[
-                  styles.proBadge,
-                  { backgroundColor: "#1A1A1A", borderColor: "#2A2A2A" },
-                ]}
-              >
-                <Text style={[styles.proBadgeText, { color: "#888888" }]}>
+              </Typography>
+              <View style={styles.proBadge}>
+                <Typography variant="caption" weight="800" color={COLORS.primaryLight} style={{ fontSize: 9 }}>
                   {user?.role?.toUpperCase()}
-                </Text>
+                </Typography>
               </View>
             </View>
-            <Text style={styles.profileEmail}>{user?.email}</Text>
+            <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>{user?.email}</Typography>
           </View>
           <TouchableOpacity onPress={() => router.push("/settings")}>
-            <Text style={{ color: "#0057FF", fontSize: 13 }}>Edit</Text>
+            <Typography variant="body" weight="700" color={COLORS.primaryLight}>Edit</Typography>
           </TouchableOpacity>
-        </View>
+        </Surface>
 
         {/* Business */}
-        <Text style={styles.sectionLabel}>BUSINESS</Text>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>BUSINESS</Typography>
         <SectionCard>
           <SettingsRow
             icon="people-outline"
@@ -272,7 +267,7 @@ function MoreScreen() {
         </SectionCard>
 
         {/* Platforms */}
-        <Text style={styles.sectionLabel}>PLATFORMS</Text>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>PLATFORMS</Typography>
         <SectionCard>
           {(() => {
             const ebayConnection = connectedPlatforms.find((c: any) => c.platform === 'ebay');
@@ -338,7 +333,7 @@ function MoreScreen() {
         {/* Payments */}
         {paymentMethods && paymentMethods.length > 0 && (
           <>
-            <Text style={styles.sectionLabel}>PAYMENTS</Text>
+            <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>PAYMENTS</Typography>
             <SectionCard>
               {paymentMethods.map((pm, i) => (
                 <SettingsRow
@@ -353,7 +348,7 @@ function MoreScreen() {
           </>
         )}
 
-        <Text style={styles.sectionLabel}>DATA & EXPORTS</Text>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>DATA & EXPORTS</Typography>
         <SectionCard>
           <SettingsRow icon="document-text-outline" label="Export Transactions (CSV)" onPress={() => setExportType("transactions")} />
           <SettingsRow icon="cube-outline" label="Export Inventory (CSV)" onPress={() => setExportType("inventory")} />
@@ -361,7 +356,7 @@ function MoreScreen() {
         </SectionCard>
 
         {/* App */}
-        <Text style={styles.sectionLabel}>APP</Text>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>APP</Typography>
         <SectionCard>
           <SettingsRow
             icon="notifications-outline"
@@ -379,7 +374,7 @@ function MoreScreen() {
           onPress={handleLogout}
           activeOpacity={0.8}
         >
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Typography variant="body" weight="800" color={COLORS.destructive}>Sign Out</Typography>
         </TouchableOpacity>
       </ScrollView>
 
@@ -399,84 +394,58 @@ function MoreScreen() {
 export default MoreScreen;
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "white" },
+  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
+    gap: SPACING.md,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   profileAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E8001C",
+    backgroundColor: COLORS.destructive,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  profileAvatarText: { color: "white", fontSize: 20, fontWeight: "700" },
-  profileName: { color: "white", fontSize: 16, fontWeight: "700" },
-  profileEmail: { color: "#888888", fontSize: 13, marginTop: 2 },
   proBadge: {
-    backgroundColor: "rgba(255,215,0,0.15)",
-    borderRadius: 6,
+    backgroundColor: 'rgba(79,70,229,0.15)',
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: "rgba(255,215,0,0.4)",
-  },
-  proBadgeText: {
-    color: "#FFD700",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1,
+    borderColor: 'rgba(79,70,229,0.3)',
   },
   sectionLabel: {
-    color: "#555555",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 4,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.sm,
   },
   sectionCard: {
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
-    overflow: "hidden",
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     height: 52,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.md,
   },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
-  rowIcon: { fontSize: 18, marginRight: 12, width: 26 },
-  rowLabel: { color: "white", fontSize: 15, fontWeight: "500", flex: 1 },
-  rowValue: { color: "#888888", fontSize: 13, marginRight: 8 },
-  chevron: { color: "#2A2A2A", fontSize: 20 },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  rowIcon: { marginRight: 12, width: 26 },
+  rowValue: { marginRight: 8 },
   logoutBtn: {
-    marginHorizontal: 20,
-    backgroundColor: "#111111",
-    borderRadius: 16,
+    marginHorizontal: SPACING.lg,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
     height: 52,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: COLORS.border,
+    marginTop: SPACING.lg,
   },
-  logoutText: { color: "#E8001C", fontSize: 16, fontWeight: "700" },
 });
