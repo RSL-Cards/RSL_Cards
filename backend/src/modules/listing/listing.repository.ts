@@ -3,12 +3,13 @@ import { db } from "../../db/index.js";
 import { createHash } from "node:crypto";
 import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
+import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
 
 export class ListingRepository {
   async getListings(userId: string) {
     const result = await db.execute(sql`
       SELECT * FROM inventory
-      WHERE user_id = ${userId} AND listing_status = 'active'
+      WHERE user_id = ${userId} AND listing_status = 'listed'
       ORDER BY updated_at DESC
     `);
     return result.rows;
@@ -18,7 +19,7 @@ export class ListingRepository {
     const { inventoryId, price, platforms } = body;
     const result = await db.execute(sql`
       UPDATE inventory
-      SET listing_status = 'active', current_market_value = ${price}, updated_at = NOW()
+      SET listing_status = 'listed', current_market_value = ${price}, updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
       RETURNING *
     `);
@@ -56,7 +57,7 @@ export class ListingRepository {
   async postListingsIdRelist(id: string) {
     const result = await db.execute(sql`
       UPDATE inventory
-      SET listing_status = 'active', updated_at = NOW()
+      SET listing_status = 'listed', updated_at = NOW()
       WHERE id = ${id}
       RETURNING *
     `);
@@ -111,7 +112,7 @@ export class ListingRepository {
         COUNT(*) as active_listings,
         COALESCE(SUM(current_market_value), 0) as total_listed_value
       FROM inventory
-      WHERE user_id = ${userId} AND listing_status = 'active'
+      WHERE user_id = ${userId} AND listing_status = 'listed'
     `);
     return result.rows[0];
   }
@@ -166,13 +167,33 @@ export class ListingRepository {
           title: item.title,
           soldPrice: { value: item.sold_price, currency: "USD" },
           condition: item.condition || "Used",
-          endDate: item.sold_at,
+          endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
           shippingCost: "0.00",
           itemWebUrl: `https://www.ebay.com/itm/${item.platform_item_id}`,
         }));
 
+        const activeCached = await db.execute(sql`
+          SELECT
+            platform_item_id, price, title, condition, item_web_url, image_url
+          FROM platform_active_listings
+          WHERE variant_id = ${effectiveVariantId}
+            AND grade_key = ${gradeKey}
+            AND platform = 'ebay'
+          LIMIT 20
+        `);
+
+        const mappedActive = (activeCached.rows as any[]).map((item) => ({
+          itemId: item.platform_item_id,
+          title: item.title,
+          price: { value: item.price, currency: "USD" },
+          condition: item.condition || "Used",
+          itemWebUrl: item.item_web_url,
+          image: { imageUrl: item.image_url },
+        }));
+
         const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
         if (ageMs >= 15 * 60 * 1000) {
+          console.log(`[COMPS] Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh from LIVE APIs...`);
           (async () => {
             try {
               const soldData = await soldCompsService.getSoldItems(query);
@@ -225,16 +246,39 @@ export class ListingRepository {
                   ON CONFLICT (content_hash) DO NOTHING
                 `);
               }
+
+              await db.execute(sql`
+                DELETE FROM platform_active_listings
+                WHERE variant_id = ${effectiveVariantId}
+                  AND grade_key = ${gradeKey}
+                  AND platform = 'ebay'
+              `);
+
+              for (const item of activeData.itemSummaries ?? []) {
+                const contentHash = createHash("sha256")
+                  .update(`ebayactive:${item.itemId}`)
+                  .digest("hex")
+                  .slice(0, 64);
+                
+                await db.execute(sql`
+                  INSERT INTO platform_active_listings
+                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+                  VALUES
+                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW())
+                  ON CONFLICT (content_hash) DO NOTHING
+                `);
+              }
             } catch (err) {
               console.error("Background price refresh failed:", err);
             }
           })();
         }
 
+        console.log(`[COMPS] ✅ Returning comps from DB CACHE for: ${query}`);
         return {
           query,
           fromCache: true,
-          fetchedAt: rows[0].fetched_at,
+          fetchedAt: rows[0].fetched_at instanceof Date ? rows[0].fetched_at.toISOString() : new Date(rows[0].fetched_at).toISOString(),
           snapshots: rows.map((r) => ({
             platform: r.platform,
             avgSoldPrice: r.avg_sold_price,
@@ -243,6 +287,7 @@ export class ListingRepository {
             salesCount30d: r.sales_count_30d,
             priceTrend30d: r.price_trend_30d,
           })),
+          activeListings: mappedActive,
           last7Days: {
             items: mappedSold.slice(0, Math.min(maxResults, 10)),
             totalEntries: mappedSold.length,
@@ -257,6 +302,7 @@ export class ListingRepository {
       }
     }
 
+    console.log(`[COMPS] 📡 Fetching LIVE comps from eBay APIs for: ${query}`);
     const [soldResult, activeResult] = await Promise.allSettled([
       soldCompsService.getSoldItems(query),
       ebayService.searchListings({
@@ -277,6 +323,10 @@ export class ListingRepository {
     const activeData = activeResult.status === "fulfilled"
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
+
+    console.log(`[COMPS] ✅ Returning LIVE comps from eBay APIs for: ${query}`);
+    console.log(`  -> Sold: ${soldData.items.length} items`);
+    console.log(`  -> Active: ${activeData.itemSummaries?.length ?? 0} items`);
 
     if (activeResult.status === "rejected") {
       console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
@@ -325,6 +375,28 @@ export class ListingRepository {
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
+
+      await db.execute(sql`
+        DELETE FROM platform_active_listings
+        WHERE variant_id = ${effectiveVariantId}
+          AND grade_key = ${gradeKey}
+          AND platform = 'ebay'
+      `);
+
+      for (const item of activeData.itemSummaries ?? []) {
+        const contentHash = createHash("sha256")
+          .update(`ebayactive:${item.itemId}`)
+          .digest("hex")
+          .slice(0, 64);
+        
+        await db.execute(sql`
+          INSERT INTO platform_active_listings
+            (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+          VALUES
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW())
+          ON CONFLICT (content_hash) DO NOTHING
+        `);
+      }
     }
 
     const mappedSold = soldData.items.map((item) => ({
@@ -346,10 +418,294 @@ export class ListingRepository {
       priceTrend30d: null,
     };
 
+    console.log(`[COMPS] ✅ Returning LIVE comps from eBay APIs for: ${query}`);
     return {
       query,
       fromCache: false,
       snapshots: [snapshot],
+      activeListings: activeData.itemSummaries ?? [],
+      last7Days: {
+        items: mappedSold.slice(0, Math.min(maxResults, 10)),
+        totalEntries: mappedSold.length,
+        period: "7d",
+      },
+      last30Days: {
+        items: mappedSold.slice(0, maxResults),
+        totalEntries: mappedSold.length,
+        period: "30d",
+      },
+    };
+  }
+
+  async myslabsSold(params: any, myslabsService: MyslabsService) {
+    const { q, limit, variant_id, grade_key } = params;
+    const maxResults = limit ? Number(limit) : 20;
+    const query = q.trim();
+    const gradeKey = grade_key?.trim() || "RAW";
+
+    let effectiveVariantId = variant_id?.trim();
+
+    if (!effectiveVariantId && query) {
+      const found = await db.execute(sql`
+        SELECT cv.id 
+        FROM card_variants cv
+        JOIN cards c ON c.id = cv.card_id
+        JOIN players p ON p.id = c.player_id
+        WHERE (p.name || ' ' || c.year || ' ' || c.set_name || ' ' || COALESCE(cv.name, 'Base')) ILIKE ${'%' + query + '%'}
+        LIMIT 1
+      `);
+      if (found.rows.length > 0) {
+        effectiveVariantId = (found.rows[0] as any).id;
+      }
+    }
+
+    if (effectiveVariantId) {
+      const cached = await db.execute(sql`
+        SELECT
+          id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
+        FROM card_comp_snapshots
+        WHERE variant_id = ${effectiveVariantId}
+          AND grade_key = ${gradeKey}
+          AND platform = 'myslabs'
+        ORDER BY fetched_at DESC
+        LIMIT 10
+      `);
+
+      if (cached.rows.length > 0) {
+        const rows = cached.rows as any[];
+        const soldCached = await db.execute(sql`
+          SELECT
+            platform_item_id, sold_price, sold_at, title, condition
+          FROM platform_sold_listings
+          WHERE variant_id = ${effectiveVariantId}
+            AND grade_key = ${gradeKey}
+            AND platform = 'myslabs'
+          ORDER BY sold_at DESC
+          LIMIT 20
+        `);
+
+        const mappedSold = (soldCached.rows as any[]).map((item) => ({
+          itemId: item.platform_item_id,
+          title: item.title,
+          soldPrice: { value: item.sold_price, currency: "USD" },
+          condition: item.condition || "Used",
+          endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
+          shippingCost: "0.00",
+          itemWebUrl: `https://myslabs.com/slab/view/${item.platform_item_id}`,
+        }));
+
+        const activeCached = await db.execute(sql`
+          SELECT
+            platform_item_id, price, title, condition, item_web_url, image_url
+          FROM platform_active_listings
+          WHERE variant_id = ${effectiveVariantId}
+            AND grade_key = ${gradeKey}
+            AND platform = 'myslabs'
+          LIMIT 20
+        `);
+
+        const mappedActive = (activeCached.rows as any[]).map((item) => ({
+          itemId: item.platform_item_id,
+          title: item.title,
+          price: { value: item.price, currency: "USD" },
+          condition: item.condition || "Used",
+          itemWebUrl: item.item_web_url,
+          image: { imageUrl: item.image_url },
+        }));
+
+        const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
+        if (ageMs >= 15 * 60 * 1000) {
+          console.log(`[COMPS] MySlabs Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh...`);
+          (async () => {
+            try {
+              const [soldData, activeData] = await Promise.all([
+                myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults }),
+                myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults })
+              ]);
+
+              const prices = soldData.items
+                .map((i) => i.price)
+                .filter((p) => p > 0);
+              const activePrices = activeData.items
+                .map((i) => i.price)
+                .filter((p) => p > 0);
+
+              if (!prices.length && !activePrices.length) return;
+
+              const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+              const last = prices.length ? prices[0] : 0;
+              const lowest = activePrices.length ? Math.min(...activePrices) : 0;
+
+              await db.execute(sql`
+                INSERT INTO card_comp_snapshots
+                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+                VALUES
+                  (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
+                ON CONFLICT (variant_id, grade_key, platform)
+                DO UPDATE SET
+                  avg_sold_price = EXCLUDED.avg_sold_price,
+                  last_sold_price = EXCLUDED.last_sold_price,
+                  lowest_active = EXCLUDED.lowest_active,
+                  sales_count_30d = EXCLUDED.sales_count_30d,
+                  fetched_at = NOW()
+              `);
+
+              for (const item of soldData.items) {
+                const endedAtStr = item.sold_date || new Date().toISOString();
+                const contentHash = createHash("sha256")
+                  .update(`myslabssold:${item.id}:${endedAtStr}`)
+                  .digest("hex")
+                  .slice(0, 64);
+
+                await db.execute(sql`
+                  INSERT INTO platform_sold_listings
+                    (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
+                  VALUES
+                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
+                  ON CONFLICT (content_hash) DO NOTHING
+                `);
+              }
+
+              await db.execute(sql`
+                DELETE FROM platform_active_listings
+                WHERE variant_id = ${effectiveVariantId}
+                  AND grade_key = ${gradeKey}
+                  AND platform = 'myslabs'
+              `);
+
+              for (const item of activeData.items) {
+                const contentHash = createHash("sha256")
+                  .update(`myslabsactive:${item.id}`)
+                  .digest("hex")
+                  .slice(0, 64);
+                
+                await db.execute(sql`
+                  INSERT INTO platform_active_listings
+                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+                  VALUES
+                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW())
+                  ON CONFLICT (content_hash) DO NOTHING
+                `);
+              }
+            } catch (err) {
+              console.error("Background MySlabs price refresh failed:", err);
+            }
+          })();
+        }
+
+        return {
+          query,
+          fromCache: true,
+          fetchedAt: rows[0].fetched_at instanceof Date ? rows[0].fetched_at.toISOString() : new Date(rows[0].fetched_at).toISOString(),
+          snapshots: rows.map((r) => ({
+            platform: r.platform,
+            avgSoldPrice: r.avg_sold_price,
+            lastSoldPrice: r.last_sold_price,
+            lowestActive: r.lowest_active,
+            salesCount30d: r.sales_count_30d,
+            priceTrend30d: r.price_trend_30d,
+          })),
+          activeListings: mappedActive,
+          last7Days: {
+            items: mappedSold.slice(0, Math.min(maxResults, 10)),
+            totalEntries: mappedSold.length,
+            period: "7d",
+          },
+          last30Days: {
+            items: mappedSold,
+            totalEntries: mappedSold.length,
+            period: "30d",
+          },
+        };
+      }
+    }
+
+    console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs for: ${query}`);
+    const [soldResult, activeResult] = await Promise.allSettled([
+      myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults }),
+      myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults })
+    ]);
+
+    const soldData = soldResult.status === "fulfilled" ? soldResult.value : { items: [] as MyslabsItem[] };
+    const activeData = activeResult.status === "fulfilled" ? activeResult.value : { items: [] as MyslabsItem[] };
+
+    console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
+    console.log(`  -> Sold: ${soldData.items.length} items`);
+    console.log(`  -> Active: ${activeData.items.length} items`);
+
+    const prices = soldData.items.map((i) => i.price).filter((p) => p > 0);
+    const activePrices = activeData.items.map((i) => i.price).filter((p) => p > 0);
+
+    const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+    const last = prices.length ? prices[0] : 0;
+    const lowest = activePrices.length ? Math.min(...activePrices) : 0;
+
+    if (effectiveVariantId && soldResult.status === "fulfilled" && soldData.items.length > 0) {
+      await db.execute(sql`
+        INSERT INTO card_comp_snapshots
+          (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+        VALUES
+          (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
+        ON CONFLICT (variant_id, grade_key, platform)
+        DO UPDATE SET
+          avg_sold_price = EXCLUDED.avg_sold_price,
+          last_sold_price = EXCLUDED.last_sold_price,
+          lowest_active = EXCLUDED.lowest_active,
+          sales_count_30d = EXCLUDED.sales_count_30d,
+          fetched_at = NOW()
+      `);
+
+      for (const item of soldData.items) {
+        const endedAtStr = item.sold_date || new Date().toISOString();
+        const contentHash = createHash("sha256")
+          .update(`myslabssold:${item.id}:${endedAtStr}`)
+          .digest("hex")
+          .slice(0, 64);
+
+        await db.execute(sql`
+          INSERT INTO platform_sold_listings
+            (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
+          VALUES
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
+          ON CONFLICT (content_hash) DO NOTHING
+        `);
+      }
+    }
+
+    const mappedSold = soldData.items.map((item) => ({
+      itemId: item.id.toString(),
+      title: item.title,
+      soldPrice: { value: item.price.toString(), currency: "USD" },
+      condition: item.grade ? `Grade ${item.grade}` : "Slabbed",
+      endDate: item.sold_date || new Date().toISOString(),
+      shippingCost: (item.shipping_cost || 0).toString(),
+      itemWebUrl: item.slab_link || `https://myslabs.com/slab/view/${item.id}`,
+      image: { imageUrl: item.slab_image_1 }
+    }));
+
+    const mappedActive = activeData.items.map((item) => ({
+      itemId: item.id.toString(),
+      title: item.title,
+      price: { value: item.price.toString(), currency: "USD" },
+      condition: item.grade ? `Grade ${item.grade}` : "Slabbed",
+      itemWebUrl: item.slab_link || `https://myslabs.com/slab/view/${item.id}`,
+      image: { imageUrl: item.slab_image_1 }
+    }));
+
+    const snapshot = {
+      platform: "myslabs",
+      avgSoldPrice: avg.toFixed(2),
+      lastSoldPrice: last.toFixed(2),
+      lowestActive: lowest.toFixed(2),
+      salesCount30d: prices.length,
+      priceTrend30d: null,
+    };
+
+    return {
+      query,
+      fromCache: false,
+      snapshots: [snapshot],
+      activeListings: mappedActive,
       last7Days: {
         items: mappedSold.slice(0, Math.min(maxResults, 10)),
         totalEntries: mappedSold.length,
@@ -363,3 +719,4 @@ export class ListingRepository {
     };
   }
 }
+

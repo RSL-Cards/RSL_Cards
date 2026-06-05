@@ -125,17 +125,64 @@ jobs:
         run: bun run db:migrate
         working-directory: backend
         env:
+          NODE_ENV: test
+          LOG_LEVEL: error
+          PORT: 8080
           DATABASE_URL: postgresql://rsl_user:password@localhost:5432/rsldb_test
+          DATABASE_URL_READ_REPLICA: postgresql://rsl_user:password@localhost:5432/rsldb_test
+          TEST_DATABASE_URL: postgresql://rsl_user:password@localhost:5432/rsldb_test
+          REDIS_URL: redis://localhost:6379
+          INTERNAL_SERVICE_KEY: ci-internal-service-key-123456789012345678901234567890
+          JWT_PRIVATE_KEY: |
+            -----BEGIN PRIVATE KEY-----
+            MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCrG5rR7UsRzBrL
+            sKoCh2TO8yF02citRXjzvCeQivMlRcWIUCFJvoEVWVqUHA+mjQx0OYpyzCdz7DCC
+            93mVz08PNKPxwP2OHF3rdRXo6F0D3rIwrwGCrGGjgZKZR4ZOEuWTA9lhqfyIu9xe
+            DUOjKc2c7xjpG4k38N/+tpAaGYqep/YFgXhlvw8LQNA7XesNZ9P0cQdR7EGzdQr8
+            V3WUu/jBlJGF9qohE8ZwEkkAxgc+WtOzpIW6u5DmffSp4vDQaDXpj46f2eC/ASZM
+            XQ+boghKw4x6woJj7hcTrLpuMyD6CgztyRsELVZvTcw+l+eMQC31Ttke5/WJ41Ns
+            /1F4T1hHAgMBAAECggEADxLj/Tlv4xX9iFM8bvOZjGe720zyUl1r7eD2BVRQXki6
+            war5e8MmIQjZo3GjaVNEtRp6mWll0l8M2QTPN8TnHJpRFROg4ruaBIuwje+mfhhI
+            z2QjeG0SPvLDxPAZo1gj1GNC68krX6pZHAoEGuQsYnZn1eVgncaBHTHdGQeGADr7
+            iA0V8yCaiO2Es9gV+UP72QbEOXs5RY67xSrvmzWmD8Wk4cMVtVrJUxEMWGXabEl4
+            zTptE5CYxv8+SI7XY6MZWgMKJh+Fw4hFMv5E/83mZobmv+uHOOBco6Lr0Fmpl46p
+            oMy3MlGVwCrwsmMwjPoEAZEWe/KfLldVtVqPC+AR5QKBgQDv0xyyJX0PrEG9l9nk
+            aliPL0ku2BUbluTBz80W3pNJE+/RHU2eyUWoHdLIYom7sOsXNcWp55rH3eY0Note
+            /AQE/n/sVqrVHzTOIsy07LIxNzKLICdx1KrgsqvBO/Bn6QwGZQBCgzIupGupn1ac
+            IB4zVS6+zdHlJfFzHhB9GDoRgwKBgQC2pgGhBIdccMCdCBbjyrlgQsRsS9bkzsSX
+            1qTOk4SGjlR9CZ4upAbYHVVSZT/Ipy5JJzJnpyghccSARsY5SFekqgpfWL1cf7di
+            Guklfl3F/ISk6W+3LGEkPmSyjMK8jz2aAzc1ng5UY0ugmeUXW/e5Jy61800hFhUJ
+            Oe0EHF627QKBgAkhUWNa2AMDvND5+fqfLdXtp+yXn14YhYb3YUhwmszabHPamLzl
+            zrgSwpaMYc/6cUjF7EuGnLblNMFiHjY0g/aotbgKqKBKetkqK/7rT/Fdt5fiVn4X
+            6ZV6V92YaZObJLENoU/m7L8n1U102nhBJMUxhgEPluERa7rFNz178aH/AoGAE8u0
+            O35hKVyzE5Hv4Sp0owE5hr9FgDEEz6wc2qLUZzz/3Tlwon92mm+7cp20pwuvkZAk
+            /2T3jYBmGr0Q+N5lWVxwmVrl0yOofYKLKFwkz7OJsNH4ILM3qBT3Fv74kDU6KPoW
+            PsJtrSnB5ZsoYDrAg5nCj0faYS6igwh7LsngXhUCgYEAtTEqcdPNuDathwp35z1D
+            KAGOjTFFoIsgn+CP9mcSMyKGtDE7XXs08nd8e6etBQnnNYeqLAnrhDaxHZ4mxY1q
+            WTl4RJA9ISTBOXE1qMncA5Ll0SI5j2FOQTYYV1Ltea1jKCRPEzL+xcHptuUgKElc
+            W+F1P0vTqF3qXDXtvyuYK1A=
+            -----END PRIVATE KEY-----
+          JWT_PUBLIC_KEY: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqxua0e1LEcway7CqAodk
+            zvMhdNnIrUV487wnkIrzJUXFiFAhSb6BFVlalBwPpo0MdDmKcswnc+wwgvd5lc9P
+            DzSj8cD9jhxd63UV6OhdA96yMK8Bgqxho4GSmUeGThLlkwPZYan8iLvcXg1DoynN
+            nO8Y6RuJN/Df/raQGhmKnqf2BYF4Zb8PC0DQO13rDWfT9HEHUexBs3UK/Fd1lLv4
+            wZSRhfaqIRPGcBJJAMYHPlrTs6SFuruQ5n30qeLw0Gg16Y+On9ngvwEmTF0Pm6II
+            SsOMesKCY+4XE6y6bjMg+goM7ckbBC1Wb03MPpfnjEAt9U7ZHuf1ieNTbP9ReE9Y
+            RwIDAQAB
+            -----END PUBLIC KEY-----
         continue-on-error: true
 
       - name: Run tests
-        run: bun test
+        run: bun test --sequence
         working-directory: backend
         env:
           NODE_ENV: test
-          LOG_LEVEL: silent
+          LOG_LEVEL: error
           PORT: 8080
           DATABASE_URL: postgresql://rsl_user:password@localhost:5432/rsldb_test
+          DATABASE_URL_READ_REPLICA: postgresql://rsl_user:password@localhost:5432/rsldb_test
           TEST_DATABASE_URL: postgresql://rsl_user:password@localhost:5432/rsldb_test
           REDIS_URL: redis://localhost:6379
           INTERNAL_SERVICE_KEY: ci-internal-service-key-123456789012345678901234567890

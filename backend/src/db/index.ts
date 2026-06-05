@@ -3,8 +3,11 @@ import pg from "pg";
 import * as schema from "./schema/index.js";
 import { env } from "../config/index.js";
 
+const isTest = process.env.NODE_ENV === "test";
+const connectionString = isTest && env.TEST_DATABASE_URL ? env.TEST_DATABASE_URL : env.DATABASE_URL;
+
 const pool = new pg.Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString,
   min: env.DB_POOL_MIN,
   max: env.DB_POOL_MAX,
 });

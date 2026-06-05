@@ -53,7 +53,8 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional().default(""),
   SENTRY_DSN: z.string().optional().default(""),
   SPORTRADAR_API_KEY: z.string().optional().default(""),
-  GOOGLE_GEN_AI_KEY: z.string().optional().default(""),
+  VERTEX_AI_PROJECT_ID: z.string().optional().default("third-node-498216-h8"),
+  VERTEX_AI_LOCATION: z.string().optional().default("us-central1"),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
   APPLE_AUDIENCE: z.string().optional().default(""),
   APPLE_ISSUER: z.string().optional().default("https://appleid.apple.com"),
@@ -62,6 +63,8 @@ const envSchema = z.object({
   AWS_REGION: z.string().optional().default("us-east-1"),
   S3_BUCKET_NAME: z.string().optional().default(""),
   SOLD_COMPS_KEY: z.string().optional().default(""),
+  MYSLABS_CLIENT_ID: z.string().optional().default("AwzoUPZE8eNlWi8vtaOkXTPdCPcHGMkdZeLmoELL"),
+  MYSLABS_CLIENT_SECRET: z.string().optional().default("6wlxK7Jy3QJMOvfiKRiXpfgzdZI9VIeozqcmv0e2D2HZBBt17nHho9hMEHnvM6ygNunbrAbmetIvKSgLpdLNWswrllicF9LtU05KJUnbV4cijNLM6v55Eqq2zCa2TsXC"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -76,7 +79,7 @@ export function validateEnv(
 ): Env {
   const parsed = envSchema.safeParse(overrides);
   if (!parsed.success) {
-    const msg = parsed.error.errors
+    const msg = parsed.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join("; ");
     throw new Error(`Environment validation failed: ${msg}`);

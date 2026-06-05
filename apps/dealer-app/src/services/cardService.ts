@@ -36,6 +36,7 @@ export interface EbaySoldItem {
   endDate?: string;
   shippingCost?: string;
   itemWebUrl?: string;
+  image?: { imageUrl: string };
   location?: string;
 }
 
@@ -53,8 +54,30 @@ export interface EbaySoldResponse {
   fromCache: boolean;
   fetchedAt?: string;
   snapshots?: EbayCompSnapshot[];
+  activeListings?: EbaySearchItem[];
   sold7d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
   sold30d?: { items: EbaySoldItem[]; totalEntries: number; period: string };
+}
+
+export interface MyslabsSoldItem {
+  itemId: string;
+  title: string;
+  soldPrice: { value: string; currency: string };
+  condition?: string;
+  endDate?: string;
+  shippingCost?: string;
+  itemWebUrl?: string;
+  image?: { imageUrl: string };
+}
+
+export interface MyslabsSoldResponse {
+  query: string;
+  fromCache: boolean;
+  fetchedAt?: string;
+  snapshots?: EbayCompSnapshot[];
+  activeListings?: MyslabsSoldItem[];
+  sold7d?: { items: MyslabsSoldItem[]; totalEntries: number; period: string };
+  sold30d?: { items: MyslabsSoldItem[]; totalEntries: number; period: string };
 }
 
 export interface EbaySearchItem {
@@ -84,6 +107,8 @@ export interface AddInventoryItem {
   notes?: string;
   ebaySalesCompleted?: string;
   ebayActiveListings?: string;
+  myslabsSalesCompleted?: string;
+  myslabsActiveListings?: string;
   photos?: string[];
 }
 
@@ -172,11 +197,15 @@ export const cardService = {
         fromCache: true,
         fetchedAt: data.fetchedAt,
         snapshots: data.snapshots,
+        activeListings: data.activeListings,
+        sold7d: data.last7Days,
+        sold30d: data.last30Days,
       };
     }
     return {
       query: data.query,
       fromCache: false,
+      activeListings: data.activeListings,
       sold7d: data.last7Days,
       sold30d: data.last30Days,
     };
@@ -191,5 +220,35 @@ export const cardService = {
       itemSummaries?: EbaySearchItem[];
     }>(ENDPOINTS.ebay.search, { params: { q: query, limit } });
     return { total: data.total, items: data.itemSummaries ?? [] };
+  },
+
+  async getMyslabsSold(
+    query: string,
+    limit = 10,
+    variantId?: string,
+    gradeKey?: string,
+  ): Promise<MyslabsSoldResponse> {
+    const params: Record<string, any> = { q: query, limit };
+    if (variantId) params.variant_id = variantId;
+    if (gradeKey) params.grade_key = gradeKey;
+    const { data } = await apiClient.get<any>(ENDPOINTS.myslabs.sold, { params });
+    if (data.fromCache && data.snapshots) {
+      return {
+        query: data.query,
+        fromCache: true,
+        fetchedAt: data.fetchedAt,
+        snapshots: data.snapshots,
+        activeListings: data.activeListings,
+        sold7d: data.last7Days,
+        sold30d: data.last30Days,
+      };
+    }
+    return {
+      query: data.query,
+      fromCache: false,
+      activeListings: data.activeListings,
+      sold7d: data.last7Days,
+      sold30d: data.last30Days,
+    };
   },
 };

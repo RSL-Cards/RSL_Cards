@@ -185,7 +185,14 @@ export class CardDbRepository {
   }
 
   async getCard(id: string) {
-    return { message: `Get card details + current comp data for ${id}` };
+    const result = await db.execute(sql`
+      SELECT c.*, p.name as player_name 
+      FROM cards c
+      JOIN players p ON c.player_id = p.id
+      WHERE c.id = ${id}
+      LIMIT 1
+    `);
+    return result.rows[0];
   }
 
   async getComps(id: string) {

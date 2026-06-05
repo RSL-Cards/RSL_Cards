@@ -14,6 +14,7 @@ export class TransactionRepository {
       compPriceAtTime,
       gradeKey,
       cardSnapshot,
+      rslCardId,
     } = body;
 
     if (!playerName || !price) {
@@ -24,7 +25,7 @@ export class TransactionRepository {
       INSERT INTO transactions (
         id, user_id, inventory_id, type, channel, price, cost_basis,
         payment_method, deal_rating, comp_price_at_time,
-        player_name, grade_key, card_snapshot, created_at
+        player_name, grade_key, card_snapshot, rsl_card_id, created_at
       ) VALUES (
         gen_random_uuid(),
         ${userId},
@@ -39,6 +40,7 @@ export class TransactionRepository {
         ${playerName},
         ${gradeKey || null},
         ${cardSnapshot || null},
+        ${rslCardId || null},
         NOW()
       )
       RETURNING id, created_at
@@ -60,6 +62,7 @@ export class TransactionRepository {
       compPriceAtTime,
       gradeKey,
       cardSnapshot,
+      rslCardId,
     } = body;
 
     if (!playerName || !price) {
@@ -75,7 +78,7 @@ export class TransactionRepository {
       INSERT INTO transactions (
         id, user_id, inventory_id, type, channel, price, cost_basis,
         profit, profit_pct, payment_method, deal_rating, comp_price_at_time,
-        player_name, grade_key, card_snapshot, created_at
+        player_name, grade_key, card_snapshot, rsl_card_id, created_at
       ) VALUES (
         gen_random_uuid(),
         ${userId},
@@ -92,6 +95,7 @@ export class TransactionRepository {
         ${playerName},
         ${gradeKey || null},
         ${cardSnapshot || null},
+        ${rslCardId || null},
         NOW()
       )
       RETURNING id, created_at

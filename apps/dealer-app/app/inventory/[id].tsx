@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useInventoryItem } from "../../src/hooks/useCardScan";
 import { format, isValid } from "date-fns";
 
@@ -107,12 +108,20 @@ export default function CardDetailScreen() {
     .toUpperCase();
 
   // All data from DB — no live API calls
-  const localSales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const localEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const localMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
+  const localSales = [...localEbaySales, ...localMyslabsSales]
+    .sort((a, b) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+
   const recentSales = localSales
     .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
     .slice(0, 8);
 
-  const localActiveListings = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
+  const localEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
+  const localMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
+  const localActiveListings = [...localEbayActive, ...localMyslabsActive]
+    .sort((a, b) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"))
+    .slice(0, 5);
 
   const avgSold = recentSales.length > 0
     ? recentSales.reduce(
@@ -283,7 +292,7 @@ export default function CardDetailScreen() {
                 marginBottom: 10,
               }}
             >
-              <Text style={styles.sectionLabel}>RECENT EBAY SALES</Text>
+              <Text style={styles.sectionLabel}>RECENT SALES</Text>
               <Text
                 style={{ color: "#00C853", fontSize: 12, fontWeight: "700" }}
               >
@@ -292,51 +301,78 @@ export default function CardDetailScreen() {
             </View>
             <View style={styles.sectionCard}>
               {recentSales.map((sale: any, i: number) => (
-                <View
+                <TouchableOpacity
                   key={sale.itemId}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (sale.itemWebUrl) {
+                      WebBrowser.openBrowserAsync(sale.itemWebUrl);
+                    }
+                  }}
                   style={[
                     styles.saleRow,
                     i < recentSales.length - 1 && styles.saleRowBorder,
                   ]}
                 >
-                  <Text style={styles.salePrice}>
-                    ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#555555",
-                      fontSize: 11,
-                      flex: 1,
-                      marginLeft: 8,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {sale.title}
-                  </Text>
-                  {sale.endDate && (
-                    <Text
-                      style={{
-                        color: "#444444",
-                        fontSize: 10,
-                        marginHorizontal: 8,
-                      }}
-                    >
-                      {format(new Date(sale.endDate), "MMM d, yyyy")}
-                    </Text>
-                  )}
-                  <View
-                    style={[
-                      styles.platformBadge,
-                      { backgroundColor: "rgba(0,87,255,0.15)" },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.platformBadgeText, { color: "#0057FF" }]}
-                    >
-                      eBay
-                    </Text>
+                  <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                    {sale.image?.imageUrl && (
+                      <Image
+                        source={{ uri: sale.image.imageUrl }}
+                        style={{
+                          width: 36,
+                          height: 50,
+                          borderRadius: 4,
+                          marginRight: 10,
+                          backgroundColor: "#222222",
+                        }}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{ color: "white", fontSize: 13, fontWeight: "600" }}
+                        numberOfLines={2}
+                      >
+                        {sale.title}
+                      </Text>
+                      {sale.condition && (
+                        <Text style={{ color: "#555555", fontSize: 10, marginTop: 2 }}>
+                          {sale.condition}
+                        </Text>
+                      )}
+                    </View>
                   </View>
-                </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={styles.salePrice}>
+                      ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
+                    </Text>
+                    {sale.endDate && (
+                      <Text
+                        style={{
+                          color: "#555555",
+                          fontSize: 10,
+                          marginTop: 4,
+                        }}
+                      >
+                        {format(new Date(sale.endDate), "MMM d, yyyy")}
+                      </Text>
+                    )}
+                    {sale.platform && (
+                      <View
+                        style={[
+                          styles.platformBadge,
+                          { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                        >
+                          {sale.platform}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -345,11 +381,17 @@ export default function CardDetailScreen() {
         {/* Active listings at purchase */}
         {localActiveListings.length > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>ACTIVE LISTINGS AT PURCHASE</Text>
+            <Text style={styles.sectionLabel}>ACTIVE LISTINGS</Text>
             <View style={styles.sectionCard}>
               {localActiveListings.map((item: any, i: number) => (
-                <View
+                <TouchableOpacity
                   key={item.itemId}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (item.itemWebUrl) {
+                      WebBrowser.openBrowserAsync(item.itemWebUrl);
+                    }
+                  }}
                   style={[
                     styles.saleRow,
                     i < localActiveListings.length - 1 && styles.saleRowBorder,
@@ -383,10 +425,26 @@ export default function CardDetailScreen() {
                       )}
                     </View>
                   </View>
-                  <Text style={styles.salePrice}>
-                    ${parseFloat(item.price?.value ?? "0").toFixed(2)}
-                  </Text>
-                </View>
+                  <View style={{ alignItems: "flex-end", paddingLeft: 8 }}>
+                    <Text style={styles.salePrice}>
+                      ${parseFloat(item.price?.value ?? "0").toFixed(2)}
+                    </Text>
+                    {item.platform && (
+                      <View
+                        style={[
+                          styles.platformBadge,
+                          { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                        >
+                          {item.platform}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -394,7 +452,7 @@ export default function CardDetailScreen() {
 
         {recentSales.length === 0 && localActiveListings.length === 0 && !!card.player_name && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>EBAY DATA</Text>
+            <Text style={styles.sectionLabel}>COMPS DATA</Text>
             <View
               style={[
                 styles.sectionCard,
@@ -402,7 +460,7 @@ export default function CardDetailScreen() {
               ]}
             >
               <Text style={{ color: "#555555", fontSize: 13 }}>
-                No eBay data stored for this card
+                No comps data stored for this card
               </Text>
             </View>
           </View>
@@ -412,16 +470,29 @@ export default function CardDetailScreen() {
       {/* Bottom actions */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
-          style={styles.listBtn}
-          onPress={() =>
-            router.push({
-              pathname: "/listings/create",
-              params: { inventoryId: card?.id },
-            })
-          }
-          activeOpacity={0.85}
+          style={[
+            styles.listBtn,
+            card?.listing_status === "listed" && { borderColor: "#555555", opacity: 0.6 }
+          ]}
+          onPress={() => {
+            if (card?.listing_status !== "listed") {
+              router.push({
+                pathname: "/listings/create",
+                params: { inventoryId: card?.id },
+              });
+            }
+          }}
+          activeOpacity={card?.listing_status === "listed" ? 1 : 0.85}
+          disabled={card?.listing_status === "listed"}
         >
-          <Text style={styles.listBtnText}>List for Sale</Text>
+          <Text 
+            style={[
+              styles.listBtnText, 
+              card?.listing_status === "listed" && { color: "#555555" }
+            ]}
+          >
+            {card?.listing_status === "listed" ? "Listed" : "List for Sale"}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.sellBtn}

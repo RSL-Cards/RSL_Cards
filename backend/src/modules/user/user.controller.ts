@@ -61,19 +61,30 @@ export class UserController {
   };
 
   ebayCallback = async ({ query, set }: { query: any; set: any }) => {
-    const { code, state: userId } = query;
+    const { code, state } = query;
 
-    if (!code || !userId) {
+    if (!code || !state) {
       set.status = 400;
       return { error: "Missing code or state" };
     }
 
+    let userId = state;
+    let returnUrl = "rslcards://oauth/ebay";
+
+    if (state && state.includes('___')) {
+      const parts = state.split('___');
+      userId = parts[0];
+      if (parts[1]) {
+        returnUrl = parts[1];
+      }
+    }
+
     try {
       await this.service.postUsersMeConnectedPlatforms(userId, { platform: "ebay", code });
-      set.redirect = "rslcards://oauth/ebay/success";
+      return Response.redirect(`${returnUrl}?status=success`);
     } catch (error: any) {
       console.error("eBay callback error:", error);
-      set.redirect = `rslcards://oauth/ebay/error?message=${encodeURIComponent(error.message)}`;
+      return Response.redirect(`${returnUrl}?status=error&message=${encodeURIComponent(error.message)}`);
     }
   };
 

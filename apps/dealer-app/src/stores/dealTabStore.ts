@@ -14,9 +14,11 @@ export interface DealTab {
   channel?: string;
   capturedPhoto?: string;
   recentSales?: any[];
+  myslabsRecentSales?: any[];
   createdAt: string;
   bestMatchImageUrl?: string;
   activeListings?: any[];
+  myslabsActiveListings?: any[];
 }
 
 interface DealTabStore {

@@ -9,10 +9,8 @@ services:
   rsldb:
     image: postgres:16-alpine
     container_name: rsl-dev-rsldb-1
-    environment:
-      POSTGRES_USER: rsl_user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: rsldb
+    env_file:
+      - .env.dev
     ports:
       - "5432:5432"
     volumes:
@@ -28,10 +26,8 @@ services:
   rsldb-read:
     image: postgres:16-alpine
     container_name: rsl-dev-rsldb-read-1
-    environment:
-      POSTGRES_USER: rsl_user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: rsldb
+    env_file:
+      - .env.dev
     ports:
       - "5433:5432"
     volumes:
@@ -42,10 +38,10 @@ services:
   rsldb-test:
     image: postgres:16-alpine
     container_name: rsl-dev-rsldb-test-1
+    env_file:
+      - .env.dev
     environment:
-      POSTGRES_USER: rsl_user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: rsldb_test
+      POSTGRES_DB: ${POSTGRES_DB_TEST:-rsldb_test}
     ports:
       - "5434:5432"
     volumes:
@@ -92,12 +88,11 @@ services:
     env_file:
       - .env.dev
     environment:
-      NODE_ENV: development
-      LOG_LEVEL: debug
-      SERVICE_PUBLIC_PORT: 8080
-      AUTH_SERVICE_PORT: 8080
-      AUTH_GATEWAY_IN_DOCKER: "1"
-    volumes: *node-dev-volumes
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+    volumes:
+      - ../../:/workspace
+      - rsl_dev_node_modules:/workspace/node_modules
+      - ~/.config/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
     depends_on:
       dev-install:
         condition: service_completed_successfully
@@ -117,6 +112,36 @@ services:
     networks:
       - rsl-dev
     restart: unless-stopped
+
+  backend-test:
+    image: oven/bun:latest
+    working_dir: /workspace/backend
+    container_name: rsl-backend-test
+    env_file:
+      - .env.dev
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      NODE_ENV: test
+    volumes:
+      - ../../:/workspace
+      - rsl_dev_node_modules:/workspace/node_modules
+      - ~/.config/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json:ro
+    depends_on:
+      dev-install:
+        condition: service_completed_successfully
+      rsldb-test:
+        condition: service_healthy
+      redis-dev:
+        condition: service_started
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command:
+      - sh
+      - -c
+      - "DATABASE_URL=$$TEST_DATABASE_URL bun run db:migrate && bun test --sequence"
+    networks:
+      - rsl-dev
 
   nginx-dev:
     image: nginx:alpine

@@ -37,11 +37,13 @@ The entire backend is structured in a **modular, domain-driven architecture** in
 │   │   │   ├── ai-narrative/   # Gemini AI Vision card scanner & automated description narratives
 │   │   │   ├── notification/   # Firebase push messaging, email alerts, & regional card show RSVPs
 │   │   │   ├── analytics/      # High-level portfolio profits, daily valuation, & PDF reports
-│   │   │   └── admin/          # Platform health monitors, metric aggregations, & user roles
+│   │   │   ├── admin/          # Platform health monitors, metric aggregations, & user roles
 │   │   └── index.ts            # Elysia Main Entrypoint & JWT Gatekeeper Middleware
 │   ├── package.json            # Bun package definition
 │   └── tsconfig.json           # Bun TS configuration
 ```
+
+> **Note on AI Features:** The platform utilizes Google Cloud Vertex AI (Gemini 2.5 Pro) for automated card scanning and descriptions. If you are setting up the project locally for the first time or encountering authentication errors, please see the [Vertex AI Setup & Authentication Guide](./docs/VERTEX_AI.md).
 
 ---
 

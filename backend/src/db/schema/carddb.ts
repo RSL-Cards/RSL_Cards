@@ -20,7 +20,7 @@ export const players = pgTable(
   "players",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: varchar("name", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull().unique(),
     sport: varchar("sport", { length: 50 }).notNull(), // basketball | baseball | football | etc.
     team: varchar("team", { length: 100 }),
     position: varchar("position", { length: 50 }),
@@ -78,6 +78,7 @@ export const cardVariants = pgTable(
     cardId: varchar("card_id", { length: 255 })
       .references(() => cards.id)
       .notNull(),
+    rslCardId: varchar("rsl_card_id", { length: 255 }).unique(),
     year: integer("year"), // e.g. 2007, 2021
     setName: varchar("set_name", { length: 255 }), // e.g. Topps Chrome, Prizm
     name: varchar("name", { length: 100 }).notNull(), // Base | Refractor | Gold | Auto | Patch
@@ -98,6 +99,7 @@ export const cardVariants = pgTable(
       t.name,
       t.printRun,
     ),
+    rslCardIdIdx: index("idx_card_variants_rsl_card_id").on(t.rslCardId),
   }),
 );
 
@@ -147,6 +149,24 @@ export const platformSoldListings = pgTable("platform_sold_listings", {
   title: varchar("title", { length: 500 }),
   condition: varchar("condition", { length: 100 }),
   contentHash: varchar("content_hash", { length: 64 }).unique(), // MD5(platform+itemId+soldAt)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ALL platforms active listings. Replaced during 15min cache cycles.
+export const platformActiveListings = pgTable("platform_active_listings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  variantId: uuid("variant_id")
+    .references(() => cardVariants.id)
+    .notNull(),
+  gradeKey: varchar("grade_key", { length: 30 }).notNull(),
+  platform: listingPlatformEnum("platform").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  platformItemId: varchar("platform_item_id", { length: 255 }),
+  title: varchar("title", { length: 500 }),
+  condition: varchar("condition", { length: 100 }),
+  itemWebUrl: varchar("item_web_url", { length: 500 }),
+  imageUrl: varchar("image_url", { length: 500 }),
+  contentHash: varchar("content_hash", { length: 64 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

@@ -153,6 +153,7 @@ export class EbayService {
         endDate: null,
         shippingCost: null,
         itemWebUrl: item.itemWebUrl,
+        image: item.image,
         location: null,
       }))
       .filter((item) => {

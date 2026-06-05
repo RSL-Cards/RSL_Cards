@@ -132,6 +132,30 @@ export function useEbaySold(
   });
 }
 
+export function useMyslabsSold(
+  query: string,
+  options?: {
+    enabled?: boolean;
+    limit?: number;
+    variantId?: string;
+    gradeKey?: string;
+  },
+) {
+  return useQuery({
+    queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey],
+    queryFn: () =>
+      cardService.getMyslabsSold(
+        query,
+        options?.limit ?? 10,
+        options?.variantId,
+        options?.gradeKey,
+      ),
+    enabled: (options?.enabled ?? true) && query.trim().length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+}
+
 export function useEbaySearch(query: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: QUERY_KEYS.ebaySearch(query),

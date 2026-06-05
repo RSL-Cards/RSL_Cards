@@ -106,6 +106,34 @@
       "when": 1779387961475,
       "tag": "0014_unusual_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1780559331985,
+      "tag": "0015_ambiguous_black_widow",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780559672950,
+      "tag": "0016_right_husk",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780658741685,
+      "tag": "0017_low_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780663010770,
+      "tag": "0018_rainy_lyja",
+      "breakpoints": true
     }
   ]
 }

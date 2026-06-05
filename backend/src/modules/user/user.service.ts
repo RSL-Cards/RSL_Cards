@@ -6,6 +6,8 @@ import { EbayOauthService } from "./ebay.oauth.service.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../../config/index.js";
+import { db } from "../../db/index.js";
+import { inventory } from "../../db/schema/index.js";
 
 export class UserService {
   constructor(
@@ -41,7 +43,7 @@ export class UserService {
 
     if (platform === "ebay" && code) {
       const tokens = await this.ebayOauthService.exchangeCodeForTokens(code);
-      return this.repository.postUsersMeConnectedPlatforms({
+      const res = await this.repository.postUsersMeConnectedPlatforms({
         userId,
         platform: "ebay",
         accessToken: tokens.access_token,
@@ -49,6 +51,29 @@ export class UserService {
         tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
         platformUserId: "", // We can fetch this from eBay API later if needed
       });
+
+      try {
+        const listings = await this.ebayOauthService.fetchEbayActiveListings(tokens.access_token);
+        if (listings && listings.length > 0) {
+          const inventoryData = listings.map((l: any) => {
+            return {
+              userId,
+              costBasis: "0", 
+              quantity: l.availability?.shipToLocationAvailability?.quantity ?? 1,
+              listedPlatforms: ["ebay"],
+              listingStatus: "listed" as any,
+              notes: `eBay SKU: ${l.sku || "Unknown"}`,
+              ebayActiveListings: JSON.stringify([l]),
+            };
+          });
+          
+          await db.insert(inventory).values(inventoryData);
+        }
+      } catch (err) {
+        console.error("Failed to sync eBay listings:", err);
+      }
+
+      return res;
     }
 
     return this.repository.postUsersMeConnectedPlatforms({ ...body, userId });

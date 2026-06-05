@@ -7,10 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
-import { useEbaySold, useEbaySearch } from "../../src/hooks/useCardScan";
+import { useEbaySold, useEbaySearch, useMyslabsSold } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
 import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
 
@@ -44,6 +45,25 @@ function buildEbayQuery(card: any): string {
     parts.push(`${card.grading.company} ${card.grading.grade}`);
   }
 
+  return parts.join(" ");
+}
+
+function buildMyslabsQuery(card: any): string {
+  if (!card) return "";
+
+  const parts: string[] = [];
+
+  if (card.player_name) parts.push(card.player_name);
+  if (card.year) parts.push(String(card.year));
+  if (card.set_name) parts.push(card.set_name);
+  
+  // Variation is critical but we skip "Base"
+  if (card.variation && card.variation.toLowerCase() !== "base") {
+    parts.push(card.variation);
+  }
+
+  // We explicitly SKIP card number and grading company for MySlabs, 
+  // as MySlabs search will frequently return 0 results if these are included.
   return parts.join(" ");
 }
 
@@ -124,22 +144,38 @@ export default function BuyCompsScreen() {
 
   const ebayQuery = buildEbayQuery(card);
 
+  const myslabsQuery = buildMyslabsQuery(card);
+
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 20,
     variantId: activeTab?.variantId,
     gradeKey: card?.grade_key || "RAW",
   });
 
-  const { data: activeSearchData } = useEbaySearch(ebayQuery, {
-    enabled: !!ebayQuery,
+  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs } = useMyslabsSold(myslabsQuery, {
+    limit: 20,
+    variantId: activeTab?.variantId,
+    gradeKey: card?.grade_key || "RAW",
   });
 
-  const activeItems = activeSearchData?.items?.slice(0, 5) ?? [];
+  const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsActive = (myslabsData?.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const activeItems = [...ebayActive, ...myslabsActive]
+    .sort((a, b) => parseFloat((a as any).price?.value ?? "0") - parseFloat((b as any).price?.value ?? "0"))
+    .slice(0, 5) as any[];
 
-  const sold30 = data?.sold30d?.items ?? [];
-  const sold7 = data?.sold7d?.items ?? [];
-  const avg30 = calcAvg(sold30);
-  const avg7 = calcAvg(sold7);
+  const ebaySold30 = (data?.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold30 = (myslabsData?.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold30 = [...ebaySold30, ...myslabsSold30]
+    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const ebaySold7 = (data?.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold7 = (myslabsData?.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold7 = [...ebaySold7, ...myslabsSold7]
+    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const avg30 = calcAvg(sold30 as any);
+  const avg7 = calcAvg(sold7 as any);
   const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
   const recentSales = sold30.slice(0, 8);
   const sparklineData = sold30
@@ -147,6 +183,9 @@ export default function BuyCompsScreen() {
     .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
+  
+  const isLoadingAll = isLoading || myslabsLoading;
+  const isErrorAll = isError || myslabsError;
 
   const initials =
     card?.player_name
@@ -240,7 +279,7 @@ export default function BuyCompsScreen() {
             {/* Avg comp hero */}
             <View style={styles.avgBox}>
               <Text style={styles.avgLabel}>
-                AVG SOLD — LAST 30 DAYS (eBay)
+                AVG SOLD — LAST 30 DAYS (eBay & MySlabs)
               </Text>
               <Text style={styles.avgValue}>
                 {avg30 > 0 ? `$${avg30.toFixed(2)}` : "—"}
@@ -302,41 +341,78 @@ export default function BuyCompsScreen() {
             {/* Recent eBay sales */}
             {recentSales.length > 0 && (
               <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-                <Text style={styles.sectionLabel}>RECENT EBAY SALES</Text>
+                <Text style={styles.sectionLabel}>RECENT SALES</Text>
                 <View style={styles.sectionCard}>
                   {recentSales.map((sale, i) => (
-                    <View
+                    <TouchableOpacity
                       key={sale.itemId}
+                      activeOpacity={sale.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (sale.itemWebUrl) {
+                          Linking.openURL(sale.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
                       style={[
                         styles.saleRow,
                         i < recentSales.length - 1 && styles.rowBorder,
                       ]}
                     >
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                        {sale.image?.imageUrl && (
+                          <Image
+                            source={{ uri: sale.image.imageUrl }}
+                            style={{
+                              width: 36,
+                              height: 50,
+                              borderRadius: 4,
+                              marginRight: 10,
+                              backgroundColor: "#222222",
+                            }}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
+                            {sale.title}
+                          </Text>
+                          {sale.condition && (
+                            <Text
+                              style={{
+                                color: "#555555",
+                                fontSize: 10,
+                                marginTop: 2,
+                              }}
+                            >
+                              {sale.condition}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
                         <Text style={styles.salePrice}>
                           ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
                         </Text>
-                        {sale.condition && (
-                          <Text
-                            style={{
-                              color: "#555555",
-                              fontSize: 10,
-                              marginTop: 1,
-                            }}
+                        <Text style={styles.saleDate}>
+                          {sale.endDate
+                            ? format(new Date(sale.endDate), "MMM d, yyyy")
+                            : "—"}
+                        </Text>
+                        {sale.platform && (
+                          <View
+                            style={[
+                              styles.platformBadge,
+                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                            ]}
                           >
-                            {sale.condition}
-                          </Text>
+                            <Text
+                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                            >
+                              {sale.platform}
+                            </Text>
+                          </View>
                         )}
                       </View>
-                      <View style={styles.platformChip}>
-                        <Text style={styles.platformChipText}>eBay</Text>
-                      </View>
-                      <Text style={styles.saleDate}>
-                        {sale.endDate
-                          ? format(new Date(sale.endDate), "MMM d, yyyy")
-                          : "—"}
-                      </Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -354,7 +430,7 @@ export default function BuyCompsScreen() {
                 }}
               >
                 <Text style={{ color: "#555555", fontSize: 13 }}>
-                  No recent eBay sales found
+                  No recent sales found
                 </Text>
                 <Text style={{ color: "#333333", fontSize: 11, marginTop: 4 }}>
                   Try adjusting the card details
@@ -365,11 +441,17 @@ export default function BuyCompsScreen() {
             {/* Current eBay Active Listings */}
             {activeItems.length > 0 && (
               <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>CURRENT EBAY ACTIVE LISTINGS</Text>
+                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS</Text>
                 <View style={styles.sectionCard}>
                   {activeItems.map((item, i) => (
-                    <View
+                    <TouchableOpacity
                       key={item.itemId}
+                      activeOpacity={item.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (item.itemWebUrl) {
+                          Linking.openURL(item.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
                       style={[
                         styles.saleRow,
                         i < activeItems.length - 1 && styles.rowBorder,
@@ -406,10 +488,26 @@ export default function BuyCompsScreen() {
                           )}
                         </View>
                       </View>
-                      <Text style={styles.salePrice}>
-                        ${parseFloat(item.price?.value ?? "0").toFixed(2)}
-                      </Text>
-                    </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.salePrice}>
+                          ${parseFloat(item.price?.value ?? "0").toFixed(2)}
+                        </Text>
+                        {item.platform && (
+                          <View
+                            style={[
+                              styles.platformBadge,
+                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                            >
+                              {item.platform}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -426,9 +524,10 @@ export default function BuyCompsScreen() {
               const bestMatchItem = activeItems.find((item) => item.image?.imageUrl);
               const bestMatchImageUrl = bestMatchItem?.image?.imageUrl;
               updateTab(activeTab.id, {
-                ...(avg30 > 0 ? { avgComp: avg30, recentSales } : {}),
+                ...(avg30 > 0 ? { avgComp: avg30, recentSales: ebaySold30, myslabsRecentSales: myslabsSold30 } : {}),
                 bestMatchImageUrl,
-                activeListings: activeItems.length > 0 ? activeItems : undefined,
+                activeListings: ebayActive.length > 0 ? ebayActive : undefined,
+                myslabsActiveListings: myslabsActive.length > 0 ? myslabsActive : undefined,
               });
             }
             router.push("/buy/price");
@@ -540,5 +639,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  primaryBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 17,
+    letterSpacing: 0.5,
+  },
+  platformBadge: {
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  platformBadgeText: {
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
 });

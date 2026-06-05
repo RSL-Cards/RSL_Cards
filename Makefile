@@ -141,8 +141,8 @@ test-migrate:               ## Run DB migrations (test)
 test-generate:              ## Generate Drizzle schema (test)
 	bun run db:generate:test
 
-run-test:                   ## Run all tests
-	bun run test
+run-test:                   ## Run all tests in Docker
+	cd backend && bun run test:docker
 
 # ------------------------------------------------------------
 #  SHARED
@@ -152,8 +152,8 @@ down:                       ## Stop ALL stacks (dev + qa + prod)
 	docker compose -f infra/docker/docker-compose.qa.yml down 2>/dev/null || true
 	docker compose -f infra/docker/docker-compose.prod.yml down 2>/dev/null || true
 
-test:                       ## Run all tests (Vitest)
-	bun run test
+test:                       ## Run all tests in Docker
+	cd backend && bun run test:docker
 
 test-coverage:              ## Run all tests with coverage reporting
 	bun run test:coverage
