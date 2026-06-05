@@ -2,6 +2,7 @@ import { ListingRepository } from "./listing.repository.js";
 import { EbayService } from "./ebay.service.js";
 import { EbayListingService } from "./ebay.listing.service.js";
 import { SoldCompsService } from "./sold-comps.service.js";
+import { MyslabsService } from "./myslabs.service.js";
 import { env } from "../../config/index.js";
 import { db } from "../../db/index.js";
 import { sql } from "drizzle-orm";
@@ -10,6 +11,7 @@ export class ListingService {
   private readonly ebayService = new EbayService(env);
   private readonly ebayListingService = new EbayListingService(env);
   private readonly soldCompsService = new SoldCompsService(env);
+  private readonly myslabsService = new MyslabsService(env);
 
   constructor(private readonly repository: ListingRepository) {}
 
@@ -76,5 +78,9 @@ export class ListingService {
 
   async ebaySold(params: any) {
     return await this.repository.ebaySold(params, this.ebayService, this.soldCompsService);
+  }
+
+  async myslabsSold(params: any) {
+    return await this.repository.myslabsSold(params, this.myslabsService);
   }
 }

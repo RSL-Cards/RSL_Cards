@@ -108,6 +108,8 @@ export class InventoryRepository {
       notes,
       ebaySalesCompleted,
       ebayActiveListings,
+      myslabsSalesCompleted,
+      myslabsActiveListings,
     } = body;
 
     // Sanitize empty strings to null for strict typed columns (UUID, integer, etc.)
@@ -132,6 +134,8 @@ export class InventoryRepository {
     const cleanNotes = notes && notes !== "" ? notes : null;
     const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
     const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
+    const cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
+    const cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
 
     const duplicateCheck = await db.execute(sql`
       SELECT id, added_at 
@@ -226,13 +230,13 @@ export class InventoryRepository {
       INSERT INTO inventory (
         user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, listing_status, added_at, updated_at
+        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, myslabs_sales_completed, myslabs_active_listings, listing_status, added_at, updated_at
       ) VALUES (
         ${userId}, ${cleanCardId}, ${resolvedVariantId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, 
         ${cleanVariation}, ${cleanCardNumber}, ${cleanSport},
         ${cleanGradeCompany}, ${cleanGradeValue}, ${gradeKey}, ${cleanCertNumber},
         ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}::text[], ${cleanNotes},
-        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, 'unlisted', NOW(), NOW()
+        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, ${cleanMyslabsSalesCompleted}, ${cleanMyslabsActiveListings}, 'unlisted', NOW(), NOW()
       )
       RETURNING *
     `);

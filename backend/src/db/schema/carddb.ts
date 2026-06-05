@@ -152,6 +152,24 @@ export const platformSoldListings = pgTable("platform_sold_listings", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ALL platforms active listings. Replaced during 15min cache cycles.
+export const platformActiveListings = pgTable("platform_active_listings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  variantId: uuid("variant_id")
+    .references(() => cardVariants.id)
+    .notNull(),
+  gradeKey: varchar("grade_key", { length: 30 }).notNull(),
+  platform: listingPlatformEnum("platform").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  platformItemId: varchar("platform_item_id", { length: 255 }),
+  title: varchar("title", { length: 500 }),
+  condition: varchar("condition", { length: 100 }),
+  itemWebUrl: varchar("item_web_url", { length: 500 }),
+  imageUrl: varchar("image_url", { length: 500 }),
+  contentHash: varchar("content_hash", { length: 64 }).unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // One row per variant+gradeKey+platform. UPSERTED every 15min cache cycle.
 // Drives the BUY screen cross-platform comparison.
 export const cardCompSnapshots = pgTable(

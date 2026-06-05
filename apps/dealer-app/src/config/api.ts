@@ -88,6 +88,10 @@ export const ENDPOINTS = {
     itemByName: "/v1/listings/ebay/items/by-name",
   },
 
+  myslabs: {
+    sold: "/v1/listings/myslabs/sold",
+  },
+
   narratives: {
     generate: "/v1/narratives/generate",
   },

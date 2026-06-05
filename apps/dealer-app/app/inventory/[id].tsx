@@ -108,12 +108,20 @@ export default function CardDetailScreen() {
     .toUpperCase();
 
   // All data from DB — no live API calls
-  const localSales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const localEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const localMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
+  const localSales = [...localEbaySales, ...localMyslabsSales]
+    .sort((a, b) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+
   const recentSales = localSales
     .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
     .slice(0, 8);
 
-  const localActiveListings = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
+  const localEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
+  const localMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
+  const localActiveListings = [...localEbayActive, ...localMyslabsActive]
+    .sort((a, b) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"))
+    .slice(0, 5);
 
   const avgSold = recentSales.length > 0
     ? recentSales.reduce(
@@ -284,7 +292,7 @@ export default function CardDetailScreen() {
                 marginBottom: 10,
               }}
             >
-              <Text style={styles.sectionLabel}>RECENT EBAY SALES</Text>
+              <Text style={styles.sectionLabel}>RECENT SALES</Text>
               <Text
                 style={{ color: "#00C853", fontSize: 12, fontWeight: "700" }}
               >
@@ -349,18 +357,20 @@ export default function CardDetailScreen() {
                         {format(new Date(sale.endDate), "MMM d, yyyy")}
                       </Text>
                     )}
-                    <View
-                      style={[
-                        styles.platformBadge,
-                        { backgroundColor: "rgba(0,87,255,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.platformBadgeText, { color: "#0057FF", fontSize: 9 }]}
+                    {sale.platform && (
+                      <View
+                        style={[
+                          styles.platformBadge,
+                          { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                        ]}
                       >
-                        eBay
-                      </Text>
-                    </View>
+                        <Text
+                          style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                        >
+                          {sale.platform}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -371,7 +381,7 @@ export default function CardDetailScreen() {
         {/* Active listings at purchase */}
         {localActiveListings.length > 0 && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>ACTIVE LISTINGS AT PURCHASE</Text>
+            <Text style={styles.sectionLabel}>ACTIVE LISTINGS</Text>
             <View style={styles.sectionCard}>
               {localActiveListings.map((item: any, i: number) => (
                 <TouchableOpacity
@@ -419,18 +429,20 @@ export default function CardDetailScreen() {
                     <Text style={styles.salePrice}>
                       ${parseFloat(item.price?.value ?? "0").toFixed(2)}
                     </Text>
-                    <View
-                      style={[
-                        styles.platformBadge,
-                        { backgroundColor: "rgba(0,87,255,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.platformBadgeText, { color: "#0057FF", fontSize: 9 }]}
+                    {item.platform && (
+                      <View
+                        style={[
+                          styles.platformBadge,
+                          { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                        ]}
                       >
-                        eBay
-                      </Text>
-                    </View>
+                        <Text
+                          style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                        >
+                          {item.platform}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               ))}
@@ -440,7 +452,7 @@ export default function CardDetailScreen() {
 
         {recentSales.length === 0 && localActiveListings.length === 0 && !!card.player_name && (
           <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>EBAY DATA</Text>
+            <Text style={styles.sectionLabel}>COMPS DATA</Text>
             <View
               style={[
                 styles.sectionCard,
@@ -448,7 +460,7 @@ export default function CardDetailScreen() {
               ]}
             >
               <Text style={{ color: "#555555", fontSize: 13 }}>
-                No eBay data stored for this card
+                No comps data stored for this card
               </Text>
             </View>
           </View>

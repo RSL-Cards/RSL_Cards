@@ -63,6 +63,8 @@ const envSchema = z.object({
   AWS_REGION: z.string().optional().default("us-east-1"),
   S3_BUCKET_NAME: z.string().optional().default(""),
   SOLD_COMPS_KEY: z.string().optional().default(""),
+  MYSLABS_CLIENT_ID: z.string().optional().default("AwzoUPZE8eNlWi8vtaOkXTPdCPcHGMkdZeLmoELL"),
+  MYSLABS_CLIENT_SECRET: z.string().optional().default("6wlxK7Jy3QJMOvfiKRiXpfgzdZI9VIeozqcmv0e2D2HZBBt17nHho9hMEHnvM6ygNunbrAbmetIvKSgLpdLNWswrllicF9LtU05KJUnbV4cijNLM6v55Eqq2zCa2TsXC"),
 });
 
 export type Env = z.infer<typeof envSchema>;
