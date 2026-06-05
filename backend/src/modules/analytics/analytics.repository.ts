@@ -27,24 +27,43 @@ export class AnalyticsRepository {
   async getTodayActivity(userId: string) {
     const rows = await db.execute(sql`
       SELECT
-        id, type, price, profit, player_name, created_at
-      FROM transactions
-      WHERE user_id = ${userId}
-        AND created_at >= NOW() - INTERVAL '24 hours'
-      ORDER BY created_at DESC
+        t.id, t.type, t.price, t.profit, t.player_name, t.created_at,
+        i.photos as inventory_photos,
+        t.card_snapshot
+      FROM transactions t
+      LEFT JOIN inventory i ON i.id = t.inventory_id
+      WHERE t.user_id = ${userId}
+        AND t.created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY t.created_at DESC
       LIMIT 20
     `);
-    return (rows.rows as any[]).map((r) => ({
-      id: r.id,
-      type: r.type,
-      price: parseFloat(r.price ?? "0").toFixed(2),
-      profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
-      playerName: r.player_name ?? "Unknown Card",
-      time: new Date(r.created_at).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    }));
+    
+    return (rows.rows as any[]).map((r) => {
+      let imageUrl = null;
+      if (r.inventory_photos && r.inventory_photos.length > 0) {
+        imageUrl = r.inventory_photos[0];
+      } else if (r.card_snapshot) {
+        try {
+          const snap = JSON.parse(r.card_snapshot);
+          if (snap.photos && snap.photos.length > 0) {
+            imageUrl = snap.photos[0];
+          }
+        } catch (e) {}
+      }
+
+      return {
+        id: r.id,
+        type: r.type,
+        price: parseFloat(r.price ?? "0").toFixed(2),
+        profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
+        playerName: r.player_name ?? "Unknown Card",
+        imageUrl,
+        time: new Date(r.created_at).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      };
+    });
   }
 
   async getReport(userId: string, period: string) {

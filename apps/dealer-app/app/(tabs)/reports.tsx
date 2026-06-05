@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import {
   useDailyStats,
@@ -129,16 +130,22 @@ function TodayView() {
         <Surface variant="elevated" padding="none" style={styles.card}>
           {activity.map((tx, i) => (
             <View key={tx.id} style={[styles.txRow, i < activity.length - 1 && styles.txDivider]}>
-              <View
-                style={[
-                  styles.typeBadge,
-                  { backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : 'rgba(225,29,72,0.15)' },
-                ]}
-              >
-                <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : COLORS.destructive}>
-                  {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
-                </Typography>
-              </View>
+              {tx.imageUrl ? (
+                <View style={[styles.typeBadge, { paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden', backgroundColor: COLORS.zinc800 }]}>
+                  <Image source={{ uri: tx.imageUrl }} style={{ width: 44, height: 44, resizeMode: 'cover' }} />
+                </View>
+              ) : (
+                <View
+                  style={[
+                    styles.typeBadge,
+                    { backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : 'rgba(225,29,72,0.15)' },
+                  ]}
+                >
+                  <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : COLORS.destructive}>
+                    {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
+                  </Typography>
+                </View>
+              )}
               <View style={{ flex: 1, marginLeft: SPACING.md }}>
                 <Typography variant="body" weight="600" numberOfLines={1}>{tx.playerName}</Typography>
                 <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>{tx.time}</Typography>
