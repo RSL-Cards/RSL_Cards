@@ -518,10 +518,16 @@ export class ListingRepository {
           console.log(`[COMPS] MySlabs Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh...`);
           (async () => {
             try {
-              const [soldData, activeData] = await Promise.all([
-                myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults }),
-                myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults })
-              ]);
+              let soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
+              let activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
+              
+              if (soldData.items.length === 0 && activeData.items.length === 0) {
+                const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
+                if (stripped && stripped !== query) {
+                  soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
+                  activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
+                }
+              }
 
               const prices = soldData.items
                 .map((i) => i.price)
@@ -621,13 +627,24 @@ export class ListingRepository {
     }
 
     console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs for: ${query}`);
-    const [soldResult, activeResult] = await Promise.allSettled([
-      myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults }),
-      myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults })
-    ]);
+    let soldData: { items: MyslabsItem[] } = { items: [] };
+    let activeData: { items: MyslabsItem[] } = { items: [] };
 
-    const soldData = soldResult.status === "fulfilled" ? soldResult.value : { items: [] as MyslabsItem[] };
-    const activeData = activeResult.status === "fulfilled" ? activeResult.value : { items: [] as MyslabsItem[] };
+    try {
+      soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
+      activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
+      
+      if (soldData.items.length === 0 && activeData.items.length === 0) {
+        const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
+        if (stripped && stripped !== query) {
+          console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to: ${stripped}`);
+          soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
+          activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch MySlabs LIVE comps:", e);
+    }
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
     console.log(`  -> Sold: ${soldData.items.length} items`);
@@ -640,7 +657,7 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
-    if (effectiveVariantId && soldResult.status === "fulfilled" && soldData.items.length > 0) {
+    if (effectiveVariantId && soldData.items && soldData.items.length > 0) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)

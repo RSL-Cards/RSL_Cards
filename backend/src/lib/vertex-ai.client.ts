@@ -6,11 +6,15 @@ export class VertexAiClient {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({
-      vertexai: true,
-      project: env.VERTEX_AI_PROJECT_ID,
-      location: env.VERTEX_AI_LOCATION,
-    });
+    if (env.GEMINI_API_KEY) {
+      this.ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+    } else {
+      this.ai = new GoogleGenAI({
+        vertexai: true,
+        project: env.VERTEX_AI_PROJECT_ID,
+        location: env.VERTEX_AI_LOCATION,
+      });
+    }
   }
 
   /**

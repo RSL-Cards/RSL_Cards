@@ -10,7 +10,7 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
+const DEV_HOST = "3.231.19.101"; // AWS EC2 instance
 
 export const API_BASE_URL = `http://${DEV_HOST}`;
 

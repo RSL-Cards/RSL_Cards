@@ -55,6 +55,7 @@ const envSchema = z.object({
   SPORTRADAR_API_KEY: z.string().optional().default(""),
   VERTEX_AI_PROJECT_ID: z.string().optional().default("third-node-498216-h8"),
   VERTEX_AI_LOCATION: z.string().optional().default("us-central1"),
+  GEMINI_API_KEY: z.string().optional().default(""),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
   APPLE_AUDIENCE: z.string().optional().default(""),
   APPLE_ISSUER: z.string().optional().default("https://appleid.apple.com"),
