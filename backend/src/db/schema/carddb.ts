@@ -167,6 +167,7 @@ export const platformActiveListings = pgTable("platform_active_listings", {
   itemWebUrl: varchar("item_web_url", { length: 500 }),
   imageUrl: varchar("image_url", { length: 500 }),
   contentHash: varchar("content_hash", { length: 64 }).unique(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

@@ -179,6 +179,8 @@ export class ListingRepository {
           WHERE variant_id = ${effectiveVariantId}
             AND grade_key = ${gradeKey}
             AND platform = 'ebay'
+            AND last_seen_at >= NOW() - INTERVAL '24 hours'
+          ORDER BY price ASC
           LIMIT 20
         `);
 
@@ -247,13 +249,6 @@ export class ListingRepository {
                 `);
               }
 
-              await db.execute(sql`
-                DELETE FROM platform_active_listings
-                WHERE variant_id = ${effectiveVariantId}
-                  AND grade_key = ${gradeKey}
-                  AND platform = 'ebay'
-              `);
-
               for (const item of activeData.itemSummaries ?? []) {
                 const contentHash = createHash("sha256")
                   .update(`ebayactive:${item.itemId}`)
@@ -262,10 +257,10 @@ export class ListingRepository {
                 
                 await db.execute(sql`
                   INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
                   VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
+                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
+                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
                 `);
               }
             } catch (err) {
@@ -376,13 +371,6 @@ export class ListingRepository {
         `);
       }
 
-      await db.execute(sql`
-        DELETE FROM platform_active_listings
-        WHERE variant_id = ${effectiveVariantId}
-          AND grade_key = ${gradeKey}
-          AND platform = 'ebay'
-      `);
-
       for (const item of activeData.itemSummaries ?? []) {
         const contentHash = createHash("sha256")
           .update(`ebayactive:${item.itemId}`)
@@ -391,10 +379,10 @@ export class ListingRepository {
         
         await db.execute(sql`
           INSERT INTO platform_active_listings
-            (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+            (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW())
-          ON CONFLICT (content_hash) DO NOTHING
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
+          ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
     }
@@ -501,6 +489,8 @@ export class ListingRepository {
           WHERE variant_id = ${effectiveVariantId}
             AND grade_key = ${gradeKey}
             AND platform = 'myslabs'
+            AND last_seen_at >= NOW() - INTERVAL '24 hours'
+          ORDER BY price ASC
           LIMIT 20
         `);
 
@@ -572,13 +562,6 @@ export class ListingRepository {
                 `);
               }
 
-              await db.execute(sql`
-                DELETE FROM platform_active_listings
-                WHERE variant_id = ${effectiveVariantId}
-                  AND grade_key = ${gradeKey}
-                  AND platform = 'myslabs'
-              `);
-
               for (const item of activeData.items) {
                 const contentHash = createHash("sha256")
                   .update(`myslabsactive:${item.id}`)
@@ -587,10 +570,10 @@ export class ListingRepository {
                 
                 await db.execute(sql`
                   INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, created_at)
+                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
                   VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
+                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
+                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
                 `);
               }
             } catch (err) {
@@ -685,6 +668,21 @@ export class ListingRepository {
           VALUES
             (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
+        `);
+      }
+
+      for (const item of activeData.items ?? []) {
+        const contentHash = createHash("sha256")
+          .update(`myslabsactive:${item.id}`)
+          .digest("hex")
+          .slice(0, 64);
+        
+        await db.execute(sql`
+          INSERT INTO platform_active_listings
+            (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
+          VALUES
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
+          ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
     }

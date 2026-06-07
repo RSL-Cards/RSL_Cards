@@ -147,22 +147,30 @@ export default function BuyCompsScreen() {
   const myslabsQuery = buildMyslabsQuery(card);
 
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
-    limit: 20,
+    limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: card?.grade_key || "RAW",
   });
 
   const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs } = useMyslabsSold(myslabsQuery, {
-    limit: 20,
+    limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: card?.grade_key || "RAW",
   });
 
-  const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsActive = (myslabsData?.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs" }));
-  const activeItems = [...ebayActive, ...myslabsActive]
-    .sort((a, b) => parseFloat((a as any).price?.value ?? "0") - parseFloat((b as any).price?.value ?? "0"))
-    .slice(0, 5) as any[];
+  const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
+  const myslabsActive = (myslabsData?.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
+  
+  const sortedEbayActive = [...ebayActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
+  const sortedMyslabsActive = [...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
+  
+  let activeEbayShow = sortedEbayActive.slice(0, 3);
+  let activeMyslabsShow = sortedMyslabsActive.slice(0, 3);
+  if (activeEbayShow.length < 3) activeMyslabsShow = sortedMyslabsActive.slice(0, 6 - activeEbayShow.length);
+  else if (activeMyslabsShow.length < 3) activeEbayShow = sortedEbayActive.slice(0, 6 - activeMyslabsShow.length);
+  
+  const activeItems = [...activeEbayShow, ...activeMyslabsShow]
+    .sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0")) as any[];
 
   const ebaySold30 = (data?.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
   const myslabsSold30 = (myslabsData?.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
@@ -177,7 +185,17 @@ export default function BuyCompsScreen() {
   const avg30 = calcAvg(sold30 as any);
   const avg7 = calcAvg(sold7 as any);
   const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
-  const recentSales = sold30.slice(0, 8);
+  
+  const sortedEbaySold30 = [...ebaySold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
+  const sortedMyslabsSold30 = [...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
+  
+  let recentEbayShow = sortedEbaySold30.slice(0, 4);
+  let recentMyslabsShow = sortedMyslabsSold30.slice(0, 4);
+  if (recentEbayShow.length < 4) recentMyslabsShow = sortedMyslabsSold30.slice(0, 8 - recentEbayShow.length);
+  else if (recentMyslabsShow.length < 4) recentEbayShow = sortedEbaySold30.slice(0, 8 - recentMyslabsShow.length);
+  
+  const recentSales = [...recentEbayShow, ...recentMyslabsShow]
+    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
   const sparklineData = sold30
     .slice(0, 8)
     .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
@@ -490,7 +508,7 @@ export default function BuyCompsScreen() {
                       </View>
                       <View style={{ alignItems: "flex-end" }}>
                         <Text style={styles.salePrice}>
-                          ${parseFloat(item.price?.value ?? "0").toFixed(2)}
+                          ${parseFloat(item.displayPrice ?? "0").toFixed(2)}
                         </Text>
                         {item.platform && (
                           <View

@@ -134,6 +134,13 @@
       "when": 1780663010770,
       "tag": "0018_rainy_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780819919301,
+      "tag": "0019_white_ultimates",
+      "breakpoints": true
     }
   ]
 }

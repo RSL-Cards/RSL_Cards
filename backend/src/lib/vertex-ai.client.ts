@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { env } from "../config/index.js";
 import { logger } from "./logger.js";
 
@@ -6,15 +6,11 @@ export class VertexAiClient {
   private ai: GoogleGenAI;
 
   constructor() {
-    if (env.GEMINI_API_KEY) {
-      this.ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-    } else {
-      this.ai = new GoogleGenAI({
-        vertexai: true,
-        project: env.VERTEX_AI_PROJECT_ID,
-        location: env.VERTEX_AI_LOCATION,
-      });
-    }
+    this.ai = new GoogleGenAI({
+      vertexai: true,
+      project: env.VERTEX_AI_PROJECT_ID,
+      location: env.VERTEX_AI_LOCATION,
+    });
   }
 
   /**
@@ -47,7 +43,19 @@ export class VertexAiClient {
           prompt
         ],
         config: {
-          temperature: 0.1,
+          temperature: 1,
+          maxOutputTokens: 65535,
+          topP: 0.95,
+          seed: 0,
+          thinkingConfig: {
+            thinkingBudget: -1,
+          },
+          safetySettings: [
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+          ],
         }
       });
 
