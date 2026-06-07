@@ -27,6 +27,8 @@ export const inventory = pgTable('inventory', {
   isConsignment:        boolean('is_consignment').default(false),
   ebaySalesCompleted:   text('ebay_sales_completed'),                  // JSON string of raw ebay sales
   ebayActiveListings:   text('ebay_active_listings'),                  // JSON string of raw active listings
+  myslabsSalesCompleted:text('myslabs_sales_completed'),               // JSON string of raw MySlabs sales
+  myslabsActiveListings:text('myslabs_active_listings'),               // JSON string of raw MySlabs active listings
   consignmentOwner:     varchar('consignment_owner', { length: 255 }),
   consignmentCommPct:   decimal('consignment_comm_pct', { precision: 5, scale: 2 }),
   listedPlatforms:      text('listed_platforms').array(),              // ['ebay','whatnot']

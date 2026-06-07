@@ -19,6 +19,7 @@ export interface TodayActivity {
   price: string;
   profit: string | null;
   playerName: string;
+  imageUrl?: string | null;
   time: string;
 }
 

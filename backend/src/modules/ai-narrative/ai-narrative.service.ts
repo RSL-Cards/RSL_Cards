@@ -1,5 +1,4 @@
 import { AiNarrativeRepository } from "./ai-narrative.repository.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
@@ -7,46 +6,13 @@ import { env } from "../../config/index.js";
 import { ListingRepository } from "../listing/listing.repository.js";
 import { EbayService } from "../listing/ebay.service.js";
 import { SoldCompsService } from "../listing/sold-comps.service.js";
+import { vertexAiClient } from "../../lib/vertex-ai.client.js";
+import { CARD_SCAN_PROMPT } from "../../config/prompts.js";
 
-const CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this card image and extract the following details in strict JSON format with NO markdown, NO extra text.
 
-Return ONLY this JSON:
-{
-  "player_name": "Full Player Name",
-  "year": 2017,
-  "set_name": "Panini Prizm",
-  "variation": "Silver Prizm",
-  "sport": "football",
-  "card_number": "269",
-  "manufacturer": "Panini",
-  "is_rookie": false,
-  "is_autograph": false,
-  "is_relic": false,
-  "grading": {
-    "company": "PSA",
-    "grade": "10",
-    "cert_number": "12345678"
-  },
-  "confidence": 0.95
-}
-
-Rules:
-- "year" must be a number
-- "confidence" 0.0-1.0 based on image clarity
-- "sport": "football" | "basketball" | "baseball" | "hockey" | "soccer" | "other"
-- "variation": the parallel/refractor name exactly as it appears on the card or is commonly known on eBay (e.g. "Silver Prizm", "Gold Refractor", "Holo", "Base", "Blue Wave", "Red /299"). Include the print run if visible (e.g. "Orange /49"). If base/no variation, use "Base"
-- "card_number": the number printed on the card (e.g. "269", "RC-15"). Omit the # symbol. Use null if not visible
-- "set_name": the brand+product name as used on eBay (e.g. "Panini Prizm", "Topps Chrome", "Bowman Draft"). Do NOT include the year in set_name
-- "manufacturer": the card company (e.g. "Panini", "Topps", "Upper Deck", "Bowman")
-- "is_rookie": true if card has RC logo, "Rookie" text, or is player's first-year card
-- "is_autograph": true if card has a visible on-card or sticker autograph
-- "is_relic": true if card contains embedded patch/jersey/memorabilia window
-- If grading label (PSA/BGS/SGC/CSG slab) not visible, omit "grading" field entirely
-- If a field is not visible or not determinable, use null
-- Return ONLY the JSON object, nothing else`;
 
 export class AiNarrativeService {
-  constructor(private readonly repository: AiNarrativeRepository) {}
+  constructor(private readonly repository: AiNarrativeRepository) { }
 
   async getFeed(userId: string) {
     return this.repository.getFeed(userId);
@@ -98,9 +64,8 @@ export class AiNarrativeService {
       throw new Error("image (base64) required");
     }
 
-    const apiKey = env.GOOGLE_GEN_AI_KEY;
-    if (!apiKey) {
-      throw new Error("Gemini not configured");
+    if (!env.VERTEX_AI_PROJECT_ID) {
+      throw new Error("Vertex AI Project ID not configured");
     }
 
     // Helpers
@@ -130,7 +95,7 @@ export class AiNarrativeService {
         c.id AS card_id, c.year, c.set_name, c.card_number, c.manufacturer,
         c.is_rookie, c.source,
         p.name AS player_name, p.sport AS player_sport,
-        cv.id AS variant_id, cv.name AS variation, cv.is_autograph, cv.is_relic,
+        cv.id AS variant_id, cv.rsl_card_id, cv.name AS variation, cv.is_autograph, cv.is_relic,
         cv.is_parallel, cv.print_run,
         ih.confidence
       FROM image_hashes ih
@@ -170,41 +135,41 @@ export class AiNarrativeService {
         },
         cardId: r.card_id,
         variantId: r.variant_id,
+        rslCardId: r.rsl_card_id,
         fromCache: true,
         confidence: r.confidence,
       };
     }
 
-    // 2. Call Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash",
-    ];
-
+    // 2. Call Vertex AI
     let geminiCard: any = null;
     let lastError: any = null;
+
+    // We can still try a fallback chain if needed, but we'll stick to the requested model.
+    const modelsToTry = [
+      "gemini-2.5-flash"
+    ];
+
     for (const modelName of modelsToTry) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent([
-          CARD_SCAN_PROMPT,
-          { inlineData: { data: image, mimeType } },
-        ]);
-        const raw = result.response.text();
-        const cleaned = raw.replace(/```json|```/g, "").trim();
+        console.log(`[SCAN-CARD] Attempting to scan card with model: ${modelName}...`);
+        const rawResponse = await vertexAiClient.generateFromImage(CARD_SCAN_PROMPT, image, mimeType, modelName);
+        const cleaned = rawResponse.replace(/```json|```/g, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("No JSON in Gemini response");
+        if (!jsonMatch) throw new Error("No JSON in Vertex AI response");
         geminiCard = JSON.parse(jsonMatch[0]);
+        console.log(`[SCAN-CARD] ✅ Successfully identified card using model: ${modelName}`);
         break;
       } catch (err: any) {
+        console.warn(`[SCAN-CARD] ❌ Model ${modelName} failed: ${err.message}`);
         lastError = err;
+        // Basic fallback logic: if rate limited, server error, not found, or timeout, try next
         if (
           err.status !== 404 &&
           err.status !== 503 &&
           err.status !== 429 &&
-          err.status !== 400
+          err.status !== 400 &&
+          !err.message?.includes("timed out")
         )
           break;
       }
@@ -217,25 +182,25 @@ export class AiNarrativeService {
     // 3. Persist to DB (best-effort, fire-and-forget errors)
     const cardId = generateCardId(geminiCard);
     let variantId: string | null = null;
+    let finalCardId = cardId;
 
     try {
       // 3a. Ensure player exists
       const normPlayerName = geminiCard.player_name;
       const playerLookup = await db.execute(sql`
-        SELECT id FROM players WHERE name = ${normPlayerName} LIMIT 1
+        SELECT id FROM players WHERE LOWER(name) = LOWER(${normPlayerName}) LIMIT 1
       `);
       let playerId = (playerLookup.rows[0] as any)?.id;
-      
+
       if (!playerId) {
         const playerInsert = await db.execute(sql`
           INSERT INTO players (id, name, sport, created_at, updated_at)
           VALUES (gen_random_uuid(), ${normPlayerName}, ${geminiCard.sport || "basketball"}, NOW(), NOW())
+          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
           RETURNING id
         `);
         playerId = (playerInsert.rows[0] as any)?.id;
       }
-      
-      let finalCardId = cardId;
 
       if (playerId) {
         // 3b. Ensure base card exists
@@ -243,7 +208,7 @@ export class AiNarrativeService {
           SELECT id FROM cards WHERE id = ${cardId} LIMIT 1
         `);
         let hasCard = cardPkCheck.rows.length > 0;
-        
+
         if (!hasCard) {
           try {
             await db.execute(sql`
@@ -251,10 +216,10 @@ export class AiNarrativeService {
                 id, player_id, year, set_name, card_number,
                 manufacturer, is_rookie, source, created_at, updated_at
               ) VALUES (
-                ${cardId}, ${playerId}, ${geminiCard.year ?? null},
-                ${geminiCard.set_name ?? null}, ${geminiCard.card_number ?? null},
-                ${geminiCard.manufacturer ?? null},
-                ${geminiCard.is_rookie ?? false}, 'gemini', NOW(), NOW()
+                ${cardId}, ${playerId}, ${geminiCard.year ?? null}::integer,
+                ${geminiCard.set_name ?? null}::varchar, ${geminiCard.card_number ?? null}::varchar,
+                ${geminiCard.manufacturer ?? null}::varchar,
+                ${geminiCard.is_rookie ?? false}::boolean, 'gemini', NOW(), NOW()
               )
             `);
           } catch (err: any) {
@@ -272,20 +237,21 @@ export class AiNarrativeService {
         const finalCardRow = await db.execute(sql`
           SELECT id FROM cards 
           WHERE player_id = ${playerId} 
-            AND year = ${geminiCard.year ?? null} 
-            AND set_name = ${geminiCard.set_name ?? null}
+            AND (year = ${geminiCard.year ?? null}::integer OR (year IS NULL AND ${geminiCard.year ?? null}::integer IS NULL))
+            AND (set_name = ${geminiCard.set_name ?? null}::varchar OR (set_name IS NULL AND ${geminiCard.set_name ?? null}::varchar IS NULL))
             AND (
-              card_number = ${geminiCard.card_number ?? null} 
+              card_number = ${geminiCard.card_number ?? null}::varchar 
               OR card_number IS NULL 
-              OR ${geminiCard.card_number ?? null} IS NULL
+              OR ${geminiCard.card_number ?? null}::varchar IS NULL
             )
-          ORDER BY (card_number = ${geminiCard.card_number ?? null}) DESC, created_at ASC
+          ORDER BY (card_number = ${geminiCard.card_number ?? null}::varchar) DESC, created_at ASC
           LIMIT 1
         `);
         finalCardId = (finalCardRow.rows[0] as any)?.id || cardId;
 
         // 3c. Upsert variant
         const variantName = geminiCard.variation || "Base";
+        const rslCardId = `${finalCardId}_${norm(variantName)}`;
         const isAutograph = geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
         const isRelic = geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
         const isParallel = variantName.toLowerCase() !== "base";
@@ -304,11 +270,12 @@ export class AiNarrativeService {
             AND (set_name = ${setName}::varchar OR (set_name IS NULL AND ${setName}::varchar IS NULL))
           LIMIT 1
         `);
-        
+
         if (baseVariantRes.rows.length === 0) {
+          const baseRslCardId = `${finalCardId}_base`;
           await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
+            INSERT INTO card_variants (id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${finalCardId}, ${baseRslCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
           `);
         }
 
@@ -322,16 +289,16 @@ export class AiNarrativeService {
             AND (print_run = ${printRun}::integer OR (print_run IS NULL AND ${printRun}::integer IS NULL))
           LIMIT 1
         `);
-        
+
         let resolvedId: string | null = null;
         if (varRes.rows.length === 0) {
           const insertRes = await db.execute(sql`
             INSERT INTO card_variants (
-              id, card_id, year, set_name, name, is_parallel, is_base,
+              id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base,
               is_autograph, is_relic, print_run,
               created_at, updated_at
             ) VALUES (
-              gen_random_uuid(), ${finalCardId}, ${cardYear}, ${setName}, ${variantName},
+              gen_random_uuid(), ${finalCardId}, ${rslCardId}, ${cardYear}, ${setName}, ${variantName},
               ${isParallel}, ${!isParallel},
               ${isAutograph}, ${isRelic}, ${printRun},
               NOW(), NOW()
@@ -342,14 +309,14 @@ export class AiNarrativeService {
         } else {
           resolvedId = (varRes.rows[0] as any)?.id || null;
         }
-        
+
         if (!resolvedId) {
           const fallbackRow = await db.execute(sql`
             SELECT id FROM card_variants WHERE card_id = ${finalCardId} AND is_base = true LIMIT 1
           `);
           resolvedId = (fallbackRow.rows[0] as any)?.id || null;
         }
-        
+
         variantId = resolvedId;
       }
 
@@ -370,7 +337,7 @@ export class AiNarrativeService {
       const listingRepo = new ListingRepository();
       const ebayService = new EbayService(env);
       const soldCompsService = new SoldCompsService(env);
-      
+
       for (const grade of grades) {
         listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade }, ebayService, soldCompsService)
           .catch((err) => console.error("scan-card (live): failed to trigger price refresh for grade:", grade, err));
@@ -381,6 +348,7 @@ export class AiNarrativeService {
       card: geminiCard,
       cardId,
       variantId,
+      rslCardId: variantId ? `${finalCardId}_${norm(geminiCard.variation || "Base")}` : null,
       fromCache: false,
       confidence: geminiCard.confidence ?? 0.9,
     };

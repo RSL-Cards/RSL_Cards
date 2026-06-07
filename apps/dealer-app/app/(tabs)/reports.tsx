@@ -2,11 +2,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import {
   useDailyStats,
@@ -16,6 +16,9 @@ import {
   useRefetchDashboardOnFocus,
 } from "../../src/hooks/useDashboard";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
+import { Typography } from "../../src/components/ui/Typography";
+import { Surface } from "../../src/components/ui/Surface";
 
 type Period = "today" | "week" | "month";
 
@@ -26,14 +29,13 @@ function fmt$(val: string | number | undefined) {
 
 function Skeleton() {
   return (
-    <View style={{ marginHorizontal: 20, marginTop: 4 }}>
-      <ActivityIndicator color="#333333" style={{ marginTop: 40 }} />
+    <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xs }}>
+      <ActivityIndicator color={COLORS.zinc600} style={{ marginTop: 40 }} />
     </View>
   );
 }
 
 function safeDayLabel(day: string): string {
-  // Handles: "2026-04-27", "2026-04-27T00:00:00.000Z", "2026-04-27 00:00:00+00"
   const m = String(day).match(/(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${parseInt(m[2])}/${parseInt(m[3])}`;
   return "—";
@@ -43,28 +45,20 @@ function BarChart({ data }: { data: { day: string; revenue: number }[] }) {
   if (!data.length) return null;
   const max = Math.max(...data.map((d) => d.revenue), 1);
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "flex-end",
-        gap: 6,
-        height: 100,
-        marginTop: 12,
-      }}
-    >
+    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 100, marginTop: SPACING.md }}>
       {data.map((d, i) => (
         <View key={i} style={{ flex: 1, alignItems: "center" }}>
           <View
             style={{
               width: "100%",
               height: Math.max((d.revenue / max) * 88, 4),
-              backgroundColor: d.revenue > 0 ? "#0057FF" : "#1A1A1A",
-              borderRadius: 4,
+              backgroundColor: d.revenue > 0 ? COLORS.primary : COLORS.zinc800,
+              borderRadius: RADIUS.sm,
             }}
           />
-          <Text style={{ color: "#555555", fontSize: 9, marginTop: 4 }}>
+          <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 4, fontSize: 9 }}>
             {safeDayLabel(d.day)}
-          </Text>
+          </Typography>
         </View>
       ))}
     </View>
@@ -73,37 +67,21 @@ function BarChart({ data }: { data: { day: string; revenue: number }[] }) {
 
 function AiSummaryCard() {
   return (
-    <View style={styles.aiCard}>
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
-      >
-        <Ionicons name="flash" size={16} color="#E8001C" style={{ marginRight: 8 }} />
-        <Text
-          style={{
-            color: "#E8001C",
-            fontSize: 11,
-            fontWeight: "700",
-            letterSpacing: 1,
-          }}
-        >
+    <Surface variant="elevated" style={styles.aiCard}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
+        <Ionicons name="flash" size={16} color={COLORS.primary} style={{ marginRight: SPACING.xs }} />
+        <Typography variant="label" color={COLORS.primaryLight}>
           AI SUMMARY
-        </Text>
+        </Typography>
       </View>
-      <Text
-        style={{
-          color: "white",
-          fontSize: 15,
-          fontWeight: "700",
-          marginBottom: 6,
-        }}
-      >
+      <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
         Keep stacking — your margins are solid
-      </Text>
-      <Text style={{ color: "#888888", fontSize: 13, lineHeight: 19 }}>
+      </Typography>
+      <Typography variant="body" color={COLORS.zinc400} style={{ lineHeight: 20 }}>
         AI-powered deal analysis coming soon. Your buying patterns and profit
         trends will be summarized here automatically.
-      </Text>
-    </View>
+      </Typography>
+    </Surface>
   );
 }
 
@@ -116,131 +94,78 @@ function TodayView() {
   const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
-    >
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACING.xl }}>
       <View style={styles.metricsRow}>
         {[
-          {
-            label: "Bought",
-            value: String(stats?.cards_bought ?? 0),
-            unit: "cards",
-            color: "#0057FF",
-          },
-          {
-            label: "Sold",
-            value: String(stats?.cards_sold ?? 0),
-            unit: "cards",
-            color: "#E8001C",
-          },
-          {
-            label: "Spent",
-            value: fmt$(stats?.total_spent),
-            unit: "",
-            color: "#888888",
-          },
-          {
-            label: "Revenue",
-            value: fmt$(stats?.total_revenue),
-            unit: "",
-            color: "white",
-          },
-          {
-            label: "Profit",
-            value: fmt$(stats?.net_profit),
-            unit: "",
-            color: "#00C853",
-          },
-          { label: "Margin", value: `${margin}%`, unit: "", color: "#0057FF" },
+          { label: "Bought", value: String(stats?.cards_bought ?? 0), unit: "cards", color: COLORS.primaryLight },
+          { label: "Sold", value: String(stats?.cards_sold ?? 0), unit: "cards", color: COLORS.destructive },
+          { label: "Spent", value: fmt$(stats?.total_spent), unit: "", color: COLORS.zinc400 },
+          { label: "Revenue", value: fmt$(stats?.total_revenue), unit: "", color: COLORS.white },
+          { label: "Profit", value: fmt$(stats?.net_profit), unit: "", color: COLORS.success },
+          { label: "Margin", value: `${margin}%`, unit: "", color: COLORS.primaryLight },
         ].map((m) => (
-          <View key={m.label} style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{m.label}</Text>
+          <Surface key={m.label} variant="glass" padding="md" style={styles.metricCard}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{m.label}</Typography>
             {loadingStats ? (
-              <ActivityIndicator color="#333" size="small" />
+              <ActivityIndicator color={COLORS.zinc600} size="small" />
             ) : (
-              <Text style={[styles.metricValue, { color: m.color }]}>
-                {m.value}
-              </Text>
+              <Typography variant="h3" weight="800" color={m.color}>{m.value}</Typography>
             )}
-            {m.unit ? (
-              <Text style={{ color: "#555555", fontSize: 10 }}>{m.unit}</Text>
-            ) : null}
-          </View>
+            {m.unit ? <Typography variant="caption" color={COLORS.zinc500}>{m.unit}</Typography> : null}
+          </Surface>
         ))}
       </View>
 
-      <Text
-        style={[
-          styles.sectionLabel,
-          { paddingHorizontal: 20, marginTop: 24, marginBottom: 12 },
-        ]}
-      >
+      <Typography variant="label" color={COLORS.zinc500} style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md }}>
         LAST 24H TRANSACTIONS
-      </Text>
+      </Typography>
 
       {loadingActivity ? (
         <Skeleton />
       ) : !activity?.length ? (
-        <View
-          style={{ marginHorizontal: 20, padding: 24, alignItems: "center" }}
-        >
-          <Text style={{ color: "#555555", fontSize: 14 }}>
-            No transactions yet today
-          </Text>
+        <View style={{ marginHorizontal: SPACING.lg, padding: SPACING.xl, alignItems: "center" }}>
+          <Typography variant="body" color={COLORS.zinc500}>No transactions yet today</Typography>
         </View>
       ) : (
-        <View style={styles.card}>
+        <Surface variant="elevated" padding="none" style={styles.card}>
           {activity.map((tx, i) => (
-            <View
-              key={tx.id}
-              style={[
-                styles.txRow,
-                i < activity.length - 1 && styles.txDivider,
-              ]}
-            >
-              <View
-                style={[
-                  styles.typeBadge,
-                  {
-                    backgroundColor:
-                      tx.type === "buy"
-                        ? "rgba(0,87,255,0.15)"
-                        : "rgba(232,0,28,0.15)",
-                  },
-                ]}
-              >
-                <Text
+            <View key={tx.id} style={[styles.txRow, i < activity.length - 1 && styles.txDivider]}>
+              {tx.imageUrl ? (
+                <View style={[styles.typeBadge, { paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden', backgroundColor: COLORS.zinc800 }]}>
+                  <Image source={{ uri: tx.imageUrl }} style={{ width: 44, height: 44, resizeMode: 'cover' }} />
+                </View>
+              ) : (
+                <View
                   style={[
-                    styles.typeBadgeText,
-                    { color: tx.type === "buy" ? "#0057FF" : "#E8001C" },
+                    styles.typeBadge,
+                    { backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : 'rgba(225,29,72,0.15)' },
                   ]}
                 >
-                  {tx.type.toUpperCase()}
-                </Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.txPlayer}>{tx.playerName}</Text>
-                <Text style={styles.txTime}>{tx.time}</Text>
+                  <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : COLORS.destructive}>
+                    {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
+                  </Typography>
+                </View>
+              )}
+              <View style={{ flex: 1, marginLeft: SPACING.md }}>
+                <Typography variant="body" weight="600" numberOfLines={1}>{tx.playerName}</Typography>
+                <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>{tx.time}</Typography>
               </View>
               <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.txPrice}>
+                <Typography variant="body" weight="700">
                   ${parseFloat(tx.price).toFixed(0)}
-                </Text>
+                </Typography>
                 {tx.profit != null && (
-                  <Text
-                    style={{ color: "#00C853", fontSize: 12, marginTop: 2 }}
-                  >
-                    +${parseFloat(tx.profit).toFixed(0)}
-                  </Text>
+                  <Typography variant="caption" weight="600" color={parseFloat(tx.profit) >= 0 ? COLORS.success : COLORS.destructive} style={{ marginTop: 2 }}>
+                    {parseFloat(tx.profit) >= 0 ? "+" : ""}${parseFloat(tx.profit).toFixed(0)}
+                  </Typography>
                 )}
               </View>
             </View>
           ))}
-        </View>
+        </Surface>
       )}
 
-      <View style={{ marginHorizontal: 20, marginTop: 20 }}>
+      <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
         <AiSummaryCard />
       </View>
     </ScrollView>
@@ -259,201 +184,103 @@ function PeriodView({ period }: { period: "week" | "month" }) {
   const label = period === "week" ? "7 DAYS" : "30 DAYS";
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 24 }}
-    >
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACING.xl }}>
       {/* Metrics */}
       <View style={styles.metricsRow}>
         {[
-          {
-            label: "Revenue",
-            value: fmt$(report?.total_revenue),
-            color: "white",
-          },
-          {
-            label: "Profit",
-            value: fmt$(report?.net_profit),
-            color: "#00C853",
-          },
-          {
-            label: "Margin",
-            value: `${report?.avg_margin ?? 0}%`,
-            color: "#0057FF",
-          },
+          { label: "Revenue", value: fmt$(report?.total_revenue), color: COLORS.white },
+          { label: "Profit", value: fmt$(report?.net_profit), color: COLORS.success },
+          { label: "Margin", value: `${report?.avg_margin ?? 0}%`, color: COLORS.primaryLight },
         ].map((m) => (
-          <View key={m.label} style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{m.label}</Text>
+          <Surface key={m.label} variant="glass" padding="md" style={styles.metricCard}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{m.label}</Typography>
             {loadingReport ? (
-              <ActivityIndicator color="#333" size="small" />
+              <ActivityIndicator color={COLORS.zinc600} size="small" />
             ) : (
-              <Text style={[styles.metricValue, { color: m.color }]}>
-                {m.value}
-              </Text>
+              <Typography variant="h3" weight="800" color={m.color}>{m.value}</Typography>
             )}
-          </View>
+          </Surface>
         ))}
       </View>
 
       {/* Cards count row */}
-      <View style={[styles.metricsRow, { marginTop: 10 }]}>
+      <View style={[styles.metricsRow, { marginTop: SPACING.sm }]}>
         {[
-          {
-            label: "Bought",
-            value: String(report?.cards_bought ?? 0),
-            color: "#0057FF",
-          },
-          {
-            label: "Sold",
-            value: String(report?.cards_sold ?? 0),
-            color: "#E8001C",
-          },
-          {
-            label: "Spent",
-            value: fmt$(report?.total_spent),
-            color: "#888888",
-          },
+          { label: "Bought", value: String(report?.cards_bought ?? 0), color: COLORS.primaryLight },
+          { label: "Sold", value: String(report?.cards_sold ?? 0), color: COLORS.destructive },
+          { label: "Spent", value: fmt$(report?.total_spent), color: COLORS.zinc400 },
         ].map((m) => (
-          <View key={m.label} style={styles.metricCard}>
-            <Text style={styles.metricLabel}>{m.label}</Text>
+          <Surface key={m.label} variant="glass" padding="md" style={styles.metricCard}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{m.label}</Typography>
             {loadingReport ? (
-              <ActivityIndicator color="#333" size="small" />
+              <ActivityIndicator color={COLORS.zinc600} size="small" />
             ) : (
-              <Text style={[styles.metricValue, { color: m.color }]}>
-                {m.value}
-              </Text>
+              <Typography variant="h3" weight="800" color={m.color}>{m.value}</Typography>
             )}
-          </View>
+          </Surface>
         ))}
       </View>
 
       {/* Bar chart */}
       {!loadingReport && !!report?.daily_revenue?.length && (
-        <View style={[styles.card, { marginTop: 16 }]}>
-          <Text style={styles.sectionLabel}>DAILY REVENUE — {label}</Text>
+        <Surface variant="elevated" padding="lg" style={[styles.card, { marginTop: SPACING.lg }]}>
+          <Typography variant="label" color={COLORS.zinc500}>DAILY REVENUE — {label}</Typography>
           <BarChart data={report.daily_revenue} />
-        </View>
+        </Surface>
       )}
 
       {/* Best deal */}
       {!loadingReport && report?.best_deal && (
-        <View style={{ marginHorizontal: 20, marginTop: 16 }}>
-          <View
-            style={[
-              styles.card,
-              {
-                borderLeftWidth: 3,
-                borderLeftColor: "#FFD700",
-                marginHorizontal: 0,
-              },
-            ]}
+        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.lg }}>
+          <Surface
+            variant="elevated"
+            padding="lg"
+            style={[styles.card, { borderLeftWidth: 3, borderLeftColor: "#FFD700", marginHorizontal: 0 }]}
           >
-            <Text style={styles.sectionLabel}>BEST DEAL — {label}</Text>
-            <Text
-              style={{
-                color: "white",
-                fontSize: 17,
-                fontWeight: "700",
-                marginTop: 6,
-              }}
-            >
+            <Typography variant="label" color={COLORS.zinc500}>BEST DEAL — {label}</Typography>
+            <Typography variant="h3" weight="700" color={COLORS.white} style={{ marginTop: SPACING.xs }}>
               {report.best_deal.player}
-            </Text>
-            <Text
-              style={{
-                color: "#00C853",
-                fontSize: 20,
-                fontWeight: "900",
-                marginTop: 4,
-              }}
-            >
-              +${parseFloat(report.best_deal.profit).toFixed(0)} ·{" "}
-              {report.best_deal.margin}% margin
-            </Text>
-          </View>
+            </Typography>
+            <Typography variant="h3" weight="900" color={COLORS.success} style={{ marginTop: 4 }}>
+              +${parseFloat(report.best_deal.profit).toFixed(0)} · {report.best_deal.margin}% margin
+            </Typography>
+          </Surface>
         </View>
       )}
 
       {/* Channel breakdown */}
-      <Text
-        style={[
-          styles.sectionLabel,
-          { paddingHorizontal: 20, marginTop: 20, marginBottom: 12 },
-        ]}
-      >
+      <Typography variant="label" color={COLORS.zinc500} style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.xl, marginBottom: SPACING.md }}>
         REVENUE BY CHANNEL
-      </Text>
+      </Typography>
       {loadingChannel ? (
         <Skeleton />
       ) : !channelData?.channels?.length ? (
-        <View
-          style={{ marginHorizontal: 20, padding: 20, alignItems: "center" }}
-        >
-          <Text style={{ color: "#555555", fontSize: 13 }}>
-            No sales data for this period
-          </Text>
+        <View style={{ marginHorizontal: SPACING.lg, padding: SPACING.lg, alignItems: "center" }}>
+          <Typography variant="body" color={COLORS.zinc500}>No sales data for this period</Typography>
         </View>
       ) : (
-        <View style={styles.card}>
+        <Surface variant="elevated" padding="none" style={styles.card}>
           {channelData.channels.map((c, i) => (
-            <View
-              key={c.channel}
-              style={[
-                { padding: 14 },
-                i < channelData.channels.length - 1 && styles.txDivider,
-              ]}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 6,
-                }}
-              >
-                <Text
-                  style={{
-                    color: "white",
-                    fontWeight: "600",
-                    fontSize: 14,
-                    textTransform: "capitalize",
-                  }}
-                >
+            <View key={c.channel} style={[{ padding: SPACING.md }, i < channelData.channels.length - 1 && styles.txDivider]}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.sm }}>
+                <Typography variant="body" weight="600" style={{ textTransform: "capitalize" }}>
                   {c.channel.replace(/_/g, " ")}
-                </Text>
+                </Typography>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{ color: "white", fontWeight: "700", fontSize: 14 }}
-                  >
-                    {fmt$(c.revenue)}
-                  </Text>
+                  <Typography variant="body" weight="700">{fmt$(c.revenue)}</Typography>
                   {c.profit > 0 && (
-                    <Text
-                      style={{ color: "#00C853", fontSize: 11, marginTop: 2 }}
-                    >
+                    <Typography variant="caption" color={COLORS.success} style={{ marginTop: 2 }}>
                       +{fmt$(c.profit)} profit
-                    </Text>
+                    </Typography>
                   )}
                 </View>
               </View>
-              <View
-                style={{
-                  height: 4,
-                  backgroundColor: "#1A1A1A",
-                  borderRadius: 2,
-                }}
-              >
-                <View
-                  style={{
-                    height: 4,
-                    width: `${(c.revenue / maxChannel) * 100}%`,
-                    backgroundColor: "#0057FF",
-                    borderRadius: 2,
-                  }}
-                />
+              <View style={{ height: 4, backgroundColor: COLORS.zinc800, borderRadius: 2 }}>
+                <View style={{ height: 4, width: `${(c.revenue / maxChannel) * 100}%`, backgroundColor: COLORS.primaryLight, borderRadius: 2 }} />
               </View>
             </View>
           ))}
-        </View>
+        </Surface>
       )}
     </ScrollView>
   );
@@ -464,9 +291,9 @@ function ReportsScreen() {
   useRefetchDashboardOnFocus();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reports</Text>
+        <Typography variant="h1" weight="800">Reports</Typography>
       </View>
 
       <View style={styles.periodTabs}>
@@ -476,14 +303,13 @@ function ReportsScreen() {
             style={[styles.periodTab, period === p && styles.periodTabActive]}
             onPress={() => setPeriod(p)}
           >
-            <Text
-              style={[
-                styles.periodTabText,
-                period === p && styles.periodTabTextActive,
-              ]}
+            <Typography
+              variant="body"
+              weight={period === p ? "700" : "600"}
+              color={period === p ? COLORS.white : COLORS.zinc500}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
-            </Text>
+            </Typography>
           </TouchableOpacity>
         ))}
       </View>
@@ -498,84 +324,47 @@ function ReportsScreen() {
 export default ReportsScreen;
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "white" },
+  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm, paddingBottom: SPACING.sm },
   periodTabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#2A2A2A",
-    marginHorizontal: 20,
-    marginBottom: 16,
+    borderBottomColor: COLORS.border,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   periodTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     alignItems: "center",
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  periodTabActive: { borderBottomColor: "#E8001C" },
-  periodTabText: { color: "#555555", fontSize: 15, fontWeight: "600" },
-  periodTabTextActive: { color: "white", fontWeight: "700" },
+  periodTabActive: { borderBottomColor: COLORS.primary },
   metricsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    paddingHorizontal: 20,
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
     marginTop: 4,
   },
   metricCard: {
     flex: 1,
     minWidth: 80,
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
-  },
-  metricLabel: {
-    color: "#555555",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  metricValue: { fontSize: 17, fontWeight: "700" },
-  sectionLabel: {
-    color: "#888888",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
   },
   card: {
-    marginHorizontal: 20,
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
-    overflow: "hidden",
-    padding: 16,
+    marginHorizontal: SPACING.lg,
   },
-  txRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
-  txDivider: { borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
+  txRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.md, paddingHorizontal: SPACING.md },
+  txDivider: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
   typeBadge: {
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 8,
     paddingVertical: 4,
     minWidth: 44,
     alignItems: "center",
   },
-  typeBadgeText: { fontSize: 11, fontWeight: "700" },
-  txPlayer: { color: "white", fontWeight: "600", fontSize: 14 },
-  txTime: { color: "#555555", fontSize: 11, marginTop: 2 },
-  txPrice: { color: "white", fontWeight: "700", fontSize: 14 },
   aiCard: {
-    backgroundColor: "#111111",
-    borderRadius: 16,
-    padding: 16,
     borderLeftWidth: 3,
-    borderLeftColor: "#E8001C",
-    borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderLeftColor: COLORS.primary,
   },
 });

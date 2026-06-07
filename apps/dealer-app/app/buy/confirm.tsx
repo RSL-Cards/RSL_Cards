@@ -334,6 +334,8 @@ export default function BuyConfirmScreen() {
                 notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
                 ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
                 ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,
+                myslabsSalesCompleted: activeTab?.myslabsRecentSales ? JSON.stringify(activeTab.myslabsRecentSales) : undefined,
+                myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
                 photos: activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined,
               },
               {

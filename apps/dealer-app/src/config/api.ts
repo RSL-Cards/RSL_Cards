@@ -10,10 +10,9 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.29.125"; // physical device — same WiFi as dev machine
+const DEV_HOST = "192.168.29.125"; // Wi-Fi IP address
 
-// export const API_BASE_URL = "http://3.231.19.101";
-export const API_BASE_URL="http://192.168.31.38:8080"
+export const API_BASE_URL = `http://${DEV_HOST}`;
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.
@@ -87,6 +86,10 @@ export const ENDPOINTS = {
     sold: "/v1/listings/ebay/sold",
     search: "/v1/listings/ebay/search",
     itemByName: "/v1/listings/ebay/items/by-name",
+  },
+
+  myslabs: {
+    sold: "/v1/listings/myslabs/sold",
   },
 
   narratives: {

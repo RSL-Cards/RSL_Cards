@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "../../src/stores/authStore";
 import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SHADOWS } from "../../src/constants/theme";
+import { Typography } from "../../src/components/ui/Typography";
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -22,9 +24,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#000000",
+        backgroundColor: COLORS.background,
         borderTopWidth: 1,
-        borderTopColor: "#2A2A2A",
+        borderTopColor: COLORS.border,
         paddingBottom: insets.bottom || 16,
         paddingTop: 8,
         paddingHorizontal: 8,
@@ -49,25 +51,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   width: 60,
                   height: 60,
                   borderRadius: 30,
-                  backgroundColor: "#0057FF",
+                  backgroundColor: COLORS.primary,
                   alignItems: "center",
                   justifyContent: "center",
-                  shadowColor: "#0057FF",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.6,
-                  shadowRadius: 12,
-                  elevation: 8,
+                  ...SHADOWS.glowPrimary,
                 }}
               >
-                <Text
-                  style={{ color: "white", fontSize: 28, fontWeight: "900" }}
-                >
-                  +
-                </Text>
+                <Typography variant="h2" weight="900" color={COLORS.white}>+</Typography>
               </View>
-              <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
+              <Typography variant="label" color={COLORS.zinc500} style={{ marginTop: 4 }}>
                 BUY
-              </Text>
+              </Typography>
             </TouchableOpacity>
           );
         }
@@ -91,18 +85,16 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             <Ionicons
               name={isActive ? (tab.icon as any) : (`${tab.icon}-outline` as any)}
               size={22}
-              color={isActive ? "#E8001C" : "#555555"}
+              color={isActive ? COLORS.primary : COLORS.zinc500}
             />
-            <Text
-              style={{
-                color: isActive ? "#E8001C" : "#555555",
-                fontSize: 10,
-                marginTop: 4,
-                fontWeight: isActive ? "700" : "400",
-              }}
+            <Typography
+              variant="label"
+              weight={isActive ? "700" : "500"}
+              color={isActive ? COLORS.primary : COLORS.zinc500}
+              style={{ marginTop: 4, letterSpacing: 0, textTransform: 'none' }}
             >
               {tab.label}
-            </Text>
+            </Typography>
           </TouchableOpacity>
         );
       })}
