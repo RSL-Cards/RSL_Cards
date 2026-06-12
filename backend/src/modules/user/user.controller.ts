@@ -81,10 +81,10 @@ export class UserController {
 
     try {
       await this.service.postUsersMeConnectedPlatforms(userId, { platform: "ebay", code });
-      return Response.redirect(`${returnUrl}?status=success`);
+      return Response.redirect(`${returnUrl}?status=success`, 302);
     } catch (error: any) {
       console.error("eBay callback error:", error);
-      return Response.redirect(`${returnUrl}?status=error&message=${encodeURIComponent(error.message)}`);
+      return Response.redirect(`${returnUrl}?status=error&message=${encodeURIComponent(error.message)}`, 302);
     }
   };
 

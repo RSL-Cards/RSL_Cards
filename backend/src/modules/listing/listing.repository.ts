@@ -193,81 +193,6 @@ export class ListingRepository {
           image: { imageUrl: item.image_url },
         }));
 
-        const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
-        if (ageMs >= 15 * 60 * 1000) {
-          console.log(`[COMPS] Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh from LIVE APIs...`);
-          (async () => {
-            try {
-              const soldData = await soldCompsService.getSoldItems(query);
-              const prices = soldData.items
-                .map((i) => parseFloat(i.soldPrice))
-                .filter((p) => p > 0);
-
-              const activeData = await ebayService.searchListings({
-                q: query,
-                limit: Math.min(maxResults, 20),
-                sort: "pricePlusShippingLowest",
-              });
-              const activePrices = (activeData.itemSummaries ?? [])
-                .map((i) => parseFloat(i.price?.value ?? "0"))
-                .filter((p) => p > 0);
-
-              if (!prices.length && !activePrices.length) return;
-
-              const avg = prices.length
-                ? prices.reduce((a, b) => a + b, 0) / prices.length
-                : 0;
-              const last = prices.length ? prices[0] : 0;
-              const lowest = activePrices.length ? activePrices[0] : 0;
-
-              await db.execute(sql`
-                INSERT INTO card_comp_snapshots
-                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
-                VALUES
-                  (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
-                ON CONFLICT (variant_id, grade_key, platform)
-                DO UPDATE SET
-                  avg_sold_price = EXCLUDED.avg_sold_price,
-                  last_sold_price = EXCLUDED.last_sold_price,
-                  lowest_active = EXCLUDED.lowest_active,
-                  sales_count_30d = EXCLUDED.sales_count_30d,
-                  fetched_at = NOW()
-              `);
-
-              for (const item of soldData.items) {
-                const contentHash = createHash("sha256")
-                  .update(`soldcomps:${item.url}:${item.endedAt}`)
-                  .digest("hex")
-                  .slice(0, 64);
-
-                await db.execute(sql`
-                  INSERT INTO platform_sold_listings
-                    (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${item.title}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
-                `);
-              }
-
-              for (const item of activeData.itemSummaries ?? []) {
-                const contentHash = createHash("sha256")
-                  .update(`ebayactive:${item.itemId}`)
-                  .digest("hex")
-                  .slice(0, 64);
-                
-                await db.execute(sql`
-                  INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
-                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
-                `);
-              }
-            } catch (err) {
-              console.error("Background price refresh failed:", err);
-            }
-          })();
-        }
 
         console.log(`[COMPS] ✅ Returning comps from DB CACHE for: ${query}`);
         return {
@@ -340,8 +265,8 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? activePrices[0] : 0;
 
-    // Only save snapshot cache if we successfully retrieved sold comps data
-    if (effectiveVariantId && soldResult.status === "fulfilled" && soldData.items.length > 0) {
+    // Always cache if we hit the APIs to avoid re-fetching, even if results are 0
+    if (effectiveVariantId) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
@@ -503,84 +428,6 @@ export class ListingRepository {
           image: { imageUrl: item.image_url },
         }));
 
-        const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
-        if (ageMs >= 15 * 60 * 1000) {
-          console.log(`[COMPS] MySlabs Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh...`);
-          (async () => {
-            try {
-              let soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
-              let activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
-              
-              if (soldData.items.length === 0 && activeData.items.length === 0) {
-                const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
-                if (stripped && stripped !== query) {
-                  soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
-                  activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
-                }
-              }
-
-              const prices = soldData.items
-                .map((i) => i.price)
-                .filter((p) => p > 0);
-              const activePrices = activeData.items
-                .map((i) => i.price)
-                .filter((p) => p > 0);
-
-              if (!prices.length && !activePrices.length) return;
-
-              const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-              const last = prices.length ? prices[0] : 0;
-              const lowest = activePrices.length ? Math.min(...activePrices) : 0;
-
-              await db.execute(sql`
-                INSERT INTO card_comp_snapshots
-                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
-                VALUES
-                  (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
-                ON CONFLICT (variant_id, grade_key, platform)
-                DO UPDATE SET
-                  avg_sold_price = EXCLUDED.avg_sold_price,
-                  last_sold_price = EXCLUDED.last_sold_price,
-                  lowest_active = EXCLUDED.lowest_active,
-                  sales_count_30d = EXCLUDED.sales_count_30d,
-                  fetched_at = NOW()
-              `);
-
-              for (const item of soldData.items) {
-                const endedAtStr = item.sold_date || new Date().toISOString();
-                const contentHash = createHash("sha256")
-                  .update(`myslabssold:${item.id}:${endedAtStr}`)
-                  .digest("hex")
-                  .slice(0, 64);
-
-                await db.execute(sql`
-                  INSERT INTO platform_sold_listings
-                    (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
-                `);
-              }
-
-              for (const item of activeData.items) {
-                const contentHash = createHash("sha256")
-                  .update(`myslabsactive:${item.id}`)
-                  .digest("hex")
-                  .slice(0, 64);
-                
-                await db.execute(sql`
-                  INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
-                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
-                `);
-              }
-            } catch (err) {
-              console.error("Background MySlabs price refresh failed:", err);
-            }
-          })();
-        }
 
         return {
           query,
@@ -640,7 +487,7 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
-    if (effectiveVariantId && soldData.items && soldData.items.length > 0) {
+    if (effectiveVariantId) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
