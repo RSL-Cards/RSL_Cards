@@ -5,7 +5,7 @@ import { customers } from './user'
 
 export const txTypeEnum      = pgEnum('tx_type', ['buy','sell','trade'])
 export const txChannelEnum   = pgEnum('tx_channel', ['card_show','ebay','whatnot','mercari',
-                                'tcgplayer','facebook','shopify','comc','goldin','app','other'])
+                                'tcgplayer','facebook','shopify','comc','goldin','app','myslabs','local_store','other'])
 export const paymentMethodEnum = pgEnum('payment_method_type',
                                 ['cash','venmo','zelle','paypal','cashapp','trade','other'])
 export const dealRatingEnum  = pgEnum('deal_rating', ['good_deal','fair_price','overpaying'])

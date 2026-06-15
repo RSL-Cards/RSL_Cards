@@ -69,12 +69,12 @@ export default function SellScanScreen() {
     const card = allItems[0];
     if (!card) return;
     addTab({ type: "sell", step: 2, cardData: card });
-    router.push("/sell/price");
+    router.push("/sell/channel");
   };
 
   const handleSelectCard = (card: any) => {
     addTab({ type: "sell", step: 2, cardData: card });
-    router.push("/sell/price");
+    router.push("/sell/channel");
   };
 
   return (

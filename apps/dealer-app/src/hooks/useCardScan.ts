@@ -34,20 +34,20 @@ export function useCardScan(type: "buy" | "sell" = "buy") {
         playerId: data.playerId,
         capturedPhoto: imageBase64,
       });
-      const source = data.fromCache ? "📦 From DB cache" : "🤖 Gemini AI";
+      const source = data.fromCache ? "📦 From DB cache" : "✨ RSL Vision";
       console.log("[SCAN] full response:", JSON.stringify(data, null, 2));
       console.log(
         `[SCAN] source=${source} cardId=${data.cardId} variantId=${data.variantId} confidence=${data.confidence}`,
       );
       Toast.show({
         type: "success",
-        text1: `Card identified! ${source}`,
+        text1: "Card identified!",
         text2: `${data.card.player_name} — ${Math.round(data.confidence * 100)}% confidence`,
       });
       if (type === "buy") {
         router.push("/buy/comps");
       } else {
-        router.push("/sell/price");
+        router.push("/sell/channel");
       }
     },
     onError: (error: any) => {

@@ -141,6 +141,13 @@
       "when": 1780819919301,
       "tag": "0019_white_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1781510557216,
+      "tag": "0020_tan_harrier",
+      "breakpoints": true
     }
   ]
 }

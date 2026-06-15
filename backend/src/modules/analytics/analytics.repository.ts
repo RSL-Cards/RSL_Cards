@@ -109,12 +109,13 @@ export class AnalyticsRepository {
       GROUP BY channel
       ORDER BY revenue DESC
     `);
-    return (rows.rows as any[]).map((r) => ({
+    const channels = (rows.rows as any[]).map((r) => ({
       channel: r.channel,
       revenue: parseFloat(r.revenue ?? "0"),
       profit: parseFloat(r.profit ?? "0"),
       sales: Number(r.sales ?? 0),
     }));
+    return { period, channels };
   }
 
   async getProfitBySport(userId: string) { return { message: "Profit by sport" }; }
