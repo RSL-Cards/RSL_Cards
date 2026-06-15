@@ -17,6 +17,7 @@ import { notificationModule } from "./modules/notification/index.js";
 import { analyticsModule } from "./modules/analytics/index.js";
 import { adminModule } from "./modules/admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
+import { assistantModule } from "./modules/assistant/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -79,8 +80,9 @@ const app = new Elysia()
   .use(analyticsModule)
   .use(adminModule)
   .use(listingModule)
+  .use(assistantModule)
   // Handle root-level eBay callback (from eBay developer portal RuName)
-  .get("/ebay/callback", ({ request }) => {
+  .get("/ebay/callback", ({ request }: any) => {
     const url = new URL(request.url);
     return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
   })
