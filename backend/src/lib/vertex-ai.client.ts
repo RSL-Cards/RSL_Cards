@@ -43,13 +43,11 @@ export class VertexAiClient {
           prompt
         ],
         config: {
-          temperature: 1,
-          maxOutputTokens: 65535,
+          temperature: 0.1,
+          maxOutputTokens: 1024,
           topP: 0.95,
           seed: 0,
-          thinkingConfig: {
-            thinkingBudget: -1,
-          },
+          responseMimeType: "application/json",
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },

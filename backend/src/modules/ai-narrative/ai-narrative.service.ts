@@ -153,7 +153,11 @@ export class AiNarrativeService {
     for (const modelName of modelsToTry) {
       try {
         console.log(`[SCAN-CARD] Attempting to scan card with model: ${modelName}...`);
+        const startTime = Date.now();
         const rawResponse = await vertexAiClient.generateFromImage(CARD_SCAN_PROMPT, image, mimeType, modelName);
+        const duration = Date.now() - startTime;
+        console.log(`[PERF] ⏱️ Vertex AI Model Extraction took ${duration}ms`);
+        
         const cleaned = rawResponse.replace(/```json|```/g, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("No JSON in Vertex AI response");

@@ -27,10 +27,17 @@ export class SoldCompsService {
 
   constructor(private readonly env: Env) {}
 
+  private readonly cache = new Map<string, { data: SoldCompsResponse, timestamp: number }>();
+
   async getSoldItems(keyword: string): Promise<SoldCompsResponse> {
     const apiKey = this.env.SOLD_COMPS_KEY;
     if (!apiKey) {
       throw new Error("SOLD_COMPS_KEY is not configured");
+    }
+
+    const cached = this.cache.get(keyword);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      return cached.data;
     }
 
     const url = new URL(`${this.baseUrl}/scrape`);
@@ -47,6 +54,8 @@ export class SoldCompsService {
       throw new Error(`SoldComps API failed (${res.status}): ${text}`);
     }
 
-    return (await res.json()) as SoldCompsResponse;
+    const data = (await res.json()) as SoldCompsResponse;
+    this.cache.set(keyword, { data, timestamp: Date.now() });
+    return data;
   }
 }

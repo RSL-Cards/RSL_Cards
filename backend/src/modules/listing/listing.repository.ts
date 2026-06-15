@@ -5,6 +5,8 @@ import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
 
+const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
+
 export class ListingRepository {
   async getListings(userId: string) {
     const result = await db.execute(sql`
@@ -222,13 +224,24 @@ export class ListingRepository {
       }
     }
 
-    console.log(`[COMPS] 📡 Fetching LIVE comps from eBay APIs for: ${query}`);
+    console.log(`[COMPS] 📡 Fetching LIVE comps...`);
+    console.log(`  -> Real eBay API (Active Listings) for: ${query}`);
+    console.log(`  -> Sold Comps API (Sold Listings) for: ${query}`);
+    const ebayActiveStartTime = Date.now();
+    const soldCompsStartTime = Date.now();
+    
     const [soldResult, activeResult] = await Promise.allSettled([
-      soldCompsService.getSoldItems(query),
+      soldCompsService.getSoldItems(query).finally(() => {
+        const duration = Date.now() - soldCompsStartTime;
+        console.log(`[PERF] ⏱️ Sold Comps API (Sold) took ${duration}ms`);
+      }),
       ebayService.searchListings({
         q: query,
         limit: Math.min(maxResults, 20),
         sort: "pricePlusShippingLowest",
+      }).finally(() => {
+        const duration = Date.now() - ebayActiveStartTime;
+        console.log(`[PERF] ⏱️ Real eBay API (Active) took ${duration}ms`);
       }),
     ]);
 
@@ -244,9 +257,9 @@ export class ListingRepository {
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
 
-    console.log(`[COMPS] ✅ Returning LIVE comps from eBay APIs for: ${query}`);
-    console.log(`  -> Sold: ${soldData.items.length} items`);
-    console.log(`  -> Active: ${activeData.itemSummaries?.length ?? 0} items`);
+    console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
+    console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
+    console.log(`  -> Active (Real eBay API): ${activeData.itemSummaries?.length ?? 0} items`);
 
     if (activeResult.status === "rejected") {
       console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
@@ -291,7 +304,7 @@ export class ListingRepository {
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${item.title}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${t500(item.title)}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
@@ -306,7 +319,7 @@ export class ListingRepository {
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
@@ -457,28 +470,50 @@ export class ListingRepository {
     }
 
     console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs for: ${query}`);
+    const myslabsStartTime = Date.now();
     let soldData: { items: MyslabsItem[] } = { items: [] };
     let activeData: { items: MyslabsItem[] } = { items: [] };
 
     try {
-      soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
-      activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
+      const fetchMySlabs = async (searchQuery: string) => {
+        return Promise.all([
+          myslabsService.searchSlabs({ q: searchQuery, status: "sold", limit: maxResults }),
+          myslabsService.searchSlabs({ q: searchQuery, status: "for-sale", limit: maxResults })
+        ]);
+      };
+
+      [soldData, activeData] = await fetchMySlabs(query);
       
+      // Fallback 1: Remove special characters and abbreviations
       if (soldData.items.length === 0 && activeData.items.length === 0) {
-        const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
-        if (stripped && stripped !== query) {
-          console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to: ${stripped}`);
-          soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
-          activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
+        let cleanQuery = query.replace(/[^a-zA-Z0-9\s]/g, ' ')
+                              .replace(/\b(Ref\.|Refractor|PSA|BGS|SGC)\b/gi, '')
+                              .replace(/\s+/g, ' ').trim();
+                              
+        if (cleanQuery !== query && cleanQuery.length > 3) {
+          console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to clean: ${cleanQuery}`);
+          [soldData, activeData] = await fetchMySlabs(cleanQuery);
+        }
+
+        // Fallback 2: Just the first 4 words (Player Name + Year)
+        if (soldData.items.length === 0 && activeData.items.length === 0) {
+          const shortQuery = cleanQuery.split(' ').slice(0, 4).join(' ');
+          if (shortQuery !== cleanQuery && shortQuery.length > 5) {
+            console.log(`[COMPS] 📡 MySlabs clean search returned 0. Falling back to short: ${shortQuery}`);
+            [soldData, activeData] = await fetchMySlabs(shortQuery);
+          }
         }
       }
     } catch (e) {
       console.error("Failed to fetch MySlabs LIVE comps:", e);
     }
+    
+    const myslabsDuration = Date.now() - myslabsStartTime;
+    console.log(`[PERF] ⏱️ MySlabs API (Sold & Active) total time: ${myslabsDuration}ms`);
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
-    console.log(`  -> Sold: ${soldData.items.length} items`);
-    console.log(`  -> Active: ${activeData.items.length} items`);
+    console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);
+    console.log(`  -> Active (MySlabs API): ${activeData.items.length} items`);
 
     const prices = soldData.items.map((i) => i.price).filter((p) => p > 0);
     const activePrices = activeData.items.map((i) => i.price).filter((p) => p > 0);
@@ -513,7 +548,7 @@ export class ListingRepository {
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
@@ -528,7 +563,7 @@ export class ListingRepository {
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${t500(item.slab_link || `https://myslabs.com/slab/view/${item.id}`)}, ${t500(item.slab_image_1)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
