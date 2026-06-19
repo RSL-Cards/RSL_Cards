@@ -38,8 +38,8 @@ Rules:
 4. If the user asks about a card not in their context, base your answer only on available info or state you don't have that specific data.
     `.trim();
 
-    // Use gemini-2.5-flash as it is known to work in global region for this project
-    const response = await vertexAiClient.generateChat(systemPrompt, history, message, "gemini-2.5-flash");
+    // Use gemini-3.1-flash-lite as requested
+    const response = await vertexAiClient.generateChat(systemPrompt, history, message, "gemini-3.1-flash-lite");
 
     return response;
   }
@@ -61,7 +61,7 @@ Respond with ONLY the raw category name, no extra text.`;
         "You are an intent classifier. Respond ONLY with the exact category name.",
         [],
         prompt,
-        "gemini-2.5-flash"
+        "gemini-3.1-flash-lite"
       );
       const clean = response.trim().toLowerCase();
       if (['inventory_query', 'sales_query', 'comp_query', 'pricing_advice', 'general'].includes(clean)) {
@@ -112,7 +112,7 @@ Respond with ONLY the raw category name, no extra text.`;
     if (intent === 'comp_query' || intent === 'pricing_advice') {
       // Extract a potential card query from the message using LLM
       const extractPrompt = `Extract the sports card name from the following message. Return ONLY the card name (Player, Year, Set, Variation). If none, return "NONE".\n\nMessage: "${message}"`;
-      const extracted = await vertexAiClient.generateChat("You are an extraction bot.", [], extractPrompt, "gemini-2.5-flash");
+      const extracted = await vertexAiClient.generateChat("You are an extraction bot.", [], extractPrompt, "gemini-3.1-flash-lite");
       const cardQuery = extracted.trim();
 
       if (cardQuery !== "NONE" && cardQuery.length > 3) {

@@ -7,9 +7,10 @@ export class VertexAiClient {
 
   constructor() {
     this.ai = new GoogleGenAI({
-      vertexai: true,
-      project: env.VERTEX_AI_PROJECT_ID,
-      location: env.VERTEX_AI_LOCATION,
+      // vertexai: true,
+      // project: env.VERTEX_AI_PROJECT_ID,
+      // location: env.VERTEX_AI_LOCATION,
+      apiKey: env.GEMINI_API_KEY || env.GOOGLE_CLOUD_API_KEY,
     });
   }
 
@@ -20,7 +21,7 @@ export class VertexAiClient {
     prompt: string,
     imageBase64: string,
     mimeType: string = "image/jpeg",
-    modelName: string = "gemini-1.5-flash"
+    modelName: string = "gemini-3.1-flash-lite"
   ) {
     // Timeout Promise
     const timeoutMs = 60000; // 60 seconds
@@ -83,7 +84,7 @@ export class VertexAiClient {
     systemInstruction: string,
     history: { role: string; parts: { text: string }[] }[],
     message: string,
-    modelName: string = "gemini-2.5-flash"
+    modelName: string = "gemini-3.1-flash-lite"
   ) {
     const timeoutMs = 60000; // 60 seconds
     const timeoutPromise = new Promise<never>((_, reject) =>

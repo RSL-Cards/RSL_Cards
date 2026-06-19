@@ -10,7 +10,8 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.3"; // Wi-Fi IP address
+const DEV_HOST = "192.168.10.6"; // Wi-Fi IP address
+// const DEV_HOST = "3.231.19.101"; // AWS EC2 Instance
 
 export const API_BASE_URL = `http://${DEV_HOST}`;
 

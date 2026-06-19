@@ -113,7 +113,10 @@ const app = new Elysia()
       bullmq: bullMqStatus,
     };
   })
-  .listen(env.PORT || 8080);
+  .listen({
+    port: env.PORT || 8080,
+    hostname: "0.0.0.0"
+  });
 
 // Start background worker and scheduled jobs
 initWorker();

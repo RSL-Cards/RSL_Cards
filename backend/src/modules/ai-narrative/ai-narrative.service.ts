@@ -147,7 +147,7 @@ export class AiNarrativeService {
 
     // We can still try a fallback chain if needed, but we'll stick to the requested model.
     const modelsToTry = [
-      "gemini-2.5-flash"
+      "gemini-3.1-flash-lite"
     ];
 
     for (const modelName of modelsToTry) {

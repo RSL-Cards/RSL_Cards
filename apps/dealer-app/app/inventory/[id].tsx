@@ -107,20 +107,33 @@ export default function CardDetailScreen() {
     .slice(0, 2)
     .toUpperCase();
 
-  // All data from DB — no live API calls
   const localEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
   const localMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
-  const localSales = [...localEbaySales, ...localMyslabsSales]
-    .sort((a, b) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+  
+  const sortedEbaySales = localEbaySales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+  const sortedMyslabsSales = localMyslabsSales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
 
-  const recentSales = localSales
-    .filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0)
-    .slice(0, 8);
+  let recentEbayShow = sortedEbaySales.slice(0, 4);
+  let recentMyslabsShow = sortedMyslabsSales.slice(0, 4);
+  if (recentEbayShow.length < 4) recentMyslabsShow = sortedMyslabsSales.slice(0, 8 - recentEbayShow.length);
+  else if (recentMyslabsShow.length < 4) recentEbayShow = sortedEbaySales.slice(0, 8 - recentMyslabsShow.length);
+  
+  const recentSales = [...recentEbayShow, ...recentMyslabsShow]
+    .sort((a, b) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
 
   const localEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
   const localMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
-  const localActiveListings = [...localEbayActive, ...localMyslabsActive]
-    .sort((a, b) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"))
+  
+  const sortedEbayActive = localEbayActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"));
+  const sortedMyslabsActive = localMyslabsActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? a.soldPrice?.value ?? "0") - parseFloat(b.price?.value ?? b.soldPrice?.value ?? "0"));
+
+  let activeEbayShow = sortedEbayActive.slice(0, 3);
+  let activeMyslabsShow = sortedMyslabsActive.slice(0, 3);
+  if (activeEbayShow.length < 3) activeMyslabsShow = sortedMyslabsActive.slice(0, 6 - activeEbayShow.length);
+  else if (activeMyslabsShow.length < 3) activeEbayShow = sortedEbayActive.slice(0, 6 - activeMyslabsShow.length);
+
+  const localActiveListings = [...activeEbayShow, ...activeMyslabsShow]
+    .sort((a, b) => parseFloat(a.price?.value ?? a.soldPrice?.value ?? "0") - parseFloat(b.price?.value ?? b.soldPrice?.value ?? "0"))
     .slice(0, 5);
 
   const avgSold = recentSales.length > 0
