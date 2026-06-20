@@ -23,9 +23,10 @@ CRITICAL FILTERING RULES:
 1. The listing MUST be the exact same player, year, set, and subset.
 2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
 3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
-4. If the query includes a specific grade (e.g. "PSA 10"), you MUST reject raw cards or cards graded by other companies/different grades.
+4. If the query includes a specific grade (e.g. "PSA 10" or "Beckett 10"), you MUST reject raw cards or cards graded by other companies/different grades. Note: Treat equivalent acronyms as the same (e.g., BGS = Beckett, PSA = Professional Sports Authenticator).
 5. If the query does NOT include a grade (it is a raw card), you MUST reject any graded cards (reject PSA, BGS, SGC, CSG, etc).
 6. Reject any lots, sealed boxes, packs, or digital cards.
+7. DO NOT filter strictly based on card number. Sellers often misformat card numbers (e.g. "#EF2" vs "#2"). As long as the player, set, variation, and grade match, accept the listing regardless of minor card number formatting discrepancies.
 
 Return a JSON array of ONLY the "id"s of the listings that perfectly match.
 If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
