@@ -19,52 +19,14 @@ const STEP_PCT = "40%";
 
 function buildEbayQuery(card: any): string {
   if (!card) return "";
-
-  const parts: string[] = [];
-
-  // 1. Player name (most important — always first)
-  if (card.player_name) parts.push(card.player_name);
-
-  // 2. Year
-  if (card.year) parts.push(String(card.year));
-
-  // 3. Set name
-  if (card.set_name) parts.push(card.set_name);
-
-  // 4. Variation / parallel (e.g. "Silver Prizm", "Gold Refractor", "Holo")
-  // Skip "Base" — base cards are listed without variation on eBay
-  if (card.variation && card.variation.toLowerCase() !== "base") {
-    parts.push(card.variation);
-  }
-
-  // 5. Card number (e.g. "#269") — helps narrow to exact print
-  if (card.card_number) parts.push(`#${card.card_number}`);
-
-  // 6. Grading — PSA 10, BGS 9.5 etc. narrows to graded copies only
-  if (card.grading?.company && card.grading?.grade) {
-    parts.push(`${card.grading.company} ${card.grading.grade}`);
-  }
-
-  return parts.join(" ");
+  if (card.search_string) return card.search_string;
+  return [card.player_name, card.year, card.set_name, card.variation !== "Base" ? card.variation : "", card.card_number ? `#${card.card_number}` : "", card.grading ? `${card.grading.company} ${card.grading.grade}` : ""].filter(Boolean).join(" ");
 }
 
 function buildMyslabsQuery(card: any): string {
   if (!card) return "";
-
-  const parts: string[] = [];
-
-  if (card.player_name) parts.push(card.player_name);
-  if (card.year) parts.push(String(card.year));
-  if (card.set_name) parts.push(card.set_name);
-  
-  // Variation is critical but we skip "Base"
-  if (card.variation && card.variation.toLowerCase() !== "base") {
-    parts.push(card.variation);
-  }
-
-  // We explicitly SKIP card number and grading company for MySlabs, 
-  // as MySlabs search will frequently return 0 results if these are included.
-  return parts.join(" ");
+  if (card.search_string) return card.search_string;
+  return buildEbayQuery(card);
 }
 
 function calcAvg(items: EbaySoldItem[]): number {
@@ -146,16 +108,18 @@ export default function BuyCompsScreen() {
 
   const myslabsQuery = buildMyslabsQuery(card);
 
+  const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
+
   const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
-    gradeKey: card?.grade_key || "RAW",
+    gradeKey: resolvedGradeKey,
   });
 
   const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs } = useMyslabsSold(myslabsQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
-    gradeKey: card?.grade_key || "RAW",
+    gradeKey: resolvedGradeKey,
   });
 
   const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
