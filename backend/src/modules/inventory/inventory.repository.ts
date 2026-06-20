@@ -192,8 +192,8 @@ export class InventoryRepository {
         `);
         if (variantExists.rows.length === 0) {
           const insertVariant = await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${cleanCardId}, ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
+            INSERT INTO card_variants (id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${cleanCardId}, 'rsl-' || gen_random_uuid(), ${cleanCardId} || '_base', ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
             RETURNING id
           `);
           if (!resolvedVariantId) {
@@ -217,8 +217,8 @@ export class InventoryRepository {
         } else {
           // Create base variant as absolute final safety net
           const insertVariant = await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${cleanCardId}, ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
+            INSERT INTO card_variants (id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${cleanCardId}, 'rsl-' || gen_random_uuid(), ${cleanCardId} || '_base', ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
             RETURNING id
           `);
           resolvedVariantId = (insertVariant.rows[0] as any).id;

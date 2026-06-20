@@ -4,10 +4,43 @@ import { createHash } from "node:crypto";
 import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
+import { vertexAiClient } from "../../lib/vertex-ai.client.js";
 
 const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
 export class ListingRepository {
+  private async filterWithGemini(query: string, items: any[], idField: string, titleField: string): Promise<any[]> {
+    if (!items || items.length === 0) return [];
+    
+    try {
+      const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
+      
+      const prompt = `We searched for the sports card: "${query}". We got these listings: ${JSON.stringify(minimalItems)}.
+Filter out any items that are NOT the EXACT card requested (e.g. wrong year, wrong set, different player, different variation, etc).
+Return a JSON array of the "id"s of the listings that are the exact card requested.
+If none match, return []. ONLY return a valid JSON array, nothing else.`;
+
+      const response = await vertexAiClient.generateChat(
+        "You are a strict data filter. Only return valid JSON arrays of strings.",
+        [],
+        prompt,
+        "gemini-3.1-flash-lite"
+      );
+
+      const jsonStr = response.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const validIds = JSON.parse(jsonStr);
+
+      if (!Array.isArray(validIds)) {
+        throw new Error("Gemini did not return an array");
+      }
+
+      return items.filter(i => validIds.includes(String(i[idField])));
+    } catch (e) {
+      console.error("Failed to filter items with Gemini", e);
+      return []; // fallback to returning empty array to ensure ONLY model-verified data is stored
+    }
+  }
+
   async getListings(userId: string) {
     const result = await db.execute(sql`
       SELECT * FROM inventory
@@ -256,6 +289,13 @@ export class ListingRepository {
     const activeData = activeResult.status === "fulfilled"
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
+
+    // Filter results using Gemini
+    console.log(`[COMPS] 🧠 Filtering ebay results using Gemini...`);
+    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title");
+    if (activeData.itemSummaries) {
+      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title");
+    }
 
     console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
     console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
@@ -510,6 +550,11 @@ export class ListingRepository {
     
     const myslabsDuration = Date.now() - myslabsStartTime;
     console.log(`[PERF] ⏱️ MySlabs API (Sold & Active) total time: ${myslabsDuration}ms`);
+
+    // Filter results using Gemini
+    console.log(`[COMPS] 🧠 Filtering myslabs results using Gemini...`);
+    soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title");
+    activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title");
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
     console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);

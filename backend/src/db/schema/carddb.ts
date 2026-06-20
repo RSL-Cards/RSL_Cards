@@ -79,6 +79,7 @@ export const cardVariants = pgTable(
       .references(() => cards.id)
       .notNull(),
     rslCardId: varchar("rsl_card_id", { length: 255 }).unique(),
+    rslCardUniqueName: varchar("rsl_card_unique_name", { length: 255 }).unique(),
     year: integer("year"), // e.g. 2007, 2021
     setName: varchar("set_name", { length: 255 }), // e.g. Topps Chrome, Prizm
     name: varchar("name", { length: 100 }).notNull(), // Base | Refractor | Gold | Auto | Patch
@@ -100,6 +101,7 @@ export const cardVariants = pgTable(
       t.printRun,
     ),
     rslCardIdIdx: index("idx_card_variants_rsl_card_id").on(t.rslCardId),
+    rslCardUniqueNameIdx: index("idx_card_variants_rsl_card_unique_name").on(t.rslCardUniqueName),
   }),
 );
 
