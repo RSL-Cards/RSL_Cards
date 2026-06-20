@@ -9,6 +9,7 @@ Return ONLY this JSON:
   "sport": "football",
   "card_number": "269",
   "manufacturer": "Panini",
+  "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm",
   "is_rookie": false,
   "is_autograph": false,
   "is_relic": false,
@@ -25,6 +26,7 @@ Rules:
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": The specific sport or category of the card (e.g., "football", "basketball", "baseball", "hockey", "soccer", "racing", "pokemon", "ufc", "wwe"). Output the actual sport/category name instead of "other".
 - "variation": the parallel/refractor name exactly as it appears on the card or is commonly known on eBay (e.g. "Silver Prizm", "Gold Refractor", "Holo", "Base", "Blue Wave", "Red /299"). Include the print run if visible (e.g. "Orange /49"). If base/no variation, use "Base"
+- "search_string": A single optimized string combining the player name, year, set name, and variation exactly as a collector would search for it on eBay (e.g. "Patrick Mahomes 2017 Panini Prizm Silver Prizm"). Do NOT include the card number, grading info, or "#" symbol in this string.
 - "card_number": the number printed on the card (e.g. "269", "RC-15"). Omit the # symbol. Use null if not visible
 - "set_name": the brand+product name as used on eBay (e.g. "Panini Prizm", "Topps Chrome", "Bowman Draft"). Do NOT include the year in set_name
 - "manufacturer": the card company (e.g. "Panini", "Topps", "Upper Deck", "Bowman")

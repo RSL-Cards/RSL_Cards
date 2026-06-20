@@ -349,7 +349,7 @@ export class AiNarrativeService {
 
     // 4. Trigger price refresh in background
     if (variantId) {
-      const query = `${geminiCard.player_name} ${geminiCard.year} ${geminiCard.set_name} ${geminiCard.variation || ""}`.trim();
+      const query = geminiCard.search_string || `${geminiCard.player_name} ${geminiCard.year} ${geminiCard.set_name} ${geminiCard.variation || ""}`.trim();
       const grades = ["RAW", "PSA_10", "PSA_9"];
       const listingRepo = new ListingRepository();
       const ebayService = new EbayService(env);
