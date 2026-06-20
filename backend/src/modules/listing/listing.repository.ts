@@ -14,6 +14,7 @@ export class ListingRepository {
     
     try {
       const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
+      console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
       
       const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
 Here are the search results: ${JSON.stringify(minimalItems)}.
@@ -43,9 +44,11 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
         throw new Error("Gemini did not return an array");
       }
 
+      console.log(`[FILTER] Gemini kept IDs:`, validIds);
+
       return items.filter(i => validIds.includes(String(i[idField])));
     } catch (e) {
-      console.error("Failed to filter items with Gemini", e);
+      console.error("[FILTER] Failed to filter items with Gemini", e);
       return []; // fallback to returning empty array to ensure ONLY model-verified data is stored
     }
   }
