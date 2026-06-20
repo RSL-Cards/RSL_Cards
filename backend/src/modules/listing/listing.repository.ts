@@ -338,7 +338,7 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
 
       for (const item of soldData.items) {
         const contentHash = createHash("sha256")
-          .update(`soldcomps:${item.url}:${item.endedAt}`)
+          .update(`soldcomps:${effectiveVariantId}:${gradeKey}:${item.url}:${item.endedAt}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -353,7 +353,7 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
 
       for (const item of activeData.itemSummaries ?? []) {
         const contentHash = createHash("sha256")
-          .update(`ebayactive:${item.itemId}`)
+          .update(`ebayactive:${effectiveVariantId}:${gradeKey}:${item.itemId}`)
           .digest("hex")
           .slice(0, 64);
         
@@ -588,7 +588,7 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
       for (const item of soldData.items) {
         const endedAtStr = item.sold_date || new Date().toISOString();
         const contentHash = createHash("sha256")
-          .update(`myslabssold:${item.id}:${endedAtStr}`)
+          .update(`myslabssold:${effectiveVariantId}:${gradeKey}:${item.id}:${endedAtStr}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -603,7 +603,7 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
 
       for (const item of activeData.items ?? []) {
         const contentHash = createHash("sha256")
-          .update(`myslabsactive:${item.id}`)
+          .update(`myslabsactive:${effectiveVariantId}:${gradeKey}:${item.id}`)
           .digest("hex")
           .slice(0, 64);
         
