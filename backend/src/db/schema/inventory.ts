@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { players, cards, cardVariants } from './carddb'
 
@@ -37,7 +37,14 @@ export const inventory = pgTable('inventory', {
   notes:                text('notes'),
   addedAt:              timestamp('added_at', { withTimezone: true }).defaultNow(),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  inventoryUserIdx: index('idx_inventory_user_id').on(t.userId),
+  inventoryCardIdx: index('idx_inventory_card_id').on(t.cardId),
+  inventoryVariantIdx: index('idx_inventory_variant_id').on(t.variantId),
+  inventoryPlayerIdx: index('idx_inventory_player_id').on(t.playerId),
+  inventoryStatusIdx: index('idx_inventory_status').on(t.listingStatus),
+  inventoryGradeIdx: index('idx_inventory_grade_key').on(t.gradeKey),
+}))
 
 export const bulkPurchases = pgTable('bulk_purchases', {
   id:           uuid('id').primaryKey().defaultRandom(),

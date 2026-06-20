@@ -35,6 +35,9 @@ export const transactions = pgTable('transactions', {
   createdAt:       timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({
   rslCardIdIdx: drizzleIndex('idx_transactions_rsl_card_id').on(t.rslCardId),
+  txUserIdIdx: drizzleIndex('idx_transactions_user_id').on(t.userId),
+  txInventoryIdIdx: drizzleIndex('idx_transactions_inventory_id').on(t.inventoryId),
+  txCustomerIdIdx: drizzleIndex('idx_transactions_customer_id').on(t.customerId),
 }))
 
 export const tradeItems = pgTable('trade_items', {
@@ -46,7 +49,10 @@ export const tradeItems = pgTable('trade_items', {
   gradeKey:       varchar('grade_key', { length: 30 }),
   marketValue:    decimal('market_value', { precision: 10, scale: 2 }),
   cashAdjustment: decimal('cash_adjustment', { precision: 10, scale: 2 }).default('0'),
-})
+}, (t) => ({
+  tradeTxIdIdx: drizzleIndex('idx_trade_items_tx_id').on(t.transactionId),
+  tradeInventoryIdIdx: drizzleIndex('idx_trade_items_inventory_id').on(t.inventoryId),
+}))
 
 export const offlineSyncQueue = pgTable('offline_sync_queue', {
   id:        uuid('id').primaryKey().defaultRandom(),
@@ -57,4 +63,6 @@ export const offlineSyncQueue = pgTable('offline_sync_queue', {
   synced:    boolean('synced').default(false),
   syncedAt:  timestamp('synced_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  syncQueueUserIdIdx: drizzleIndex('idx_offline_sync_user_id').on(t.userId),
+}))

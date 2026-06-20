@@ -152,7 +152,9 @@ export const platformSoldListings = pgTable("platform_sold_listings", {
   condition: varchar("condition", { length: 100 }),
   contentHash: varchar("content_hash", { length: 64 }).unique(), // MD5(platform+itemId+soldAt)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  soldVariantIdx: index("idx_platform_sold_variant_id").on(t.variantId),
+}));
 
 // ALL platforms active listings. Replaced during 15min cache cycles.
 export const platformActiveListings = pgTable("platform_active_listings", {
@@ -171,7 +173,9 @@ export const platformActiveListings = pgTable("platform_active_listings", {
   contentHash: varchar("content_hash", { length: 64 }).unique(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  activeVariantIdx: index("idx_platform_active_variant_id").on(t.variantId),
+}));
 
 // One row per variant+gradeKey+platform. UPSERTED every 15min cache cycle.
 // Drives the BUY screen cross-platform comparison.
@@ -213,7 +217,9 @@ export const cardPriceHistory = pgTable("card_price_history", {
   salesCount: integer("sales_count"),
   priceTrend: decimal("price_trend", { precision: 8, scale: 2 }),
   recordedDate: timestamp("recorded_date", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  historyVariantIdx: index("idx_card_price_history_variant_id").on(t.variantId),
+}));
 
 // ─────────────────────────────────────────────────────────────
 // Consumer tables
@@ -236,7 +242,10 @@ export const priceAlerts = pgTable("price_alerts", {
   triggeredAt: timestamp("triggered_at", { withTimezone: true }),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  alertUserIdIdx: index("idx_price_alerts_user_id").on(t.userId),
+  alertCardIdIdx: index("idx_price_alerts_card_id").on(t.cardId),
+}));
 
 // Consumer want list
 export const wantList = pgTable("want_list", {
@@ -250,7 +259,10 @@ export const wantList = pgTable("want_list", {
   gradeKey: varchar("grade_key", { length: 30 }),
   maxPrice: decimal("max_price", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  wantListUserIdIdx: index("idx_want_list_user_id").on(t.userId),
+  wantListCardIdIdx: index("idx_want_list_card_id").on(t.cardId),
+}));
 
 // Consumer collection
 export const consumerCollection = pgTable("consumer_collection", {
@@ -267,7 +279,10 @@ export const consumerCollection = pgTable("consumer_collection", {
   quantity: integer("quantity").default(1),
   acquiredAt: timestamp("acquired_at", { withTimezone: true }).defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  collectionUserIdIdx: index("idx_consumer_collection_user_id").on(t.userId),
+  collectionCardIdIdx: index("idx_consumer_collection_card_id").on(t.cardId),
+}));
 
 // Image hashes for card scan caching - prevents re-scanning same images
 export const imageHashes = pgTable(
@@ -285,5 +300,7 @@ export const imageHashes = pgTable(
   (t) => ({
     // Index for fast lookups by image hash
     imageHashIdx: uniqueIndex("uq_image_hash").on(t.imageHash),
+    imageHashCardIdx: index("idx_image_hashes_card_id").on(t.cardId),
+    imageHashVariantIdx: index("idx_image_hashes_variant_id").on(t.variantId),
   }),
 );
