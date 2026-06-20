@@ -181,6 +181,8 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
         FROM card_comp_snapshots
         WHERE variant_id = ${effectiveVariantId}
           AND grade_key = ${gradeKey}
+          AND platform = 'ebay'
+          AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
       `);
@@ -433,6 +435,7 @@ If none match, return []. ONLY return a valid JSON array, nothing else.`;
         WHERE variant_id = ${effectiveVariantId}
           AND grade_key = ${gradeKey}
           AND platform = 'myslabs'
+          AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
       `);

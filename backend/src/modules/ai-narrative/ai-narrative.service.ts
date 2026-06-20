@@ -6,6 +6,7 @@ import { env } from "../../config/index.js";
 import { ListingRepository } from "../listing/listing.repository.js";
 import { EbayService } from "../listing/ebay.service.js";
 import { SoldCompsService } from "../listing/sold-comps.service.js";
+import { MyslabsService } from "../listing/myslabs.service.js";
 import { vertexAiClient } from "../../lib/vertex-ai.client.js";
 import { CARD_SCAN_PROMPT } from "../../config/prompts.js";
 
@@ -114,9 +115,14 @@ export class AiNarrativeService {
         const query = `${r.player_name} ${r.year} ${r.set_name} ${r.variation || ""}`.trim();
         const listingRepo = new ListingRepository();
         const ebayService = new EbayService(env);
+        const myslabsService = new MyslabsService(env);
         const soldCompsService = new SoldCompsService(env);
+        
         listingRepo.ebaySold({ q: query, variant_id: r.variant_id, grade_key: "RAW" }, ebayService, soldCompsService)
-          .catch((err) => console.error("scan-card (cache): failed to trigger price refresh:", err));
+          .catch((err) => console.error("scan-card (cache): failed to trigger ebay price refresh:", err));
+          
+        listingRepo.myslabsSold({ q: query, variant_id: r.variant_id, grade_key: "RAW" }, myslabsService)
+          .catch((err) => console.error("scan-card (cache): failed to trigger myslabs price refresh:", err));
       }
 
       return {
@@ -347,11 +353,15 @@ export class AiNarrativeService {
       const grades = ["RAW", "PSA_10", "PSA_9"];
       const listingRepo = new ListingRepository();
       const ebayService = new EbayService(env);
+      const myslabsService = new MyslabsService(env);
       const soldCompsService = new SoldCompsService(env);
 
       for (const grade of grades) {
         listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade }, ebayService, soldCompsService)
-          .catch((err) => console.error("scan-card (live): failed to trigger price refresh for grade:", grade, err));
+          .catch((err) => console.error("scan-card (live): failed to trigger ebay price refresh for grade:", grade, err));
+          
+        listingRepo.myslabsSold({ q: query, variant_id: variantId, grade_key: grade }, myslabsService)
+          .catch((err) => console.error("scan-card (live): failed to trigger myslabs price refresh for grade:", grade, err));
       }
     }
 
