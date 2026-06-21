@@ -9,13 +9,18 @@ import { vertexAiClient } from "../../lib/vertex-ai.client.js";
 const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
 export class ListingRepository {
-  private async filterWithGemini(query: string, items: any[], idField: string, titleField: string): Promise<any[]> {
+  private async filterWithGemini(
+    query: string, 
+    items: any[], 
+    idField: string, 
+    titleField: string
+  ): Promise<any[]> {
     if (!items || items.length === 0) return [];
     
     try {
       const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
       console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
-      
+
       const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
 Here are the search results: ${JSON.stringify(minimalItems)}.
 
@@ -23,10 +28,12 @@ CRITICAL FILTERING RULES:
 1. The listing MUST be the exact same player, year, set, and subset.
 2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
 3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
-4. If the query includes a specific grade (e.g. "PSA 10" or "Beckett 10"), you MUST reject raw cards or cards graded by other companies/different grades. Note: Treat equivalent acronyms as the same (e.g., BGS = Beckett, PSA = Professional Sports Authenticator).
-5. If the query does NOT include a grade (it is a raw card), you MUST reject any graded cards (reject PSA, BGS, SGC, CSG, etc).
-6. Reject any lots, sealed boxes, packs, or digital cards.
-7. DO NOT filter strictly based on card number. Sellers often misformat card numbers (e.g. "#EF2" vs "#2"). As long as the player, set, variation, and grade match, accept the listing regardless of minor card number formatting discrepancies.
+4. IMPORTANT: Do NOT filter based on grading company or grade! Accept all matches regardless of whether they are Raw, PSA, BGS, SGC, etc. As long as the card itself is an exact match, accept it.
+5. Reject any lots, sealed boxes, packs, or digital cards.
+6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
+7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
+8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT. 
+For example, if the query is "2007 Bowman Chrome Patrick Willis Refractor #BC93 PSA 10", you MUST ACCEPT a listing titled "2007 Bowman Chrome Patrick Willis RC Refractor Rookie 49ers PSA 10" because it has the right year, set, player, and parallel.
 
 Return a JSON array of ONLY the "id"s of the listings that perfectly match.
 If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
@@ -310,7 +317,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
 
     // Filter results using Gemini
     console.log(`[COMPS] 🧠 Filtering ebay results using Gemini...`);
-    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title");
+    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title"); // No image url in sold comps API currently
     if (activeData.itemSummaries) {
       activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title");
     }
