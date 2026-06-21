@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cardService,
   inventoryService,
   type ScanResponse,
   type EbaySoldResponse,
+  type MyslabsSoldResponse,
   type AddInventoryItem,
   type AddInventoryResponse,
 } from "../services/cardService";
@@ -113,19 +114,26 @@ export function useEbaySold(
     gradeKey?: string;
   },
 ) {
-  return useQuery<EbaySoldResponse, Error>({
+  return useInfiniteQuery<EbaySoldResponse, Error>({
     queryKey: [
       ...QUERY_KEYS.ebaySold(query),
       options?.variantId,
       options?.gradeKey,
     ],
-    queryFn: () =>
+    queryFn: ({ pageParam = 0 }) =>
       cardService.getEbaySold(
         query,
-        options?.limit ?? 10,
+        options?.limit ?? 50,
         options?.variantId,
         options?.gradeKey,
+        pageParam as number,
       ),
+    getNextPageParam: (lastPage, allPages) => {
+      const fetchedItems = lastPage.sold30d?.items?.length || 0;
+      if (fetchedItems < (options?.limit ?? 50)) return undefined;
+      return allPages.reduce((acc, p) => acc + (p.sold30d?.items?.length || 0), 0);
+    },
+    initialPageParam: 0,
     enabled: (options?.enabled ?? true) && query.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 2,
@@ -141,15 +149,22 @@ export function useMyslabsSold(
     gradeKey?: string;
   },
 ) {
-  return useQuery({
+  return useInfiniteQuery<MyslabsSoldResponse, Error>({
     queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey],
-    queryFn: () =>
+    queryFn: ({ pageParam = 0 }) =>
       cardService.getMyslabsSold(
         query,
-        options?.limit ?? 10,
+        options?.limit ?? 50,
         options?.variantId,
         options?.gradeKey,
+        pageParam as number,
       ),
+    getNextPageParam: (lastPage, allPages) => {
+      const fetchedItems = lastPage.sold30d?.items?.length || 0;
+      if (fetchedItems < (options?.limit ?? 50)) return undefined;
+      return allPages.reduce((acc, p) => acc + (p.sold30d?.items?.length || 0), 0);
+    },
+    initialPageParam: 0,
     enabled: (options?.enabled ?? true) && query.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 2,

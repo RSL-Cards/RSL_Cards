@@ -166,8 +166,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key } = params;
     const maxResults = limit ? Number(limit) : 20;
+    const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const gradeKey = grade_key?.trim() || "RAW";
 
@@ -208,8 +209,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           FROM platform_sold_listings
           WHERE variant_id = ${effectiveVariantId}
             AND grade_key = ${gradeKey}
+            AND platform = 'ebay'
           ORDER BY sold_at DESC
-          LIMIT 20
+          LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
 
         const mappedSold = (soldCached.rows as any[]).map((item) => ({
@@ -231,7 +233,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
             AND platform = 'ebay'
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
-          LIMIT 20
+          LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
 
         const mappedActive = (activeCached.rows as any[]).map((item) => ({
@@ -255,7 +257,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
             lastSoldPrice: r.last_sold_price,
             lowestActive: r.lowest_active,
             salesCount30d: r.sales_count_30d,
-            priceTrend30d: r.price_trend_30d,
+            priceTrend30d: null,
           })),
           activeListings: mappedActive,
           last7Days: {
@@ -286,6 +288,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       ebayService.searchListings({
         q: query,
         limit: Math.min(maxResults, 20),
+        offset: offsetNum,
         sort: "pricePlusShippingLowest",
       }).finally(() => {
         const duration = Date.now() - ebayActiveStartTime;
@@ -419,8 +422,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key } = params;
     const maxResults = limit ? Number(limit) : 20;
+    const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const gradeKey = grade_key?.trim() || "RAW";
 
@@ -440,7 +444,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       }
     }
 
-    if (effectiveVariantId) {
+    if (effectiveVariantId && offsetNum === 0) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
@@ -463,7 +467,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
             AND grade_key = ${gradeKey}
             AND platform = 'myslabs'
           ORDER BY sold_at DESC
-          LIMIT 20
+          LIMIT ${maxResults}
         `);
 
         const mappedSold = (soldCached.rows as any[]).map((item) => ({
@@ -485,7 +489,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
             AND platform = 'myslabs'
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
-          LIMIT 20
+          LIMIT ${maxResults}
         `);
 
         const mappedActive = (activeCached.rows as any[]).map((item) => ({

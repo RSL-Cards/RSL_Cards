@@ -86,26 +86,28 @@ export class ListingController {
   };
 
   ebaySold = async ({ query }: { query: any }) => {
-    const { q, limit, variant_id, grade_key } = query;
+    const { q, limit, offset, variant_id, grade_key } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
     }
     return await this.service.ebaySold({
       q: q.trim(),
       limit: limit ? Number(limit) : 20,
+      offset: offset ? Number(offset) : 0,
       variant_id,
       grade_key,
     });
   };
 
   myslabsSold = async ({ query }: { query: any }) => {
-    const { q, limit, variant_id, grade_key } = query;
+    const { q, limit, offset, variant_id, grade_key } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
     }
     return await this.service.myslabsSold({
       q: q.trim(),
       limit: limit ? Number(limit) : 20,
+      offset: offset ? Number(offset) : 0,
       variant_id,
       grade_key,
     });

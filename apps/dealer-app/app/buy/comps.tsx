@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -108,64 +109,52 @@ export default function BuyCompsScreen() {
 
   const myslabsQuery = buildMyslabsQuery(card);
 
+  const [salesVisibleCount, setSalesVisibleCount] = useState(5);
+  const [activeVisibleCount, setActiveVisibleCount] = useState(5);
+
   const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
 
-  const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: resolvedGradeKey,
   });
 
-  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs } = useMyslabsSold(myslabsQuery, {
+  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: resolvedGradeKey,
   });
 
-  const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  const myslabsActive = (myslabsData?.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
-  
-  const sortedEbayActive = [...ebayActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
-  const sortedMyslabsActive = [...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
-  
-  let activeEbayShow = sortedEbayActive.slice(0, 3);
-  let activeMyslabsShow = sortedMyslabsActive.slice(0, 3);
-  if (activeEbayShow.length < 3) activeMyslabsShow = sortedMyslabsActive.slice(0, 6 - activeEbayShow.length);
-  else if (activeMyslabsShow.length < 3) activeEbayShow = sortedEbayActive.slice(0, 6 - activeMyslabsShow.length);
-  
-  const activeItems = [...activeEbayShow, ...activeMyslabsShow]
-    .sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0")) as any[];
+  const ebayPages = data?.pages ?? [];
+  const myslabsPages = myslabsData?.pages ?? [];
 
-  const ebaySold30 = (data?.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold30 = (myslabsData?.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
-  const sold30 = [...ebaySold30, ...myslabsSold30]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
+  const myslabsActive = myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
 
-  const ebaySold7 = (data?.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold7 = (myslabsData?.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
-  const sold7 = [...ebaySold7, ...myslabsSold7]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const allActiveItems = [...ebayActive, ...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
+  const activeItems = allActiveItems.slice(0, activeVisibleCount);
+
+  const ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold30 = myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold30 = [...ebaySold30, ...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold7 = myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold7 = [...ebaySold7, ...myslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const allRecentSales = sold30;
+  const recentSales = allRecentSales.slice(0, salesVisibleCount);
 
   const avg30 = calcAvg(sold30 as any);
   const avg7 = calcAvg(sold7 as any);
   const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
-  
-  const sortedEbaySold30 = [...ebaySold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
-  const sortedMyslabsSold30 = [...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
-  
-  let recentEbayShow = sortedEbaySold30.slice(0, 4);
-  let recentMyslabsShow = sortedMyslabsSold30.slice(0, 4);
-  if (recentEbayShow.length < 4) recentMyslabsShow = sortedMyslabsSold30.slice(0, 8 - recentEbayShow.length);
-  else if (recentMyslabsShow.length < 4) recentEbayShow = sortedEbaySold30.slice(0, 8 - recentMyslabsShow.length);
-  
-  const recentSales = [...recentEbayShow, ...recentMyslabsShow]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
   const sparklineData = sold30
     .slice(0, 8)
     .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
-  
+
   const isLoadingAll = isLoading || myslabsLoading;
   const isErrorAll = isError || myslabsError;
 
@@ -397,6 +386,27 @@ export default function BuyCompsScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+            {(allRecentSales.length > salesVisibleCount || hasNextPage || hasMyslabsNextPage) && (
+              <TouchableOpacity
+                style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
+                onPress={() => {
+                  if (salesVisibleCount < allRecentSales.length) {
+                    setSalesVisibleCount(c => c + 10);
+                  } else {
+                    if (hasNextPage) fetchNextPage();
+                    if (hasMyslabsNextPage) fetchMyslabsNextPage();
+                    setSalesVisibleCount(c => c + 10);
+                  }
+                }}
+                disabled={isFetchingNextPage || isFetchingMyslabsNextPage}
+              >
+                {(isFetchingNextPage || isFetchingMyslabsNextPage) ? (
+                  <ActivityIndicator color="#0057FF" />
+                ) : (
+                  <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Sales</Text>
+                )}
+              </TouchableOpacity>
+            )}
               </View>
             )}
 
@@ -492,6 +502,27 @@ export default function BuyCompsScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+            {(allActiveItems.length > activeVisibleCount || hasNextPage || hasMyslabsNextPage) && (
+              <TouchableOpacity
+                style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
+                onPress={() => {
+                  if (activeVisibleCount < allActiveItems.length) {
+                    setActiveVisibleCount(c => c + 10);
+                  } else {
+                    if (hasNextPage) fetchNextPage();
+                    if (hasMyslabsNextPage) fetchMyslabsNextPage();
+                    setActiveVisibleCount(c => c + 10);
+                  }
+                }}
+                disabled={isFetchingNextPage || isFetchingMyslabsNextPage}
+              >
+                {(isFetchingNextPage || isFetchingMyslabsNextPage) ? (
+                  <ActivityIndicator color="#0057FF" />
+                ) : (
+                  <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Active</Text>
+                )}
+              </TouchableOpacity>
+            )}
               </View>
             )}
           </>

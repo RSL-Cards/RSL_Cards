@@ -61,6 +61,7 @@ export class MyslabsService {
     q: string;
     status?: "for-sale" | "sold";
     limit?: number;
+    offset?: number;
   }): Promise<{ items: MyslabsItem[] }> {
     const token = await this.getAccessToken();
     const limit = params.limit || 20;
