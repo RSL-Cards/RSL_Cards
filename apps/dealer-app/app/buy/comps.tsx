@@ -27,6 +27,8 @@ function buildEbayQuery(card: any): string {
     card.year, 
     card.set_name, 
     card.variation !== "Base" ? card.variation : "", 
+    card.is_autograph ? "Auto" : "",
+    card.is_relic ? "Patch" : "",
     card.card_number ? `#${card.card_number}` : ""
   ].filter(Boolean).join(" ");
 }
