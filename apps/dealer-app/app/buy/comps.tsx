@@ -21,13 +21,18 @@ const STEP_PCT = "40%";
 
 function buildEbayQuery(card: any): string {
   if (!card) return "";
-  if (card.search_string) return card.search_string;
-  return [card.player_name, card.year, card.set_name, card.variation !== "Base" ? card.variation : "", card.card_number ? `#${card.card_number}` : "", card.grading ? `${card.grading.company} ${card.grading.grade}` : ""].filter(Boolean).join(" ");
+  // USER REQUEST: dont include grade company for ebay active listings
+  return [
+    card.player_name, 
+    card.year, 
+    card.set_name, 
+    card.variation !== "Base" ? card.variation : "", 
+    card.card_number ? `#${card.card_number}` : ""
+  ].filter(Boolean).join(" ");
 }
 
 function buildMyslabsQuery(card: any): string {
   if (!card) return "";
-  if (card.search_string) return card.search_string;
   return buildEbayQuery(card);
 }
 
@@ -106,7 +111,23 @@ export default function BuyCompsScreen() {
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
-  const ebayQuery = buildEbayQuery(card);
+const ebayQuery = buildEbayQuery(card);
+
+  let soldQueryKeywords = ebayQuery;
+  if (card?.filter) {
+    try {
+      const f = typeof card.filter === 'string' ? JSON.parse(card.filter) : card.filter;
+      if (f.must_exclude && Array.isArray(f.must_exclude)) {
+        // Filter out single digits, short terms, and limit to max 10 to avoid breaking search engine limits
+        const safeExcludes = f.must_exclude
+          .filter((w: string) => w.length > 2)
+          .slice(0, 10);
+        if (safeExcludes.length > 0) {
+          soldQueryKeywords = `${ebayQuery} ${safeExcludes.map((w: string) => `-${w}`).join(" ")}`;
+        }
+      }
+    } catch(e) {}
+  }
 
   const myslabsQuery = buildMyslabsQuery(card);
 
@@ -115,10 +136,11 @@ export default function BuyCompsScreen() {
 
   const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
 
-  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
+    const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: resolvedGradeKey,
+    soldQuery: soldQueryKeywords,
   });
 
   const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {

@@ -14,13 +14,14 @@ export class ListingRepository {
     items: any[], 
     idField: string, 
     titleField: string,
-    filterObj?: { must_include?: string[], must_exclude?: string[] }
+    filterObj?: { must_include?: string[], must_exclude?: string[] },
+    gradeKey?: string
   ): Promise<any[]> {
     if (!items || items.length === 0) return [];
     
     try {
       const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
-      console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
+      console.log(`[FILTER] Query: "${query}" | Grade: "${gradeKey || 'RAW'}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
 
       let filterInstructions = "";
       if (filterObj) {
@@ -32,6 +33,16 @@ export class ListingRepository {
    If the title fails either of these conditions, REJECT IT IMMEDIATELY.`;
       }
 
+      let gradeInstruction = `4. IMPORTANT: Do NOT filter based on grading company or grade! Accept all matches regardless of whether they are Raw, PSA, BGS, SGC, etc. As long as the card itself is an exact match, accept it.`;
+      
+      if (gradeKey && gradeKey.toUpperCase() !== "RAW") {
+        const gradeNumberMatch = gradeKey.match(/[\d\.]+/);
+        const gradeNumber = gradeNumberMatch ? gradeNumberMatch[0] : null;
+        if (gradeNumber) {
+          gradeInstruction = `4. IMPORTANT: The listing MUST have the exact grade number "${gradeNumber}". Do NOT filter based on grading company (e.g., PSA ${gradeNumber}, BGS ${gradeNumber}, SGC ${gradeNumber} are all acceptable). REJECT any listings that are raw/ungraded or have a different grade number (like 9, 8.5, etc).`;
+        }
+      }
+
       const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
 Here are the search results: ${JSON.stringify(minimalItems)}.
 
@@ -39,7 +50,7 @@ CRITICAL FILTERING RULES:
 1. The listing MUST be the exact same player, year, set, and subset.
 2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
 3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
-4. IMPORTANT: Do NOT filter based on grading company or grade! Accept all matches regardless of whether they are Raw, PSA, BGS, SGC, etc. As long as the card itself is an exact match, accept it.
+${gradeInstruction}
 5. Reject any lots, sealed boxes, packs, or digital cards.
 6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
 7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
@@ -67,7 +78,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       return items.filter(i => validIds.includes(String(i[idField])));
     } catch (e) {
       console.error("[FILTER] Failed to filter items with Gemini", e);
-      return []; // fallback to returning empty array to ensure ONLY model-verified data is stored
+      return items; // fallback to returning ALL items so the UI doesn't break if Gemini times out
     }
   }
 
@@ -183,10 +194,11 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, offset, variant_id, grade_key, filter } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
+    const queryForSold = sold_q ? sold_q.trim() : query;
     const gradeKey = grade_key?.trim() || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
@@ -291,20 +303,22 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       }
     }
 
-    console.log(`[COMPS] 📡 Fetching LIVE comps...`);
-    console.log(`  -> Real eBay API (Active Listings) for: ${query}`);
-    console.log(`  -> Sold Comps API (Sold Listings) for: ${query}`);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📡 Fetching LIVE comps for eBay...`);
+    console.log(`[COMPS]  👉 Passing to Active Listings (Real eBay API): "${query}"`);
+    console.log(`[COMPS]  👉 Passing to Sold Comps API: "${queryForSold}"`);
+    console.log(`======================================================\n`);
     const ebayActiveStartTime = Date.now();
     const soldCompsStartTime = Date.now();
     
     const [soldResult, activeResult] = await Promise.allSettled([
-      soldCompsService.getSoldItems(query).finally(() => {
+      soldCompsService.getSoldItems(queryForSold).finally(() => {
         const duration = Date.now() - soldCompsStartTime;
         console.log(`[PERF] ⏱️ Sold Comps API (Sold) took ${duration}ms`);
       }),
       ebayService.searchListings({
         q: query,
-        limit: Math.min(maxResults, 20),
+        limit: Math.min(maxResults, 50),
         offset: offsetNum,
         sort: "pricePlusShippingLowest",
       }).finally(() => {
@@ -325,12 +339,55 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
 
-    // Filter results using Gemini
-    console.log(`[COMPS] 🧠 Filtering ebay results using Gemini...`);
-    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", filter); // No image url in sold comps API currently
-    if (activeData.itemSummaries) {
-      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", filter);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📥 RECEIVED DATA FROM EBAY APIs:`);
+    console.log(`[COMPS]  📦 Sold Comps API Response count: ${soldData.items?.length || 0}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
     }
+    console.log(`[COMPS]  📦 Active Listings API Response count: ${activeData.itemSummaries?.length || 0}`);
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.itemSummaries[0])}`);
+    }
+    console.log(`======================================================\n`);
+
+    // -------------------------------------------------------------
+    // EBAY GEMINI FILTERING
+    // -------------------------------------------------------------
+    const ebaySoldBefore = soldData.items?.length || 0;
+    const ebayActiveBefore = activeData.itemSummaries?.length || 0;
+    
+    let firstOriginalSoldItem = null;
+    if (soldData.items && soldData.items.length > 0) {
+      firstOriginalSoldItem = Object.assign({}, soldData.items[0]);
+    }
+
+    if (soldData.items && soldData.items.length > 0) {
+      soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", filter, gradeKey);
+    }
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", filter, gradeKey);
+    }
+
+    const ebaySoldAfter = soldData.items?.length || 0;
+    const ebayActiveAfter = activeData.itemSummaries?.length || 0;
+
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] ✨ EBAY GEMINI FILTER RESULTS:`);
+    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
+    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${ebayActiveBefore} | AFTER = ${ebayActiveAfter}`);
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.itemSummaries[0])}`);
+    }
+    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
+    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${ebaySoldBefore} | AFTER = ${ebaySoldAfter}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold (AFTER): ${JSON.stringify(soldData.items[0])}`);
+    } else if (ebaySoldBefore > 0 && firstOriginalSoldItem) {
+      // If Gemini wiped everything, let's at least print what the external API originally sent
+      console.log(`[COMPS]  ⚠️ ALL ITEMS FILTERED OUT. First item BEFORE filter was: ${JSON.stringify(firstOriginalSoldItem)}`);
+    }
+    console.log(`======================================================\n`);
 
     console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
     console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
@@ -439,10 +496,11 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, offset, variant_id, grade_key, filter } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
+    const queryForSold = sold_q ? sold_q.trim() : query;
     const gradeKey = grade_key?.trim() || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
@@ -546,20 +604,24 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       }
     }
 
-    console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs for: ${query}`);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs...`);
+    console.log(`[COMPS]  👉 Passing to MySlabs Active Listings API: "${query}"`);
+    console.log(`[COMPS]  👉 Passing to MySlabs Sold API: "${queryForSold}"`);
+    console.log(`======================================================\n`);
     const myslabsStartTime = Date.now();
     let soldData: { items: MyslabsItem[] } = { items: [] };
     let activeData: { items: MyslabsItem[] } = { items: [] };
 
     try {
-      const fetchMySlabs = async (searchQuery: string) => {
+      const fetchMySlabs = async (soldSearchQuery: string, activeSearchQuery: string) => {
         return Promise.all([
-          myslabsService.searchSlabs({ q: searchQuery, status: "sold", limit: maxResults }),
-          myslabsService.searchSlabs({ q: searchQuery, status: "for-sale", limit: maxResults })
+          myslabsService.searchSlabs({ q: soldSearchQuery, status: "sold", limit: maxResults }),
+          myslabsService.searchSlabs({ q: activeSearchQuery, status: "for-sale", limit: maxResults })
         ]);
       };
 
-      [soldData, activeData] = await fetchMySlabs(query);
+      [soldData, activeData] = await fetchMySlabs(queryForSold, query);
       
       // Fallback 1: Remove special characters and abbreviations
       if (soldData.items.length === 0 && activeData.items.length === 0) {
@@ -569,7 +631,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
                               
         if (cleanQuery !== query && cleanQuery.length > 3) {
           console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to clean: ${cleanQuery}`);
-          [soldData, activeData] = await fetchMySlabs(cleanQuery);
+          [soldData, activeData] = await fetchMySlabs(cleanQuery, cleanQuery);
         }
 
         // Fallback 2: Just the first 4 words (Player Name + Year)
@@ -577,7 +639,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           const shortQuery = cleanQuery.split(' ').slice(0, 4).join(' ');
           if (shortQuery !== cleanQuery && shortQuery.length > 5) {
             console.log(`[COMPS] 📡 MySlabs clean search returned 0. Falling back to short: ${shortQuery}`);
-            [soldData, activeData] = await fetchMySlabs(shortQuery);
+            [soldData, activeData] = await fetchMySlabs(shortQuery, shortQuery);
           }
         }
       }
@@ -585,13 +647,48 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       console.error("Failed to fetch MySlabs LIVE comps:", e);
     }
     
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📥 RECEIVED DATA FROM MYSLABS APIs:`);
+    console.log(`[COMPS]  📦 Sold API Response count: ${soldData.items?.length || 0}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
+    }
+    console.log(`[COMPS]  📦 Active API Response count: ${activeData.items?.length || 0}`);
+    if (activeData.items && activeData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.items[0])}`);
+    }
+    console.log(`======================================================\n`);
+
     const myslabsDuration = Date.now() - myslabsStartTime;
     console.log(`[PERF] ⏱️ MySlabs API (Sold & Active) total time: ${myslabsDuration}ms`);
 
-    // Filter results using Gemini
-    console.log(`[COMPS] 🧠 Filtering myslabs results using Gemini...`);
-    soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title", filter);
-    activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title", filter);
+    // -------------------------------------------------------------
+    // MYSLABS GEMINI FILTERING
+    // -------------------------------------------------------------
+    const myslabsSoldBefore = soldData.items?.length || 0;
+    const myslabsActiveBefore = activeData.items?.length || 0;
+
+    // USER REQUEST: "myslabs data doesnt need send to modal , show all"
+    // Bypassing Gemini filter for MySlabs.
+    // soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title", filter);
+    // activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title", filter);
+
+    const myslabsSoldAfter = soldData.items?.length || 0;
+    const myslabsActiveAfter = activeData.items?.length || 0;
+
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] ✨ MYSLABS GEMINI FILTER RESULTS:`);
+    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
+    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${myslabsActiveBefore} | AFTER = ${myslabsActiveAfter}`);
+    if (activeData.items && activeData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.items[0])}`);
+    }
+    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
+    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${myslabsSoldBefore} | AFTER = ${myslabsSoldAfter}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold: ${JSON.stringify(soldData.items[0])}`);
+    }
+    console.log(`======================================================\n`);
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
     console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);

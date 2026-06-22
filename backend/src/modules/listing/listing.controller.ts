@@ -86,7 +86,7 @@ export class ListingController {
   };
 
   ebaySold = async ({ query }: { query: any }) => {
-    const { q, limit, offset, variant_id, grade_key, filter } = query;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
     }
@@ -101,11 +101,12 @@ export class ListingController {
       variant_id,
       grade_key,
       filter: parsedFilter,
+      sold_q,
     });
   };
 
   myslabsSold = async ({ query }: { query: any }) => {
-    const { q, limit, offset, variant_id, grade_key, filter } = query;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
     }
@@ -120,6 +121,7 @@ export class ListingController {
       variant_id,
       grade_key,
       filter: parsedFilter,
+      sold_q,
     });
   };
 }

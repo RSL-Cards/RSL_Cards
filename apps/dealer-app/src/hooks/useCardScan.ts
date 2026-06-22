@@ -112,6 +112,7 @@ export function useEbaySold(
     limit?: number;
     variantId?: string;
     gradeKey?: string;
+    soldQuery?: string;
   },
 ) {
   return useInfiniteQuery<EbaySoldResponse, Error>({
@@ -119,6 +120,7 @@ export function useEbaySold(
       ...QUERY_KEYS.ebaySold(query),
       options?.variantId,
       options?.gradeKey,
+      options?.soldQuery,
     ],
     queryFn: ({ pageParam = 0 }) =>
       cardService.getEbaySold(
@@ -127,6 +129,7 @@ export function useEbaySold(
         options?.variantId,
         options?.gradeKey,
         pageParam as number,
+        options?.soldQuery,
       ),
     getNextPageParam: (lastPage, allPages) => {
       const fetchedItems = lastPage.sold30d?.items?.length || 0;
@@ -147,10 +150,11 @@ export function useMyslabsSold(
     limit?: number;
     variantId?: string;
     gradeKey?: string;
+    soldQuery?: string;
   },
 ) {
   return useInfiniteQuery<MyslabsSoldResponse, Error>({
-    queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey],
+    queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey, options?.soldQuery],
     queryFn: ({ pageParam = 0 }) =>
       cardService.getMyslabsSold(
         query,
@@ -158,6 +162,7 @@ export function useMyslabsSold(
         options?.variantId,
         options?.gradeKey,
         pageParam as number,
+        options?.soldQuery,
       ),
     getNextPageParam: (lastPage, allPages) => {
       const fetchedItems = lastPage.sold30d?.items?.length || 0;
