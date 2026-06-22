@@ -1,5 +1,4 @@
 export const CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this card image and extract the following details in strict JSON format with NO markdown, NO extra text.
-
 Return ONLY this JSON:
 {
   "player_name": "Full Player Name",
@@ -10,6 +9,10 @@ Return ONLY this JSON:
   "card_number": "269",
   "manufacturer": "Panini",
   "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm",
+  "filter": {
+    "must_include": ["2017", "mahomes", "prizm", "269"],
+    "must_exclude": ["auto","patch","reprint","lot","repack","psa","bgs","sgc","cgc","graded","gold","blue","red","green","orange","pink","purple","mojo","disco"]
+  },
   "is_rookie": false,
   "is_autograph": false,
   "is_relic": false,
@@ -20,19 +23,50 @@ Return ONLY this JSON:
   },
   "confidence": 0.95
 }
-
 Rules:
 - "year" must be a number
 - "confidence" 0.0-1.0 based on image clarity
-- "sport": The specific sport or category of the card (e.g., "football", "basketball", "baseball", "hockey", "soccer", "racing", "pokemon", "ufc", "wwe"). Output the actual sport/category name instead of "other".
-- "variation": the parallel/refractor name exactly as it appears on the card or is commonly known on eBay (e.g. "Silver Prizm", "Gold Refractor", "Holo", "Base", "Blue Wave", "Red /299"). **CRITICAL: If the card is in a graded slab (PSA, BGS, etc.), ALWAYS read the text on the grading label to determine the exact variation (it will often say "Silver", "Refractor", etc.). Do not confuse the color of the grading slab (e.g., black Beckett Pristine slabs) with the card's parallel color.** Include the print run if visible (e.g. "Orange /49"). If base/no variation, use "Base"
-- "search_string": A broad, optimized search string for querying external APIs like eBay. **CRITICAL: Keep it broad to maximize search results.** ONLY include the player name, year, set name, and the base variation (e.g., "Silver Prizm" or "Refractor"). DO NOT include the card number, DO NOT include the grade (e.g., no "PSA 10"), DO NOT include print runs (e.g., no "/99"). A broad string (e.g., "Patrick Mahomes 2017 Panini Prizm Silver Prizm") works much better than a hyper-specific one.
-- "card_number": the number printed on the card (e.g. "269", "RC-15"). Omit the # symbol. Use null if not visible
-- "set_name": the brand+product name as used on eBay (e.g. "Panini Prizm", "Topps Chrome", "Bowman Draft"). Do NOT include the year in set_name
-- "manufacturer": the card company (e.g. "Panini", "Topps", "Upper Deck", "Bowman")
-- "is_rookie": true if card has RC logo, "Rookie" text, or is player's first-year card
-- "is_autograph": true if card has a visible on-card or sticker autograph
-- "is_relic": true if card contains embedded patch/jersey/memorabilia window
-- If grading label (PSA/BGS/SGC/CSG slab) not visible, omit "grading" field entirely
-- If a field is not visible or not determinable, use null
-- Return ONLY the JSON object, nothing else`;
+- "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
+- "variation": the parallel/refractor name exactly as on the card or as known on eBay (e.g. "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave","Red /299"). **CRITICAL: If the card is in a graded slab, READ the grading label text to determine the exact variation. Do NOT confuse the slab color (e.g. black Beckett Pristine) with the card's parallel.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
+- "search_string": BROAD search for the external API. **Keep it broad to maximize results.** ONLY player + year + set + variation. NO card number, NO grade, NO print run. This is the wide net; precision happens in the filter, not here.
+- "card_number": number printed on the card (omit #). null if not visible.
+- "set_name": brand+product as on eBay (e.g. "Panini Prizm","Topps Chrome"). No year.
+- "manufacturer": card company.
+- "is_rookie"/"is_autograph"/"is_relic": booleans per visible markers.
+- If no grading label visible, omit "grading" entirely.
+- If a field isn't determinable, use null.
+
+KILL ALGORITHM — build the "filter" object using these rules:
+
+"must_include" = identity lock. Lowercase. Always include:
+  - the year (as string)
+  - the player's LAST name (lowercase)
+  - one short set token (e.g. "prizm","topps","optic","bowman")
+  - the card_number normalized (remove # and dashes, e.g. "RC-15" -> "rc15"); omit if card_number is null
+
+"must_exclude" = everything this card is NOT. Lowercase. Build it as follows:
+
+1. ALWAYS add: "reprint","lot","repack","custom","digital","sticker"
+2. If is_autograph is FALSE -> add "auto","autograph"
+3. If is_relic is FALSE -> add "patch","relic","jersey","mem"
+4. GRADING:
+   - If a "grading" object exists (card is GRADED):
+       add "raw","ungraded"
+       add every grading company that is NOT the card's company, from ["psa","bgs","sgc","cgc","csg"]
+       add every whole/half grade that is NOT the card's grade, from ["1","2","3","4","5","6","7","8","9","10","8.5","9.5"] (do NOT add the card's own grade)
+   - If NO "grading" object (card is RAW):
+       add "psa","bgs","sgc","cgc","csg","graded","slab","gem mint"
+5. PARALLEL:
+   - If "variation" is NOT "Base":
+       add common parallels that are NOT this card's variation, drawn from:
+       ["base","silver","gold","blue","red","green","orange","pink","purple","black","white","holo","refractor","x-fractor","wave","mojo","disco","hyper","velocity","reactive","prizm","cracked ice"]
+       (only add ones that do not appear in this card's own variation string)
+   - If "variation" IS "Base":
+       add ALL of the above parallel color/finish names (since base must exclude every parallel)
+
+IMPORTANT:
+- NEVER put a term in must_exclude that also appears in must_include or in the card's own variation/grade.
+- must_exclude entries must be single lowercase tokens or short phrases, matched as substrings against listing titles.
+- The search_string and the filter are SEPARATE: search_string is broad for the API; the filter is applied by our code to the returned titles for exact matching.
+
+Return ONLY the JSON object, nothing else`;
