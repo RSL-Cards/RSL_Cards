@@ -357,10 +357,10 @@ export class AiNarrativeService {
       const soldCompsService = new SoldCompsService(env);
 
       for (const grade of grades) {
-        listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade }, ebayService, soldCompsService)
+        listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade, filter: geminiCard.filter }, ebayService, soldCompsService)
           .catch((err) => console.error("scan-card (live): failed to trigger ebay price refresh for grade:", grade, err));
           
-        listingRepo.myslabsSold({ q: query, variant_id: variantId, grade_key: grade }, myslabsService)
+        listingRepo.myslabsSold({ q: query, variant_id: variantId, grade_key: grade, filter: geminiCard.filter }, myslabsService)
           .catch((err) => console.error("scan-card (live): failed to trigger myslabs price refresh for grade:", grade, err));
       }
     }

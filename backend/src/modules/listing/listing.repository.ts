@@ -13,13 +13,23 @@ export class ListingRepository {
     query: string, 
     items: any[], 
     idField: string, 
-    titleField: string
+    titleField: string,
+    filterObj?: { must_include?: string[], must_exclude?: string[] }
   ): Promise<any[]> {
     if (!items || items.length === 0) return [];
     
     try {
       const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
       console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
+
+      let filterInstructions = "";
+      if (filterObj) {
+        filterInstructions = `
+9. KILL ALGORITHM:
+   - The title MUST INCLUDE all of these terms (case-insensitive): ${JSON.stringify(filterObj.must_include || [])}
+   - The title MUST NOT INCLUDE any of these terms (case-insensitive): ${JSON.stringify(filterObj.must_exclude || [])}
+   If the title fails either of these conditions, REJECT IT IMMEDIATELY.`;
+      }
 
       const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
 Here are the search results: ${JSON.stringify(minimalItems)}.
@@ -32,8 +42,7 @@ CRITICAL FILTERING RULES:
 5. Reject any lots, sealed boxes, packs, or digital cards.
 6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
 7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
-8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT. 
-For example, if the query is "2007 Bowman Chrome Patrick Willis Refractor #BC93 PSA 10", you MUST ACCEPT a listing titled "2007 Bowman Chrome Patrick Willis RC Refractor Rookie 49ers PSA 10" because it has the right year, set, player, and parallel.
+8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.${filterInstructions}
 
 Return a JSON array of ONLY the "id"s of the listings that perfectly match.
 If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
@@ -173,7 +182,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, offset, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key, filter } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
@@ -317,9 +326,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
 
     // Filter results using Gemini
     console.log(`[COMPS] 🧠 Filtering ebay results using Gemini...`);
-    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title"); // No image url in sold comps API currently
+    soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", filter); // No image url in sold comps API currently
     if (activeData.itemSummaries) {
-      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title");
+      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", filter);
     }
 
     console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
@@ -429,7 +438,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, offset, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key, filter } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
@@ -580,8 +589,8 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
 
     // Filter results using Gemini
     console.log(`[COMPS] 🧠 Filtering myslabs results using Gemini...`);
-    soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title");
-    activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title");
+    soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title", filter);
+    activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title", filter);
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
     console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);

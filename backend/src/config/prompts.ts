@@ -28,7 +28,7 @@ Rules:
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
 - "variation": the parallel/refractor name exactly as on the card or as known on eBay (e.g. "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave","Red /299"). **CRITICAL: If the card is in a graded slab, READ the grading label text to determine the exact variation. Do NOT confuse the slab color (e.g. black Beckett Pristine) with the card's parallel.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
-- "search_string": BROAD search for the external API. **Keep it broad to maximize results.** ONLY player + year + set + variation. NO card number, NO grade, NO print run. This is the wide net; precision happens in the filter, not here.
+- "search_string": Include all core descriptive text visible on the card itself (Player, Year, Set, Variation, Subsets like "Performers", "Auto", etc.). DO NOT include grading company, grade, or the card number (e.g. no "PSA 10", no "#100").
 - "card_number": number printed on the card (omit #). null if not visible.
 - "set_name": brand+product as on eBay (e.g. "Panini Prizm","Topps Chrome"). No year.
 - "manufacturer": card company.
@@ -42,7 +42,7 @@ KILL ALGORITHM — build the "filter" object using these rules:
   - the year (as string)
   - the player's LAST name (lowercase)
   - one short set token (e.g. "prizm","topps","optic","bowman")
-  - the card_number normalized (remove # and dashes, e.g. "RC-15" -> "rc15"); omit if card_number is null
+  - (DO NOT include the card number here, as sellers frequently omit it from titles)
 
 "must_exclude" = everything this card is NOT. Lowercase. Build it as follows:
 
