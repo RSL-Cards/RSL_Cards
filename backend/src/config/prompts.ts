@@ -52,7 +52,6 @@ KILL ALGORITHM — build the "filter" object using these rules:
 4. GRADING:
    - If a "grading" object exists (card is GRADED):
        add "raw","ungraded"
-       add every grading company that is NOT the card's company, from ["psa","bgs","sgc","cgc","csg"]
        add every whole/half grade that is NOT the card's grade, from ["1","2","3","4","5","6","7","8","9","10","8.5","9.5"] (do NOT add the card's own grade)
    - If NO "grading" object (card is RAW):
        add "psa","bgs","sgc","cgc","csg","graded","slab","gem mint"

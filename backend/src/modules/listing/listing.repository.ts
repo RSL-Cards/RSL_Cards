@@ -24,6 +24,7 @@ export class ListingRepository {
 
       let filterInstructions = "";
       if (filterObj) {
+        console.log(`[FILTER] 🔪 Applying KILL ALGORITHM Rules:`, JSON.stringify(filterObj));
         filterInstructions = `
 9. KILL ALGORITHM:
    - The title MUST INCLUDE all of these terms (case-insensitive): ${JSON.stringify(filterObj.must_include || [])}
