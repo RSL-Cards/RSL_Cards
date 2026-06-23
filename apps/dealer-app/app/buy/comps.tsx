@@ -131,7 +131,7 @@ const ebayQuery = buildEbayQuery(card);
     } catch(e) {}
   }
 
-  const myslabsQuery = buildMyslabsQuery(card);
+  // const myslabsQuery = buildMyslabsQuery(card);
 
   const [salesVisibleCount, setSalesVisibleCount] = useState(5);
   const [activeVisibleCount, setActiveVisibleCount] = useState(5);
@@ -145,27 +145,27 @@ const ebayQuery = buildEbayQuery(card);
     soldQuery: soldQueryKeywords,
   });
 
-  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
-    limit: 50,
-    variantId: activeTab?.variantId,
-    gradeKey: resolvedGradeKey,
-  });
+  // const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
+  //   limit: 50,
+  //   variantId: activeTab?.variantId,
+  //   gradeKey: resolvedGradeKey,
+  // });
 
   const ebayPages = data?.pages ?? [];
-  const myslabsPages = myslabsData?.pages ?? [];
+  const myslabsPages: any[] = []; // myslabsData?.pages ?? [];
 
   const ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  const myslabsActive = myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
+  const myslabsActive: any[] = []; // myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
 
   const allActiveItems = [...ebayActive, ...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
   const activeItems = allActiveItems.slice(0, activeVisibleCount);
 
   const ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold30 = myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const myslabsSold30: any[] = []; // myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
   const sold30 = [...ebaySold30, ...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
 
   const ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold7 = myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const myslabsSold7: any[] = []; // myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
   const sold7 = [...ebaySold7, ...myslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
 
   const allRecentSales = sold30;
@@ -184,8 +184,8 @@ const ebayQuery = buildEbayQuery(card);
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
 
-  const isLoadingAll = isLoading || myslabsLoading;
-  const isErrorAll = isError || myslabsError;
+  const isLoadingAll = isLoading; // || myslabsLoading;
+  const isErrorAll = isError; // || myslabsError;
 
   const initials =
     card?.player_name
@@ -502,7 +502,7 @@ const ebayQuery = buildEbayQuery(card);
               )}
               </View>
 
-            {(allRecentSales.length > salesVisibleCount || hasNextPage || hasMyslabsNextPage) && (
+            {(allRecentSales.length > salesVisibleCount || hasNextPage) && (
               <View style={{ paddingHorizontal: 20 }}>
                 <TouchableOpacity
                   style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
@@ -511,13 +511,12 @@ const ebayQuery = buildEbayQuery(card);
                       setSalesVisibleCount(c => c + 10);
                     } else {
                       if (hasNextPage) fetchNextPage();
-                      if (hasMyslabsNextPage) fetchMyslabsNextPage();
                       setSalesVisibleCount(c => c + 10);
                     }
                   }}
-                  disabled={isFetchingNextPage || isFetchingMyslabsNextPage}
+                  disabled={isFetchingNextPage}
                 >
-                  {(isFetchingNextPage || isFetchingMyslabsNextPage) ? (
+                  {isFetchingNextPage ? (
                     <ActivityIndicator color="#0057FF" />
                   ) : (
                     <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Sales</Text>
@@ -700,7 +699,7 @@ const ebayQuery = buildEbayQuery(card);
               )}
               </View>
 
-            {(allActiveItems.length > activeVisibleCount || hasNextPage || hasMyslabsNextPage) && (
+            {(allActiveItems.length > activeVisibleCount || hasNextPage) && (
               <View style={{ paddingHorizontal: 20 }}>
                 <TouchableOpacity
                   style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
@@ -709,13 +708,12 @@ const ebayQuery = buildEbayQuery(card);
                       setActiveVisibleCount(c => c + 10);
                     } else {
                       if (hasNextPage) fetchNextPage();
-                      if (hasMyslabsNextPage) fetchMyslabsNextPage();
                       setActiveVisibleCount(c => c + 10);
                     }
                   }}
-                  disabled={isFetchingNextPage || isFetchingMyslabsNextPage}
+                  disabled={isFetchingNextPage}
                 >
-                  {(isFetchingNextPage || isFetchingMyslabsNextPage) ? (
+                  {isFetchingNextPage ? (
                     <ActivityIndicator color="#0057FF" />
                   ) : (
                     <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Active</Text>
