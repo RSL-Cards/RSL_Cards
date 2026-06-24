@@ -10,8 +10,8 @@ interface MoverWatchlistProps {
 
 export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlistProps) {
   return (
-    <div className="dashboard-card">
-      <h2 className="text-xl font-bold text-white">Mover Watchlist</h2>
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-bold text-gray-900">Mover Watchlist</h2>
       <div className="mt-4 space-y-3">
         {movers.map((mover) => {
           const isMatched = matchedMovers.some((matched) => matched.player === mover.player)
@@ -21,17 +21,17 @@ export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlist
             <div
               key={mover.player}
               className={`rounded-lg border p-3 ${
-                isMatched ? 'border-accent-blue/30 bg-accent-blue/5' : 'border-border bg-surface-2'
+                isMatched ? 'border-blue-200 bg-blue-600/5' : 'border-gray-200 bg-gray-50'
               }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-white">{mover.player}</div>
-                  <div className="mt-1 text-xs text-text-muted">{mover.reason}</div>
+                  <div className="font-semibold text-gray-900">{mover.player}</div>
+                  <div className="mt-1 text-xs text-gray-400">{mover.reason}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono text-sm font-bold text-white">{formatCurrency(mover.price)}</div>
-                  <div className={`mt-1 flex items-center justify-end gap-1 text-sm font-semibold ${change >= 0 ? 'text-success' : 'text-accent-red'}`}>
+                  <div className="font-mono text-sm font-bold text-gray-900">{formatCurrency(mover.price)}</div>
+                  <div className={`mt-1 flex items-center justify-end gap-1 text-sm font-semibold ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {mover.trend === 'up' ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
                     {mover.change > 0 ? '+' : ''}{mover.change}%
                   </div>
@@ -43,7 +43,7 @@ export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlist
                   {mover.sport}
                 </span>
                 {isMatched && (
-                  <span className="rounded-full bg-accent-blue/15 px-2 py-1 text-xs font-semibold text-accent-blue">
+                  <span className="rounded-full bg-blue-600/15 px-2 py-1 text-xs font-semibold text-blue-600">
                     Linked insight
                   </span>
                 )}

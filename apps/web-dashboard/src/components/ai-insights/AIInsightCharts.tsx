@@ -16,10 +16,10 @@ import { COMP_HISTORY_DATA, SPORT_PERFORMANCE_DATA } from '@/data/mockDashboard'
 export default function AIInsightCharts() {
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-      <div className="dashboard-card xl:col-span-2">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm xl:col-span-2">
         <div className="mb-5 flex items-center gap-2">
-          <LineChart className="h-5 w-5 text-accent-blue" />
-          <h2 className="text-xl font-bold text-white">Comp Trend</h2>
+          <LineChart className="h-5 w-5 text-blue-600" />
+          <h2 className="text-xl font-bold text-gray-900">Comp Trend</h2>
         </div>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -54,8 +54,8 @@ export default function AIInsightCharts() {
         </div>
       </div>
 
-      <div className="dashboard-card">
-        <h2 className="text-xl font-bold text-white">Sport Profit Mix</h2>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-gray-900">Sport Profit Mix</h2>
         <div className="mt-5 h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={SPORT_PERFORMANCE_DATA} layout="vertical">

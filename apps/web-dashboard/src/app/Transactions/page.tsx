@@ -10,15 +10,20 @@ import { PeriodFilter } from '@/components/transactions/transactionsTypes'
 import {
   downloadFile,
   formatDate,
-  latestDate,
-  openingBalance,
-  passbookTransactions,
 } from '@/components/transactions/transactionsUtils'
 import { formatCurrency } from '@/components/inventory/inventoryUtils'
+import { useDashboardPassbook } from '@/hooks/dashboard/useDashboard'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function TransactionsPage() {
+  const isHydrated = useAuthStore((state) => state.isHydrated)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
+  const { data: passbookTransactions = [], isLoading } = useDashboardPassbook()
+
   const [period, setPeriod] = useState<PeriodFilter>('all')
-  const [fromDate, setFromDate] = useState('2026-03-01')
+  const latestDate = passbookTransactions[0]?.date || new Date().toISOString().slice(0, 10)
+  const [fromDate, setFromDate] = useState('2024-01-01')
   const [toDate, setToDate] = useState(latestDate)
   const [typeFilter, setTypeFilter] = useState('all')
   const [channelFilter, setChannelFilter] = useState('all')
@@ -26,13 +31,13 @@ export default function TransactionsPage() {
   const [query, setQuery] = useState('')
 
   const channelOptions = useMemo(
-    () => Array.from(new Set(passbookTransactions.map((transaction) => transaction.channel))),
-    []
+    () => Array.from(new Set(passbookTransactions.map((transaction: any) => transaction.channel))),
+    [passbookTransactions]
   )
 
   const paymentOptions = useMemo(
-    () => Array.from(new Set(passbookTransactions.map((transaction) => transaction.payment))),
-    []
+    () => Array.from(new Set(passbookTransactions.map((transaction: any) => transaction.payment))),
+    [passbookTransactions]
   )
 
   const filteredTransactions = useMemo(() => {
@@ -43,7 +48,7 @@ export default function TransactionsPage() {
     const thirtyDaysAgo = new Date(latest)
     thirtyDaysAgo.setDate(latest.getDate() - 29)
 
-    return passbookTransactions.filter((transaction) => {
+    return passbookTransactions.filter((transaction: any) => {
       const transactionDate = new Date(`${transaction.date}T12:00:00`)
       const matchesPeriod =
         period === 'all' ||
@@ -78,15 +83,15 @@ export default function TransactionsPage() {
         (!normalizedQuery || searchable.includes(normalizedQuery))
       )
     })
-  }, [channelFilter, fromDate, paymentFilter, period, query, toDate, typeFilter])
+  }, [channelFilter, fromDate, paymentFilter, period, query, toDate, typeFilter, passbookTransactions, latestDate])
 
   const totals = useMemo(
     () =>
       filteredTransactions.reduce(
-        (summary, transaction) => ({
-          debit: summary.debit + transaction.debit,
-          credit: summary.credit + transaction.credit,
-          profit: summary.profit + (transaction.profit ?? 0),
+        (summary: any, transaction: any) => ({
+          debit: summary.debit + (transaction.debit || 0),
+          credit: summary.credit + (transaction.credit || 0),
+          profit: summary.profit + (transaction.profit || 0),
           count: summary.count + 1,
         }),
         { debit: 0, credit: 0, profit: 0, count: 0 }
@@ -94,9 +99,10 @@ export default function TransactionsPage() {
     [filteredTransactions]
   )
 
-  const currentBalance = filteredTransactions[0]?.balance ?? openingBalance
+  const currentBalance = filteredTransactions[0]?.balance ?? 0
+  const openingBalance = passbookTransactions[passbookTransactions.length - 1]?.balance ?? 0
 
-  const exportRows = filteredTransactions.map((transaction) => ({
+  const exportRows = filteredTransactions.map((transaction: any) => ({
     Date: formatDate(transaction.date),
     Time: transaction.time,
     Reference: transaction.reference,
@@ -132,7 +138,7 @@ export default function TransactionsPage() {
     })
     const csv = [
       headers.join(','),
-      ...exportRows.map((row) =>
+      ...exportRows.map((row: any) =>
         headers
           .map((header) => `"${String(row[header as keyof typeof row] ?? '').replace(/"/g, '""')}"`)
           .join(',')
@@ -176,7 +182,7 @@ export default function TransactionsPage() {
         'Profit',
         'Balance',
       ]],
-      body: filteredTransactions.map((transaction) => [
+      body: filteredTransactions.map((transaction: any) => [
         formatDate(transaction.date),
         transaction.reference,
         transaction.type.toUpperCase(),
@@ -198,6 +204,16 @@ export default function TransactionsPage() {
     })
 
     doc.save(`rsl-transactions-${period}-${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+
+  if (!isHydrated || isLoading) {
+    return (
+      <Shell>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-sm text-gray-500">Loading passbook...</div>
+        </div>
+      </Shell>
+    )
   }
 
   return (

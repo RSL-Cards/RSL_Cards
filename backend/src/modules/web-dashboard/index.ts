@@ -19,4 +19,5 @@ export const webDashboardModule = new Elysia({ prefix: "/v1/web-dashboard" })
   .get("/top-movers", controller.getTopMovers)
   .get("/ai-insights", controller.getAiInsights)
   .get("/recent-transactions", controller.getRecentTransactions)
-  .get("/portfolio-snapshot", controller.getPortfolioSnapshot);
+  .get("/portfolio-snapshot", controller.getPortfolioSnapshot)
+  .get("/transactions/passbook", controller.getPassbookTransactions);

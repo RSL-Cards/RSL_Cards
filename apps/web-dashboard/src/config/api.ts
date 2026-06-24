@@ -47,5 +47,6 @@ export const ENDPOINTS = {
     recentTransactions: '/v1/web-dashboard/recent-transactions',
     aiInsights: '/v1/web-dashboard/ai-insights',
     portfolioSnapshot: '/v1/web-dashboard/portfolio-snapshot',
+    transactionsPassbook: '/v1/web-dashboard/transactions/passbook',
   },
 } as const

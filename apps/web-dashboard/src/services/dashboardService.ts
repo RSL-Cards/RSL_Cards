@@ -39,4 +39,7 @@ export const dashboardService = {
   getPortfolioSnapshot() {
     return dashboardRequest<any>(ENDPOINTS.webDashboard.portfolioSnapshot)
   },
+  getPassbookTransactions() {
+    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.transactionsPassbook)
+  },
 }

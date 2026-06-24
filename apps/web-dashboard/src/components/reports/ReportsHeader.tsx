@@ -9,12 +9,12 @@ export default function ReportsHeader({ onExportCsv, onExportPdf }: ReportsHeade
   return (
     <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div>
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-accent-blue/30 bg-accent-blue/10 px-3 py-1 text-xs font-semibold text-accent-blue">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
           <CalendarDays className="h-3.5 w-3.5" />
           Dealer Performance Reports
         </div>
-        <h1 className="text-3xl font-bold text-white">Reports</h1>
-        <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+        <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+        <p className="mt-1 max-w-2xl text-sm text-gray-500">
           Review sales, margin, aging inventory, and AI period performance from one reporting view.
         </p>
       </div>
@@ -23,7 +23,7 @@ export default function ReportsHeader({ onExportCsv, onExportPdf }: ReportsHeade
         <button
           type="button"
           onClick={onExportCsv}
-          className="btn-outline inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold"
         >
           <Download className="h-4 w-4" />
           CSV
@@ -31,7 +31,7 @@ export default function ReportsHeader({ onExportCsv, onExportPdf }: ReportsHeade
         <button
           type="button"
           onClick={onExportPdf}
-          className="btn-primary inline-flex items-center gap-2 text-sm"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 inline-flex items-center gap-2 text-sm"
         >
           <FileDown className="h-4 w-4" />
           PDF

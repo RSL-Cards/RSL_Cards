@@ -199,6 +199,53 @@ export class WebDashboardService {
     }));
   }
 
+  async getPassbookTransactions(userId: string) {
+    const rawTx = await this.repository.getPassbookTransactions(userId);
+    let runningBalance = 0;
+    
+    // rawTx is ordered by date ASC from the repository
+    return rawTx.map(tx => {
+      const type = tx.type || 'buy';
+      const price = Number(tx.price || 0);
+      let debit = 0;
+      let credit = 0;
+      
+      if (type === 'buy') {
+        debit = price;
+        runningBalance -= price;
+      } else if (type === 'sell') {
+        credit = price;
+        runningBalance += price;
+      }
+      // trade might not affect cash balance directly, or depends on cashAdjustment
+
+      const profit = tx.profit ? Number(tx.profit) : null;
+      const margin = (profit !== null && Number(tx.cost_basis) > 0) 
+        ? (profit / Number(tx.cost_basis)) * 100 
+        : null;
+
+      const dateObj = new Date(tx.created_at || new Date());
+      
+      return {
+        id: tx.id,
+        date: dateObj.toISOString().slice(0, 10),
+        time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        reference: tx.id.slice(0, 8).toUpperCase(),
+        type,
+        card: tx.player_name || 'Unknown',
+        customer: tx.customer_name || 'Direct',
+        grade: String(tx.grade_key || 'RAW').replace('_', ' '),
+        channel: tx.channel || 'Direct',
+        payment: tx.payment_method || 'Other',
+        debit,
+        credit,
+        profit,
+        margin: margin ? Number(margin.toFixed(2)) : null,
+        balance: runningBalance
+      };
+    }).reverse(); // UI usually shows latest on top, so reverse after running balance calculation
+  }
+
   async getPortfolioSnapshot(userId: string) {
     const { snapshotRow, agingCardsRows } = await this.repository.getPortfolioSnapshot(userId);
 

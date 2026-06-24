@@ -240,6 +240,28 @@ export class WebDashboardRepository {
       .limit(10);
   }
 
+  async getPassbookTransactions(userId: string) {
+    const result = await db.execute(sql`
+      SELECT 
+        t.id,
+        t.created_at,
+        t.type,
+        t.channel,
+        t.payment_method,
+        t.price,
+        t.cost_basis,
+        t.profit,
+        t.player_name,
+        t.grade_key,
+        c.name as customer_name
+      FROM transactions t
+      LEFT JOIN customers c ON t.customer_id = c.id
+      WHERE t.user_id = ${userId}
+      ORDER BY t.created_at ASC
+    `);
+    return result.rows;
+  }
+
   async getPortfolioSnapshot(userId: string) {
     const result = await db.execute(sql`
       SELECT 

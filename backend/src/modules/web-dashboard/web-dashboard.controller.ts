@@ -55,4 +55,8 @@ export class WebDashboardController {
   getPortfolioSnapshot = async ({ request }: { request: Request }) => {
     return await this.service.getPortfolioSnapshot(this.getUserId(request));
   };
+
+  getPassbookTransactions = async ({ request }: { request: Request }) => {
+    return await this.service.getPassbookTransactions(this.getUserId(request));
+  };
 }

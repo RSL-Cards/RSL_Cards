@@ -4,27 +4,27 @@ export const typeStyles = {
   BREAKOUT: {
     icon: Zap,
     label: 'Breakout',
-    card: 'border-success/30 bg-success/5',
-    chip: 'border-success/30 bg-success/15 text-success',
+    card: 'border-success/30 bg-green-600/5',
+    chip: 'border-success/30 bg-green-600/15 text-green-600',
   },
   MOMENTUM: {
     icon: TrendingUp,
     label: 'Momentum',
-    card: 'border-accent-blue/30 bg-accent-blue/5',
-    chip: 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue',
+    card: 'border-blue-200 bg-blue-600/5',
+    chip: 'border-blue-200 bg-blue-600/15 text-blue-600',
   },
   DECLINE: {
     icon: TrendingDown,
     label: 'Decline',
-    card: 'border-accent-red/30 bg-accent-red/5',
-    chip: 'border-accent-red/30 bg-accent-red/15 text-accent-red',
+    card: 'border-accent-red/30 bg-red-600/5',
+    chip: 'border-accent-red/30 bg-red-600/15 text-red-600',
   },
 }
 
 export const recommendationStyles: Record<string, string> = {
-  HOLD: 'bg-accent-blue/15 text-accent-blue border-accent-blue/30',
-  SELL: 'bg-accent-red/15 text-accent-red border-accent-red/30',
-  BUY: 'bg-success/15 text-success border-success/30',
+  HOLD: 'bg-blue-600/15 text-blue-600 border-blue-200',
+  SELL: 'bg-red-600/15 text-red-600 border-accent-red/30',
+  BUY: 'bg-green-600/15 text-green-600 border-success/30',
 }
 
 export const insightConfidence: Record<string, number> = {
@@ -56,7 +56,7 @@ export const getSportColor = (sport: string) => {
 }
 
 export const getGradeColor = (grade: string) => {
-  if (grade.includes('PSA')) return 'chip-warning'
-  if (grade.includes('BGS')) return 'chip-blue'
+  if (grade.includes('PSA')) return 'inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-700'
+  if (grade.includes('BGS')) return 'inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700'
   return 'bg-gray-500/20 px-2 py-1 rounded-full text-xs font-medium text-gray-400'
 }

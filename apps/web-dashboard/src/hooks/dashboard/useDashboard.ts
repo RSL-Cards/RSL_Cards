@@ -13,6 +13,7 @@ export const dashboardKeys = {
   recentTransactions: () => [...dashboardKeys.all, 'recentTransactions'] as const,
   aiInsights: () => [...dashboardKeys.all, 'aiInsights'] as const,
   portfolioSnapshot: () => [...dashboardKeys.all, 'portfolioSnapshot'] as const,
+  transactionsPassbook: () => [...dashboardKeys.all, 'transactionsPassbook'] as const,
 };
 
 export function useDashboardMetrics() {
@@ -83,5 +84,12 @@ export function usePortfolioSnapshot() {
   return useQuery({
     queryKey: dashboardKeys.portfolioSnapshot(),
     queryFn: dashboardService.getPortfolioSnapshot,
+  });
+}
+
+export function useDashboardPassbook() {
+  return useQuery({
+    queryKey: dashboardKeys.transactionsPassbook(),
+    queryFn: dashboardService.getPassbookTransactions,
   });
 }

@@ -47,7 +47,7 @@ export default function TransactionsFilters({
   onTypeFilterChange,
 }: TransactionsFiltersProps) {
   return (
-    <div className="dashboard-card">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {periodOptions.map(([value, label]) => (
@@ -57,8 +57,8 @@ export default function TransactionsFilters({
               onClick={() => onPeriodChange(value)}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 period === value
-                  ? 'bg-accent-blue text-white'
-                  : 'bg-surface-2 text-text-secondary hover:text-white'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
               {label}
@@ -67,11 +67,11 @@ export default function TransactionsFilters({
         </div>
 
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-text-secondary">
+          <label className="flex items-center gap-2 text-gray-500">
             From
             <input
               type="date"
-              className="dashboard-input"
+              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
               value={fromDate}
               onChange={(event) => {
                 onFromDateChange(event.target.value)
@@ -79,11 +79,11 @@ export default function TransactionsFilters({
               }}
             />
           </label>
-          <label className="flex items-center gap-2 text-text-secondary">
+          <label className="flex items-center gap-2 text-gray-500">
             To
             <input
               type="date"
-              className="dashboard-input"
+              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
               value={toDate}
               onChange={(event) => {
                 onToDateChange(event.target.value)
@@ -96,18 +96,18 @@ export default function TransactionsFilters({
 
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="relative md:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            className="dashboard-input w-full pl-9"
+            className="block w-full rounded-lg border-0 py-2 pl-9 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
             placeholder="Search card, customer, ref, payment"
           />
         </div>
         <select
           value={typeFilter}
           onChange={(event) => onTypeFilterChange(event.target.value)}
-          className="dashboard-input"
+          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
         >
           <option value="all">All Types</option>
           <option value="buy">Debit / Buy</option>
@@ -118,7 +118,7 @@ export default function TransactionsFilters({
         <select
           value={channelFilter}
           onChange={(event) => onChannelFilterChange(event.target.value)}
-          className="dashboard-input"
+          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
         >
           <option value="all">All Channels</option>
           {channelOptions.map((channel) => (
@@ -128,7 +128,7 @@ export default function TransactionsFilters({
         <select
           value={paymentFilter}
           onChange={(event) => onPaymentFilterChange(event.target.value)}
-          className="dashboard-input"
+          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
         >
           <option value="all">All Payments</option>
           {paymentOptions.map((payment) => (
