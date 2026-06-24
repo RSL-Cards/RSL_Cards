@@ -204,7 +204,7 @@ export class WebDashboardService {
     let runningBalance = 0;
     
     // rawTx is ordered by date ASC from the repository
-    return rawTx.map(tx => {
+    return rawTx.map((tx: any) => {
       const type = tx.type || 'buy';
       const price = Number(tx.price || 0);
       let debit = 0;
