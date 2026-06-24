@@ -84,7 +84,7 @@ export default function DashboardPage() {
           <MetricCard
             title="Today's Revenue"
             value={metrics.today.revenue}
-            trend={{ value: 14.2, label: 'vs yesterday' }}
+            trend={{ value: metrics.today.revenue_change || 0, label: 'vs yesterday' }}
             sparklineData={generateSparklineData(metrics.today.revenue, 200)}
             format="currency"
             color="blue"
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           <MetricCard
             title="Today's Profit"
             value={metrics.today.profit}
-            trend={{ value: 8.4, label: 'vs yesterday' }}
+            trend={{ value: metrics.today.profit_change || 0, label: 'vs yesterday' }}
             subtitle={`${metrics.today.margin.toFixed(1)}% margin`}
             sparklineData={generateSparklineData(metrics.today.profit, 50)}
             format="currency"

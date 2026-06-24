@@ -8,6 +8,7 @@ export class WebDashboardService {
     const {
       todayTx,
       todayBuys,
+      yesterdayTx,
       weekTx,
       weekBuys,
       monthTx,
@@ -17,17 +18,25 @@ export class WebDashboardService {
 
     const t = todayTx;
     const tb = todayBuys;
+    const yt = yesterdayTx;
     const w = weekTx;
     const wb = weekBuys;
     const m = monthTx;
     const mb = monthBuys;
     const inv = activeInvStats;
 
+    const calculatePctChange = (current: number, previous: number) => {
+      if (!previous) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
     return {
       today: {
         revenue: t.revenue || 0,
         profit: t.profit || 0,
         margin: t.revenue ? ((t.profit || 0) / t.revenue) * 100 : 0,
+        revenue_change: calculatePctChange(t.revenue || 0, yt.revenue || 0),
+        profit_change: calculatePctChange(t.profit || 0, yt.profit || 0),
         cards_bought: tb.cards_bought || 0,
         cards_sold: t.cards_sold || 0,
         total_spent: tb.total_spent || 0,

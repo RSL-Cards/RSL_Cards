@@ -6,6 +6,7 @@ export class WebDashboardRepository {
   async getMetrics(userId: string) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -22,6 +23,21 @@ export class WebDashboardRepository {
       .select({ cards_bought: count(), total_spent: sum(transactions.price).mapWith(Number) })
       .from(transactions)
       .where(and(eq(transactions.userId, userId), eq(transactions.type, "buy"), gte(transactions.createdAt, today)));
+
+    const yesterdayTx = await db
+      .select({
+        revenue: sum(transactions.price).mapWith(Number),
+        profit: sum(transactions.profit).mapWith(Number),
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.type, "sell"),
+          gte(transactions.createdAt, yesterday),
+          sql`${transactions.createdAt} < ${today}`
+        )
+      );
 
     const weekTx = await db
       .select({
@@ -63,6 +79,7 @@ export class WebDashboardRepository {
     return {
       todayTx: todayTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
       todayBuys: todayBuys[0] || { cards_bought: 0, total_spent: 0 },
+      yesterdayTx: yesterdayTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
       weekTx: weekTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
       weekBuys: weekBuys[0] || { cards_bought: 0 },
       monthTx: monthTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
