@@ -6,6 +6,7 @@ import { env } from "../../config/index.js";
 import { ListingRepository } from "../listing/listing.repository.js";
 import { EbayService } from "../listing/ebay.service.js";
 import { SoldCompsService } from "../listing/sold-comps.service.js";
+import { MyslabsService } from "../listing/myslabs.service.js";
 import { vertexAiClient } from "../../lib/vertex-ai.client.js";
 import { CARD_SCAN_PROMPT } from "../../config/prompts.js";
 
@@ -114,9 +115,14 @@ export class AiNarrativeService {
         const query = `${r.player_name} ${r.year} ${r.set_name} ${r.variation || ""}`.trim();
         const listingRepo = new ListingRepository();
         const ebayService = new EbayService(env);
+        const myslabsService = new MyslabsService(env);
         const soldCompsService = new SoldCompsService(env);
+        
         listingRepo.ebaySold({ q: query, variant_id: r.variant_id, grade_key: "RAW" }, ebayService, soldCompsService)
-          .catch((err) => console.error("scan-card (cache): failed to trigger price refresh:", err));
+          .catch((err) => console.error("scan-card (cache): failed to trigger ebay price refresh:", err));
+          
+        listingRepo.myslabsSold({ q: query, variant_id: r.variant_id, grade_key: "RAW" }, myslabsService)
+          .catch((err) => console.error("scan-card (cache): failed to trigger myslabs price refresh:", err));
       }
 
       return {
@@ -147,13 +153,17 @@ export class AiNarrativeService {
 
     // We can still try a fallback chain if needed, but we'll stick to the requested model.
     const modelsToTry = [
-      "gemini-2.5-flash"
+      "gemini-3.1-flash-lite"
     ];
 
     for (const modelName of modelsToTry) {
       try {
         console.log(`[SCAN-CARD] Attempting to scan card with model: ${modelName}...`);
+        const startTime = Date.now();
         const rawResponse = await vertexAiClient.generateFromImage(CARD_SCAN_PROMPT, image, mimeType, modelName);
+        const duration = Date.now() - startTime;
+        console.log(`[PERF] ⏱️ Vertex AI Model Extraction took ${duration}ms`);
+        
         const cleaned = rawResponse.replace(/```json|```/g, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("No JSON in Vertex AI response");
@@ -183,6 +193,7 @@ export class AiNarrativeService {
     const cardId = generateCardId(geminiCard);
     let variantId: string | null = null;
     let finalCardId = cardId;
+    let finalRslCardId: string | null = null;
 
     try {
       // 3a. Ensure player exists
@@ -251,7 +262,7 @@ export class AiNarrativeService {
 
         // 3c. Upsert variant
         const variantName = geminiCard.variation || "Base";
-        const rslCardId = `${finalCardId}_${norm(variantName)}`;
+        const rslCardUniqueName = `${finalCardId}_${norm(variantName)}`;
         const isAutograph = geminiCard.is_autograph ?? /auto|autograph/i.test(variantName);
         const isRelic = geminiCard.is_relic ?? /patch|relic|mem/i.test(variantName);
         const isParallel = variantName.toLowerCase() !== "base";
@@ -272,16 +283,16 @@ export class AiNarrativeService {
         `);
 
         if (baseVariantRes.rows.length === 0) {
-          const baseRslCardId = `${finalCardId}_base`;
+          const baseRslCardUniqueName = `${finalCardId}_base`;
           await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${finalCardId}, ${baseRslCardId}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
+            INSERT INTO card_variants (id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${finalCardId}, 'rsl-' || gen_random_uuid(), ${baseRslCardUniqueName}, ${cardYear}, ${setName}, 'Base', false, true, NOW(), NOW())
           `);
         }
 
         // Check if variation already exists
         const varRes = await db.execute(sql`
-          SELECT id FROM card_variants 
+          SELECT id, rsl_card_id FROM card_variants 
           WHERE card_id = ${finalCardId} 
             AND name = ${variantName}
             AND (year = ${cardYear}::integer OR (year IS NULL AND ${cardYear}::integer IS NULL))
@@ -291,33 +302,39 @@ export class AiNarrativeService {
         `);
 
         let resolvedId: string | null = null;
+        let resolvedRslCardId: string | null = null;
         if (varRes.rows.length === 0) {
           const insertRes = await db.execute(sql`
             INSERT INTO card_variants (
-              id, card_id, rsl_card_id, year, set_name, name, is_parallel, is_base,
+              id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base,
               is_autograph, is_relic, print_run,
               created_at, updated_at
             ) VALUES (
-              gen_random_uuid(), ${finalCardId}, ${rslCardId}, ${cardYear}, ${setName}, ${variantName},
+              gen_random_uuid(), ${finalCardId}, 'rsl-' || gen_random_uuid(), ${rslCardUniqueName}, ${cardYear}, ${setName}, ${variantName},
               ${isParallel}, ${!isParallel},
               ${isAutograph}, ${isRelic}, ${printRun},
               NOW(), NOW()
             )
-            RETURNING id
+            RETURNING id, rsl_card_id
           `);
           resolvedId = (insertRes.rows[0] as any)?.id || null;
+          resolvedRslCardId = (insertRes.rows[0] as any)?.rsl_card_id || null;
         } else {
           resolvedId = (varRes.rows[0] as any)?.id || null;
+          resolvedRslCardId = (varRes.rows[0] as any)?.rsl_card_id || null;
         }
 
         if (!resolvedId) {
           const fallbackRow = await db.execute(sql`
-            SELECT id FROM card_variants WHERE card_id = ${finalCardId} AND is_base = true LIMIT 1
+            SELECT id, rsl_card_id FROM card_variants WHERE card_id = ${finalCardId} AND is_base = true LIMIT 1
           `);
           resolvedId = (fallbackRow.rows[0] as any)?.id || null;
+          resolvedRslCardId = (fallbackRow.rows[0] as any)?.rsl_card_id || null;
         }
 
         variantId = resolvedId;
+        finalCardId = finalCardId; // just dummy
+        finalRslCardId = resolvedRslCardId;
       }
 
       // 3d. Save image hash
@@ -332,15 +349,19 @@ export class AiNarrativeService {
 
     // 4. Trigger price refresh in background
     if (variantId) {
-      const query = `${geminiCard.player_name} ${geminiCard.year} ${geminiCard.set_name} ${geminiCard.variation || ""}`.trim();
+      const query = geminiCard.search_string || `${geminiCard.player_name} ${geminiCard.year} ${geminiCard.set_name} ${geminiCard.variation || ""}`.trim();
       const grades = ["RAW", "PSA_10", "PSA_9"];
       const listingRepo = new ListingRepository();
       const ebayService = new EbayService(env);
+      const myslabsService = new MyslabsService(env);
       const soldCompsService = new SoldCompsService(env);
 
       for (const grade of grades) {
-        listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade }, ebayService, soldCompsService)
-          .catch((err) => console.error("scan-card (live): failed to trigger price refresh for grade:", grade, err));
+        listingRepo.ebaySold({ q: query, variant_id: variantId, grade_key: grade, filter: geminiCard.filter }, ebayService, soldCompsService)
+          .catch((err) => console.error("scan-card (live): failed to trigger ebay price refresh for grade:", grade, err));
+          
+        listingRepo.myslabsSold({ q: query, variant_id: variantId, grade_key: grade, filter: geminiCard.filter }, myslabsService)
+          .catch((err) => console.error("scan-card (live): failed to trigger myslabs price refresh for grade:", grade, err));
       }
     }
 
@@ -348,7 +369,7 @@ export class AiNarrativeService {
       card: geminiCard,
       cardId,
       variantId,
-      rslCardId: variantId ? `${finalCardId}_${norm(geminiCard.variation || "Base")}` : null,
+      rslCardId: variantId ? finalRslCardId : null,
       fromCache: false,
       confidence: geminiCard.confidence ?? 0.9,
     };

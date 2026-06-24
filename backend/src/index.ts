@@ -6,6 +6,7 @@ import { logger } from "./lib/logger.js";
 import { testDbConnection } from "./db/index.js";
 import { redisAdapter } from "./adapters/redis.adapter.js";
 import { bullMqAdapter } from "./adapters/bullmq.adapter.js";
+import { initWorker } from "./worker.js";
 import { authModule } from "./modules/auth/index.js";
 import { userModule } from "./modules/user/index.js";
 import { inventoryModule } from "./modules/inventory/index.js";
@@ -16,7 +17,7 @@ import { notificationModule } from "./modules/notification/index.js";
 import { analyticsModule } from "./modules/analytics/index.js";
 import { adminModule } from "./modules/admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
-import { emailModule } from "./modules/email/index.js";
+import { assistantModule } from "./modules/assistant/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -79,7 +80,12 @@ const app = new Elysia()
   .use(analyticsModule)
   .use(adminModule)
   .use(listingModule)
-  .use(emailModule)
+  .use(assistantModule)
+  // Handle root-level eBay callback (from eBay developer portal RuName)
+  .get("/ebay/callback", ({ request }: any) => {
+    const url = new URL(request.url);
+    return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
+  })
   // Highly comprehensive Health Check Endpoint mapping DB, Redis, BullMQ, and backend systems
   .get("/health", async (ctx: any) => {
     const dbStatus = await testDbConnection();
@@ -107,7 +113,14 @@ const app = new Elysia()
       bullmq: bullMqStatus,
     };
   })
-  .listen(env.PORT || 8080);
+  .listen({
+    port: env.PORT || 8080,
+    hostname: "0.0.0.0"
+  });
+
+// Start background worker and scheduled jobs
+initWorker();
+bullMqAdapter.startCronJobs().catch(err => logger.error(`Cron init failed: ${err}`));
 
 logger.info(`🚀 Backend Monorepo running at ${app.server?.hostname}:${app.server?.port}`);
 

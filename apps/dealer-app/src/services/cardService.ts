@@ -186,10 +186,13 @@ export const cardService = {
     limit = 10,
     variantId?: string,
     gradeKey?: string,
+    offset = 0,
+    soldQuery?: string,
   ): Promise<EbaySoldResponse> {
-    const params: Record<string, any> = { q: query, limit };
+    const params: Record<string, any> = { q: query, limit, offset };
     if (variantId) params.variant_id = variantId;
     if (gradeKey) params.grade_key = gradeKey;
+    if (soldQuery) params.sold_q = soldQuery;
     const { data } = await apiClient.get<any>(ENDPOINTS.ebay.sold, { params });
     if (data.fromCache && data.snapshots) {
       return {
@@ -227,10 +230,13 @@ export const cardService = {
     limit = 10,
     variantId?: string,
     gradeKey?: string,
+    offset = 0,
+    soldQuery?: string,
   ): Promise<MyslabsSoldResponse> {
-    const params: Record<string, any> = { q: query, limit };
+    const params: Record<string, any> = { q: query, limit, offset };
     if (variantId) params.variant_id = variantId;
     if (gradeKey) params.grade_key = gradeKey;
+    if (soldQuery) params.sold_q = soldQuery;
     const { data } = await apiClient.get<any>(ENDPOINTS.myslabs.sold, { params });
     if (data.fromCache && data.snapshots) {
       return {

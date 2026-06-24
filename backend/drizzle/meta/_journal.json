@@ -141,6 +141,27 @@
       "when": 1780819919301,
       "tag": "0019_white_ultimates",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1781510557216,
+      "tag": "0020_tan_harrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781944027610,
+      "tag": "0021_minor_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1781944318709,
+      "tag": "0022_flaky_joshua_kane",
+      "breakpoints": true
     }
   ]
 }

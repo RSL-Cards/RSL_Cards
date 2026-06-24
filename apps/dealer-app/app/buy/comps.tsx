@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -14,57 +15,27 @@ import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useEbaySold, useEbaySearch, useMyslabsSold } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
 import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
+import { isGraded } from "../../src/utils/gradeHelper";
 
 const STEP_PCT = "40%";
 
 function buildEbayQuery(card: any): string {
   if (!card) return "";
-
-  const parts: string[] = [];
-
-  // 1. Player name (most important — always first)
-  if (card.player_name) parts.push(card.player_name);
-
-  // 2. Year
-  if (card.year) parts.push(String(card.year));
-
-  // 3. Set name
-  if (card.set_name) parts.push(card.set_name);
-
-  // 4. Variation / parallel (e.g. "Silver Prizm", "Gold Refractor", "Holo")
-  // Skip "Base" — base cards are listed without variation on eBay
-  if (card.variation && card.variation.toLowerCase() !== "base") {
-    parts.push(card.variation);
-  }
-
-  // 5. Card number (e.g. "#269") — helps narrow to exact print
-  if (card.card_number) parts.push(`#${card.card_number}`);
-
-  // 6. Grading — PSA 10, BGS 9.5 etc. narrows to graded copies only
-  if (card.grading?.company && card.grading?.grade) {
-    parts.push(`${card.grading.company} ${card.grading.grade}`);
-  }
-
-  return parts.join(" ");
+  // USER REQUEST: dont include grade company for ebay active listings
+  return [
+    card.player_name, 
+    card.year, 
+    card.set_name, 
+    card.variation !== "Base" ? card.variation : "", 
+    card.is_autograph ? "Auto" : "",
+    card.is_relic ? "Patch" : "",
+    card.card_number ? `#${card.card_number}` : ""
+  ].filter(Boolean).join(" ");
 }
 
 function buildMyslabsQuery(card: any): string {
   if (!card) return "";
-
-  const parts: string[] = [];
-
-  if (card.player_name) parts.push(card.player_name);
-  if (card.year) parts.push(String(card.year));
-  if (card.set_name) parts.push(card.set_name);
-  
-  // Variation is critical but we skip "Base"
-  if (card.variation && card.variation.toLowerCase() !== "base") {
-    parts.push(card.variation);
-  }
-
-  // We explicitly SKIP card number and grading company for MySlabs, 
-  // as MySlabs search will frequently return 0 results if these are included.
-  return parts.join(" ");
+  return buildEbayQuery(card);
 }
 
 function calcAvg(items: EbaySoldItem[]): number {
@@ -142,68 +113,79 @@ export default function BuyCompsScreen() {
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
-  const ebayQuery = buildEbayQuery(card);
+const ebayQuery = buildEbayQuery(card);
 
-  const myslabsQuery = buildMyslabsQuery(card);
+  let soldQueryKeywords = ebayQuery;
+  if (card?.filter) {
+    try {
+      const f = typeof card.filter === 'string' ? JSON.parse(card.filter) : card.filter;
+      if (f.must_exclude && Array.isArray(f.must_exclude)) {
+        // Filter out single digits, short terms, and limit to max 10 to avoid breaking search engine limits
+        const safeExcludes = f.must_exclude
+          .filter((w: string) => w.length > 2)
+          .slice(0, 10);
+        if (safeExcludes.length > 0) {
+          soldQueryKeywords = `${ebayQuery} ${safeExcludes.map((w: string) => `-${w}`).join(" ")}`;
+        }
+      }
+    } catch(e) {}
+  }
 
-  const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
+  // const myslabsQuery = buildMyslabsQuery(card);
+
+  const [salesVisibleCount, setSalesVisibleCount] = useState(5);
+  const [activeVisibleCount, setActiveVisibleCount] = useState(5);
+
+  const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
+
+    const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
-    gradeKey: card?.grade_key || "RAW",
+    gradeKey: resolvedGradeKey,
+    soldQuery: soldQueryKeywords,
   });
 
-  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs } = useMyslabsSold(myslabsQuery, {
-    limit: 50,
-    variantId: activeTab?.variantId,
-    gradeKey: card?.grade_key || "RAW",
-  });
+  // const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
+  //   limit: 50,
+  //   variantId: activeTab?.variantId,
+  //   gradeKey: resolvedGradeKey,
+  // });
 
-  const ebayActive = (data?.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  const myslabsActive = (myslabsData?.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
-  
-  const sortedEbayActive = [...ebayActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
-  const sortedMyslabsActive = [...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
-  
-  let activeEbayShow = sortedEbayActive.slice(0, 3);
-  let activeMyslabsShow = sortedMyslabsActive.slice(0, 3);
-  if (activeEbayShow.length < 3) activeMyslabsShow = sortedMyslabsActive.slice(0, 6 - activeEbayShow.length);
-  else if (activeMyslabsShow.length < 3) activeEbayShow = sortedEbayActive.slice(0, 6 - activeMyslabsShow.length);
-  
-  const activeItems = [...activeEbayShow, ...activeMyslabsShow]
-    .sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0")) as any[];
+  const ebayPages = data?.pages ?? [];
+  const myslabsPages: any[] = []; // myslabsData?.pages ?? [];
 
-  const ebaySold30 = (data?.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold30 = (myslabsData?.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
-  const sold30 = [...ebaySold30, ...myslabsSold30]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
+  const myslabsActive: any[] = []; // myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
 
-  const ebaySold7 = (data?.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold7 = (myslabsData?.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
-  const sold7 = [...ebaySold7, ...myslabsSold7]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const allActiveItems = [...ebayActive, ...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
+  const activeItems = allActiveItems.slice(0, activeVisibleCount);
+
+  const ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold30: any[] = []; // myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold30 = [...ebaySold30, ...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  const myslabsSold7: any[] = []; // myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  const sold7 = [...ebaySold7, ...myslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+
+  const allRecentSales = sold30;
+  const recentSales = allRecentSales.slice(0, salesVisibleCount);
+  const recentSalesGraded = recentSales.filter(item => isGraded(item.title, item.condition));
+  const recentSalesRaw = recentSales.filter(item => !isGraded(item.title, item.condition));
+  const activeGraded = activeItems.filter(item => isGraded(item.title, item.condition));
+  const activeRaw = activeItems.filter(item => !isGraded(item.title, item.condition));
 
   const avg30 = calcAvg(sold30 as any);
   const avg7 = calcAvg(sold7 as any);
   const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
-  
-  const sortedEbaySold30 = [...ebaySold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
-  const sortedMyslabsSold30 = [...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime());
-  
-  let recentEbayShow = sortedEbaySold30.slice(0, 4);
-  let recentMyslabsShow = sortedMyslabsSold30.slice(0, 4);
-  if (recentEbayShow.length < 4) recentMyslabsShow = sortedMyslabsSold30.slice(0, 8 - recentEbayShow.length);
-  else if (recentMyslabsShow.length < 4) recentEbayShow = sortedEbaySold30.slice(0, 8 - recentMyslabsShow.length);
-  
-  const recentSales = [...recentEbayShow, ...recentMyslabsShow]
-    .sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
   const sparklineData = sold30
     .slice(0, 8)
     .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
-  
-  const isLoadingAll = isLoading || myslabsLoading;
-  const isErrorAll = isError || myslabsError;
+
+  const isLoadingAll = isLoading; // || myslabsLoading;
+  const isErrorAll = isError; // || myslabsError;
 
   const initials =
     card?.player_name
@@ -357,11 +339,12 @@ export default function BuyCompsScreen() {
             <DealRatingBadge buyPrice={activeTab?.price} avgComp={avg30} />
 
             {/* Recent eBay sales */}
-            {recentSales.length > 0 && (
-              <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-                <Text style={styles.sectionLabel}>RECENT SALES</Text>
+
+            <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+                <Text style={styles.sectionLabel}>RECENT SALES - GRADED</Text>
+                {recentSalesGraded.length > 0 ? (
                 <View style={styles.sectionCard}>
-                  {recentSales.map((sale, i) => (
+                  {recentSalesGraded.map((sale, i) => (
                     <TouchableOpacity
                       key={sale.itemId}
                       activeOpacity={sale.itemWebUrl ? 0.7 : 1}
@@ -372,7 +355,7 @@ export default function BuyCompsScreen() {
                       }}
                       style={[
                         styles.saleRow,
-                        i < recentSales.length - 1 && styles.rowBorder,
+                        i < recentSalesGraded.length - 1 && styles.rowBorder,
                       ]}
                     >
                       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
@@ -433,6 +416,112 @@ export default function BuyCompsScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+              ) : (
+                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No graded sales found.</Text>
+              )}
+              </View>
+
+            <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+                <Text style={styles.sectionLabel}>RECENT SALES - RAW</Text>
+                {recentSalesRaw.length > 0 ? (
+                <View style={styles.sectionCard}>
+                  {recentSalesRaw.map((sale, i) => (
+                    <TouchableOpacity
+                      key={sale.itemId}
+                      activeOpacity={sale.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (sale.itemWebUrl) {
+                          Linking.openURL(sale.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
+                      style={[
+                        styles.saleRow,
+                        i < recentSalesRaw.length - 1 && styles.rowBorder,
+                      ]}
+                    >
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                        {sale.image?.imageUrl && (
+                          <Image
+                            source={{ uri: sale.image.imageUrl }}
+                            style={{
+                              width: 36,
+                              height: 50,
+                              borderRadius: 4,
+                              marginRight: 10,
+                              backgroundColor: "#222222",
+                            }}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
+                            {sale.title}
+                          </Text>
+                          {sale.condition && (
+                            <Text
+                              style={{
+                                color: "#555555",
+                                fontSize: 10,
+                                marginTop: 2,
+                              }}
+                            >
+                              {sale.condition}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.salePrice}>
+                          ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
+                        </Text>
+                        <Text style={styles.saleDate}>
+                          {sale.endDate
+                            ? format(new Date(sale.endDate), "MMM d, yyyy")
+                            : "—"}
+                        </Text>
+                        {sale.platform && (
+                          <View
+                            style={[
+                              styles.platformBadge,
+                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                            >
+                              {sale.platform}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No raw sales found.</Text>
+              )}
+              </View>
+
+            {(allRecentSales.length > salesVisibleCount || hasNextPage) && (
+              <View style={{ paddingHorizontal: 20 }}>
+                <TouchableOpacity
+                  style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
+                  onPress={() => {
+                    if (salesVisibleCount < allRecentSales.length) {
+                      setSalesVisibleCount(c => c + 10);
+                    } else {
+                      if (hasNextPage) fetchNextPage();
+                      setSalesVisibleCount(c => c + 10);
+                    }
+                  }}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <ActivityIndicator color="#0057FF" />
+                  ) : (
+                    <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Sales</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
 
@@ -457,11 +546,12 @@ export default function BuyCompsScreen() {
             )}
 
             {/* Current eBay Active Listings */}
-            {activeItems.length > 0 && (
-              <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS</Text>
+
+            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS - GRADED</Text>
+                {activeGraded.length > 0 ? (
                 <View style={styles.sectionCard}>
-                  {activeItems.map((item, i) => (
+                  {activeGraded.map((item, i) => (
                     <TouchableOpacity
                       key={item.itemId}
                       activeOpacity={item.itemWebUrl ? 0.7 : 1}
@@ -472,7 +562,7 @@ export default function BuyCompsScreen() {
                       }}
                       style={[
                         styles.saleRow,
-                        i < activeItems.length - 1 && styles.rowBorder,
+                        i < activeGraded.length - 1 && styles.rowBorder,
                       ]}
                     >
                       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
@@ -528,8 +618,110 @@ export default function BuyCompsScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+              ) : (
+                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No graded active listings found.</Text>
+              )}
+              </View>
+
+            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
+                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS - RAW</Text>
+                {activeRaw.length > 0 ? (
+                <View style={styles.sectionCard}>
+                  {activeRaw.map((item, i) => (
+                    <TouchableOpacity
+                      key={item.itemId}
+                      activeOpacity={item.itemWebUrl ? 0.7 : 1}
+                      onPress={() => {
+                        if (item.itemWebUrl) {
+                          Linking.openURL(item.itemWebUrl).catch(err => console.error("Could not open URL", err));
+                        }
+                      }}
+                      style={[
+                        styles.saleRow,
+                        i < activeRaw.length - 1 && styles.rowBorder,
+                      ]}
+                    >
+                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
+                        {item.image?.imageUrl && (
+                          <Image
+                            source={{ uri: item.image.imageUrl }}
+                            style={{
+                              width: 36,
+                              height: 50,
+                              borderRadius: 4,
+                              marginRight: 10,
+                              backgroundColor: "#222222",
+                            }}
+                            resizeMode="cover"
+                          />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
+                            {item.title}
+                          </Text>
+                          {item.condition && (
+                            <Text
+                              style={{
+                                color: "#555555",
+                                fontSize: 10,
+                                marginTop: 2,
+                              }}
+                            >
+                              {item.condition}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.salePrice}>
+                          ${parseFloat(item.displayPrice ?? "0").toFixed(2)}
+                        </Text>
+                        {item.platform && (
+                          <View
+                            style={[
+                              styles.platformBadge,
+                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                            ]}
+                          >
+                            <Text
+                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                            >
+                              {item.platform}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No raw active listings found.</Text>
+              )}
+              </View>
+
+            {(allActiveItems.length > activeVisibleCount || hasNextPage) && (
+              <View style={{ paddingHorizontal: 20 }}>
+                <TouchableOpacity
+                  style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
+                  onPress={() => {
+                    if (activeVisibleCount < allActiveItems.length) {
+                      setActiveVisibleCount(c => c + 10);
+                    } else {
+                      if (hasNextPage) fetchNextPage();
+                      setActiveVisibleCount(c => c + 10);
+                    }
+                  }}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? (
+                    <ActivityIndicator color="#0057FF" />
+                  ) : (
+                    <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Active</Text>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
+
           </>
         )}
       </ScrollView>

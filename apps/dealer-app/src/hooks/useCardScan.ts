@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cardService,
   inventoryService,
   type ScanResponse,
   type EbaySoldResponse,
+  type MyslabsSoldResponse,
   type AddInventoryItem,
   type AddInventoryResponse,
 } from "../services/cardService";
@@ -34,20 +35,20 @@ export function useCardScan(type: "buy" | "sell" = "buy") {
         playerId: data.playerId,
         capturedPhoto: imageBase64,
       });
-      const source = data.fromCache ? "📦 From DB cache" : "🤖 Gemini AI";
+      const source = data.fromCache ? "📦 From DB cache" : "✨ RSL Vision";
       console.log("[SCAN] full response:", JSON.stringify(data, null, 2));
       console.log(
         `[SCAN] source=${source} cardId=${data.cardId} variantId=${data.variantId} confidence=${data.confidence}`,
       );
       Toast.show({
         type: "success",
-        text1: `Card identified! ${source}`,
+        text1: "Card identified!",
         text2: `${data.card.player_name} — ${Math.round(data.confidence * 100)}% confidence`,
       });
       if (type === "buy") {
         router.push("/buy/comps");
       } else {
-        router.push("/sell/price");
+        router.push("/sell/channel");
       }
     },
     onError: (error: any) => {
@@ -111,21 +112,31 @@ export function useEbaySold(
     limit?: number;
     variantId?: string;
     gradeKey?: string;
+    soldQuery?: string;
   },
 ) {
-  return useQuery<EbaySoldResponse, Error>({
+  return useInfiniteQuery<EbaySoldResponse, Error>({
     queryKey: [
       ...QUERY_KEYS.ebaySold(query),
       options?.variantId,
       options?.gradeKey,
+      options?.soldQuery,
     ],
-    queryFn: () =>
+    queryFn: ({ pageParam = 0 }) =>
       cardService.getEbaySold(
         query,
-        options?.limit ?? 10,
+        options?.limit ?? 50,
         options?.variantId,
         options?.gradeKey,
+        pageParam as number,
+        options?.soldQuery,
       ),
+    getNextPageParam: (lastPage, allPages) => {
+      const fetchedItems = lastPage.sold30d?.items?.length || 0;
+      if (fetchedItems < (options?.limit ?? 50)) return undefined;
+      return allPages.reduce((acc, p) => acc + (p.sold30d?.items?.length || 0), 0);
+    },
+    initialPageParam: 0,
     enabled: (options?.enabled ?? true) && query.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 2,
@@ -139,17 +150,26 @@ export function useMyslabsSold(
     limit?: number;
     variantId?: string;
     gradeKey?: string;
+    soldQuery?: string;
   },
 ) {
-  return useQuery({
-    queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey],
-    queryFn: () =>
+  return useInfiniteQuery<MyslabsSoldResponse, Error>({
+    queryKey: ["myslabs", "sold", query, options?.variantId, options?.gradeKey, options?.soldQuery],
+    queryFn: ({ pageParam = 0 }) =>
       cardService.getMyslabsSold(
         query,
-        options?.limit ?? 10,
+        options?.limit ?? 50,
         options?.variantId,
         options?.gradeKey,
+        pageParam as number,
+        options?.soldQuery,
       ),
+    getNextPageParam: (lastPage, allPages) => {
+      const fetchedItems = lastPage.sold30d?.items?.length || 0;
+      if (fetchedItems < (options?.limit ?? 50)) return undefined;
+      return allPages.reduce((acc, p) => acc + (p.sold30d?.items?.length || 0), 0);
+    },
+    initialPageParam: 0,
     enabled: (options?.enabled ?? true) && query.trim().length > 0,
     staleTime: 5 * 60 * 1000,
     retry: 2,

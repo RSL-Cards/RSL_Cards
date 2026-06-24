@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
+import Svg, { Circle, G } from "react-native-svg";
 import {
   useDailyStats,
   useTodayActivity,
@@ -61,6 +62,54 @@ function BarChart({ data }: { data: { day: string; revenue: number }[] }) {
           </Typography>
         </View>
       ))}
+    </View>
+  );
+}
+
+const CHANNEL_COLORS: Record<string, string> = {
+  card_show: '#0057FF',
+  ebay: '#0053A0',
+  myslabs: '#E8001C',
+  facebook: '#1877F2',
+  local_store: '#00C853',
+  other: '#888888'
+};
+
+function DonutChart({ data, size = 180, strokeWidth = 24 }: { data: { value: number, color: string }[], size?: number, strokeWidth?: number }) {
+  if (!data.length) return null;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  
+  let currentOffset = 0;
+  
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <G rotation="-90" origin={`${size/2}, ${size/2}`}>
+          {data.map((d, i) => {
+            const percentage = d.value / total;
+            const strokeDasharray = `${circumference * percentage} ${circumference}`;
+            const strokeDashoffset = -currentOffset;
+            currentOffset += circumference * percentage;
+            
+            return (
+              <Circle
+                key={i}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={d.color || COLORS.zinc500}
+                strokeWidth={strokeWidth}
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                fill="transparent"
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </G>
+      </Svg>
     </View>
   );
 }
@@ -260,26 +309,37 @@ function PeriodView({ period }: { period: "week" | "month" }) {
         </View>
       ) : (
         <Surface variant="elevated" padding="none" style={styles.card}>
-          {channelData.channels.map((c, i) => (
-            <View key={c.channel} style={[{ padding: SPACING.md }, i < channelData.channels.length - 1 && styles.txDivider]}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.sm }}>
-                <Typography variant="body" weight="600" style={{ textTransform: "capitalize" }}>
-                  {c.channel.replace(/_/g, " ")}
-                </Typography>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Typography variant="body" weight="700">{fmt$(c.revenue)}</Typography>
-                  {c.profit > 0 && (
-                    <Typography variant="caption" color={COLORS.success} style={{ marginTop: 2 }}>
-                      +{fmt$(c.profit)} profit
+          <View style={{ alignItems: 'center', paddingVertical: SPACING.xl, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+            <DonutChart 
+              data={channelData.channels.map(c => ({
+                value: c.revenue,
+                color: CHANNEL_COLORS[c.channel] || COLORS.zinc500
+              }))} 
+            />
+          </View>
+          {channelData.channels.map((c, i) => {
+            const color = CHANNEL_COLORS[c.channel] || COLORS.zinc500;
+            return (
+              <View key={c.channel} style={[{ padding: SPACING.md }, i < channelData.channels.length - 1 && styles.txDivider]}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.sm, alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
+                    <Typography variant="body" weight="600" style={{ textTransform: "capitalize" }}>
+                      {c.channel.replace(/_/g, " ")}
                     </Typography>
-                  )}
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Typography variant="body" weight="700">{fmt$(c.revenue)}</Typography>
+                    {c.profit > 0 && (
+                      <Typography variant="caption" color={COLORS.success} style={{ marginTop: 2 }}>
+                        +{fmt$(c.profit)} profit
+                      </Typography>
+                    )}
+                  </View>
                 </View>
               </View>
-              <View style={{ height: 4, backgroundColor: COLORS.zinc800, borderRadius: 2 }}>
-                <View style={{ height: 4, width: `${(c.revenue / maxChannel) * 100}%`, backgroundColor: COLORS.primaryLight, borderRadius: 2 }} />
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </Surface>
       )}
     </ScrollView>

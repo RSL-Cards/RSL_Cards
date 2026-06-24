@@ -4,8 +4,84 @@ import { createHash } from "node:crypto";
 import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
+import { vertexAiClient } from "../../lib/vertex-ai.client.js";
+
+const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
 export class ListingRepository {
+  private async filterWithGemini(
+    query: string, 
+    items: any[], 
+    idField: string, 
+    titleField: string,
+    filterObj?: { must_include?: string[], must_exclude?: string[] },
+    gradeKey?: string
+  ): Promise<any[]> {
+    if (!items || items.length === 0) return [];
+    
+    try {
+      const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
+      console.log(`[FILTER] Query: "${query}" | Grade: "${gradeKey || 'RAW'}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
+
+      let filterInstructions = "";
+      if (filterObj) {
+        console.log(`[FILTER] 🔪 Applying KILL ALGORITHM Rules:`, JSON.stringify(filterObj));
+        filterInstructions = `
+9. KILL ALGORITHM:
+   - The title MUST INCLUDE all of these terms (case-insensitive): ${JSON.stringify(filterObj.must_include || [])}
+   - The title MUST NOT INCLUDE any of these terms (case-insensitive): ${JSON.stringify(filterObj.must_exclude || [])}
+   If the title fails either of these conditions, REJECT IT IMMEDIATELY.`;
+      }
+
+      let gradeInstruction = `4. IMPORTANT: Do NOT filter based on grading company or grade! Accept all matches regardless of whether they are Raw, PSA, BGS, SGC, etc. As long as the card itself is an exact match, accept it.`;
+      
+      if (gradeKey && gradeKey.toUpperCase() !== "RAW") {
+        const gradeNumberMatch = gradeKey.match(/[\d\.]+/);
+        const gradeNumber = gradeNumberMatch ? gradeNumberMatch[0] : null;
+        if (gradeNumber) {
+          gradeInstruction = `4. IMPORTANT: The listing MUST have the exact grade number "${gradeNumber}". Do NOT filter based on grading company (e.g., PSA ${gradeNumber}, BGS ${gradeNumber}, SGC ${gradeNumber} are all acceptable). REJECT any listings that are raw/ungraded or have a different grade number (like 9, 8.5, etc).`;
+        }
+      }
+
+      const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
+Here are the search results: ${JSON.stringify(minimalItems)}.
+
+CRITICAL FILTERING RULES:
+1. The listing MUST be the exact same player, year, set, and subset.
+2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
+3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
+${gradeInstruction}
+5. Reject any lots, sealed boxes, packs, or digital cards.
+6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
+7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
+8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.${filterInstructions}
+
+Return a JSON array of ONLY the "id"s of the listings that perfectly match.
+If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
+
+      const response = await vertexAiClient.generateChat(
+        "You are a strict data filter. Only return valid JSON arrays of strings.",
+        [],
+        prompt,
+        "gemini-3.1-flash-lite"
+      );
+
+      const jsonStr = response.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const validIds = JSON.parse(jsonStr);
+
+      if (!Array.isArray(validIds)) {
+        throw new Error("Gemini did not return an array");
+      }
+
+      console.log(`[FILTER] Gemini kept IDs:`, validIds);
+
+      return items.filter(i => validIds.includes(String(i[idField])));
+    } catch (e) {
+      console.error("[FILTER] Failed to filter items with Gemini", e);
+      return items; // fallback to returning ALL items so the UI doesn't break if Gemini times out
+    }
+  }
+
   async getListings(userId: string) {
     const result = await db.execute(sql`
       SELECT * FROM inventory
@@ -118,9 +194,11 @@ export class ListingRepository {
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
     const maxResults = limit ? Number(limit) : 20;
+    const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
+    const queryForSold = sold_q ? sold_q.trim() : query;
     const gradeKey = grade_key?.trim() || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
@@ -146,6 +224,8 @@ export class ListingRepository {
         FROM card_comp_snapshots
         WHERE variant_id = ${effectiveVariantId}
           AND grade_key = ${gradeKey}
+          AND platform = 'ebay'
+          AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
       `);
@@ -158,8 +238,9 @@ export class ListingRepository {
           FROM platform_sold_listings
           WHERE variant_id = ${effectiveVariantId}
             AND grade_key = ${gradeKey}
+            AND platform = 'ebay'
           ORDER BY sold_at DESC
-          LIMIT 20
+          LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
 
         const mappedSold = (soldCached.rows as any[]).map((item) => ({
@@ -181,7 +262,7 @@ export class ListingRepository {
             AND platform = 'ebay'
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
-          LIMIT 20
+          LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
 
         const mappedActive = (activeCached.rows as any[]).map((item) => ({
@@ -193,81 +274,6 @@ export class ListingRepository {
           image: { imageUrl: item.image_url },
         }));
 
-        const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
-        if (ageMs >= 15 * 60 * 1000) {
-          console.log(`[COMPS] Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh from LIVE APIs...`);
-          (async () => {
-            try {
-              const soldData = await soldCompsService.getSoldItems(query);
-              const prices = soldData.items
-                .map((i) => parseFloat(i.soldPrice))
-                .filter((p) => p > 0);
-
-              const activeData = await ebayService.searchListings({
-                q: query,
-                limit: Math.min(maxResults, 20),
-                sort: "pricePlusShippingLowest",
-              });
-              const activePrices = (activeData.itemSummaries ?? [])
-                .map((i) => parseFloat(i.price?.value ?? "0"))
-                .filter((p) => p > 0);
-
-              if (!prices.length && !activePrices.length) return;
-
-              const avg = prices.length
-                ? prices.reduce((a, b) => a + b, 0) / prices.length
-                : 0;
-              const last = prices.length ? prices[0] : 0;
-              const lowest = activePrices.length ? activePrices[0] : 0;
-
-              await db.execute(sql`
-                INSERT INTO card_comp_snapshots
-                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
-                VALUES
-                  (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
-                ON CONFLICT (variant_id, grade_key, platform)
-                DO UPDATE SET
-                  avg_sold_price = EXCLUDED.avg_sold_price,
-                  last_sold_price = EXCLUDED.last_sold_price,
-                  lowest_active = EXCLUDED.lowest_active,
-                  sales_count_30d = EXCLUDED.sales_count_30d,
-                  fetched_at = NOW()
-              `);
-
-              for (const item of soldData.items) {
-                const contentHash = createHash("sha256")
-                  .update(`soldcomps:${item.url}:${item.endedAt}`)
-                  .digest("hex")
-                  .slice(0, 64);
-
-                await db.execute(sql`
-                  INSERT INTO platform_sold_listings
-                    (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${item.title}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
-                `);
-              }
-
-              for (const item of activeData.itemSummaries ?? []) {
-                const contentHash = createHash("sha256")
-                  .update(`ebayactive:${item.itemId}`)
-                  .digest("hex")
-                  .slice(0, 64);
-                
-                await db.execute(sql`
-                  INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
-                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
-                `);
-              }
-            } catch (err) {
-              console.error("Background price refresh failed:", err);
-            }
-          })();
-        }
 
         console.log(`[COMPS] ✅ Returning comps from DB CACHE for: ${query}`);
         return {
@@ -280,7 +286,7 @@ export class ListingRepository {
             lastSoldPrice: r.last_sold_price,
             lowestActive: r.lowest_active,
             salesCount30d: r.sales_count_30d,
-            priceTrend30d: r.price_trend_30d,
+            priceTrend30d: null,
           })),
           activeListings: mappedActive,
           last7Days: {
@@ -297,13 +303,27 @@ export class ListingRepository {
       }
     }
 
-    console.log(`[COMPS] 📡 Fetching LIVE comps from eBay APIs for: ${query}`);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📡 Fetching LIVE comps for eBay...`);
+    console.log(`[COMPS]  👉 Passing to Active Listings (Real eBay API): "${query}"`);
+    console.log(`[COMPS]  👉 Passing to Sold Comps API: "${queryForSold}"`);
+    console.log(`======================================================\n`);
+    const ebayActiveStartTime = Date.now();
+    const soldCompsStartTime = Date.now();
+    
     const [soldResult, activeResult] = await Promise.allSettled([
-      soldCompsService.getSoldItems(query),
+      soldCompsService.getSoldItems(queryForSold).finally(() => {
+        const duration = Date.now() - soldCompsStartTime;
+        console.log(`[PERF] ⏱️ Sold Comps API (Sold) took ${duration}ms`);
+      }),
       ebayService.searchListings({
         q: query,
-        limit: Math.min(maxResults, 20),
+        limit: Math.min(maxResults, 50),
+        offset: offsetNum,
         sort: "pricePlusShippingLowest",
+      }).finally(() => {
+        const duration = Date.now() - ebayActiveStartTime;
+        console.log(`[PERF] ⏱️ Real eBay API (Active) took ${duration}ms`);
       }),
     ]);
 
@@ -319,9 +339,59 @@ export class ListingRepository {
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
 
-    console.log(`[COMPS] ✅ Returning LIVE comps from eBay APIs for: ${query}`);
-    console.log(`  -> Sold: ${soldData.items.length} items`);
-    console.log(`  -> Active: ${activeData.itemSummaries?.length ?? 0} items`);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📥 RECEIVED DATA FROM EBAY APIs:`);
+    console.log(`[COMPS]  📦 Sold Comps API Response count: ${soldData.items?.length || 0}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
+    }
+    console.log(`[COMPS]  📦 Active Listings API Response count: ${activeData.itemSummaries?.length || 0}`);
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.itemSummaries[0])}`);
+    }
+    console.log(`======================================================\n`);
+
+    // -------------------------------------------------------------
+    // EBAY GEMINI FILTERING
+    // -------------------------------------------------------------
+    const ebaySoldBefore = soldData.items?.length || 0;
+    const ebayActiveBefore = activeData.itemSummaries?.length || 0;
+    
+    let firstOriginalSoldItem = null;
+    if (soldData.items && soldData.items.length > 0) {
+      firstOriginalSoldItem = Object.assign({}, soldData.items[0]);
+    }
+
+    if (soldData.items && soldData.items.length > 0) {
+      soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", filter, gradeKey);
+    }
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", filter, gradeKey);
+    }
+
+    const ebaySoldAfter = soldData.items?.length || 0;
+    const ebayActiveAfter = activeData.itemSummaries?.length || 0;
+
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] ✨ EBAY GEMINI FILTER RESULTS:`);
+    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
+    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${ebayActiveBefore} | AFTER = ${ebayActiveAfter}`);
+    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.itemSummaries[0])}`);
+    }
+    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
+    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${ebaySoldBefore} | AFTER = ${ebaySoldAfter}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold (AFTER): ${JSON.stringify(soldData.items[0])}`);
+    } else if (ebaySoldBefore > 0 && firstOriginalSoldItem) {
+      // If Gemini wiped everything, let's at least print what the external API originally sent
+      console.log(`[COMPS]  ⚠️ ALL ITEMS FILTERED OUT. First item BEFORE filter was: ${JSON.stringify(firstOriginalSoldItem)}`);
+    }
+    console.log(`======================================================\n`);
+
+    console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
+    console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
+    console.log(`  -> Active (Real eBay API): ${activeData.itemSummaries?.length ?? 0} items`);
 
     if (activeResult.status === "rejected") {
       console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
@@ -340,8 +410,8 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? activePrices[0] : 0;
 
-    // Only save snapshot cache if we successfully retrieved sold comps data
-    if (effectiveVariantId && soldResult.status === "fulfilled" && soldData.items.length > 0) {
+    // Always cache if we hit the APIs to avoid re-fetching, even if results are 0
+    if (effectiveVariantId) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
@@ -358,7 +428,7 @@ export class ListingRepository {
 
       for (const item of soldData.items) {
         const contentHash = createHash("sha256")
-          .update(`soldcomps:${item.url}:${item.endedAt}`)
+          .update(`soldcomps:${effectiveVariantId}:${gradeKey}:${item.url}:${item.endedAt}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -366,14 +436,14 @@ export class ListingRepository {
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${item.title}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${t500(item.title)}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
 
       for (const item of activeData.itemSummaries ?? []) {
         const contentHash = createHash("sha256")
-          .update(`ebayactive:${item.itemId}`)
+          .update(`ebayactive:${effectiveVariantId}:${gradeKey}:${item.itemId}`)
           .digest("hex")
           .slice(0, 64);
         
@@ -381,7 +451,7 @@ export class ListingRepository {
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${item.title}, ${item.condition}, ${item.itemWebUrl}, ${item.image?.imageUrl}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
@@ -426,9 +496,11 @@ export class ListingRepository {
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, variant_id, grade_key } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
     const maxResults = limit ? Number(limit) : 20;
+    const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
+    const queryForSold = sold_q ? sold_q.trim() : query;
     const gradeKey = grade_key?.trim() || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
@@ -447,7 +519,7 @@ export class ListingRepository {
       }
     }
 
-    if (effectiveVariantId) {
+    if (effectiveVariantId && offsetNum === 0) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
@@ -455,6 +527,7 @@ export class ListingRepository {
         WHERE variant_id = ${effectiveVariantId}
           AND grade_key = ${gradeKey}
           AND platform = 'myslabs'
+          AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
       `);
@@ -469,7 +542,7 @@ export class ListingRepository {
             AND grade_key = ${gradeKey}
             AND platform = 'myslabs'
           ORDER BY sold_at DESC
-          LIMIT 20
+          LIMIT ${maxResults}
         `);
 
         const mappedSold = (soldCached.rows as any[]).map((item) => ({
@@ -491,7 +564,7 @@ export class ListingRepository {
             AND platform = 'myslabs'
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
-          LIMIT 20
+          LIMIT ${maxResults}
         `);
 
         const mappedActive = (activeCached.rows as any[]).map((item) => ({
@@ -503,84 +576,6 @@ export class ListingRepository {
           image: { imageUrl: item.image_url },
         }));
 
-        const ageMs = Date.now() - new Date(rows[0].fetched_at).getTime();
-        if (ageMs >= 15 * 60 * 1000) {
-          console.log(`[COMPS] MySlabs Cache stale (${Math.floor(ageMs / 60000)}m old). Triggering background refresh...`);
-          (async () => {
-            try {
-              let soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
-              let activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
-              
-              if (soldData.items.length === 0 && activeData.items.length === 0) {
-                const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
-                if (stripped && stripped !== query) {
-                  soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
-                  activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
-                }
-              }
-
-              const prices = soldData.items
-                .map((i) => i.price)
-                .filter((p) => p > 0);
-              const activePrices = activeData.items
-                .map((i) => i.price)
-                .filter((p) => p > 0);
-
-              if (!prices.length && !activePrices.length) return;
-
-              const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-              const last = prices.length ? prices[0] : 0;
-              const lowest = activePrices.length ? Math.min(...activePrices) : 0;
-
-              await db.execute(sql`
-                INSERT INTO card_comp_snapshots
-                  (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
-                VALUES
-                  (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${avg.toFixed(2)}, ${last.toFixed(2)}, ${lowest.toFixed(2)}, ${prices.length}, NOW())
-                ON CONFLICT (variant_id, grade_key, platform)
-                DO UPDATE SET
-                  avg_sold_price = EXCLUDED.avg_sold_price,
-                  last_sold_price = EXCLUDED.last_sold_price,
-                  lowest_active = EXCLUDED.lowest_active,
-                  sales_count_30d = EXCLUDED.sales_count_30d,
-                  fetched_at = NOW()
-              `);
-
-              for (const item of soldData.items) {
-                const endedAtStr = item.sold_date || new Date().toISOString();
-                const contentHash = createHash("sha256")
-                  .update(`myslabssold:${item.id}:${endedAtStr}`)
-                  .digest("hex")
-                  .slice(0, 64);
-
-                await db.execute(sql`
-                  INSERT INTO platform_sold_listings
-                    (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
-                  ON CONFLICT (content_hash) DO NOTHING
-                `);
-              }
-
-              for (const item of activeData.items) {
-                const contentHash = createHash("sha256")
-                  .update(`myslabsactive:${item.id}`)
-                  .digest("hex")
-                  .slice(0, 64);
-                
-                await db.execute(sql`
-                  INSERT INTO platform_active_listings
-                    (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
-                  VALUES
-                    (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
-                  ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
-                `);
-              }
-            } catch (err) {
-              console.error("Background MySlabs price refresh failed:", err);
-            }
-          })();
-        }
 
         return {
           query,
@@ -609,29 +604,95 @@ export class ListingRepository {
       }
     }
 
-    console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs for: ${query}`);
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📡 Fetching LIVE comps from MySlabs APIs...`);
+    console.log(`[COMPS]  👉 Passing to MySlabs Active Listings API: "${query}"`);
+    console.log(`[COMPS]  👉 Passing to MySlabs Sold API: "${queryForSold}"`);
+    console.log(`======================================================\n`);
+    const myslabsStartTime = Date.now();
     let soldData: { items: MyslabsItem[] } = { items: [] };
     let activeData: { items: MyslabsItem[] } = { items: [] };
 
     try {
-      soldData = await myslabsService.searchSlabs({ q: query, status: "sold", limit: maxResults });
-      activeData = await myslabsService.searchSlabs({ q: query, status: "for-sale", limit: maxResults });
+      const fetchMySlabs = async (soldSearchQuery: string, activeSearchQuery: string) => {
+        return Promise.all([
+          myslabsService.searchSlabs({ q: soldSearchQuery, status: "sold", limit: maxResults }),
+          myslabsService.searchSlabs({ q: activeSearchQuery, status: "for-sale", limit: maxResults })
+        ]);
+      };
+
+      [soldData, activeData] = await fetchMySlabs(queryForSold, query);
       
+      // Fallback 1: Remove special characters and abbreviations
       if (soldData.items.length === 0 && activeData.items.length === 0) {
-        const stripped = query.replace(/\b(20\d\d|19\d\d|Panini|Topps|Bowman|Prizm|Optic|Select|Mosaic|Chrome|Upper Deck|Fleer)\b/gi, '').replace(/\s+/g, ' ').trim();
-        if (stripped && stripped !== query) {
-          console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to: ${stripped}`);
-          soldData = await myslabsService.searchSlabs({ q: stripped, status: "sold", limit: maxResults });
-          activeData = await myslabsService.searchSlabs({ q: stripped, status: "for-sale", limit: maxResults });
+        let cleanQuery = query.replace(/[^a-zA-Z0-9\s]/g, ' ')
+                              .replace(/\b(Ref\.|Refractor|PSA|BGS|SGC)\b/gi, '')
+                              .replace(/\s+/g, ' ').trim();
+                              
+        if (cleanQuery !== query && cleanQuery.length > 3) {
+          console.log(`[COMPS] 📡 MySlabs strict search returned 0. Falling back to clean: ${cleanQuery}`);
+          [soldData, activeData] = await fetchMySlabs(cleanQuery, cleanQuery);
+        }
+
+        // Fallback 2: Just the first 4 words (Player Name + Year)
+        if (soldData.items.length === 0 && activeData.items.length === 0) {
+          const shortQuery = cleanQuery.split(' ').slice(0, 4).join(' ');
+          if (shortQuery !== cleanQuery && shortQuery.length > 5) {
+            console.log(`[COMPS] 📡 MySlabs clean search returned 0. Falling back to short: ${shortQuery}`);
+            [soldData, activeData] = await fetchMySlabs(shortQuery, shortQuery);
+          }
         }
       }
     } catch (e) {
       console.error("Failed to fetch MySlabs LIVE comps:", e);
     }
+    
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] 📥 RECEIVED DATA FROM MYSLABS APIs:`);
+    console.log(`[COMPS]  📦 Sold API Response count: ${soldData.items?.length || 0}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
+    }
+    console.log(`[COMPS]  📦 Active API Response count: ${activeData.items?.length || 0}`);
+    if (activeData.items && activeData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.items[0])}`);
+    }
+    console.log(`======================================================\n`);
+
+    const myslabsDuration = Date.now() - myslabsStartTime;
+    console.log(`[PERF] ⏱️ MySlabs API (Sold & Active) total time: ${myslabsDuration}ms`);
+
+    // -------------------------------------------------------------
+    // MYSLABS GEMINI FILTERING
+    // -------------------------------------------------------------
+    const myslabsSoldBefore = soldData.items?.length || 0;
+    const myslabsActiveBefore = activeData.items?.length || 0;
+
+    // USER REQUEST: "myslabs data doesnt need send to modal , show all"
+    // Bypassing Gemini filter for MySlabs.
+    // soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title", filter);
+    // activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title", filter);
+
+    const myslabsSoldAfter = soldData.items?.length || 0;
+    const myslabsActiveAfter = activeData.items?.length || 0;
+
+    console.log(`\n======================================================`);
+    console.log(`[COMPS] ✨ MYSLABS GEMINI FILTER RESULTS:`);
+    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
+    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${myslabsActiveBefore} | AFTER = ${myslabsActiveAfter}`);
+    if (activeData.items && activeData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.items[0])}`);
+    }
+    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
+    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${myslabsSoldBefore} | AFTER = ${myslabsSoldAfter}`);
+    if (soldData.items && soldData.items.length > 0) {
+      console.log(`[COMPS]  🔍 Sample Sold: ${JSON.stringify(soldData.items[0])}`);
+    }
+    console.log(`======================================================\n`);
 
     console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
-    console.log(`  -> Sold: ${soldData.items.length} items`);
-    console.log(`  -> Active: ${activeData.items.length} items`);
+    console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);
+    console.log(`  -> Active (MySlabs API): ${activeData.items.length} items`);
 
     const prices = soldData.items.map((i) => i.price).filter((p) => p > 0);
     const activePrices = activeData.items.map((i) => i.price).filter((p) => p > 0);
@@ -640,7 +701,7 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
-    if (effectiveVariantId && soldData.items && soldData.items.length > 0) {
+    if (effectiveVariantId) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
           (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
@@ -658,7 +719,7 @@ export class ListingRepository {
       for (const item of soldData.items) {
         const endedAtStr = item.sold_date || new Date().toISOString();
         const contentHash = createHash("sha256")
-          .update(`myslabssold:${item.id}:${endedAtStr}`)
+          .update(`myslabssold:${effectiveVariantId}:${gradeKey}:${item.id}:${endedAtStr}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -666,14 +727,14 @@ export class ListingRepository {
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
 
       for (const item of activeData.items ?? []) {
         const contentHash = createHash("sha256")
-          .update(`myslabsactive:${item.id}`)
+          .update(`myslabsactive:${effectiveVariantId}:${gradeKey}:${item.id}`)
           .digest("hex")
           .slice(0, 64);
         
@@ -681,7 +742,7 @@ export class ListingRepository {
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${item.title}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${item.slab_link || `https://myslabs.com/slab/view/${item.id}`}, ${item.slab_image_1}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${t500(item.slab_link || `https://myslabs.com/slab/view/${item.id}`)}, ${t500(item.slab_image_1)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }

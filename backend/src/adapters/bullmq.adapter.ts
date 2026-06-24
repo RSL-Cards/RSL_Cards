@@ -77,6 +77,20 @@ export class BullMqAdapter {
       logger.error(`BullMQ close error: ${err.message}`);
     }
   }
+
+  async startCronJobs(): Promise<void> {
+    try {
+      await this.queue.add("refresh_all_comps", {}, {
+        repeat: {
+          every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
+        },
+        jobId: "refresh_all_comps_cron" // prevent duplicates
+      });
+      logger.info("🕒 Scheduled 'refresh_all_comps' cron job to run every 12 hours");
+    } catch (err: any) {
+      logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
+    }
+  }
 }
 
 export const bullMqAdapter = new BullMqAdapter();

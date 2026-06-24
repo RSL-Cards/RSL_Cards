@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
@@ -45,12 +46,19 @@ export default function BuyScanScreen() {
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        base64: true,
-        quality: 0.7,
+        skipProcessing: true,
       });
 
-      if (photo.base64) {
-        scanImage(photo.base64);
+      if (photo?.uri) {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          photo.uri,
+          [{ resize: { width: 1024 } }],
+          { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        );
+
+        if (manipResult.base64) {
+          scanImage(manipResult.base64);
+        }
       }
     } catch (error) {
       console.error("Camera capture failed:", error);

@@ -2,12 +2,14 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { QueryProvider } from "../src/providers/QueryProvider";
 import Toast from "react-native-toast-message";
 import { useAuthStore } from "../src/stores/authStore";
 
 import { toastConfig } from "../src/components/ToastConfig";
+import { AskRslFab } from "../src/components/assistant/AskRslFab";
+import { AssistantModal } from "../src/components/assistant/AssistantModal";
 import { COLORS } from "../src/constants/theme";
 import {
   useFonts,
@@ -36,6 +38,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const { isAuthenticated } = useAuthStore();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -96,6 +100,8 @@ export default function RootLayout() {
               />
             </Stack>
           </AuthGuard>
+          {isAuthenticated && <AskRslFab onPress={() => setIsAssistantOpen(true)} />}
+          {isAuthenticated && <AssistantModal visible={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />}
           <Toast config={toastConfig} />
         </SafeAreaProvider>
       </GestureHandlerRootView>

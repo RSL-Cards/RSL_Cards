@@ -27,26 +27,47 @@ export class SoldCompsService {
 
   constructor(private readonly env: Env) {}
 
+  private readonly cache = new Map<string, { data: SoldCompsResponse, timestamp: number }>();
+  private readonly inFlight = new Map<string, Promise<SoldCompsResponse>>();
+
   async getSoldItems(keyword: string): Promise<SoldCompsResponse> {
     const apiKey = this.env.SOLD_COMPS_KEY;
     if (!apiKey) {
       throw new Error("SOLD_COMPS_KEY is not configured");
     }
 
-    const url = new URL(`${this.baseUrl}/scrape`);
-    url.searchParams.set("keyword", keyword);
-
-    const res = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`SoldComps API failed (${res.status}): ${text}`);
+    const cached = this.cache.get(keyword);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      return cached.data;
     }
 
-    return (await res.json()) as SoldCompsResponse;
+    if (this.inFlight.has(keyword)) {
+      return this.inFlight.get(keyword)!;
+    }
+
+    const promise = (async () => {
+      const url = new URL(`${this.baseUrl}/scrape`);
+      url.searchParams.set("keyword", keyword);
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`SoldComps API failed (${res.status}): ${text}`);
+      }
+
+      const data = (await res.json()) as SoldCompsResponse;
+      this.cache.set(keyword, { data, timestamp: Date.now() });
+      return data;
+    })().finally(() => {
+      this.inFlight.delete(keyword);
+    });
+
+    this.inFlight.set(keyword, promise);
+    return promise;
   }
 }

@@ -86,28 +86,42 @@ export class ListingController {
   };
 
   ebaySold = async ({ query }: { query: any }) => {
-    const { q, limit, variant_id, grade_key } = query;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
+    }
+    let parsedFilter;
+    if (filter) {
+      try { parsedFilter = typeof filter === 'string' ? JSON.parse(filter) : filter; } catch(e) {}
     }
     return await this.service.ebaySold({
       q: q.trim(),
       limit: limit ? Number(limit) : 20,
+      offset: offset ? Number(offset) : 0,
       variant_id,
       grade_key,
+      filter: parsedFilter,
+      sold_q,
     });
   };
 
   myslabsSold = async ({ query }: { query: any }) => {
-    const { q, limit, variant_id, grade_key } = query;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = query;
     if (!q?.trim()) {
       throw new Error("Query parameter 'q' is required");
+    }
+    let parsedFilter;
+    if (filter) {
+      try { parsedFilter = typeof filter === 'string' ? JSON.parse(filter) : filter; } catch(e) {}
     }
     return await this.service.myslabsSold({
       q: q.trim(),
       limit: limit ? Number(limit) : 20,
+      offset: offset ? Number(offset) : 0,
       variant_id,
       grade_key,
+      filter: parsedFilter,
+      sold_q,
     });
   };
 }

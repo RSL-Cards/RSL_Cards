@@ -130,6 +130,7 @@ export class EbayService {
     q: string;
     days: 7 | 30;
     limit?: number;
+    offset?: number;
   }): Promise<{
     items: any[];
     totalEntries: number;
@@ -137,9 +138,11 @@ export class EbayService {
     notice?: string;
   }> {
     const limit = params.limit ?? 20;
+    const offset = params.offset ?? 0;
     const browse = await this.searchListings({
       q: params.q,
       limit,
+      offset,
       sort: "newlyListed",
       filter: "buyingOptions:{FIXED_PRICE|AUCTION}",
     });

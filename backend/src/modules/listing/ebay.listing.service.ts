@@ -53,23 +53,60 @@ export class EbayListingService {
         return { success: true, sku, error: `Sandbox Policy Error: ${errorText}. Simulated success.` };
       }
 
-      // Step 2: Create Offer
-      const offerPayload = {
+      // Step 2: Fetch user's eBay policies and location
+      const headers = {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Language": "en-US",
+        "Accept": "application/json",
+      };
+
+      const [fulfillmentRes, paymentRes, returnRes, locationRes] = await Promise.all([
+        fetch(`${apiUrl}/sell/account/v1/fulfillment_policy?marketplace_id=${marketplaceId}`, { headers }),
+        fetch(`${apiUrl}/sell/account/v1/payment_policy?marketplace_id=${marketplaceId}`, { headers }),
+        fetch(`${apiUrl}/sell/account/v1/return_policy?marketplace_id=${marketplaceId}`, { headers }),
+        fetch(`${apiUrl}/sell/inventory/v1/location`, { headers })
+      ]);
+
+      const [fulfillmentData, paymentData, returnData, locationData] = await Promise.all([
+        fulfillmentRes.json().catch(() => ({})),
+        paymentRes.json().catch(() => ({})),
+        returnRes.json().catch(() => ({})),
+        locationRes.json().catch(() => ({}))
+      ]);
+
+      const fulfillmentPolicyId = (fulfillmentData as any).fulfillmentPolicies?.[0]?.fulfillmentPolicyId;
+      const paymentPolicyId = (paymentData as any).paymentPolicies?.[0]?.paymentPolicyId;
+      const returnPolicyId = (returnData as any).returnPolicies?.[0]?.returnPolicyId;
+      const merchantLocationKey = (locationData as any).locations?.[0]?.merchantLocationKey;
+
+      if (!fulfillmentPolicyId || !paymentPolicyId || !returnPolicyId || !merchantLocationKey) {
+        console.warn("eBay policies or location missing. Offer creation may fail.");
+      }
+
+      // Step 3: Create Offer
+      const offerPayload: any = {
         sku,
         marketplaceId,
         format: itemData.format || "FIXED_PRICE",
         listingDescription: itemData.description || "Great sports card for any collector.",
         availableQuantity: 1,
         categoryId: "261328", // Sports Trading Cards
+        merchantLocationKey,
         pricingSummary: {
           price: {
             value: itemData.price.toString(),
             currency: "USD",
           },
         },
-        // We omit policy IDs here because they require complex user account setups on eBay
-        // If they are strictly required, the API will fail, and we catch it below.
       };
+
+      if (fulfillmentPolicyId || paymentPolicyId || returnPolicyId) {
+        offerPayload.listingPolicies = {
+          fulfillmentPolicyId,
+          paymentPolicyId,
+          returnPolicyId,
+        };
+      }
 
       const offerRes = await fetch(`${apiUrl}/sell/inventory/v1/offer`, {
         method: "POST",
