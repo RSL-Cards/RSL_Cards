@@ -19,23 +19,29 @@ import {
   SortKey,
 } from '@/components/inventory/inventoryUtils'
 import { useAuthStore } from '@/stores/authStore'
-import { useInventoryStore } from '@/stores/inventoryStore'
+import {
+  useInventoryList,
+  useInventorySummary,
+  useAgingAlerts,
+  useAddInventoryItem,
+  useDeleteInventoryItem,
+} from '@/hooks/inventory/useInventory'
+import { inventoryService } from '@/services/inventoryService'
 
 export default function InventoryPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const {
-    items,
-    agingAlerts,
-    summary,
-    isLoading,
-    error,
-    getItem,
-    addItem,
-    deleteItem,
-    isMutating,
-    refreshInventoryPage,
-  } = useInventoryStore()
+  const { data: listData, isLoading: isListLoading } = useInventoryList()
+  const items = listData?.items || []
+  const { data: summary } = useInventorySummary()
+  const { data: agingAlertsData } = useAgingAlerts()
+  const agingAlerts = agingAlertsData || []
+
+  const { mutateAsync: addItem } = useAddInventoryItem()
+  const { mutateAsync: deleteItem } = useDeleteInventoryItem()
+  
+  const isLoading = isListLoading
+  const isMutating = false // Form uses its own state, but we can pass it if needed
   const [query, setQuery] = useState('')
   const [sportFilter, setSportFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -55,9 +61,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return
-
-    refreshInventoryPage()
-  }, [isAuthenticated, isHydrated, refreshInventoryPage])
+  }, [isAuthenticated, isHydrated])
 
   const sports = useMemo(
     () => Array.from(new Set(items.map((card) => card.sport))).sort(),
@@ -190,7 +194,7 @@ export default function InventoryPage() {
     setDetailError(null)
 
     try {
-      const item = await getItem(card.id)
+      const item = await inventoryService.getItem(card.id)
       setActiveCard(item)
     } catch (error) {
       const message =
@@ -245,11 +249,7 @@ export default function InventoryPage() {
           totalPortfolioValue={summary?.total_market_value ?? filteredValue}
         />
 
-        {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
-          </div>
-        )}
+        {/* error removed since it's handled locally now or via toasts */}
 
         <InventoryFilters
           ageFilter={ageFilter}

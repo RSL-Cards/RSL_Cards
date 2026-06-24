@@ -36,4 +36,14 @@ export const ENDPOINTS = {
     notificationPreferences:
       "/v1/users/me/notification-preferences",
   },
+  webDashboard: {
+    metrics: '/v1/web-dashboard/metrics',
+    revenueChart: '/v1/web-dashboard/revenue-chart',
+    channelData: '/v1/web-dashboard/channel-data',
+    inventory: '/v1/web-dashboard/inventory',
+    topMovers: '/v1/web-dashboard/top-movers',
+    recentTransactions: '/v1/web-dashboard/recent-transactions',
+    aiInsights: '/v1/web-dashboard/ai-insights',
+    portfolioSnapshot: '/v1/web-dashboard/portfolio-snapshot',
+  },
 } as const

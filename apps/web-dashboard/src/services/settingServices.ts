@@ -1,5 +1,5 @@
-import { API_BASE_URL, ENDPOINTS } from '@/config/api'
-import { useAuthStore } from '@/stores/authStore'
+import { ENDPOINTS } from '@/config/api'
+import { apiClient } from '@/lib/axios'
 
 export interface UserProfile {
   id: string
@@ -47,34 +47,9 @@ interface ApiErrorBody {
 }
 
 class SettingsService {
-  private getHeaders() {
-    const { user, tokens } = useAuthStore.getState()
-
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${tokens?.accessToken}`,
-      'x-user-id': user?.id ?? '',
-    }
-  }
-
-  private async handleResponse<T>(
-    response: Response,
-  ): Promise<T> {
-    if (!response.ok) {
-      let errorBody: ApiErrorBody | null = null
-
-      try {
-        errorBody = await response.json()
-      } catch {}
-
-      throw new Error(
-        errorBody?.error?.message ??
-          errorBody?.message ??
-          'Request failed',
-      )
-    }
-
-    return response.json()
+  private async handleResponse<T>(request: Promise<any>): Promise<T> {
+    const response = await request;
+    return response.data;
   }
 
   // =====================
@@ -82,29 +57,13 @@ class SettingsService {
   // =====================
 
   async getProfile(): Promise<UserProfile> {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.me}`,
-      {
-        headers: this.getHeaders(),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.get(ENDPOINTS.users.me))
   }
 
   async updateProfile(
     payload: Partial<UserProfile>,
   ) {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.me}`,
-      {
-        method: 'PATCH',
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.patch(ENDPOINTS.users.me, payload))
   }
 
   // =====================
@@ -123,16 +82,7 @@ class SettingsService {
       handle: string
     }[]
   }) {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.onboarding}`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.post(ENDPOINTS.users.onboarding, payload))
   }
 
   // =====================
@@ -140,22 +90,11 @@ class SettingsService {
   // =====================
 
   async uploadAvatar(file: File) {
-    const presignResponse = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.avatar}`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          contentType: file.type,
-        }),
-      },
-    )
-
     const data = await this.handleResponse<{
       uploadUrl: string
       publicUrl: string
       key: string
-    }>(presignResponse)
+    }>(apiClient.post(ENDPOINTS.users.avatar, { contentType: file.type }))
 
     await fetch(data.uploadUrl, {
       method: 'PUT',
@@ -179,14 +118,7 @@ class SettingsService {
   async getPaymentMethods(): Promise<
     PaymentMethod[]
   > {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.paymentMethods}`,
-      {
-        headers: this.getHeaders(),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.get(ENDPOINTS.users.paymentMethods))
   }
 
   // =====================
@@ -196,44 +128,20 @@ class SettingsService {
   async getConnectedPlatforms(): Promise<
     ConnectedPlatform[]
   > {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.connectedPlatforms}`,
-      {
-        headers: this.getHeaders(),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.get(ENDPOINTS.users.connectedPlatforms))
   }
 
   async connectPlatform(payload: {
     platform: string
     code?: string
   }) {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.connectedPlatforms}`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.post(ENDPOINTS.users.connectedPlatforms, payload))
   }
 
   async disconnectPlatform(
     platform: string,
   ) {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.connectedPlatforms}/${platform}`,
-      {
-        method: 'DELETE',
-        headers: this.getHeaders(),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.delete(`${ENDPOINTS.users.connectedPlatforms}/${platform}`))
   }
 
   // =====================
@@ -241,14 +149,7 @@ class SettingsService {
   // =====================
 
   async getCustomers(): Promise<Customer[]> {
-    const response = await fetch(
-      `${API_BASE_URL}${ENDPOINTS.users.customers}`,
-      {
-        headers: this.getHeaders(),
-      },
-    )
-
-    return this.handleResponse(response)
+    return this.handleResponse(apiClient.get(ENDPOINTS.users.customers))
   }
 }
 

@@ -1,18 +1,11 @@
-import { API_BASE_URL, ENDPOINTS } from '@/config/api'
-import { useAuthStore } from '@/stores/authStore'
+import { ENDPOINTS } from '@/config/api'
+import { apiClient } from '@/lib/axios'
 import {
   calculateDaysHeld,
   InventoryCard,
   InventorySummary,
   toDisplaySport,
 } from '@/components/inventory/inventoryUtils'
-
-interface ApiErrorBody {
-  error?: {
-    message?: string
-  }
-  message?: string
-}
 
 interface InventoryListResponse {
   items: RawInventoryItem[]
@@ -82,47 +75,20 @@ const parseNumber = (value: number | string | null | undefined) => {
   return Number.isFinite(numeric) ? numeric : 0
 }
 
-const getAccessToken = () => {
-  const accessToken = useAuthStore.getState().tokens?.accessToken
-
-  if (!accessToken) {
-    throw new Error('Please sign in to view inventory.')
-  }
-
-  return accessToken
-}
-
 async function inventoryRequest<TResponse>(
   path: string,
-  options: RequestInit = {},
+  options: { method?: string; body?: string } = {},
 ) {
-  const accessToken = getAccessToken()
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...options.headers,
-    },
-  })
-
-  if (!response.ok) {
-    let errorBody: ApiErrorBody | null = null
-
-    try {
-      errorBody = await response.json()
-    } catch {
-      errorBody = null
-    }
-
-    throw new Error(
-      errorBody?.error?.message ??
-        errorBody?.message ??
-        'Inventory request failed. Please try again.',
-    )
-  }
-
-  return response.json() as Promise<TResponse>
+  const method = (options.method || 'GET').toLowerCase() as 'get' | 'post' | 'patch' | 'delete';
+  const data = options.body ? JSON.parse(options.body) : undefined;
+  
+  const response = await apiClient.request<TResponse>({
+    url: path,
+    method,
+    data
+  });
+  
+  return response.data;
 }
 
 const buildQueryString = (query?: object) => {

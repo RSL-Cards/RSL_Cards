@@ -19,6 +19,7 @@ import { adminModule } from "./modules/admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
 import { assistantModule } from "./modules/assistant/index.js";
 import { contactModule } from "./modules/contact/index.js";
+import { webDashboardModule } from "./modules/web-dashboard/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -88,6 +89,7 @@ const app = new Elysia()
     return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
   })
   .use(contactModule)
+  .use(webDashboardModule)
   // Highly comprehensive Health Check Endpoint mapping DB, Redis, BullMQ, and backend systems
   .get("/health", async (ctx: any) => {
     const dbStatus = await testDbConnection();

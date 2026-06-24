@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Shell from '@/components/layout/Shell'
 import MetricCard from '@/components/dashboard/MetricCard'
 import RevenueChart from '@/components/dashboard/RevenueChart'
@@ -6,35 +9,67 @@ import PortfolioHealth from '@/components/dashboard/PortfolioHealth'
 import MarketMovers from '@/components/dashboard/MarketMovers'
 import RecentTransactions from '@/components/dashboard/RecentTransactions'
 import AIInsightsPreview from '@/components/dashboard/AIInsightsPreview'
-import { 
-  METRICS, 
-  REVENUE_CHART_DATA, 
-  CHANNEL_DATA, 
-  INVENTORY_TABLE_DATA, 
-  TOP_MOVERS, 
-  RECENT_TRANSACTIONS,
-  AI_INSIGHTS 
-} from '@/data/mockDashboard'
+import { useAuthStore } from '@/stores/authStore'
+import {
+  useDashboardMetrics,
+  useRevenueChart,
+  useChannelData,
+  useDashboardInventory,
+  useTopMovers,
+  useRecentTransactions,
+  useAiInsights,
+  usePortfolioSnapshot,
+} from '@/hooks/dashboard/useDashboard'
 
 export default function DashboardPage() {
-  // Calculate portfolio health metrics
-  const totalCards = INVENTORY_TABLE_DATA.length
-  const listedCards = INVENTORY_TABLE_DATA.filter(card => card.status === 'listed').length
-  const unlistedCards = totalCards - listedCards
-  const gainingValue = INVENTORY_TABLE_DATA.filter(card => card.unrealized_gain > 0).length
-  const losingValue = INVENTORY_TABLE_DATA.filter(card => card.unrealized_gain < 0).length
-  const agingAlerts = INVENTORY_TABLE_DATA.filter(card => card.days_held > 60).length
+  const isHydrated = useAuthStore((state) => state.isHydrated)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   
-  const agingCards = INVENTORY_TABLE_DATA
-    .filter(card => card.days_held > 60)
-    .map(card => ({
-      player: card.player_name,
-      grade: card.grade_key.replace('_', ' '),
-      daysHeld: card.days_held,
-      change: card.unrealized_gain_pct
-    }))
+  const { data: metrics, isLoading: isMetricsLoading, error: metricsError } = useDashboardMetrics()
+  const { data: revenueChart, isLoading: isRevLoading } = useRevenueChart()
+  const { data: channelData, isLoading: isChannelLoading } = useChannelData()
+  const { data: inventory, isLoading: isInvLoading } = useDashboardInventory()
+  const { data: topMovers, isLoading: isMoversLoading } = useTopMovers()
+  const { data: recentTransactions, isLoading: isTxLoading } = useRecentTransactions()
+  const { data: aiInsights, isLoading: isAiLoading } = useAiInsights()
+  const { data: portfolioSnapshot, isLoading: isPortfolioLoading } = usePortfolioSnapshot()
 
-  // Generate sparkline data for metric cards
+  const isLoading = 
+    !isHydrated || 
+    isMetricsLoading || 
+    isRevLoading || 
+    isChannelLoading || 
+    isInvLoading || 
+    isMoversLoading || 
+    isTxLoading || 
+    isAiLoading || 
+    isPortfolioLoading
+
+  const error = metricsError ? (metricsError as Error).message : null
+
+  if (!isHydrated || (isLoading && isAuthenticated)) {
+    return (
+      <Shell>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-sm text-gray-500">Loading dashboard...</div>
+        </div>
+      </Shell>
+    )
+  }
+
+  if (error) {
+    return (
+      <Shell>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-sm text-red-500">{error}</div>
+        </div>
+      </Shell>
+    )
+  }
+
+  if (!isAuthenticated || !metrics || !revenueChart || !channelData || !inventory || !topMovers || !recentTransactions || !aiInsights || !portfolioSnapshot) return null
+
+  // Generate sparkline data for metric cards (mock function for visual effect)
   const generateSparklineData = (baseValue: number, variance: number) => {
     return Array.from({ length: 7 }, () => 
       baseValue + (Math.random() - 0.5) * variance
@@ -48,32 +83,32 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Today's Revenue"
-            value={METRICS.today.revenue}
+            value={metrics.today.revenue}
             trend={{ value: 14.2, label: 'vs yesterday' }}
-            sparklineData={generateSparklineData(METRICS.today.revenue, 200)}
+            sparklineData={generateSparklineData(metrics.today.revenue, 200)}
             format="currency"
             color="blue"
           />
           <MetricCard
             title="Today's Profit"
-            value={METRICS.today.profit}
+            value={metrics.today.profit}
             trend={{ value: 8.4, label: 'vs yesterday' }}
-            subtitle={`${METRICS.today.margin.toFixed(1)}% margin`}
-            sparklineData={generateSparklineData(METRICS.today.profit, 50)}
+            subtitle={`${metrics.today.margin.toFixed(1)}% margin`}
+            sparklineData={generateSparklineData(metrics.today.profit, 50)}
             format="currency"
             color="green"
           />
           <MetricCard
             title="Cards Bought Today"
-            value={METRICS.today.cards_bought}
-             subtitle={`${METRICS.today.cards_sold} sold, net ${METRICS.today.cards_bought - METRICS.today.cards_sold} cards`}
+            value={metrics.today.cards_bought}
+             subtitle={`${metrics.today.cards_sold} sold, net ${metrics.today.cards_bought - metrics.today.cards_sold} cards`}
             format="number"
             color="default"
           />
           <MetricCard
             title="Cards Sold Today"
-            value={METRICS.today.cards_sold}
-            subtitle={`${METRICS.today.cards_bought} bought, net ${METRICS.today.cards_sold - METRICS.today.cards_bought} card`}
+            value={metrics.today.cards_sold}
+            subtitle={`${metrics.today.cards_bought} bought, net ${metrics.today.cards_sold - metrics.today.cards_bought} card`}
             format="number"
             color="default"
           />
@@ -82,36 +117,36 @@ export default function DashboardPage() {
         {/* Main Chart + Side Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <RevenueChart data={REVENUE_CHART_DATA} />
+            <RevenueChart data={revenueChart} />
           </div>
           <div>
-            <ProfitByChannelChart data={CHANNEL_DATA} />
+            <ProfitByChannelChart data={channelData} />
           </div>
         </div>
 
         {/* Portfolio Health + Market Movers */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PortfolioHealth
-            totalCards={totalCards}
-            listedCards={listedCards}
-            unlistedCards={unlistedCards}
-            gainingValue={gainingValue}
-            losingValue={losingValue}
-            agingAlerts={agingAlerts}
-            totalCost={METRICS.total_cost_basis}
-            totalValue={METRICS.total_inventory_value}
-            totalGain={METRICS.unrealized_gain}
-            totalGainPct={METRICS.unrealized_gain_pct}
-            agingCards={agingCards}
+            totalCards={portfolioSnapshot.totalCards}
+            listedCards={portfolioSnapshot.listedCards}
+            unlistedCards={portfolioSnapshot.unlistedCards}
+            gainingValue={portfolioSnapshot.gainingValue}
+            losingValue={portfolioSnapshot.losingValue}
+            agingAlerts={portfolioSnapshot.agingAlerts}
+            totalCost={metrics.total_cost_basis}
+            totalValue={metrics.total_inventory_value}
+            totalGain={metrics.unrealized_gain}
+            totalGainPct={metrics.unrealized_gain_pct}
+            agingCards={portfolioSnapshot.agingCards}
           />
-          <MarketMovers movers={TOP_MOVERS} />
+          <MarketMovers movers={topMovers} />
         </div>
 
         {/* Recent Transactions */}
-        <RecentTransactions transactions={RECENT_TRANSACTIONS} />
+        <RecentTransactions transactions={recentTransactions} />
 
         {/* AI Insights Preview */}
-        <AIInsightsPreview insights={AI_INSIGHTS} />
+        <AIInsightsPreview insights={aiInsights} />
       </div>
     </Shell>
   )

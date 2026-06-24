@@ -21,6 +21,13 @@ interface ProfitByChannelChartProps {
 export default function ProfitByChannelChart({
   data
 }: ProfitByChannelChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="dashboard-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center h-[520px]">
+        <div className="text-gray-500 text-sm">No sales data available.</div>
+      </div>
+    )
+  }
 
   const totalRevenue = data.reduce(
     (sum, item) => sum + item.revenue,

@@ -1,4 +1,5 @@
-import { API_BASE_URL, ENDPOINTS } from '@/config/api'
+import { ENDPOINTS } from '@/config/api'
+import { apiClient } from '@/lib/axios'
 
 export interface AuthUser {
   id: string
@@ -52,44 +53,18 @@ export interface AuthMessageResponse {
   otp?: string
 }
 
-interface ApiErrorBody {
-  error?: {
-    message?: string
-  }
-  message?: string
-}
-
 async function authRequest<TResponse, TBody extends object>(
   path: string,
   body: TBody,
   accessToken?: string,
 ) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    let errorBody: ApiErrorBody | null = null;
-
-    try {
-      errorBody = await response.json();
-    } catch {
-      errorBody = null;
-    }
-
-    throw new Error(
-      errorBody?.error?.message ??
-      errorBody?.message ??
-      'Something went wrong. Please try again.',
-    );
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
   }
-
-  const json = await response.json();
-  return json as TResponse;
+  
+  const response = await apiClient.post<TResponse>(path, body, { headers });
+  return response.data;
 }
 
 export const authService = {
