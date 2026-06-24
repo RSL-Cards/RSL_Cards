@@ -25,7 +25,19 @@ export class WebDashboardController {
   };
 
   getInventory = async ({ request }: { request: Request }) => {
-    return await this.service.getInventory(this.getUserId(request));
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const limit = parseInt(url.searchParams.get("limit") || "20", 10);
+    const search = url.searchParams.get("search") || undefined;
+    return await this.service.getInventory(this.getUserId(request), page, limit, search);
+  };
+
+  getInventoryCounts = async ({ request }: { request: Request }) => {
+    return await this.service.getInventoryCounts(this.getUserId(request));
+  };
+
+  getInventoryItemDetails = async ({ request, params }: { request: Request, params: { id: string } }) => {
+    return await this.service.getInventoryItemDetails(this.getUserId(request), params.id);
   };
 
   getTopMovers = async () => {

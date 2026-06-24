@@ -121,8 +121,17 @@ export class WebDashboardRepository {
     return result.rows;
   }
 
-  async getInventory(userId: string) {
-    return await db
+  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string) {
+    const offset = (page - 1) * limit;
+
+    let condition = sql`${inventory.userId} = ${userId} AND ${inventory.listingStatus} IN ('unlisted', 'listed')`;
+
+    if (search) {
+      const searchLower = `%${search.toLowerCase()}%`;
+      condition = sql`${condition} AND (LOWER(${players.name}) LIKE ${searchLower} OR LOWER(${inventory.setName}) LIKE ${searchLower})`;
+    }
+
+    const items = await db
       .select({
         id: inventory.id,
         year: inventory.year,
@@ -136,12 +145,90 @@ export class WebDashboardRepository {
         added_at: inventory.addedAt,
         platforms_listed: inventory.listedPlatforms,
         player_name: players.name,
+        photos: inventory.photos,
       })
       .from(inventory)
       .leftJoin(players, eq(inventory.playerId, players.id))
-      .where(sql`${inventory.userId} = ${userId} AND ${inventory.listingStatus} IN ('unlisted', 'listed')`)
+      .where(condition)
       .orderBy(desc(inventory.addedAt))
-      .limit(50);
+      .limit(limit)
+      .offset(offset);
+
+    const totalResult = await db
+      .select({ count: count() })
+      .from(inventory)
+      .leftJoin(players, eq(inventory.playerId, players.id))
+      .where(condition);
+
+    return {
+      items,
+      total: totalResult[0].count,
+      page,
+      limit,
+    };
+  }
+
+  async getInventoryCounts(userId: string) {
+    const result = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE listing_status = 'listed') as listed,
+        COUNT(*) FILTER (WHERE listing_status = 'unlisted') as unlisted
+      FROM inventory
+      WHERE user_id = ${userId} AND listing_status IN ('unlisted', 'listed')
+    `);
+    return result.rows[0];
+  }
+
+  async getInventoryItemDetails(userId: string, inventoryId: string) {
+    const itemResult = await db
+      .select({
+        id: inventory.id,
+        year: inventory.year,
+        set_name: inventory.setName,
+        grade_key: inventory.gradeKey,
+        sport: inventory.sport,
+        cost_basis: inventory.costBasis,
+        market_value: inventory.currentMarketValue,
+        unrealized_gain: inventory.unrealizedGain,
+        status: inventory.listingStatus,
+        added_at: inventory.addedAt,
+        platforms_listed: inventory.listedPlatforms,
+        player_name: players.name,
+        photos: inventory.photos,
+        variant_id: inventory.variantId,
+      })
+      .from(inventory)
+      .leftJoin(players, eq(inventory.playerId, players.id))
+      .where(and(eq(inventory.id, inventoryId), eq(inventory.userId, userId)))
+      .limit(1);
+
+    if (!itemResult.length) return null;
+    const item = itemResult[0];
+
+    const activeListings = await db.execute(sql`
+      SELECT platform, platform_listing_id, status, list_price, created_at
+      FROM listings
+      WHERE inventory_id = ${inventoryId} AND user_id = ${userId} AND status IN ('active', 'draft', 'pending')
+    `);
+
+    let comps: any[] = [];
+    if (item.variant_id && item.grade_key) {
+      const compsResult = await db.execute(sql`
+        SELECT platform, sold_price, sold_at, title
+        FROM platform_sold_listings
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY sold_at DESC
+        LIMIT 5
+      `);
+      comps = compsResult.rows;
+    }
+
+    return {
+      item,
+      activeListings: activeListings.rows,
+      soldComps: comps,
+    };
   }
 
   async getRecentTransactions(userId: string) {

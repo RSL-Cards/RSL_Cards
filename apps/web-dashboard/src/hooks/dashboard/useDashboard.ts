@@ -6,7 +6,9 @@ export const dashboardKeys = {
   metrics: () => [...dashboardKeys.all, 'metrics'] as const,
   revenueChart: () => [...dashboardKeys.all, 'revenueChart'] as const,
   channelData: () => [...dashboardKeys.all, 'channelData'] as const,
-  inventory: () => [...dashboardKeys.all, 'inventory'] as const,
+  inventory: (page: number, limit: number, search?: string) => [...dashboardKeys.all, 'inventory', page, limit, search] as const,
+  inventoryCounts: () => [...dashboardKeys.all, 'inventoryCounts'] as const,
+  inventoryItemDetails: (id: string) => [...dashboardKeys.all, 'inventoryItemDetails', id] as const,
   topMovers: () => [...dashboardKeys.all, 'topMovers'] as const,
   recentTransactions: () => [...dashboardKeys.all, 'recentTransactions'] as const,
   aiInsights: () => [...dashboardKeys.all, 'aiInsights'] as const,
@@ -34,10 +36,25 @@ export function useChannelData() {
   });
 }
 
-export function useDashboardInventory() {
+export function useDashboardInventory(page: number = 1, limit: number = 20, search?: string) {
   return useQuery({
-    queryKey: dashboardKeys.inventory(),
-    queryFn: dashboardService.getInventory,
+    queryKey: dashboardKeys.inventory(page, limit, search),
+    queryFn: () => dashboardService.getInventory(page, limit, search),
+  });
+}
+
+export function useDashboardInventoryCounts() {
+  return useQuery({
+    queryKey: dashboardKeys.inventoryCounts(),
+    queryFn: dashboardService.getInventoryCounts,
+  });
+}
+
+export function useDashboardInventoryItemDetails(id: string | null) {
+  return useQuery({
+    queryKey: dashboardKeys.inventoryItemDetails(id as string),
+    queryFn: () => dashboardService.getInventoryItemDetails(id as string),
+    enabled: !!id,
   });
 }
 

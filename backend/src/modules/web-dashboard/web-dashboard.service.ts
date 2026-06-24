@@ -86,18 +86,18 @@ export class WebDashboardService {
     });
   }
 
-  async getInventory(userId: string) {
-    const items = await this.repository.getInventory(userId);
+  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string) {
+    const { items, total } = await this.repository.getInventory(userId, page, limit, search);
     
-    return items.map((item: any) => {
-      const daysHeld = Math.floor((Date.now() - new Date(item.added_at).getTime()) / (1000 * 60 * 60 * 24));
+    const formattedItems = items.map((item: any) => {
+      const daysHeld = Math.floor((Date.now() - new Date(item.added_at || new Date()).getTime()) / (1000 * 60 * 60 * 24));
       const cost = Number(item.cost_basis || 0);
       const gain = Number(item.unrealized_gain || 0);
       const pct = cost > 0 ? (gain / cost) * 100 : 0;
       
       return {
         id: item.id,
-        image_url: '/patrick.webp', 
+        image_url: item.photos?.[0] || '/patrick.webp', 
         player_name: item.player_name || 'Unknown',
         year: item.year || new Date().getFullYear(),
         set_name: item.set_name || 'Unknown',
@@ -114,6 +114,65 @@ export class WebDashboardService {
         platforms_listed: item.platforms_listed || [],
       };
     });
+
+    return {
+      items: formattedItems,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
+  }
+
+  async getInventoryCounts(userId: string) {
+    const counts = await this.repository.getInventoryCounts(userId);
+    return {
+      totalCards: Number(counts.total || 0),
+      listedCards: Number(counts.listed || 0),
+      unlistedCards: Number(counts.unlisted || 0)
+    };
+  }
+
+  async getInventoryItemDetails(userId: string, inventoryId: string) {
+    const data = await this.repository.getInventoryItemDetails(userId, inventoryId);
+    if (!data) return null;
+
+    const { item, activeListings, soldComps } = data;
+    const cost = Number(item.cost_basis || 0);
+    const gain = Number(item.unrealized_gain || 0);
+    const daysHeld = Math.floor((Date.now() - new Date(item.added_at || new Date()).getTime()) / (1000 * 60 * 60 * 24));
+
+    return {
+      item: {
+        id: item.id,
+        image_url: item.photos?.[0] || '/patrick.webp',
+        player_name: item.player_name || 'Unknown',
+        year: item.year || new Date().getFullYear(),
+        set_name: item.set_name || 'Unknown',
+        grade_key: item.grade_key || 'RAW',
+        sport: item.sport || 'Unknown',
+        cost_basis: cost,
+        market_value: Number(item.market_value || cost),
+        unrealized_gain: gain,
+        unrealized_gain_pct: cost > 0 ? (gain / cost) * 100 : 0,
+        status: item.status,
+        days_held: daysHeld,
+        platforms_listed: item.platforms_listed || [],
+      },
+      activeListings: activeListings.map(l => ({
+        platform: l.platform,
+        listingId: l.platform_listing_id,
+        status: l.status,
+        price: Number(l.list_price),
+        createdAt: l.created_at
+      })),
+      soldComps: soldComps.map(c => ({
+        platform: c.platform,
+        title: c.title,
+        price: Number(c.sold_price),
+        soldAt: c.sold_at
+      }))
+    };
   }
 
   getTopMovers() {

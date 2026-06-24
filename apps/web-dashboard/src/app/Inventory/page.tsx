@@ -1,326 +1,149 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Shell from '@/components/layout/Shell'
 import CardDetailModal from '@/components/inventory/CardDetailModal'
-import ImportToolsModal from '@/components/inventory/ImportToolsModal'
 import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
-import InventoryFilters from '@/components/inventory/InventoryFilters'
 import InventoryHeader from '@/components/inventory/InventoryHeader'
-import InventoryItemFormModal from '@/components/inventory/InventoryItemFormModal'
 import InventoryMetrics from '@/components/inventory/InventoryMetrics'
-import InventorySidePanel from '@/components/inventory/InventorySidePanel'
 import {
-  formatCurrency,
-  ImportToolMode,
   InventoryCard,
-  ProfitFilter,
-  SortDirection,
-  SortKey,
 } from '@/components/inventory/inventoryUtils'
 import { useAuthStore } from '@/stores/authStore'
 import {
-  useInventoryList,
-  useInventorySummary,
-  useAgingAlerts,
-  useAddInventoryItem,
-  useDeleteInventoryItem,
-} from '@/hooks/inventory/useInventory'
-import { inventoryService } from '@/services/inventoryService'
+  useDashboardInventory,
+  useDashboardInventoryCounts
+} from '@/hooks/dashboard/useDashboard'
 
 export default function InventoryPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const { data: listData, isLoading: isListLoading } = useInventoryList()
-  const items = listData?.items || []
-  const { data: summary } = useInventorySummary()
-  const { data: agingAlertsData } = useAgingAlerts()
-  const agingAlerts = agingAlertsData || []
-
-  const { mutateAsync: addItem } = useAddInventoryItem()
-  const { mutateAsync: deleteItem } = useDeleteInventoryItem()
   
-  const isLoading = isListLoading
-  const isMutating = false // Form uses its own state, but we can pass it if needed
-  const [query, setQuery] = useState('')
-  const [sportFilter, setSportFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [gradeFilter, setGradeFilter] = useState('all')
-  const [ageFilter, setAgeFilter] = useState('all')
-  const [sortKey] = useState<SortKey>('market_value')
-  const [sortDirection] = useState<SortDirection>('desc')
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
-  const [profitFilter, setProfitFilter] = useState<ProfitFilter>('all')
-  const [platformFilter, setPlatformFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const limit = 20
+  
+  const { data: listData, isLoading: isListLoading } = useDashboardInventory(page, limit)
+  const { data: countsData, isLoading: isCountsLoading } = useDashboardInventoryCounts()
+  
+  const items = listData?.items || []
+  const total = listData?.total || 0
+  const totalPages = listData?.totalPages || 1
+  
+  const isLoading = isListLoading || isCountsLoading
   const [activeCard, setActiveCard] = useState<InventoryCard | null>(null)
-  const [isAddFormOpen, setIsAddFormOpen] = useState(false)
-  const [isDetailLoading, setIsDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState<string | null>(null)
-  const [importToolMode, setImportToolMode] = useState<ImportToolMode | null>(null)
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return
   }, [isAuthenticated, isHydrated])
 
-  const sports = useMemo(
-    () => Array.from(new Set(items.map((card) => card.sport))).sort(),
-    [items],
-  )
-
-  const grades = useMemo(
-    () => Array.from(new Set(items.map((card) => card.grade_key))).sort(),
-    [items],
-  )
-
-  const filteredCards = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    return items.filter((card) => {
-      const searchable = [
-        card.player_name,
-        card.grade_key,
-        card.sport,
-        card.year,
-        card.set_name,
-        card.status,
-        card.platforms_listed.join(' '),
-        card.platforms_listed.length ? card.platforms_listed.join(', ') : 'not listed',
-        card.cost_basis,
-        formatCurrency(card.cost_basis),
-        card.market_value,
-        formatCurrency(card.market_value),
-        card.unrealized_gain,
-        `${card.unrealized_gain >= 0 ? '+' : ''}${card.unrealized_gain}`,
-        formatCurrency(card.unrealized_gain),
-        `${card.unrealized_gain >= 0 ? '+' : ''}${formatCurrency(card.unrealized_gain)}`,
-        card.unrealized_gain_pct,
-        `${card.unrealized_gain_pct >= 0 ? '+' : ''}${card.unrealized_gain_pct}%`,
-        card.days_held,
-        `${card.days_held} days`,
-        card.comp_avg,
-        formatCurrency(card.comp_avg),
-        card.comp_trend,
-        `${card.comp_trend >= 0 ? '+' : ''}${card.comp_trend}%`,
-        card.grade_key.replace('_', ' '),
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      const min = minPrice ? Number(minPrice) : null
-      const max = maxPrice ? Number(maxPrice) : null
-
-      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery)
-      const matchesSport = sportFilter === 'all' || card.sport === sportFilter
-      const matchesStatus = statusFilter === 'all' || card.status === statusFilter
-      const matchesGrade = gradeFilter === 'all' || card.grade_key === gradeFilter
-      const matchesAge =
-        ageFilter === 'all' ||
-        (ageFilter === 'fresh' && card.days_held <= 14) ||
-        (ageFilter === 'aging' && card.days_held > 60) ||
-        (ageFilter === 'watch' && card.days_held > 30 && card.days_held <= 60)
-      const matchesPrice =
-        (!min || card.market_value >= min) && (!max || card.market_value <= max)
-      const matchesProfit =
-        profitFilter === 'all' ||
-        (profitFilter === 'profit' && card.unrealized_gain > 0) ||
-        (profitFilter === 'loss' && card.unrealized_gain < 0)
-      const matchesPlatform =
-        platformFilter === 'all' || card.platforms_listed.includes(platformFilter)
-
-      return (
-        matchesQuery &&
-        matchesSport &&
-        matchesStatus &&
-        matchesGrade &&
-        matchesAge &&
-        matchesPrice &&
-        matchesProfit &&
-        matchesPlatform
-      )
-    }).sort((a, b) => {
-      const direction = sortDirection === 'asc' ? 1 : -1
-      const getValue = (card: InventoryCard) => {
-        if (sortKey === 'platforms_listed') return card.platforms_listed.length
-        return card[sortKey]
-      }
-      const aValue = getValue(a)
-      const bValue = getValue(b)
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return (aValue - bValue) * direction
-      }
-
-      return String(aValue).localeCompare(String(bValue)) * direction
-    })
-  }, [
-    ageFilter,
-    gradeFilter,
-    items,
-    maxPrice,
-    minPrice,
-    platformFilter,
-    profitFilter,
-    query,
-    sortDirection,
-    sortKey,
-    sportFilter,
-    statusFilter,
-  ])
-
-  const agingIds = new Set(agingAlerts.map((card) => card.id))
-  const agingCards = filteredCards.filter(
-    (card) => agingIds.has(card.id) || card.days_held > 60,
-  )
-  const listedCards = filteredCards.filter((card) => card.status === 'listed').length
-  const filteredValue = filteredCards.reduce((sum, card) => sum + card.market_value, 0)
-  const filteredGain = filteredCards.reduce((sum, card) => sum + card.unrealized_gain, 0)
-
-  const clearFilters = () => {
-    setQuery('')
-    setSportFilter('all')
-    setStatusFilter('all')
-    setGradeFilter('all')
-    setAgeFilter('all')
-    setMinPrice('')
-    setMaxPrice('')
-    setProfitFilter('all')
-    setPlatformFilter('all')
-  }
-
-  const openCardDetail = async (card: InventoryCard) => {
+  const openCardDetail = (card: InventoryCard) => {
     setActiveCard(card)
-    setIsDetailLoading(true)
-    setDetailError(null)
-
-    try {
-      const item = await inventoryService.getItem(card.id)
-      setActiveCard(item)
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Could not load card details.'
-      setDetailError(message)
-    } finally {
-      setIsDetailLoading(false)
-    }
   }
 
   const closeCardDetail = () => {
     setActiveCard(null)
-    setDetailError(null)
-    setIsDetailLoading(false)
   }
 
-  const openAddForm = () => {
-    setIsAddFormOpen(true)
-  }
-
-  const closeForm = () => {
-    setIsAddFormOpen(false)
-  }
-
-  const submitInventoryForm = async (payload: Parameters<typeof addItem>[0]) => {
-    await addItem(payload)
-    closeForm()
-  }
-
-  const handleDeleteItem = async (card: InventoryCard) => {
-    const confirmed = window.confirm(`Delete ${card.player_name} from inventory?`)
-    if (!confirmed) return
-
-    await deleteItem(card.id)
-    closeCardDetail()
+  if (!isHydrated || (isLoading && !listData)) {
+    return (
+      <Shell>
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-sm text-gray-500">Loading inventory...</div>
+        </div>
+      </Shell>
+    )
   }
 
   return (
     <Shell>
       <div className="space-y-6">
         <InventoryHeader
-          onAddItem={openAddForm}
-          onOpenImportTool={setImportToolMode}
+          onAddItem={() => {}}
+          onOpenImportTool={() => {}}
         />
 
         <InventoryMetrics
-          agingCount={agingCards.length}
-          filteredCount={filteredCards.length}
-          filteredGain={filteredGain}
-          filteredValue={filteredValue}
-          listedCount={listedCards}
-          totalPortfolioValue={summary?.total_market_value ?? filteredValue}
+          totalCards={countsData?.totalCards || 0}
+          listedCards={countsData?.listedCards || 0}
+          unlistedCards={countsData?.unlistedCards || 0}
         />
 
-        {/* error removed since it's handled locally now or via toasts */}
-
-        <InventoryFilters
-          ageFilter={ageFilter}
-          gradeFilter={gradeFilter}
-          grades={grades}
-          maxPrice={maxPrice}
-          minPrice={minPrice}
-          platformFilter={platformFilter}
-          profitFilter={profitFilter}
-          query={query}
-          sportFilter={sportFilter}
-          sports={sports}
-          statusFilter={statusFilter}
-          onAgeFilterChange={setAgeFilter}
-          onClearFilters={clearFilters}
-          onGradeFilterChange={setGradeFilter}
-          onMaxPriceChange={setMaxPrice}
-          onMinPriceChange={setMinPrice}
-          onPlatformFilterChange={setPlatformFilter}
-          onProfitFilterChange={setProfitFilter}
-          onQueryChange={setQuery}
-          onSportFilterChange={setSportFilter}
-          onStatusFilterChange={setStatusFilter}
-        />
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            {isLoading ? (
-              <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
-                Loading inventory...
-              </div>
-            ) : (
-              <InventoryCardGrid
-                cards={filteredCards}
-                onCardDetail={openCardDetail}
-              />
-            )}
-          </div>
-
-          <InventorySidePanel
-            agingCards={agingCards}
+        <div className="flex flex-col gap-6">
+          <InventoryCardGrid
+            cards={items}
             onCardDetail={openCardDetail}
-            onOpenImportTool={setImportToolMode}
           />
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-2xl shadow-sm">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to <span className="font-medium">{Math.min(page * limit, total)}</span> of{' '}
+                    <span className="font-medium">{total}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                    >
+                      <span className="sr-only">Previous</span>
+                      &larr;
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        aria-current={page === p ? 'page' : undefined}
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
+                          page === p 
+                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                    >
+                      <span className="sr-only">Next</span>
+                      &rarr;
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {activeCard && (
         <CardDetailModal
           card={activeCard}
-          error={detailError}
-          isLoading={isDetailLoading}
           onClose={closeCardDetail}
-          onDelete={handleDeleteItem}
-        />
-      )}
-
-      {isAddFormOpen && (
-        <InventoryItemFormModal
-          card={null}
-          isSaving={isMutating}
-          mode="add"
-          onClose={closeForm}
-          onSubmit={submitInventoryForm}
-        />
-      )}
-
-      {importToolMode && (
-        <ImportToolsModal
-          initialMode={importToolMode}
-          onClose={() => setImportToolMode(null)}
         />
       )}
     </Shell>

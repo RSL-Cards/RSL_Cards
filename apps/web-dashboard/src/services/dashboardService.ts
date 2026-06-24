@@ -16,8 +16,16 @@ export const dashboardService = {
   getChannelData() {
     return dashboardRequest<any[]>(ENDPOINTS.webDashboard.channelData)
   },
-  getInventory() {
-    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.inventory)
+  getInventory(page: number = 1, limit: number = 20, search?: string) {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+    if (search) params.append('search', search)
+    return dashboardRequest<any>(`${ENDPOINTS.webDashboard.inventory}?${params.toString()}`)
+  },
+  getInventoryCounts() {
+    return dashboardRequest<any>(ENDPOINTS.webDashboard.inventoryCounts)
+  },
+  getInventoryItemDetails(id: string) {
+    return dashboardRequest<any>(ENDPOINTS.webDashboard.inventoryItemDetails(id))
   },
   getTopMovers() {
     return dashboardRequest<any[]>(ENDPOINTS.webDashboard.topMovers)

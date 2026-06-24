@@ -41,6 +41,8 @@ export const ENDPOINTS = {
     revenueChart: '/v1/web-dashboard/revenue-chart',
     channelData: '/v1/web-dashboard/channel-data',
     inventory: '/v1/web-dashboard/inventory',
+    inventoryCounts: '/v1/web-dashboard/inventory/counts',
+    inventoryItemDetails: (id: string) => `/v1/web-dashboard/inventory/${id}/details`,
     topMovers: '/v1/web-dashboard/top-movers',
     recentTransactions: '/v1/web-dashboard/recent-transactions',
     aiInsights: '/v1/web-dashboard/ai-insights',
