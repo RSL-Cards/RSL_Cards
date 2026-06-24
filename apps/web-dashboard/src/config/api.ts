@@ -1,6 +1,6 @@
 // export const API_BASE_URL =
 //   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://3.231.19.101'
-export const API_BASE_URL ="http://localhost:8080"
+export const API_BASE_URL = "http://localhost:8080"
 
 export const ENDPOINTS = {
   auth: {
@@ -21,5 +21,19 @@ export const ENDPOINTS = {
     revalue: '/v1/inventory/revalue',
     bulkImport: '/v1/inventory/bulk-import',
     export: '/v1/inventory/export',
+  },
+  users: {
+    me: "/v1/users/me",
+    onboarding: "/v1/users/me/onboarding",
+    avatar: "/v1/users/me/avatar",
+
+    paymentMethods: "/v1/users/me/payment-methods",
+
+    connectedPlatforms: "/v1/users/me/connected-platforms",
+    customers: '/v1/users/me/customers',
+
+    ebayCallback: '/v1/users/ebay/callback',
+    notificationPreferences:
+      "/v1/users/me/notification-preferences",
   },
 } as const

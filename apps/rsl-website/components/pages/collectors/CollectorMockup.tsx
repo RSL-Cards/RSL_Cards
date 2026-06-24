@@ -1,3 +1,4 @@
+/*
 import { TrendingUp, ScanLine } from 'lucide-react'
 
 const marketCards = [
@@ -51,3 +52,4 @@ export default function CollectorMockup() {
     </div>
   )
 }
+*/

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 import AboutHero from '@/components/pages/about/AboutHero'
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export default function AboutPage() {
     <main className="min-h-screen bg-ink text-white">
       <Header ctaType="none" />
       <AboutHero />
+      <Footer />
     </main>
   )
 }

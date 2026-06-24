@@ -1,3 +1,4 @@
+/*
 import { Star } from 'lucide-react'
 import StoreButtons from '@/components/shared/StoreButtons'
 
@@ -19,3 +20,4 @@ export default function CollectorDownload() {
     </section>
   )
 }
+*/

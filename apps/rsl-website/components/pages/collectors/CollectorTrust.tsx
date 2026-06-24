@@ -1,3 +1,4 @@
+/*
 import { Check } from 'lucide-react'
 
 export default function CollectorTrust() {
@@ -14,3 +15,4 @@ export default function CollectorTrust() {
     </section>
   )
 }
+*/

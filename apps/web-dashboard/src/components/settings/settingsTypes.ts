@@ -7,8 +7,6 @@ export type AccountSettings = {
   displayName: string
   customUrl: string
   email: string
-  supportEmail: string
-  timezone: string
 }
 
 export type ListingDefaults = {
@@ -23,7 +21,12 @@ export type ListingDefaults = {
   crossPost: boolean
   description: string
 }
-
+export type ConnectedPlatform = {
+  platform: string
+  platformUserId?: string
+  isActive: boolean
+  updatedAt?: string
+}
 export type NotificationPreference = {
   id: string
   label: string

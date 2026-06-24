@@ -73,7 +73,7 @@ export const getStatusClass = (status: string) => {
     case 'Pending':
       return 'chip-warning'
     default:
-      return 'bg-gray-500/20 px-2 py-1 rounded-full text-xs font-medium text-gray-400'
+      return 'rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500'
   }
 }
 

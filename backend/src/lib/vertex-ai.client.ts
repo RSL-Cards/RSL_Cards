@@ -18,12 +18,16 @@ export class VertexAiClient {
    * Generates content from an image and prompt with timeout and retry logic.
    */
   async generateFromImage(
+    
     prompt: string,
     imageBase64: string,
     mimeType: string = "image/jpeg",
     modelName: string = "gemini-3.1-flash-lite"
   ) {
     // Timeout Promise
+    if (!this.ai) {
+  throw new Error("Vertex AI is disabled.");
+}
     const timeoutMs = 60000; // 60 seconds
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Vertex AI request timed out")), timeoutMs)

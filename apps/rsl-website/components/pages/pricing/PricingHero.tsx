@@ -1,12 +1,12 @@
 import { Check } from 'lucide-react'
 
 const plans = [
-  {
-    name: 'RSL Cards',
-    price: 'Free',
-    audience: 'Collector App',
-    features: ['Card scanning', 'Collection tracker', 'Price alerts', 'Card show finder', 'Market movers feed'],
-  },
+  // {
+  //   name: 'RSL Cards',
+  //   price: 'Free',
+  //   audience: 'Collector App',
+  //   features: ['Card scanning', 'Collection tracker', 'Price alerts', 'Card show finder', 'Market movers feed'],
+  // },
   {
     name: 'RSL Cards Pro Starter',
     price: 'Free',
@@ -37,11 +37,11 @@ export default function PricingHero() {
             Simple pricing. No surprises.
           </h1>
           <p className="mt-6 text-lg leading-8 text-neutral-300">
-            RSL Cards is free for collectors. RSL Cards Pro has a free dealer tier with paid plans
-            for more power.
+            RSL Cards Pro has a free dealer tier with paid plans for more inventory management,
+            reporting, listing, and team power.
           </p>
         </div>
-        <div className="mt-12 grid gap-5 lg:grid-cols-4">
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {plans.map((plan) => (
             <article key={plan.name} className="border border-line bg-panel p-6">
               <p className="text-xs font-black uppercase tracking-[0.18em] text-rslRed">{plan.audience}</p>

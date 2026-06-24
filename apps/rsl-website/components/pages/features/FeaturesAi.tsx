@@ -10,8 +10,8 @@ export default function FeaturesAi() {
             AI context is built into the workflow, not bolted on later.
           </h2>
           <p className="mt-6 text-lg leading-8 text-neutral-700">
-            Dealers and collectors both get plain-English explanations that connect sold comps to
-            player news, market movement, and timing.
+            Dealers get plain-English explanations that connect sold comps to player news, market
+            movement, timing, and inventory impact.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -17,7 +17,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
           <div className="font-black">Product</div>
           <div className="mt-4 grid gap-2 text-muted">
             <a href="/dealers">For Dealers</a>
-            <a href="/collectors">For Collectors</a>
+            {/* <a href="/collectors">For Collectors</a> */}
             <a href="/features">Features</a>
             <a href="/pricing">Pricing</a>
           </div>
@@ -31,6 +31,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
                 <a href="#">SELL Flow</a>
                 <a href="#">Inventory</a>
                 <a href="#">Reports</a>
+                <a href="/contact">Contact</a>
               </div>
             </>
           ) : (
@@ -40,7 +41,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
                 <a href="/about">About</a>
                 <a href="#blog">Blog</a>
                 <a href="#shows">Card Show Finder</a>
-                <a href="#contact">Contact</a>
+                <a href="/contact">Contact</a>
               </div>
             </>
           )}
@@ -48,8 +49,8 @@ export default function Footer({ variant = 'default' }: FooterProps) {
         <div>
           <div className="font-black">Legal</div>
           <div className="mt-4 grid gap-2 text-muted">
-            <a href="#privacy">Privacy Policy</a>
-            <a href="#terms">Terms of Service</a>
+            <a href="/privacy-policy">Privacy Policy</a>
+            <a href="/terms-of-service">Terms of Service</a>
             <span>© 2026 Reddy Sherrer Lane LLC.</span>
           </div>
         </div>

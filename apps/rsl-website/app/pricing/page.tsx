@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 import PricingHero from '@/components/pages/pricing/PricingHero'
 import PricingDownload from '@/components/pages/pricing/PricingDownload'
 
 export const metadata: Metadata = {
   title: 'Pricing - RSL Cards Pro',
-  description: 'Simple pricing for sports card dealers and collectors. Free collector app and dealer plans for growing card businesses.',
+  description: 'Simple pricing for sports card dealers. Dealer plans for inventory management, show workflows, and growing card businesses.',
 }
 
 export default function PricingPage() {
@@ -14,6 +15,7 @@ export default function PricingPage() {
       <Header ctaType="none" />
       <PricingHero />
       <PricingDownload />
+      <Footer />
     </main>
   )
 }

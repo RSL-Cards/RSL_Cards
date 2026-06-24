@@ -7,6 +7,7 @@ const nextConfig = {
     domains: [
       'localhost',
       'i.ebayimg.com',
+      'goodseva-admin.s3.eu-north-1.amazonaws.com',
     ],
   },
 }

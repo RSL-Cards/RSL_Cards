@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection'
 import ConnectedPlatformsSection from '@/components/settings/ConnectedPlatformsSection'
 import ListingDefaultsSection from '@/components/settings/ListingDefaultsSection'
@@ -14,32 +14,57 @@ import { SettingsSection, TeamRole } from '@/components/settings/settingsTypes'
 import {
   initialTeamMembers,
   notificationDefaults,
-  platformMeta,
   requestedPlatforms,
 } from '@/components/settings/settingsUtils'
+import { useSettingsStore } from '@/stores/settingStore'
 import Shell from '@/components/layout/Shell'
 import {
-  DEALER,
   INVENTORY_TABLE_DATA,
   PLATFORM_FEE_TABLE,
-  RECENT_TRANSACTIONS,
 } from '@/data/mockDashboard'
 
 export default function SettingsPage() {
+  const {
+    profile,
+    paymentMethods,
+    connectedPlatforms,
+
+    fetchProfile,
+    fetchPaymentMethods,
+    fetchConnectedPlatforms,
+
+    updateProfile,
+    disconnectPlatform,
+  } = useSettingsStore()
   const [activeSection, setActiveSection] = useState<SettingsSection>('account')
   const [account, setAccount] = useState({
-    displayName: DEALER.dealer_profile.display_name,
-    customUrl: DEALER.dealer_profile.custom_url,
-    email: DEALER.email,
-    supportEmail: 'support@rslcards.com',
-    timezone: 'America/Chicago',
+    displayName: '',
+    customUrl: '',
+    email: '',
   })
-  const [platformConnections, setPlatformConnections] = useState(() =>
-    requestedPlatforms.reduce<Record<string, boolean>>((connections, platform) => {
-      connections[platform] = platformMeta[platform]?.status === 'Connected'
-      return connections
-    }, {})
-  )
+
+  useEffect(() => {
+    if (!profile) return
+
+    setAccount({
+      displayName: profile.displayName ?? '',
+      customUrl: profile.customUrl ?? '',
+      email: profile.email ?? '',
+    })
+  }, [profile])
+  // const [account, setAccount] = useState({
+  //   displayName: DEALER.dealer_profile.display_name,
+  //   customUrl: DEALER.dealer_profile.custom_url,
+  //   email: DEALER.email,
+  //   supportEmail: 'support@rslcards.com',
+  //   timezone: 'America/Chicago',
+  // })
+  // const [platformConnections, setPlatformConnections] = useState(() =>
+  //   requestedPlatforms.reduce<Record<string, boolean>>((connections, platform) => {
+  //     connections[platform] = platformMeta[platform]?.status === 'Connected'
+  //     return connections
+  //   }, {})
+  // )
   const [notifications, setNotifications] = useState(notificationDefaults)
   const [listingDefaults, setListingDefaults] = useState({
     platform: 'eBay',
@@ -59,18 +84,21 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState<TeamRole>('Lister')
   const [saveMessage, setSaveMessage] = useState('')
 
-  const paymentMethods = useMemo(() => {
-    const payments = Array.from(new Set(RECENT_TRANSACTIONS.map((transaction) => transaction.payment)))
-    return payments.map((payment, index) => ({
-      id: payment.toLowerCase(),
-      label: payment,
-      usage: RECENT_TRANSACTIONS.filter((transaction) => transaction.payment === payment).length,
-      default: index === 0,
-      status: payment === 'eBay' ? 'Auto reconciled' : 'Ready',
-    }))
-  }, [])
+  // const paymentMethods = useMemo(() => {
+  //   const payments = Array.from(new Set(RECENT_TRANSACTIONS.map((transaction) => transaction.payment)))
+  //   return payments.map((payment, index) => ({
+  //     id: payment.toLowerCase(),
+  //     label: payment,
+  //     usage: RECENT_TRANSACTIONS.filter((transaction) => transaction.payment === payment).length,
+  //     default: index === 0,
+  //     status: payment === 'eBay' ? 'Auto reconciled' : 'Ready',
+  //   }))
+  // }, [])
 
-  const connectedCount = Object.values(platformConnections).filter(Boolean).length
+  const connectedCount =
+    connectedPlatforms.filter(
+      (platform) => platform.isActive,
+    ).length
   const averagePlatformFee = Math.round(
     PLATFORM_FEE_TABLE.reduce((sum, platform) => sum + platform.fee_pct, 0) / PLATFORM_FEE_TABLE.length
   )
@@ -78,8 +106,16 @@ export default function SettingsPage() {
     PLATFORM_FEE_TABLE.find((platform) => platform.platform === listingDefaults.platform)?.fee_pct ?? 0
   const inventoryReadyToList = INVENTORY_TABLE_DATA.filter((card) => card.status === 'unlisted').length
 
-  const togglePlatform = (platform: string) => {
-    setPlatformConnections((current) => ({ ...current, [platform]: !current[platform] }))
+  const togglePlatform = async (
+    platform: string,
+  ) => {
+    try {
+      await disconnectPlatform(
+        platform.toLowerCase(),
+      )
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const toggleNotification = (notificationId: string) => {
@@ -108,11 +144,46 @@ export default function SettingsPage() {
     setInviteEmail('')
   }
 
-  const saveSettings = () => {
-    setSaveMessage('Settings saved locally for this dashboard session.')
-    window.setTimeout(() => setSaveMessage(''), 2500)
-  }
+  const saveSettings = async () => {
+    try {
+      await updateProfile({
+        displayName: account.displayName,
+      })
 
+      setSaveMessage(
+        'Profile updated successfully.',
+      )
+
+      window.setTimeout(() => {
+        setSaveMessage('')
+      }, 2500)
+    } catch {
+      setSaveMessage(
+        'Failed to update profile.',
+      )
+
+      window.setTimeout(() => {
+        setSaveMessage('')
+      }, 2500)
+    }
+  }
+  useEffect(() => {
+    fetchProfile()
+    fetchPaymentMethods()
+    fetchConnectedPlatforms()
+  }, [
+    fetchProfile,
+    fetchPaymentMethods,
+    fetchConnectedPlatforms,
+  ])
+  const formattedPaymentMethods =
+    paymentMethods.map((method) => ({
+      id: method.id,
+      label: method.type,
+      usage: 0,
+      default: method.isDefault,
+      status: 'Connected',
+    }))
   return (
     <Shell>
       <div className="space-y-6">
@@ -143,14 +214,17 @@ export default function SettingsPage() {
 
             {activeSection === 'platforms' && (
               <ConnectedPlatformsSection
-                platformConnections={platformConnections}
+                platforms={connectedPlatforms}
                 onTogglePlatform={togglePlatform}
               />
             )}
 
             {activeSection === 'payments' && (
-              <PaymentMethodsSection paymentMethods={paymentMethods} />
-            )}
+              <PaymentMethodsSection
+                paymentMethods={
+                  formattedPaymentMethods
+                }
+              />)}
 
             {activeSection === 'notifications' && (
               <NotificationsSection

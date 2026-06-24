@@ -8,7 +8,7 @@ export default function FeaturesDownload() {
           Compare the features, then start free.
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-xl font-bold">
-          Download RSL Cards Pro for dealers or RSL Cards for collectors.
+          Download RSL Cards Pro for dealers and manage inventory from the web dashboard.
         </p>
         <div className="mt-8 flex justify-center">
           <StoreButtons />

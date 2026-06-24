@@ -9,23 +9,30 @@ interface ListingsMetricsProps {
 export default function ListingsMetrics({ listings, platformStats }: ListingsMetricsProps) {
   const totalViews = listings.reduce((sum, item) => sum + item.views, 0)
   const totalNet = listings.reduce((sum, item) => sum + item.net, 0)
+  const totalWatchers = listings.reduce((sum, item) => sum + item.watchers, 0)
+  const totalOffers = listings.reduce((sum, item) => sum + item.offers, 0)
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-      <div className="metric-card">
-        <div className="text-sm font-medium text-text-secondary">Active Listings</div>
-        <div className="mt-2 font-mono text-3xl font-bold text-white">{listings.length}</div>
-        <div className="mt-1 text-sm text-text-muted">Across {platformStats.length} platforms</div>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="metric-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="text-sm font-medium text-gray-500">Active Listings</div>
+        <div className="mt-2 font-mono text-3xl font-bold text-gray-900">{listings.length}</div>
+        <div className="mt-1 text-sm text-gray-400">Across {platformStats.length} platforms</div>
       </div>
-      <div className="metric-card">
-        <div className="text-sm font-medium text-text-secondary">Total Views</div>
-        <div className="mt-2 font-mono text-3xl font-bold text-white">{totalViews.toLocaleString()}</div>
-        <div className="mt-1 text-sm text-text-muted">Synced marketplace analytics</div>
+      <div className="metric-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="text-sm font-medium text-gray-500">Total Views</div>
+        <div className="mt-2 font-mono text-3xl font-bold text-gray-900">{totalViews.toLocaleString()}</div>
+        <div className="mt-1 text-sm text-gray-400">Synced marketplace analytics</div>
       </div>
-      <div className="metric-card">
-        <div className="text-sm font-medium text-text-secondary">Est. Net Value</div>
-        <div className="mt-2 font-mono text-3xl font-bold text-success">{formatCurrency(totalNet)}</div>
-        <div className="mt-1 text-sm text-text-muted">After estimated fees</div>
+      <div className="metric-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="text-sm font-medium text-gray-500">Buyer Signals</div>
+        <div className="mt-2 font-mono text-3xl font-bold text-gray-900">{totalWatchers}</div>
+        <div className="mt-1 text-sm text-gray-400">{totalOffers} open offers</div>
+      </div>
+      <div className="metric-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="text-sm font-medium text-gray-500">Est. Net Value</div>
+        <div className="mt-2 font-mono text-3xl font-bold text-green-600">{formatCurrency(totalNet)}</div>
+        <div className="mt-1 text-sm text-gray-400">After estimated fees</div>
       </div>
     </div>
   )

@@ -13,11 +13,17 @@ const testimonials = [
     quote:
       'The AI told me my Ja Morant rookie was about to move two days before it happened. I listed at the right time.',
   },
+  // {
+  //   name: '[Collector Name]',
+  //   meta: 'Collector',
+  //   quote:
+  //     'I scanned 30 cards at a show and immediately knew which ones were good deals. This is how collecting should work.',
+  // },
   {
-    name: '[Collector Name]',
-    meta: 'Collector',
+    name: '[Dealer Name]',
+    meta: '[City, State]',
     quote:
-      'I scanned 30 cards at a show and immediately knew which ones were good deals. This is how collecting should work.',
+      'The inventory dashboard finally gave us one place to see what we own, what is listed, and what actually made money.',
   },
 ]
 

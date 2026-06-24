@@ -1,3 +1,4 @@
+/*
 import {
   Bell,
   MapPin,
@@ -70,3 +71,4 @@ export default function CollectorFeatures() {
     </section>
   )
 }
+*/

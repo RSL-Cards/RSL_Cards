@@ -1,7 +1,7 @@
 const featureGroups = [
   { id: 'all', title: 'All Features' },
   { id: 'dealers', title: 'Dealers' },
-  { id: 'collectors', title: 'Collectors' },
+  // { id: 'collectors', title: 'Collectors' },
   { id: 'ai-engine', title: 'AI Engine' },
   { id: 'offline', title: 'Offline Mode' },
   { id: 'multi-channel', title: 'Multi-Channel Listing' },
@@ -17,11 +17,11 @@ export default function FeaturesHero() {
             Complete Feature Breakdown
           </div>
           <h1 className="display-title text-4xl leading-tight text-white sm:text-5xl md:text-6xl">
-            Everything RSL Cards does across dealers, collectors, AI, offline mode, and listings.
+            Everything RSL Cards does for dealers across inventory, AI, offline mode, and listings.
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-neutral-300">
             Built for comparison shoppers who need to know exactly how RSL Cards differs from
-            general collection apps, listing tools, and payment systems.
+            spreadsheets, listing tools, payment systems, and generic inventory software.
           </p>
         </div>
         <div className="mt-10 flex flex-wrap gap-3">

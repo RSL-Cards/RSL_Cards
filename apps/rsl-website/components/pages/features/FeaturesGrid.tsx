@@ -1,7 +1,7 @@
 import {
   Table2,
   ScanLine,
-  Database,
+  // Database,
   Bot,
   WifiOff,
   Layers,
@@ -14,7 +14,7 @@ const featureGroups = [
     title: 'All Features',
     icon: Table2,
     text: 'A complete operating system across scanning, show-floor workflows, inventory, pricing intelligence, listing, and reporting.',
-    items: ['Mobile scanning', 'Dealer BUY/SELL flow', 'Collector portfolio', 'AI explanations', 'Show finder', 'Reports'],
+    items: ['Mobile scanning', 'Dealer BUY/SELL flow', 'Inventory dashboard', 'AI explanations', 'Show prep', 'Reports'],
   },
   {
     id: 'dealers',
@@ -23,13 +23,13 @@ const featureGroups = [
     text: 'Built for fast table work: scan, comp, buy, sell, record payment notes, and keep cost basis clean.',
     items: ['BUY/SELL flow', 'Profit tracking', 'Tax tools', 'Customer database', 'Consignment', 'Trade tracking'],
   },
-  {
-    id: 'collectors',
-    title: 'Collectors',
-    icon: Database,
-    text: 'Free tools for collectors who want to scan cards, understand prices, and track a collection with context.',
-    items: ['Collection tracker', 'Price alerts', 'Want list', 'Market movers', 'Deal rating', 'Card show finder'],
-  },
+  // {
+  //   id: 'collectors',
+  //   title: 'Collectors',
+  //   icon: Database,
+  //   text: 'Free tools for collectors who want to scan cards, understand prices, and track a collection with context.',
+  //   items: ['Collection tracker', 'Price alerts', 'Want list', 'Market movers', 'Deal rating', 'Card show finder'],
+  // },
   {
     id: 'ai-engine',
     title: 'AI Engine',

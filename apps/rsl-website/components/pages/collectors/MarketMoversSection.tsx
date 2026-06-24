@@ -1,3 +1,4 @@
+/*
 import { LineChart } from 'lucide-react'
 
 const marketCards = [
@@ -35,3 +36,4 @@ export default function MarketMoversSection() {
     </section>
   )
 }
+*/

@@ -1,3 +1,4 @@
+/*
 import StoreButtons from '@/components/shared/StoreButtons'
 import CollectorMockup from './CollectorMockup'
 
@@ -29,3 +30,4 @@ export default function CollectorHero() {
     </section>
   )
 }
+*/
