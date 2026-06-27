@@ -19,6 +19,7 @@
         "expo-apple-authentication": "~8.0.8",
         "expo-auth-session": "~7.0.10",
         "expo-camera": "^17.0.10",
+        "expo-document-picker": "~14.0.8",
         "expo-file-system": "~19.0.22",
         "expo-font": "^56.0.5",
         "expo-image": "^3.0.11",
@@ -729,6 +730,8 @@
     "expo-constants": ["expo-constants@18.0.13", "", { "dependencies": { "@expo/config": "12.0.13", "@expo/env": "2.0.11" }, "peerDependencies": { "expo": "54.0.34", "react-native": "0.81.5" } }, "sha512-FnZn12E1dRYKDHlAdIyNFhBurKTS3F9CrfrBDJI5m3D7U17KBHMQ6JEfYlSj7LG7t+Ulr+IKaj58L1k5gBwTcQ=="],
 
     "expo-crypto": ["expo-crypto@15.0.9", "", { "dependencies": { "base64-js": "1.5.1" }, "peerDependencies": { "expo": "54.0.34" } }, "sha512-SNWKa2fXx7v9gkp1h/7nqXY5XN7qgNDn3yRc2aO0gWGbeMbvob/haMxxsPFe9f51aqH5NjNCqHf2kvLhvAd8KQ=="],
+
+    "expo-document-picker": ["expo-document-picker@14.0.8", "", { "peerDependencies": { "expo": "*" } }, "sha512-3tyQKpPqWWFlI8p9RiMX1+T1Zge5mEKeBuXWp1h8PEItFMUDSiOJbQ112sfdC6Hxt8wSxreV9bCRl/NgBdt+fA=="],
 
     "expo-eas-client": ["expo-eas-client@1.0.8", "", {}, "sha512-5or11NJhSeDoHHI6zyvQDW2cz/yFyE+1Cz8NTs5NK8JzC7J0JrkUgptWtxyfB6Xs/21YRNifd3qgbBN3hfKVgA=="],
 

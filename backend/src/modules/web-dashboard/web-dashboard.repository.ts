@@ -223,16 +223,20 @@ export class WebDashboardRepository {
     if (!itemResult.length) return null;
     const item = itemResult[0];
 
-    const activeListings = await db.execute(sql`
-      SELECT platform, platform_listing_id, status, list_price, created_at
-      FROM listings
-      WHERE inventory_id = ${inventoryId} AND user_id = ${userId} AND status IN ('active', 'draft', 'pending')
-    `);
-
+    let activeComps: any[] = [];
     let comps: any[] = [];
     if (item.variant_id && item.grade_key) {
+      const activeResult = await db.execute(sql`
+        SELECT platform, platform_item_id as platform_listing_id, 'active' as status, price as list_price, created_at, title, image_url, item_web_url
+        FROM platform_active_listings
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY created_at DESC
+        LIMIT 5
+      `);
+      activeComps = activeResult.rows;
+
       const compsResult = await db.execute(sql`
-        SELECT platform, sold_price, sold_at, title
+        SELECT platform, platform_item_id as platform_listing_id, sold_price, sold_at, title
         FROM platform_sold_listings
         WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
         ORDER BY sold_at DESC
@@ -243,7 +247,7 @@ export class WebDashboardRepository {
 
     return {
       item,
-      activeListings: activeListings.rows,
+      activeListings: activeComps,
       soldComps: comps,
     };
   }

@@ -106,7 +106,7 @@ export class WebDashboardService {
       
       return {
         id: item.id,
-        image_url: item.photos?.[0] || '/patrick.webp', 
+        image_url: item.photos?.[0] || '/placeholder.png', 
         player_name: item.player_name || 'Unknown',
         year: item.year || new Date().getFullYear(),
         set_name: item.set_name || 'Unknown',
@@ -154,7 +154,7 @@ export class WebDashboardService {
     return {
       item: {
         id: item.id,
-        image_url: item.photos?.[0] || '/patrick.webp',
+        image_url: item.photos?.[0] || '/placeholder.png',
         player_name: item.player_name || 'Unknown',
         year: item.year || new Date().getFullYear(),
         set_name: item.set_name || 'Unknown',
@@ -170,13 +170,18 @@ export class WebDashboardService {
       },
       activeListings: activeListings.map(l => ({
         platform: l.platform,
+        platform_listing_id: l.platform_listing_id,
         listingId: l.platform_listing_id,
         status: l.status,
         price: Number(l.list_price),
-        createdAt: l.created_at
+        createdAt: l.created_at,
+        title: l.title,
+        image_url: l.image_url,
+        item_web_url: l.item_web_url
       })),
       soldComps: soldComps.map(c => ({
         platform: c.platform,
+        platform_listing_id: c.platform_listing_id,
         title: c.title,
         price: Number(c.sold_price),
         soldAt: c.sold_at

@@ -13,7 +13,8 @@ import {
   Users,
   Settings,
   ChevronRight,
-  Crown
+  Crown,
+  ListTodo
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -25,6 +26,7 @@ const navItems = [
   { icon: BarChart3, label: 'Reports', href: '/reports' },
   { icon: Zap, label: 'AI Insights', href: '/ai-insights' },
   { icon: Users, label: 'Customers', href: '/customers' },
+  { icon: ListTodo, label: 'Tasks', href: '/tasks' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 

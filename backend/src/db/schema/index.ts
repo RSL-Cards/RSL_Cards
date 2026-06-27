@@ -8,3 +8,4 @@ export * from './narrative';
 export * from './notification';
 export * from './analytics';
 export * from './admin';
+export * from './batch';

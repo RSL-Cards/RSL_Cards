@@ -1,4 +1,5 @@
 import { Bot, Plus, Upload } from 'lucide-react'
+import Link from 'next/link'
 import { ImportToolMode } from './inventoryUtils'
 
 interface InventoryHeaderProps {
@@ -33,14 +34,13 @@ export default function InventoryHeader({ onAddItem, onOpenImportTool }: Invento
           <Bot className="h-4 w-4" />
           AI Mapping
         </button>
-        <button
-          type="button"
-          onClick={onAddItem}
+        <Link
+          href="/inventory/add"
           className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />
-          Add Card
-        </button>
+          Bulk Upload / Scan
+        </Link>
       </div>
     </div>
   )

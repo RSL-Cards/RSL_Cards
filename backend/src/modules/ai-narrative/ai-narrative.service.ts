@@ -164,10 +164,23 @@ export class AiNarrativeService {
         const duration = Date.now() - startTime;
         console.log(`[PERF] ⏱️ Vertex AI Model Extraction took ${duration}ms`);
         
-        const cleaned = rawResponse.replace(/```json|```/g, "").trim();
-        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("No JSON in Vertex AI response");
-        geminiCard = JSON.parse(jsonMatch[0]);
+        const parseGeminiResponse = (text: string) => {
+          let cleaned = text.replace(/```json|```/g, "").trim();
+          try {
+            return JSON.parse(cleaned);
+          } catch (err) {
+            const objMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (objMatch) {
+              try {
+                return JSON.parse(objMatch[0]);
+              } catch (e2) {}
+            }
+            console.error(`[SCAN-CARD] Failed to parse JSON. Raw response: ${text}`);
+            throw err;
+          }
+        };
+
+        geminiCard = parseGeminiResponse(rawResponse);
         console.log(`[SCAN-CARD] ✅ Successfully identified card using model: ${modelName}`);
         break;
       } catch (err: any) {

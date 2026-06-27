@@ -1,0 +1,576 @@
+'use client'
+
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Shell from '@/components/layout/Shell'
+import { apiClient } from '@/lib/axios'
+import { Upload, Image as ImageIcon, FileText, Loader2, CheckCircle, XCircle, ReceiptText, CalendarClock, Store, ShoppingCart, Facebook, MessageCircle, Box, MoreHorizontal, Banknote, Wallet, ArrowRightLeft, CreditCard, Smartphone, RefreshCcw } from 'lucide-react'
+
+type Status = 'idle' | 'uploading' | 'processing' | 'review' | 'saving' | 'success'
+type UploadMode = 'single_image' | 'multiple_images' | 'written_file'
+
+const BUY_CHANNELS = [
+  { key: "card_show", icon: Store, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200", label: "Card Show" },
+  { key: "ebay", icon: ShoppingCart, color: "text-red-600", bg: "bg-red-50", border: "border-red-200", label: "eBay" },
+  { key: "facebook", icon: Facebook, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", label: "Facebook" },
+  { key: "app", icon: MessageCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", label: "App/DM" },
+  { key: "comc", icon: Box, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", label: "COMC" },
+  { key: "other", icon: MoreHorizontal, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Other" },
+];
+
+const PAYMENT_METHODS = [
+  { key: "cash", icon: Banknote, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", label: "Cash" },
+  { key: "venmo", icon: Wallet, color: "text-blue-500", bg: "bg-blue-50", border: "border-blue-200", label: "Venmo" },
+  { key: "zelle", icon: ArrowRightLeft, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", label: "Zelle" },
+  { key: "paypal", icon: CreditCard, color: "text-blue-800", bg: "bg-blue-100", border: "border-blue-200", label: "PayPal" },
+  { key: "cashapp", icon: Smartphone, color: "text-green-500", bg: "bg-green-50", border: "border-green-200", label: "CashApp" },
+  { key: "trade", icon: RefreshCcw, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Trade" },
+  { key: "other", icon: MoreHorizontal, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Other" },
+];
+
+export default function BulkAddPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialBatchId = searchParams.get('batchId')
+  
+  const [status, setStatus] = useState<Status>(initialBatchId ? 'processing' : 'idle')
+  const [uploadMode, setUploadMode] = useState<UploadMode>('single_image')
+  const [batchId, setBatchId] = useState<string | null>(initialBatchId)
+  const [cards, setCards] = useState<any[]>([])
+  const [pricing, setPricing] = useState<Record<string, { condition: string, paidPrice: string, askPrice: string, channel: string, paymentMethod: string }>>({})
+  const [expandedComps, setExpandedComps] = useState<Record<string, boolean>>({})
+  const [errorMsg, setErrorMsg] = useState('')
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Polling logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (status === 'processing' && batchId) {
+      interval = setInterval(async () => {
+        try {
+          const { data } = await apiClient.get(`/batch/jobs/${batchId}`)
+          if (data.status === 'completed') {
+            setCards(data.resultsJson || [])
+            setStatus('review')
+          } else if (data.status === 'failed') {
+            setErrorMsg(`Processing failed: ${data.error}`)
+            setStatus('idle')
+          }
+        } catch (err: any) {
+          setErrorMsg(err.message || 'Error polling job status')
+          setStatus('idle')
+        }
+      }, 2500)
+    }
+    return () => clearInterval(interval)
+  }, [status, batchId])
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const files = e.target.files
+      if (!files || files.length === 0) return
+
+      setStatus('uploading')
+
+      if (uploadMode === 'written_file') {
+        const text = await files[0].text()
+        await apiClient.post('/batch/upload', { rawText: text })
+        router.push('/')
+      } else if (uploadMode === 'multiple_images') {
+        const promises = Array.from(files).map((file) => {
+          return new Promise<void>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = async () => {
+              try {
+                const base64 = (reader.result as string).split(',')[1]
+                await apiClient.post('/batch/scan-multi', { image: base64 })
+                resolve()
+              } catch (err) { reject(err) }
+            }
+            reader.readAsDataURL(file)
+          })
+        })
+        await Promise.all(promises)
+        router.push('/')
+      } else {
+        // single_image
+        const reader = new FileReader()
+        reader.onload = async () => {
+          const base64 = (reader.result as string).split(',')[1]
+          await apiClient.post('/batch/scan-multi', { image: base64 })
+          router.push('/')
+        }
+        reader.readAsDataURL(files[0])
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Upload failed')
+      setStatus('idle')
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      // Create a synthetic event
+      const event = { target: { files: e.dataTransfer.files } } as any
+      handleFileChange(event)
+    }
+  }
+
+  const updatePricing = (id: string, field: 'condition' | 'paidPrice' | 'askPrice' | 'channel' | 'paymentMethod', value: string) => {
+    setPricing(prev => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || { condition: 'Mint', paidPrice: '', askPrice: '', channel: 'other', paymentMethod: 'other' }),
+        [field]: value
+      }
+    }))
+  }
+
+  const toggleComps = (id: string) => {
+    setExpandedComps(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }))
+  }
+
+  const handleSave = async () => {
+    setStatus('saving')
+    try {
+      for (const card of cards) {
+        const p = pricing[card.id]
+        const payload = {
+          playerName: card.player_name,
+          year: card.year,
+          setName: card.set_name,
+          variation: card.variation,
+          cardNumber: card.card_number,
+          sport: card.sport,
+          gradeCompany: card.grading?.company,
+          gradeValue: card.grading?.grade,
+          certNumber: card.grading?.cert_number,
+          costBasis: parseFloat(p?.paidPrice || "0"),
+          currentMarketValue: parseFloat(p?.askPrice || "0"),
+          comps: card.comps,
+        }
+        const res = await apiClient.post('/v1/inventory', payload)
+        
+        // Always create a buy transaction, default to 'other' if not selected
+        const inventoryId = res.data?.item?.id
+        if (inventoryId) {
+          await apiClient.post('/v1/transactions/buy', {
+            inventoryId,
+            playerId: card.player_id,
+            playerName: card.player_name || "Unknown Card",
+            price: p?.paidPrice || "0",
+            costBasis: p?.paidPrice || "0",
+            channel: p?.channel || "other",
+            paymentMethod: p?.paymentMethod || "other",
+            gradeKey: card.gradeKey || 'RAW',
+            cardSnapshot: JSON.stringify(card),
+          })
+        }
+      }
+      setStatus('success')
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error saving cards')
+      setStatus('review')
+    }
+  }
+
+  return (
+    <Shell>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Add Cards</h1>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              Upload images or text lists to automatically extract cards and fetch comps.
+            </p>
+          </div>
+          {(status === 'review' || status === 'saving' || status === 'success') && (
+            <button
+              onClick={() => { setStatus('idle'); setCards([]); setPricing({}); setBatchId(null); }}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Start New Upload
+            </button>
+          )}
+        </div>
+
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-center gap-2">
+            <XCircle className="w-5 h-5" />
+            <span className="text-sm font-medium">{errorMsg}</span>
+          </div>
+        )}
+
+        {(status === 'idle' || status === 'uploading' || status === 'processing') && (
+          <div 
+            className="border-2 border-dashed border-gray-300 bg-white rounded-2xl p-12 text-center hover:bg-gray-50 transition-colors cursor-pointer"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={() => status === 'idle' && fileInputRef.current?.click()}
+          >
+            {status === 'idle' && (
+              <div className="mb-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                <nav className="-mb-px flex space-x-8 border-b border-gray-200" aria-label="Tabs">
+                  <button
+                    onClick={() => setUploadMode('single_image')}
+                    className={`${uploadMode === 'single_image' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    Single Image
+                  </button>
+                  <button
+                    onClick={() => setUploadMode('multiple_images')}
+                    className={`${uploadMode === 'multiple_images' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    Multiple Images
+                  </button>
+                  <button
+                    onClick={() => setUploadMode('written_file')}
+                    className={`${uploadMode === 'written_file' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                  >
+                    Written File
+                  </button>
+                </nav>
+              </div>
+            )}
+
+            <input 
+              type="file" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileChange}
+              multiple={uploadMode === 'multiple_images'}
+              accept={uploadMode === 'written_file' ? '.csv,.txt' : 'image/*'}
+            />
+
+            {status === 'idle' && (
+              <div className="flex flex-col items-center">
+                <div className="flex gap-4 mb-4">
+                  {uploadMode === 'written_file' ? (
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {uploadMode === 'single_image' && 'Upload a Single Image'}
+                  {uploadMode === 'multiple_images' && 'Upload Multiple Images'}
+                  {uploadMode === 'written_file' && 'Upload a Written File'}
+                </h3>
+                <p className="text-sm text-gray-500 max-w-md">
+                  {uploadMode === 'single_image' && 'Drag and drop a single large image containing multiple cards.'}
+                  {uploadMode === 'multiple_images' && 'Select and upload multiple individual card images at once.'}
+                  {uploadMode === 'written_file' && 'Upload a CSV/TXT file with written card details to extract.'}
+                </p>
+                <div className="mt-6 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-700">
+                  Select {uploadMode === 'multiple_images' ? 'Files' : 'File'}
+                </div>
+              </div>
+            )}
+
+            {(status === 'uploading' || status === 'processing') && (
+              <div className="flex flex-col items-center py-8">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {status === 'uploading' ? 'Uploading...' : 'AI is extracting data & fetching comps...'}
+                </h3>
+                <p className="text-sm text-gray-500">This may take up to 20 seconds depending on the file size.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {status === 'review' && (
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-900">Review {cards.length} Extracted Cards</h3>
+              <button
+                onClick={handleSave}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm"
+              >
+                Confirm & Save to Inventory
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-white border-b border-gray-200 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                  <tr>
+                    <th className="px-6 py-4">Card Info</th>
+                    <th className="px-6 py-4">Market Analytics</th>
+                    <th className="px-6 py-4">Your Pricing</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {cards.map((card) => {
+                    const cPricing = pricing[card.id] || { condition: 'Mint', paidPrice: '', askPrice: '', channel: 'other', paymentMethod: 'other' }
+                    const avgSold = card.comps?.snapshots?.[0]?.avgSoldPrice || "0.00"
+                    const lowestActive = card.comps?.snapshots?.[0]?.lowestActive || "0.00"
+                    
+                    return (
+                      <React.Fragment key={card.id}>
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                          <div className="font-bold text-gray-900 text-base mb-1">
+                            {card.year} {card.set_name} {card.player_name}
+                          </div>
+                          <div className="text-gray-500 flex items-center gap-2">
+                            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium border border-gray-200">
+                              {card.variation || 'Base'}
+                            </span>
+                            {card.gradeKey && card.gradeKey !== "RAW" && (
+                              <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-xs font-medium">
+                                {card.gradeKey}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-6">
+                            <div>
+                              <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wide">Avg Sold</div>
+                              <div className="font-bold text-green-600 text-lg">${avgSold}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wide">Lowest Active</div>
+                              <div className="font-bold text-gray-900 text-lg">${lowestActive}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <button
+                              onClick={() => toggleComps(card.id)}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
+                            >
+                              {expandedComps[card.id] ? 'Hide Live Comps' : 'View Live Comps'}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
+                              <input 
+                                type="text"
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-28 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                value={cPricing.condition}
+                                onChange={(e) => updatePricing(card.id, 'condition', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Cost Basis (Bought For $)</label>
+                              <input 
+                                type="number"
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                value={cPricing.paidPrice}
+                                placeholder="0.00"
+                                onChange={(e) => updatePricing(card.id, 'paidPrice', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Target Sale Price ($)</label>
+                              <input 
+                                type="number"
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                value={cPricing.askPrice}
+                                placeholder="0.00"
+                                onChange={(e) => updatePricing(card.id, 'askPrice', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-6 border-t border-gray-100 pt-5 space-y-5">
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Where did you buy it?</label>
+                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                {BUY_CHANNELS.map((c) => {
+                                  const isSelected = cPricing.channel === c.key;
+                                  const Icon = c.icon;
+                                  return (
+                                    <button
+                                      key={c.key}
+                                      onClick={() => updatePricing(card.id, 'channel', c.key)}
+                                      className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${
+                                        isSelected 
+                                          ? `${c.bg} ${c.border} ring-1 ring-${c.color.split('-')[1]}-500 shadow-sm` 
+                                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                      }`}
+                                    >
+                                      <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? c.color : 'text-gray-500'}`} />
+                                      <span className={`text-[10px] font-medium ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
+                                        {c.label}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Payment Method</label>
+                              <div className="flex flex-wrap gap-2">
+                                {PAYMENT_METHODS.map((m) => {
+                                  const isSelected = cPricing.paymentMethod === m.key;
+                                  const Icon = m.icon;
+                                  return (
+                                    <button
+                                      key={m.key}
+                                      onClick={() => updatePricing(card.id, 'paymentMethod', m.key)}
+                                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                                        isSelected 
+                                          ? `${m.bg} ${m.border} ring-1 ring-${m.color.split('-')[1]}-500 shadow-sm` 
+                                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                      }`}
+                                    >
+                                      <Icon className={`w-4 h-4 ${isSelected ? m.color : 'text-gray-500'}`} />
+                                      <span className={`text-[11px] font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
+                                        {m.label}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedComps[card.id] && (
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <td colSpan={3} className="px-6 py-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                              {/* Sold Items */}
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-sm mb-3">Recent Sold Items (30 Days)</h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                  {card.comps?.last30Days?.items?.length > 0 ? (
+                                    card.comps.last30Days.items.map((item: any, i: number) => {
+                                      const imageUrl = item.image?.imageUrl || item.thumbnailUrl || item.fullResThumbnailUrl;
+                                      return (
+                                        <div key={i} className="flex gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                          {imageUrl ? (
+                                            <img src={imageUrl} alt="listing" className="h-10 w-10 rounded object-cover flex-shrink-0 bg-gray-100" />
+                                          ) : (
+                                            <div className="h-10 w-10 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400">
+                                              <CalendarClock className="h-4 w-4" />
+                                            </div>
+                                          )}
+                                          <div className="flex-1 min-w-0 pr-2">
+                                            <a href={item.url || item.itemWebUrl || (item.itemId ? `https://www.ebay.com/itm/${item.itemId}` : '#')} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">
+                                              {item.title}
+                                            </a>
+                                            <div className="text-xs text-gray-500 mt-1 flex gap-2 truncate">
+                                              <span>{new Date(item.endDate || item.endedAt || item.soldAt).toLocaleDateString()}</span>
+                                              <span>•</span>
+                                              <span>{item.condition || 'Used'}</span>
+                                            </div>
+                                          </div>
+                                          <div className="font-bold text-green-600 shrink-0">
+                                            ${Number(item.soldPrice?.value || item.soldPrice || item.price || 0).toFixed(2)}
+                                          </div>
+                                        </div>
+                                      )
+                                    })
+                                  ) : (
+                                    <div className="text-sm text-gray-500 italic p-3 bg-white border border-gray-200 rounded-lg">No recent sold comps found.</div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Active Listings */}
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-sm mb-3">Live Active Listings</h4>
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                  {card.comps?.activeListings?.length > 0 ? (
+                                    card.comps.activeListings.map((item: any, i: number) => {
+                                      const imageUrl = item.image?.imageUrl || item.thumbnailUrl || item.fullResThumbnailUrl;
+                                      return (
+                                        <div key={i} className="flex gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                          {imageUrl ? (
+                                            <img src={imageUrl} alt="listing" className="h-10 w-10 rounded object-cover flex-shrink-0 bg-gray-100" />
+                                          ) : (
+                                            <div className="h-10 w-10 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400">
+                                              <ReceiptText className="h-4 w-4" />
+                                            </div>
+                                          )}
+                                          <div className="flex-1 min-w-0 pr-2">
+                                            <a href={item.itemWebUrl || item.url || (item.itemId ? `https://www.ebay.com/itm/${item.itemId}` : '#')} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline truncate block">
+                                              {item.title}
+                                            </a>
+                                            <div className="text-xs text-gray-500 mt-1 flex gap-2 truncate">
+                                              <span>{item.seller?.username || item.platform || 'Unknown Seller'}</span>
+                                              <span>•</span>
+                                              <span>{item.condition || 'Used'}</span>
+                                            </div>
+                                          </div>
+                                          <div className="font-bold text-gray-900 shrink-0">
+                                            ${Number(item.price?.value || item.price || 0).toFixed(2)}
+                                          </div>
+                                        </div>
+                                      )
+                                    })
+                                  ) : (
+                                    <div className="text-sm text-gray-500 italic p-3 bg-white border border-gray-200 rounded-lg">No active listings found.</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {status === 'saving' && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-12 flex flex-col items-center justify-center shadow-sm">
+            <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Saving to Inventory...</h3>
+            <p className="text-gray-500">Writing {cards.length} cards to the database.</p>
+          </div>
+        )}
+
+        {status === 'success' && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-12 flex flex-col items-center justify-center shadow-sm">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Successfully Added!</h3>
+            <p className="text-gray-600 mb-8 max-w-md text-center">
+              All {cards.length} cards have been saved to your inventory with market analytics and pricing.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => router.push('/inventory')}
+                className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-xl font-semibold shadow-sm transition"
+              >
+                View Inventory
+              </button>
+              <button
+                onClick={() => { setStatus('idle'); setCards([]); setPricing({}); setBatchId(null); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-sm transition"
+              >
+                Upload More
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </Shell>
+  )
+}

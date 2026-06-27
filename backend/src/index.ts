@@ -20,6 +20,7 @@ import { listingModule } from "./modules/listing/index.js";
 import { assistantModule } from "./modules/assistant/index.js";
 import { contactModule } from "./modules/contact/index.js";
 import { webDashboardModule } from "./modules/web-dashboard/index.js";
+import { batchRouter } from "./modules/batch/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -90,6 +91,7 @@ const app = new Elysia()
   })
   .use(contactModule)
   .use(webDashboardModule)
+  .use(batchRouter)
   // Highly comprehensive Health Check Endpoint mapping DB, Redis, BullMQ, and backend systems
   .get("/health", async (ctx: any) => {
     const dbStatus = await testDbConnection();

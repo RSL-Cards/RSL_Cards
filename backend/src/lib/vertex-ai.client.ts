@@ -49,7 +49,62 @@ export class VertexAiClient {
         ],
         config: {
           temperature: 0.1,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 8192,
+          topP: 0.95,
+          seed: 0,
+          responseMimeType: "application/json",
+          safetySettings: [
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE }
+          ],
+        }
+      });
+
+      const result = await Promise.race([
+        generationPromise,
+        timeoutPromise,
+      ]);
+
+      const responseText = result.text;
+
+      if (!responseText) {
+        throw new Error("No text returned from Vertex AI");
+      }
+
+      logger.info({ modelName }, "Received response from Vertex AI");
+      return responseText;
+    } catch (error: any) {
+      logger.error({ error: error.message, stack: error.stack }, "Vertex AI request failed");
+      throw error;
+    }
+  }
+
+  /**
+   * Generates content from text prompt with timeout and retry logic.
+   */
+  async generateFromText(
+    prompt: string,
+    modelName: string = "gemini-3.1-flash-lite"
+  ) {
+    if (!this.ai) {
+      throw new Error("Vertex AI is disabled.");
+    }
+    const timeoutMs = 60000; // 60 seconds
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Vertex AI request timed out")), timeoutMs)
+    );
+
+    try {
+      logger.info({ modelName, projectId: env.VERTEX_AI_PROJECT_ID }, "Sending request to Vertex AI");
+
+      const generationPromise = this.ai.models.generateContent({
+        model: modelName,
+        contents: [prompt],
+        config: {
+          temperature: 0.1,
+          maxOutputTokens: 8192,
           topP: 0.95,
           seed: 0,
           responseMimeType: "application/json",

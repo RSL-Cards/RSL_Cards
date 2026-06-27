@@ -91,7 +91,8 @@ export interface EbaySearchItem {
 
 export interface AddInventoryItem {
   cardId?: string;
-  playerId: string;
+  playerId?: string;
+  playerName?: string;
   year?: number;
   setName?: string;
   variation?: string;
@@ -257,4 +258,31 @@ export const cardService = {
       sold30d: data.last30Days,
     };
   },
+};
+
+export interface BatchJob {
+  id: string;
+  type: "image_multi" | "file_upload";
+  status: "pending" | "processing" | "completed" | "failed";
+  createdAt: string;
+  resultsJson?: any[];
+}
+
+export const batchService = {
+  uploadFile: async (rawText: string) => {
+    const res = await apiClient.post<{ jobId: string }>("/batch/upload", { rawText });
+    return res.data;
+  },
+  scanMulti: async (image: string) => {
+    const res = await apiClient.post<{ jobId: string }>("/batch/scan-multi", { image });
+    return res.data;
+  },
+  getJobs: async () => {
+    const res = await apiClient.get<BatchJob[]>("/batch/jobs");
+    return res.data;
+  },
+  getJob: async (id: string) => {
+    const res = await apiClient.get<BatchJob>(`/batch/jobs/${id}`);
+    return res.data;
+  }
 };

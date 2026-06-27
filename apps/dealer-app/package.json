@@ -23,6 +23,7 @@
     "expo-apple-authentication": "~8.0.8",
     "expo-auth-session": "~7.0.10",
     "expo-camera": "^17.0.10",
+    "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.22",
     "expo-font": "^56.0.5",
     "expo-image": "^3.0.11",

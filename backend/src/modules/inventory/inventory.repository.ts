@@ -1,5 +1,9 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
+import { createHash, randomUUID } from "crypto";
+
+const t500 = (s?: string | null) => s ? s.slice(0, 500) : null;
 
 export class InventoryRepository {
   async getInventory(query: any, userId: string) {
@@ -115,7 +119,7 @@ export class InventoryRepository {
     } = body;
 
     // Sanitize empty strings to null for strict typed columns (UUID, integer, etc.)
-    const cleanCardId = cardId && cardId !== "" ? cardId : null;
+    const cleanCardId = cardId && cardId.trim() !== "" ? cardId : `rsl-${randomUUID()}`;
     const cleanVariantId = variantId && variantId !== "" ? variantId : null;
     const cleanPlayerId = playerId && playerId !== "" ? playerId : null;
     const cleanPlayerName = playerName && playerName !== "" ? playerName : null;
@@ -268,10 +272,84 @@ export class InventoryRepository {
       RETURNING *
     `);
 
+    const invItem = result.rows[0] as any;
+
+    try {
+      console.log(`[DEBUG postInventory] body.comps exists?`, !!body.comps);
+      if (body.comps) {
+         console.log(`[DEBUG postInventory] body.comps keys:`, Object.keys(body.comps));
+         console.log(`[DEBUG postInventory] body.comps.snapshots length:`, body.comps.snapshots?.length);
+         console.log(`[DEBUG postInventory] resolvedVariantId:`, resolvedVariantId);
+      }
+      if (body.comps && body.comps.snapshots && body.comps.snapshots.length > 0 && resolvedVariantId) {
+        const snap = body.comps.snapshots[0];
+        await db.execute(sql`
+          INSERT INTO card_comp_snapshots
+            (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+          VALUES
+            (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(snap.avgSoldPrice)}, ${Number(snap.lastSoldPrice)}, ${Number(snap.lowestActive)}, ${Number(snap.salesCount30d)}, NOW())
+          ON CONFLICT (variant_id, grade_key, platform)
+          DO UPDATE SET
+            avg_sold_price = EXCLUDED.avg_sold_price,
+            last_sold_price = EXCLUDED.last_sold_price,
+            lowest_active = EXCLUDED.lowest_active,
+            sales_count_30d = EXCLUDED.sales_count_30d,
+            fetched_at = NOW()
+        `);
+
+        if (body.comps.last30Days?.items && Array.isArray(body.comps.last30Days.items)) {
+          for (const item of body.comps.last30Days.items) {
+            const endDate = item.endDate || item.endedAt;
+            const contentHash = createHash("sha256")
+              .update(`ebay:${resolvedVariantId}:${gradeKey}:${item.itemId}:${endDate}`)
+              .digest("hex")
+              .slice(0, 64);
+            
+            await db.execute(sql`
+              INSERT INTO platform_sold_listings
+                (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
+              VALUES
+                (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(item.soldPrice?.value || item.soldPrice || 0)}, ${item.itemId}, ${endDate}, ${t500(item.title)}, ${item.condition || "Used"}, ${contentHash}, NOW())
+              ON CONFLICT (content_hash) DO NOTHING
+            `);
+          }
+        }
+
+        if (body.comps.activeListings && Array.isArray(body.comps.activeListings)) {
+          for (const item of body.comps.activeListings) {
+            const contentHash = createHash("sha256")
+              .update(`ebayactive:${resolvedVariantId}:${gradeKey}:${item.itemId}`)
+              .digest("hex")
+              .slice(0, 64);
+            
+            await db.execute(sql`
+              INSERT INTO platform_active_listings
+                (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
+              VALUES
+                (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
+              ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
+            `);
+          }
+        }
+      } else {
+        await bullMqAdapter.getQueue().add("refresh_single_comp", {
+          item: {
+             variant_id: resolvedVariantId,
+             grade_key: gradeKey,
+             player_name: cleanPlayerName,
+             year: cleanYear,
+             set_name: cleanSetName,
+             variant_name: cleanVariation || "Base"
+          }
+        });
+      }
+    } catch (e: any) {
+      console.warn("Failed to process comps or enqueue refresh_single_comp job", e.message);
+    }
+
     return {
-      success: true,
       message: "Card added to inventory",
-      item: result.rows[0],
+      item: invItem,
     };
   }
 

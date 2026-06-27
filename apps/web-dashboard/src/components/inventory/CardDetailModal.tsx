@@ -137,15 +137,27 @@ export default function CardDetailModal({
             </div>
             {activeListings.length > 0 ? (
               <div className="space-y-2">
-                {activeListings.map((listing: any) => (
-                  <div key={listing.listingId} className="flex justify-between items-center text-sm border-b border-gray-100 pb-2">
-                    <span className="font-medium text-gray-900 capitalize">{listing.platform}</span>
-                    <div className="flex flex-col items-end">
-                      <span className="font-mono text-gray-900">{formatCurrency(listing.price)}</span>
-                      <span className="text-xs text-gray-500 capitalize">{listing.status}</span>
-                    </div>
-                  </div>
-                ))}
+                {activeListings.map((listing: any) => {
+                  const href = listing.item_web_url || (listing.platform === 'ebay' && listing.platform_listing_id ? `https://www.ebay.com/itm/${listing.platform_listing_id}` : '#');
+                  return (
+                    <a key={listing.platform_listing_id || Math.random()} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm border-b border-gray-100 pb-2 hover:bg-gray-50 transition-colors rounded-md p-2">
+                      {listing.image_url ? (
+                        <img src={listing.image_url} alt="listing" className="h-10 w-10 rounded object-cover flex-shrink-0 bg-gray-100" />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400">
+                          <ReceiptText className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">{listing.title || 'Untitled Listing'}</div>
+                        <div className="text-xs text-gray-500 capitalize">{listing.platform} &bull; {listing.status}</div>
+                      </div>
+                      <div className="flex flex-col items-end flex-shrink-0">
+                        <span className="font-mono text-gray-900 font-bold">{formatCurrency(listing.list_price || listing.price)}</span>
+                      </div>
+                    </a>
+                  )
+                })}
               </div>
             ) : (
               <div className="text-sm text-gray-500">No active listings found.</div>
@@ -160,18 +172,23 @@ export default function CardDetailModal({
             </div>
             {soldComps.length > 0 ? (
               <div className="space-y-2">
-                {soldComps.map((comp: any, idx: number) => (
-                  <div key={idx} className="flex flex-col text-sm border-b border-gray-100 pb-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium text-gray-900 capitalize">{comp.platform}</span>
-                      <span className="font-mono text-gray-900">{formatCurrency(comp.price)}</span>
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-gray-500">
-                      <span className="truncate max-w-[200px]">{comp.title}</span>
-                      <span>{new Date(comp.soldAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ))}
+                {soldComps.map((comp: any, idx: number) => {
+                  const href = comp.platform === 'ebay' && comp.platform_listing_id ? `https://www.ebay.com/itm/${comp.platform_listing_id}` : '#';
+                  return (
+                    <a key={idx} href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm border-b border-gray-100 pb-2 hover:bg-gray-50 transition-colors rounded-md p-2">
+                      <div className="h-10 w-10 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400">
+                        <CalendarClock className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">{comp.title || 'Untitled Comp'}</div>
+                        <div className="text-xs text-gray-500 capitalize">{comp.platform} &bull; {new Date(comp.sold_at || comp.soldAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="flex flex-col items-end flex-shrink-0">
+                        <span className="font-mono text-gray-900 font-bold">{formatCurrency(comp.sold_price || comp.price)}</span>
+                      </div>
+                    </a>
+                  )
+                })}
               </div>
             ) : (
               <div className="text-sm text-gray-500">No sold comps found.</div>

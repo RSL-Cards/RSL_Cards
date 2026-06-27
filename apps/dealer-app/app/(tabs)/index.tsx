@@ -20,6 +20,7 @@ import {
   useRefetchDashboardOnFocus,
 } from "../../src/hooks/useDashboard";
 import { useInventorySummary } from "../../src/hooks/useCardScan";
+import { useBatchJobs } from "../../src/hooks/useBatchScan";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
@@ -41,6 +42,7 @@ export default function HomeScreen() {
   const { data: dailyStats } = useDailyStats();
   const { data: summary } = useInventorySummary();
   const { data: todayActivity } = useTodayActivity();
+  const { data: batchJobs } = useBatchJobs();
   useRefetchDashboardOnFocus();
 
   const handleBuy = () => router.push("/buy/scan");
@@ -166,6 +168,65 @@ export default function HomeScreen() {
             style={{ flex: 1 }}
           />
         </View>
+
+        {/* ── BACKGROUND TASKS ── */}
+        {batchJobs && batchJobs.length > 0 && (
+          <View style={{ marginTop: SPACING.xl, paddingHorizontal: SPACING.lg }}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+              BACKGROUND TASKS
+            </Typography>
+            {batchJobs.map((job) => (
+              <TouchableOpacity
+                key={job.id}
+                onPress={() => {
+                  if (job.status === "completed") {
+                    // Navigate to batch review screen
+                    router.push(`/buy/multi-review?batchId=${job.id}`);
+                  }
+                }}
+                disabled={job.status !== "completed"}
+                style={{
+                  backgroundColor: job.status === "completed" ? "rgba(0, 87, 255, 0.1)" : COLORS.zinc800,
+                  borderWidth: 1,
+                  borderColor: job.status === "completed" ? COLORS.primary : COLORS.border,
+                  borderRadius: RADIUS.md,
+                  padding: SPACING.md,
+                  marginBottom: SPACING.sm,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
+                  <Ionicons 
+                    name={job.type === "image_multi" ? "images-outline" : "document-text-outline"} 
+                    size={20} 
+                    color={job.status === "completed" ? COLORS.primary : COLORS.zinc400} 
+                  />
+                  <View>
+                    <Typography variant="body" weight="600" color={COLORS.white}>
+                      {job.type === "image_multi" ? "Multi-Card Scan" : "Batch File Upload"}
+                    </Typography>
+                    <Typography variant="caption" color={COLORS.zinc400}>
+                      {new Date(job.createdAt).toLocaleTimeString()}
+                    </Typography>
+                  </View>
+                </View>
+                <View>
+                  {job.status === "pending" || job.status === "processing" ? (
+                    <Typography variant="caption" color={COLORS.zinc400}>Working...</Typography>
+                  ) : job.status === "completed" ? (
+                    <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full }}>
+                      <Typography variant="caption" weight="700" color={COLORS.white}>Work Success</Typography>
+                    </View>
+                  ) : (
+                    <Typography variant="caption" color={COLORS.destructive}>Failed</Typography>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* ── ACTIVE DEAL TABS ── */}
         {tabs.length > 0 && (
