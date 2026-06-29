@@ -59,4 +59,23 @@ export class WebDashboardController {
   getPassbookTransactions = async ({ request }: { request: Request }) => {
     return await this.service.getPassbookTransactions(this.getUserId(request));
   };
+
+  getListings = async ({ request }: { request: Request }) => {
+    return await this.service.getListings(this.getUserId(request));
+  };
+
+  updateListingStatus = async ({ request, params }: { request: Request, params: { id: string } }) => {
+    const { status } = (await request.json()) as { status?: string };
+    if (!status) {
+      throw new Error("Missing status");
+    }
+    return await this.service.updateListingStatus(this.getUserId(request), params.id, status.toLowerCase());
+  };
+
+  getReportData = async ({ request }: { request: Request }) => {
+    const url = new URL(request.url);
+    const fromDate = url.searchParams.get("from") || new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString();
+    const toDate = url.searchParams.get("to") || new Date().toISOString();
+    return await this.service.getReportData(this.getUserId(request), fromDate, toDate);
+  };
 }

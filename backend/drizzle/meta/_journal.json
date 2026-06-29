@@ -169,6 +169,13 @@
       "when": 1782460165386,
       "tag": "0023_harsh_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782708955123,
+      "tag": "0024_wild_vulture",
+      "breakpoints": true
     }
   ]
 }

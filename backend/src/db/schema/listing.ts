@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum, integer } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 
@@ -23,6 +23,9 @@ export const listings = pgTable('listings', {
   title:             text('title'),
   description:       text('description'),
   photos:            text('photos').array(),
+  views:             integer('views').default(0),
+  watchers:          integer('watchers').default(0),
+  offers:            integer('offers').default(0),
   scheduledAt:       timestamp('scheduled_at', { withTimezone: true }),
   listedAt:          timestamp('listed_at', { withTimezone: true }),
   soldAt:            timestamp('sold_at', { withTimezone: true }),

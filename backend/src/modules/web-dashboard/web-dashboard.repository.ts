@@ -1,6 +1,6 @@
 import { db } from "../../db/index.js";
-import { inventory, transactions, players } from "../../db/schema/index.js";
-import { sql, eq, and, gte, desc, sum, count } from "drizzle-orm";
+import { inventory, transactions, players, listings } from "../../db/schema/index.js";
+import { sql, eq, and, gte, desc, sum, count, or, inArray } from "drizzle-orm";
 
 export class WebDashboardRepository {
   async getMetrics(userId: string) {
@@ -315,6 +315,119 @@ export class WebDashboardRepository {
     return {
       snapshotRow: result.rows[0],
       agingCardsRows: agingCardsResult.rows
+    };
+  }
+
+  async getListings(userId: string) {
+    const result = await db
+      .select({
+        id: listings.id,
+        platform: listings.platform,
+        listPrice: listings.listPrice,
+        status: listings.status,
+        netToDealer: listings.netToDealer,
+        views: listings.views,
+        watchers: listings.watchers,
+        offers: listings.offers,
+        listedAt: listings.listedAt,
+        scheduledAt: listings.scheduledAt,
+        year: inventory.year,
+        setName: inventory.setName,
+        variation: inventory.variation,
+        gradeKey: inventory.gradeKey,
+        playerName: players.name,
+      })
+      .from(listings)
+      .innerJoin(inventory, eq(listings.inventoryId, inventory.id))
+      .leftJoin(players, eq(inventory.playerId, players.id))
+      .where(eq(listings.userId, userId))
+      .orderBy(desc(listings.createdAt));
+      
+    return result;
+  }
+
+  async updateListingStatus(userId: string, listingId: string, status: string) {
+    const updated = await db
+      .update(listings)
+      .set({ 
+        status: status as any, 
+        updatedAt: new Date() 
+      })
+      .where(and(eq(listings.id, listingId), eq(listings.userId, userId)))
+      .returning();
+      
+    return updated[0] || null;
+  }
+
+  async getReportData(userId: string, fromDate: string, toDate: string) {
+    // 1. Revenue & Profit over time (Grouped by Date)
+    const revenueQuery = await db.execute(sql`
+      SELECT 
+        TO_CHAR(DATE(created_at), 'Mon DD') as date,
+        TO_CHAR(DATE(created_at), 'YYYY-MM-DD') as "isoDate",
+        COALESCE(SUM(price), 0) as revenue,
+        COALESCE(SUM(profit), 0) as profit,
+        COUNT(*) as cards_sold
+      FROM transactions
+      WHERE user_id = ${userId} AND type = 'sell' 
+        AND DATE(created_at) >= DATE(${fromDate}) 
+        AND DATE(created_at) <= DATE(${toDate})
+      GROUP BY DATE(created_at)
+      ORDER BY DATE(created_at) ASC
+    `);
+
+    // 2. Sales by Platform (Channel)
+    const platformQuery = await db.execute(sql`
+      SELECT 
+        COALESCE(channel::text, 'Other') as platform,
+        COALESCE(SUM(price), 0) as revenue,
+        COALESCE(SUM(profit), 0) as profit
+      FROM transactions
+      WHERE user_id = ${userId} AND type = 'sell'
+        AND DATE(created_at) >= DATE(${fromDate}) 
+        AND DATE(created_at) <= DATE(${toDate})
+      GROUP BY COALESCE(channel::text, 'Other')
+      ORDER BY revenue DESC
+    `);
+
+    // 3. Margin Data by Dimensions (Computed directly on inventory data or sold data)
+    // The frontend margin dimension uses CURRENT inventory data for Sport/Year/Grade.
+    const inventoryStatsQuery = await db.execute(sql`
+      SELECT 
+        sport,
+        year::text,
+        grade_key as grade,
+        (CURRENT_DATE - DATE(added_at)) as days_held,
+        current_market_value as value,
+        cost_basis as cost
+      FROM inventory
+      WHERE user_id = ${userId} AND listing_status IN ('listed', 'unlisted')
+    `);
+
+    // 4. Oldest Cards
+    const oldestCardsQuery = await db.execute(sql`
+      SELECT 
+        i.id,
+        p.name as player_name,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.photos[1] as image_url,
+        (CURRENT_DATE - DATE(i.added_at)) as days_held,
+        i.current_market_value as market_value,
+        i.cost_basis
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      WHERE i.user_id = ${userId} AND i.listing_status IN ('listed', 'unlisted')
+      ORDER BY days_held DESC
+      LIMIT 4
+    `);
+
+    return {
+      revenueData: revenueQuery.rows,
+      platformSales: platformQuery.rows,
+      inventoryStats: inventoryStatsQuery.rows,
+      oldestCards: oldestCardsQuery.rows,
     };
   }
 }

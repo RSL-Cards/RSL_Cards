@@ -28,7 +28,17 @@ const PAYMENT_METHODS = [
   { key: "other", icon: MoreHorizontal, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Other" },
 ];
 
-export default function BulkAddPage() {
+import { Suspense } from 'react'
+
+export default function BulkAddPageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <BulkAddPage />
+    </Suspense>
+  )
+}
+
+function BulkAddPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialBatchId = searchParams.get('batchId')

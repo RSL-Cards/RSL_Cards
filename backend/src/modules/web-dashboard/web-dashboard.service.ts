@@ -278,4 +278,191 @@ export class WebDashboardService {
       }))
     };
   }
+
+  async getListings(userId: string) {
+    const rawListings = await this.repository.getListings(userId);
+    
+    return rawListings.map(l => {
+      // Reconstruct card title
+      const titleParts = [];
+      if (l.year) titleParts.push(l.year);
+      if (l.playerName) titleParts.push(l.playerName);
+      if (l.setName) titleParts.push(l.setName);
+      if (l.variation) titleParts.push(l.variation);
+      if (l.gradeKey && l.gradeKey !== 'RAW') {
+        titleParts.push(l.gradeKey.replace('_', ' '));
+      }
+      
+      const cardTitle = titleParts.join(' ');
+      
+      // Calculate days listed
+      let daysListed = 0;
+      if (l.listedAt) {
+        const diffTime = Math.abs(new Date().getTime() - l.listedAt.getTime());
+        daysListed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      }
+      
+      return {
+        id: l.id,
+        card: cardTitle,
+        platform: l.platform.charAt(0).toUpperCase() + l.platform.slice(1),
+        price: Number(l.listPrice),
+        views: l.views,
+        watchers: l.watchers,
+        offers: l.offers,
+        daysListed,
+        status: (l.status || 'draft').charAt(0).toUpperCase() + (l.status || 'draft').slice(1),
+        net: Number(l.netToDealer || l.listPrice),
+        scheduleAt: l.scheduledAt?.toISOString(),
+      };
+    });
+  }
+
+  async updateListingStatus(userId: string, listingId: string, status: string) {
+    return this.repository.updateListingStatus(userId, listingId, status);
+  }
+
+  async getReportData(userId: string, fromDate: string, toDate: string) {
+    const data = await this.repository.getReportData(userId, fromDate, toDate);
+    
+    // Convert numerical fields to number for frontend
+    const revenueData = data.revenueData.map((row: any) => ({
+      date: row.date,
+      isoDate: row.isoDate,
+      revenue: Number(row.revenue),
+      profit: Number(row.profit),
+      cardsSold: Number(row.cards_sold)
+    }));
+
+    const platformColors: Record<string, string> = {
+      'card shows': '#3B82F6',
+      'ebay': '#60A5FA',
+      'whatnot': '#93C5FD',
+      'tcgplayer': '#BFDBFE',
+      'other': '#D1D5DB'
+    };
+
+    const platformSales = data.platformSales.map((row: any) => {
+      const p = (row.platform || 'other').toLowerCase();
+      let displayName = p;
+      if (p === 'ebay') displayName = 'eBay';
+      else if (p === 'tcgplayer') displayName = 'TCGPlayer';
+      else displayName = p.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+      return {
+        platform: displayName,
+        revenue: Number(row.revenue),
+        profit: Number(row.profit),
+        color: platformColors[p] || '#D1D5DB'
+      };
+    });
+
+    // Group inventory stats for Margin Analysis & Aging
+    const groupedMargins: any = { sport: {}, year: {}, grade: {} };
+    const groupedAging: any = {
+      '0-14 days': { name: '0-14 days', cards: 0, cost: 0, value: 0, totalDays: 0 },
+      '15-30 days': { name: '15-30 days', cards: 0, cost: 0, value: 0, totalDays: 0 },
+      '31-60 days': { name: '31-60 days', cards: 0, cost: 0, value: 0, totalDays: 0 },
+      '60+ days': { name: '60+ days', cards: 0, cost: 0, value: 0, totalDays: 0 },
+    };
+
+    let agingAlerts = 0;
+
+    data.inventoryStats.forEach((row: any) => {
+      const sport = row.sport || 'Unknown';
+      const year = row.year || 'Unknown';
+      let grade = row.grade || 'RAW';
+      grade = grade.replace('_', ' ');
+
+      const daysHeld = Number(row.days_held || 0);
+      const value = Number(row.value || 0);
+      const cost = Number(row.cost || 0);
+
+      if (daysHeld > 60) agingAlerts++;
+
+      // Aggregate Margins
+      [
+        { key: 'sport', val: sport },
+        { key: 'year', val: year },
+        { key: 'grade', val: grade }
+      ].forEach(({ key, val }) => {
+        groupedMargins[key][val] ??= { cost: 0, value: 0, cards: 0 };
+        groupedMargins[key][val].cost += cost;
+        groupedMargins[key][val].value += value;
+        groupedMargins[key][val].cards += 1;
+      });
+
+      // Aggregate Aging
+      let band = '0-14 days';
+      if (daysHeld > 14 && daysHeld <= 30) band = '15-30 days';
+      else if (daysHeld > 30 && daysHeld <= 60) band = '31-60 days';
+      else if (daysHeld > 60) band = '60+ days';
+
+      groupedAging[band].cards += 1;
+      groupedAging[band].cost += cost;
+      groupedAging[band].value += value;
+      groupedAging[band].totalDays += daysHeld;
+    });
+
+    const formatGroup = (groupObj: any) => Object.entries(groupObj).map(([name, stats]: [string, any]) => {
+      const profit = stats.value - stats.cost;
+      return {
+        name,
+        cards: stats.cards,
+        profit,
+        value: stats.value,
+        margin: stats.value ? (profit / stats.value) * 100 : 0
+      };
+    }).sort((a, b) => b.profit - a.profit);
+
+    const marginData = {
+      sport: formatGroup(groupedMargins.sport),
+      year: formatGroup(groupedMargins.year),
+      grade: formatGroup(groupedMargins.grade),
+      platform: platformSales.map(p => ({
+        name: p.platform,
+        cards: 1, // Approximation unless we query transactions
+        profit: p.profit,
+        value: p.revenue,
+        margin: p.revenue ? (p.profit / p.revenue) * 100 : 0
+      })).sort((a, b) => b.margin - a.margin)
+    };
+
+    const agingData = Object.values(groupedAging).map((stats: any) => {
+      const profit = stats.value - stats.cost;
+      return {
+        name: stats.name,
+        cards: stats.cards,
+        profit,
+        value: stats.value,
+        margin: stats.value ? (profit / stats.value) * 100 : 0,
+        avgDays: stats.cards ? Math.round(stats.totalDays / stats.cards) : 0
+      };
+    });
+
+    const oldestCards = data.oldestCards.map((row: any) => ({
+      id: row.id,
+      player_name: row.player_name,
+      year: row.year,
+      set_name: row.set_name,
+      grade_key: row.grade_key,
+      image_url: row.image_url,
+      days_held: Number(row.days_held),
+      market_value: Number(row.market_value),
+      cost_basis: Number(row.cost_basis)
+    }));
+
+    // Get AI Insights directly
+    const aiInsights = await this.getAiInsights();
+
+    return {
+      revenueData,
+      salesByPlatform: platformSales,
+      marginData,
+      agingData,
+      oldestCards,
+      agingAlerts,
+      aiInsights
+    };
+  }
 }

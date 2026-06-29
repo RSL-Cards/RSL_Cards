@@ -1,27 +1,18 @@
-import { formatGrade, InventoryCard } from '@/components/inventory/inventoryUtils'
-import {
-  CHANNEL_DATA,
-  INVENTORY_TABLE_DATA,
-  RECENT_TRANSACTIONS,
-} from '@/data/mockDashboard'
 import {
   AgingReportItem,
   DateRange,
-  MarginDimension,
   MarginReportItem,
-  NormalizedRevenuePoint,
   PlatformSales,
   ReportPeriod,
 } from './reportsTypes'
 
-const reportYear = 2026
 const periodDateRanges: Record<Exclude<ReportPeriod, 'Custom'>, DateRange> = {
-  Daily: { from: '2026-04-15', to: '2026-04-15' },
-  Weekly: { from: '2026-04-09', to: '2026-04-15' },
-  Monthly: { from: '2026-04-01', to: '2026-04-30' },
+  Daily: { from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
+  Weekly: { from: new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
+  Monthly: { from: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
 }
 
-export const marginLabels: Record<MarginDimension, string> = {
+export const marginLabels: Record<string, string> = {
   sport: 'Sport',
   year: 'Year',
   grade: 'Grade',
@@ -34,110 +25,6 @@ export const getPeriodDates = (period: ReportPeriod, currentRange?: DateRange): 
   if (period === 'Custom') return currentRange ?? periodDateRanges.Monthly
   return periodDateRanges[period]
 }
-
-export const normalizeRevenueData = (
-  data: Array<{ date: string; revenue: number; profit: number }>
-): NormalizedRevenuePoint[] =>
-  data.map((item) => {
-    const [, day] = item.date.split(' ')
-    const isoDate = `${reportYear}-04-${day.padStart(2, '0')}`
-    return { ...item, isoDate }
-  })
-
-const getAgingBand = (daysHeld: number) => {
-  if (daysHeld <= 14) return '0-14 days'
-  if (daysHeld <= 30) return '15-30 days'
-  if (daysHeld <= 60) return '31-60 days'
-  return '60+ days'
-}
-
-const aggregateCards = (
-  cards: InventoryCard[],
-  getKey: (card: InventoryCard) => string
-): MarginReportItem[] => {
-  const grouped = cards.reduce<Record<string, { cost: number; value: number; cards: number }>>(
-    (acc, card) => {
-      const key = getKey(card)
-      acc[key] ??= { cost: 0, value: 0, cards: 0 }
-      acc[key].cost += card.cost_basis
-      acc[key].value += card.market_value
-      acc[key].cards += 1
-      return acc
-    },
-    {}
-  )
-
-  return Object.entries(grouped)
-    .map(([name, item]) => {
-      const profit = item.value - item.cost
-      return {
-        name,
-        cards: item.cards,
-        profit,
-        value: item.value,
-        margin: item.value ? (profit / item.value) * 100 : 0,
-      }
-    })
-    .sort((a, b) => b.profit - a.profit)
-}
-
-export const getSalesByPlatform = (revenueData: NormalizedRevenuePoint[]): PlatformSales[] => {
-  const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0)
-  const totalProfit = revenueData.reduce((sum, item) => sum + item.profit, 0)
-  const channelRevenueTotal = CHANNEL_DATA.reduce((sum, item) => sum + item.revenue, 0)
-  const channelProfitTotal = CHANNEL_DATA.reduce((sum, item) => sum + item.profit, 0)
-
-  return CHANNEL_DATA.map((channel) => ({
-    platform: channel.channel,
-    revenue: Math.round(totalRevenue * (channel.revenue / channelRevenueTotal)),
-    profit: Math.round(totalProfit * (channel.profit / channelProfitTotal)),
-    color: channel.color,
-  }))
-}
-
-export const getMarginData = (
-  marginDimension: MarginDimension,
-  salesByPlatform: PlatformSales[]
-): MarginReportItem[] => {
-  if (marginDimension === 'platform') {
-    return salesByPlatform
-      .map((platform) => ({
-        name: platform.platform,
-        cards: RECENT_TRANSACTIONS.filter((tx) => tx.channel === platform.platform).length || 1,
-        profit: platform.profit,
-        value: platform.revenue,
-        margin: platform.revenue ? (platform.profit / platform.revenue) * 100 : 0,
-      }))
-      .sort((a, b) => b.margin - a.margin)
-  }
-
-  const selectors: Record<Exclude<MarginDimension, 'platform'>, (card: InventoryCard) => string> = {
-    sport: (card) => card.sport,
-    year: (card) => String(card.year),
-    grade: (card) => formatGrade(card.grade_key),
-  }
-
-  return aggregateCards(INVENTORY_TABLE_DATA, selectors[marginDimension])
-}
-
-export const getAgingReport = (cards: InventoryCard[]): AgingReportItem[] => {
-  const grouped = aggregateCards(cards, (card) => getAgingBand(card.days_held))
-  const bandOrder = ['0-14 days', '15-30 days', '31-60 days', '60+ days']
-
-  return grouped
-    .map((item) => ({
-      ...item,
-      avgDays: Math.round(
-        cards
-          .filter((card) => getAgingBand(card.days_held) === item.name)
-          .reduce((sum, card) => sum + card.days_held, 0) / item.cards
-      ),
-    }))
-    .sort((a, b) => bandOrder.indexOf(a.name) - bandOrder.indexOf(b.name))
-}
-
-export const getOldestCards = (cards: InventoryCard[]) =>
-  [...cards].sort((a, b) => b.days_held - a.days_held).slice(0, 4)
 
 const csvEscape = (value: string | number) => {
   const text = String(value)

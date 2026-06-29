@@ -40,8 +40,26 @@ export class BatchService {
     return { jobId: job.id };
   }
 
-  async getUserJobs(userId: string) {
-    return db
+  async getUserJobs(userId: string, page: number = 1, limit: number = 10, fromDate?: string, toDate?: string) {
+    const { and, gte, lte, sql } = await import("drizzle-orm");
+
+    const filters = [eq(batchJobs.userId, userId)];
+    
+    if (fromDate) {
+      filters.push(gte(sql`DATE(${batchJobs.createdAt})`, sql`DATE(${fromDate})`));
+    }
+    if (toDate) {
+      filters.push(lte(sql`DATE(${batchJobs.createdAt})`, sql`DATE(${toDate})`));
+    }
+
+    const whereClause = and(...filters);
+
+    const [totalCount] = await db
+      .select({ count: sql<number>`cast(count(${batchJobs.id}) as int)` })
+      .from(batchJobs)
+      .where(whereClause);
+
+    const data = await db
       .select({
         id: batchJobs.id,
         type: batchJobs.type,
@@ -49,9 +67,12 @@ export class BatchService {
         createdAt: batchJobs.createdAt,
       })
       .from(batchJobs)
-      .where(eq(batchJobs.userId, userId))
+      .where(whereClause)
       .orderBy(desc(batchJobs.createdAt))
-      .limit(20);
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    return { data, total: totalCount.count };
   }
 
   async getJob(userId: string, jobId: string) {

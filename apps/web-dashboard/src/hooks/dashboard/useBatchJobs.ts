@@ -10,11 +10,25 @@ export interface BatchJob {
   createdAt: string
 }
 
-export function useBatchJobs() {
+export interface BatchJobResponse {
+  data: BatchJob[]
+  total: number
+}
+
+interface UseBatchJobsParams {
+  page?: number
+  limit?: number
+  fromDate?: string
+  toDate?: string
+}
+
+export function useBatchJobs({ page = 1, limit = 10, fromDate, toDate }: UseBatchJobsParams = {}) {
   return useQuery({
-    queryKey: ['batch_jobs'],
-    queryFn: async (): Promise<BatchJob[]> => {
-      const { data } = await apiClient.get('/batch/jobs')
+    queryKey: ['batch_jobs', page, limit, fromDate, toDate],
+    queryFn: async (): Promise<BatchJobResponse> => {
+      const { data } = await apiClient.get('/batch/jobs', {
+        params: { page, limit, fromDate, toDate }
+      })
       return data
     },
     refetchInterval: 5000,

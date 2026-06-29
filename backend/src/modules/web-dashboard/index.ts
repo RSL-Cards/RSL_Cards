@@ -20,4 +20,7 @@ export const webDashboardModule = new Elysia({ prefix: "/v1/web-dashboard" })
   .get("/ai-insights", controller.getAiInsights)
   .get("/recent-transactions", controller.getRecentTransactions)
   .get("/portfolio-snapshot", controller.getPortfolioSnapshot)
-  .get("/transactions/passbook", controller.getPassbookTransactions);
+  .get("/transactions/passbook", controller.getPassbookTransactions)
+  .get("/listings", controller.getListings)
+  .put("/listings/:id/status", controller.updateListingStatus)
+  .get("/reports", controller.getReportData);

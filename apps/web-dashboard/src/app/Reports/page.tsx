@@ -14,60 +14,57 @@ import {
   buildReportCsv,
   exportCsv,
   exportPdf,
-  getAgingReport,
-  getMarginData,
-  getOldestCards,
   getPeriodDates,
-  getSalesByPlatform,
-  normalizeRevenueData,
 } from '@/components/reports/reportsUtils'
 import { MarginDimension, ReportPeriod } from '@/components/reports/reportsTypes'
-import {
-  AI_INSIGHTS,
-  INVENTORY_TABLE_DATA,
-  REVENUE_CHART_DATA,
-  SPORT_PERFORMANCE_DATA,
-} from '@/data/mockDashboard'
+import { useEffect } from 'react'
+import { apiClient } from '@/lib/axios'
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState<ReportPeriod>('Monthly')
   const [marginDimension, setMarginDimension] = useState<MarginDimension>('sport')
   const [dateRange, setDateRange] = useState(() => getPeriodDates('Monthly'))
 
-  const revenueData = useMemo(() => normalizeRevenueData(REVENUE_CHART_DATA), [])
+  const [isLoading, setIsLoading] = useState(true)
+  const [reportData, setReportData] = useState<any>(null)
 
-  const filteredRevenueData = useMemo(
-    () =>
-      revenueData.filter((item) => {
-        const date = item.isoDate
-        return date >= dateRange.from && date <= dateRange.to
-      }),
-    [dateRange.from, dateRange.to, revenueData]
-  )
+  useEffect(() => {
+    const fetchReportData = async () => {
+      setIsLoading(true)
+      try {
+        const { data } = await apiClient.get('/v1/web-dashboard/reports', {
+          params: { from: dateRange.from, to: dateRange.to }
+        })
+        setReportData(data)
+      } catch (err) {
+        console.error('Failed to fetch report data', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchReportData()
+  }, [dateRange.from, dateRange.to])
 
-  const salesByPlatform = useMemo(
-    () => getSalesByPlatform(filteredRevenueData),
-    [filteredRevenueData]
-  )
+  const revenueData = reportData?.revenueData || []
+  const salesByPlatform = reportData?.salesByPlatform || []
+  const marginData = reportData?.marginData?.[marginDimension] || []
+  const agingData = reportData?.agingData || []
+  const oldestCards = reportData?.oldestCards || []
+  const agingAlerts = reportData?.agingAlerts || 0
+  const aiInsights = reportData?.aiInsights || []
 
-  const marginData = useMemo(
-    () => getMarginData(marginDimension, salesByPlatform),
-    [marginDimension, salesByPlatform]
-  )
-
-  const agingData = useMemo(() => getAgingReport(INVENTORY_TABLE_DATA), [])
-  const oldestCards = useMemo(() => getOldestCards(INVENTORY_TABLE_DATA), [])
-
-  const totalRevenue = filteredRevenueData.reduce((sum, item) => sum + item.revenue, 0)
-  const totalProfit = filteredRevenueData.reduce((sum, item) => sum + item.profit, 0)
-  const cardsSold = Math.max(0, Math.round(filteredRevenueData.length * 3.8))
-  const bestPlatform = salesByPlatform.reduce((best, item) =>
-    item.revenue > best.revenue ? item : best
-  )
-  const bestMarginGroup = marginData.reduce((best, item) =>
-    item.margin > best.margin ? item : best
-  )
-  const agingAlerts = INVENTORY_TABLE_DATA.filter((card) => card.days_held > 60).length
+  const totalRevenue = revenueData.reduce((sum: number, item: any) => sum + item.revenue, 0)
+  const totalProfit = revenueData.reduce((sum: number, item: any) => sum + item.profit, 0)
+  const cardsSold = revenueData.reduce((sum: number, item: any) => sum + item.cardsSold, 0)
+  
+  const bestPlatform = salesByPlatform.length 
+    ? salesByPlatform.reduce((best: any, item: any) => item.revenue > best.revenue ? item : best)
+    : { platform: 'None', revenue: 0, profit: 0, color: '#D1D5DB' }
+    
+  const bestMarginGroup = marginData.length
+    ? marginData.reduce((best: any, item: any) => item.margin > best.margin ? item : best)
+    : { name: 'None', cards: 0, profit: 0, value: 0, margin: 0 }
+    
   const margin = totalRevenue ? (totalProfit / totalRevenue) * 100 : 0
 
   const handlePeriodChange = (nextPeriod: ReportPeriod) => {
@@ -124,15 +121,21 @@ export default function ReportsPage() {
           onPeriodChange={handlePeriodChange}
         />
 
-        <ReportsMetrics
-          agingAlerts={agingAlerts}
-          bestPlatform={bestPlatform}
-          cardsSold={cardsSold}
-          margin={margin}
-          period={period}
-          totalProfit={totalProfit}
-          totalRevenue={totalRevenue}
-        />
+        {isLoading ? (
+          <div className="flex h-96 items-center justify-center rounded-2xl border border-gray-200 bg-white">
+            <span className="text-sm font-medium text-gray-500">Loading reports...</span>
+          </div>
+        ) : (
+          <>
+            <ReportsMetrics
+              agingAlerts={agingAlerts}
+              bestPlatform={bestPlatform}
+              cardsSold={cardsSold}
+              margin={margin}
+              period={period}
+              totalProfit={totalProfit}
+              totalRevenue={totalRevenue}
+            />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <SalesByPlatformChart salesByPlatform={salesByPlatform} />
@@ -140,7 +143,7 @@ export default function ReportsPage() {
             agingAlerts={agingAlerts}
             bestMarginGroup={bestMarginGroup}
             bestPlatform={bestPlatform}
-            insights={AI_INSIGHTS}
+            insights={aiInsights}
             period={period}
             totalProfit={totalProfit}
             totalRevenue={totalRevenue}
@@ -149,17 +152,23 @@ export default function ReportsPage() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ProfitMarginAnalysis
-            marginData={marginData}
             marginDimension={marginDimension}
+            marginData={marginData}
             onMarginDimensionChange={setMarginDimension}
           />
           <InventoryAgingReport agingData={agingData} oldestCards={oldestCards} />
         </div>
 
-        <PeriodTrend
-          revenueData={filteredRevenueData}
-          sportPerformanceData={SPORT_PERFORMANCE_DATA}
+        <PeriodTrend 
+          revenueData={revenueData} 
+          sportPerformanceData={reportData?.marginData?.sport?.slice(0, 3).map((s: any) => ({
+            sport: s.name,
+            profit: s.profit,
+            percentage: totalProfit ? Math.round((s.profit / totalProfit) * 100) : 0
+          })) || []}
         />
+          </>
+        )}
       </div>
     </Shell>
   )

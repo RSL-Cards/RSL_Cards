@@ -11,6 +11,9 @@ import {
 interface InventoryStore {
   error: string | null
   clearError: () => void
+  addItem?: any
+  bulkImport?: any
+  isMutating?: boolean
 }
 
 export const useInventoryStore = create<InventoryStore>((set) => ({

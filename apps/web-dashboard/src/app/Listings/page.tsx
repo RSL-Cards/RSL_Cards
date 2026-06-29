@@ -9,17 +9,27 @@ import ListingsMetrics from '@/components/listings/ListingsMetrics'
 import PlatformPerformance from '@/components/listings/PlatformPerformance'
 import {
   ActiveListing,
-  activeListingsStorageKey,
-  fallbackListings,
   getPlatformStats,
 } from '@/components/listings/listingsUtils'
+import { apiClient } from '@/lib/axios'
 
 export default function ListingsPage() {
   const [listings, setListings] = useState<ActiveListing[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const stored = JSON.parse(window.localStorage.getItem(activeListingsStorageKey) ?? '[]') as ActiveListing[]
-    setListings(stored.length ? stored : fallbackListings)
+    const fetchListings = async () => {
+      try {
+        const { data } = await apiClient.get('/v1/web-dashboard/listings')
+        setListings(data)
+      } catch (err) {
+        console.error('Failed to load listings', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchListings()
   }, [])
 
   const platformStats = useMemo(() => getPlatformStats(listings), [listings])
@@ -32,12 +42,13 @@ export default function ListingsPage() {
   const totalViews = listings.reduce((sum, listing) => sum + listing.views, 0)
   const watcherRate = totalViews > 0 ? Math.round((totalWatchers / totalViews) * 100) : 0
 
-  const updateStatus = (id: string, status: string) => {
-    setListings((current) => {
-      const next = current.map((listing) => listing.id === id ? { ...listing, status } : listing)
-      window.localStorage.setItem(activeListingsStorageKey, JSON.stringify(next))
-      return next
-    })
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await apiClient.put(`/v1/web-dashboard/listings/${id}/status`, { status })
+      setListings((current) => current.map((listing) => listing.id === id ? { ...listing, status } : listing))
+    } catch (err) {
+      console.error('Failed to update status', err)
+    }
   }
 
   return (
@@ -49,7 +60,13 @@ export default function ListingsPage() {
 
         <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-6">
-            <ActiveListingsTable listings={listings} onStatusChange={updateStatus} />
+            {isLoading ? (
+              <div className="flex h-48 items-center justify-center rounded-2xl border border-gray-200 bg-white">
+                <span className="text-sm text-gray-500 font-medium">Loading listings...</span>
+              </div>
+            ) : (
+              <ActiveListingsTable listings={listings} onStatusChange={updateStatus} />
+            )}
           </div>
 
           <div className="space-y-6">

@@ -3,10 +3,11 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle2, Clock, XCircle, FileImage, FileText } from 'lucide-react'
 
 export default function BackgroundTasks() {
-  const { data: jobs, isLoading } = useBatchJobs()
+  const { data: response, isLoading } = useBatchJobs()
   const router = useRouter()
+  const jobs = response?.data || []
 
-  if (isLoading || !jobs || jobs.length === 0) return null
+  if (isLoading || jobs.length === 0) return null
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
