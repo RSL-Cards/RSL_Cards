@@ -130,9 +130,13 @@ export default function Topbar() {
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-              {avatarInitial}
-            </div>
+            {user?.photoUrl ? (
+              <img src={user.photoUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                {avatarInitial}
+              </div>
+            )}
 
             <ChevronDown
               className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${

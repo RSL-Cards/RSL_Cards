@@ -10,7 +10,7 @@ import SettingsHeader from '@/components/settings/SettingsHeader'
 import SettingsMetrics from '@/components/settings/SettingsMetrics'
 import SettingsSidebar from '@/components/settings/SettingsSidebar'
 import TeamAccessSection from '@/components/settings/TeamAccessSection'
-import { SettingsSection, TeamRole } from '@/components/settings/settingsTypes'
+import { SettingsSection, TeamRole, AccountSettings } from '@/components/settings/settingsTypes'
 import {
   initialTeamMembers,
   notificationDefaults,
@@ -35,12 +35,14 @@ export default function SettingsPage() {
 
     updateProfile,
     disconnectPlatform,
+    uploadAvatar,
   } = useSettingsStore()
   const [activeSection, setActiveSection] = useState<SettingsSection>('account')
-  const [account, setAccount] = useState({
+  const [account, setAccount] = useState<AccountSettings>({
     displayName: '',
     customUrl: '',
     email: '',
+    photoUrl: '',
   })
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function SettingsPage() {
       displayName: profile.displayName ?? '',
       customUrl: profile.customUrl ?? '',
       email: profile.email ?? '',
+      photoUrl: profile.photoUrl ?? '',
     })
   }, [profile])
   // const [account, setAccount] = useState({
@@ -209,6 +212,7 @@ export default function SettingsPage() {
               <AccountSettingsSection
                 account={account}
                 onAccountChange={setAccount}
+                onUploadAvatar={uploadAvatar}
               />
             )}
 

@@ -6,6 +6,7 @@ import {
   settingsService,
   UserProfile,
 } from '@/services/settingServices'
+import { useAuthStore } from '@/stores/authStore'
 
 interface SettingsStore {
   profile: UserProfile | null
@@ -138,6 +139,15 @@ export const useSettingsStore =
         await settingsService.getProfile()
 
       set({ profile })
+
+      // Sync the new URL with the authStore so the Topbar updates
+      const authStore = useAuthStore.getState()
+      if (authStore.user && authStore.tokens) {
+        authStore.setAuth(
+          { ...authStore.user, photoUrl: url },
+          authStore.tokens
+        )
+      }
 
       return url
     },

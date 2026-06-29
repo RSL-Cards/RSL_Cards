@@ -1,15 +1,40 @@
-
+import { useRef, useState } from 'react'
 import { AccountSettings } from './settingsTypes'
+import { Camera, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
 interface AccountSettingsSectionProps {
   account: AccountSettings
   onAccountChange: (account: AccountSettings) => void
+  onUploadAvatar?: (file: File) => Promise<string>
 }
 
 export default function AccountSettingsSection({
   account,
   onAccountChange,
+  onUploadAvatar,
 }: AccountSettingsSectionProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !onUploadAvatar) return
+
+    try {
+      setIsUploading(true)
+      setErrorMsg('')
+      await onUploadAvatar(file)
+    } catch (err: any) {
+      console.error(err)
+      setErrorMsg(err.message || 'Upload failed')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const inputClass =
     'mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
 
@@ -19,9 +44,40 @@ export default function AccountSettingsSection({
         <div>
           <h2 className="text-xl font-bold text-gray-900">Account</h2>
           <p className="mt-1 text-sm text-gray-500">Dealer profile and account identity.</p>
+          {errorMsg && <p className="mt-2 text-sm font-medium text-red-600">{errorMsg}</p>}
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-          {account.displayName?.charAt(0)?.toUpperCase()}
+        
+        <div className="relative group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+          <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-lg font-bold text-white shadow-sm ring-4 ring-white">
+            {account.photoUrl ? (
+              <img src={account.photoUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              account.displayName?.charAt(0)?.toUpperCase() || 'U'
+            )}
+            
+            {/* Upload Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              {isUploading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              ) : (
+                <Camera className="h-5 w-5 text-white" />
+              )}
+            </div>
+            
+            {/* Loading Overlay */}
+            {isUploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

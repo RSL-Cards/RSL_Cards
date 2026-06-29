@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
+import ChatbotWidget from '../assistant/ChatbotWidget'
 import { useAuthStore } from '@/stores/authStore'
 
 interface ShellProps {
@@ -49,6 +50,7 @@ export default function Shell({ children }: ShellProps) {
           {children}
         </main>
       </div>
+      <ChatbotWidget />
     </div>
   )
 }

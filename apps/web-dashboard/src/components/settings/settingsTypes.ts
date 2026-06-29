@@ -7,6 +7,7 @@ export type AccountSettings = {
   displayName: string
   customUrl: string
   email: string
+  photoUrl?: string
 }
 
 export type ListingDefaults = {

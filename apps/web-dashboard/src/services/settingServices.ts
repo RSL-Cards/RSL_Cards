@@ -104,11 +104,13 @@ class SettingsService {
       body: file,
     })
 
+    const cacheBustedUrl = `${data.publicUrl}?t=${Date.now()}`
+
     await this.updateProfile({
-      photoUrl: data.publicUrl,
+      photoUrl: cacheBustedUrl,
     })
 
-    return data.publicUrl
+    return cacheBustedUrl
   }
 
   // =====================
