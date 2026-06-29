@@ -70,6 +70,7 @@ export class AuthService {
         email: newUser.email,
         role: newUser.role,
         displayName,
+        photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
@@ -128,6 +129,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
@@ -341,8 +343,21 @@ export class AuthService {
       deviceInfo,
     );
 
+    const profile = await this.repository.getDealerProfile(user.id);
+
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
       tokens,
     };
   }
@@ -397,8 +412,21 @@ export class AuthService {
       deviceInfo,
     );
 
+    const profile = await this.repository.getDealerProfile(user.id);
+
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
       tokens,
     };
   }

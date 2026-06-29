@@ -34,12 +34,10 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const user = useAuthStore((state) => state.user)
-  const displayName =
-    user?.displayName?.trim() ||
-    user?.email?.split('@')[0] ||
-    'Dealer'
+  const displayName = user?.displayName?.trim() || 'Dealer'
   const email = user?.email ?? 'dealer@rslcards.com'
   const avatarInitial = displayName.charAt(0).toUpperCase()
+  const [imgError, setImgError] = useState(false)
 
   return (
     <div
@@ -50,15 +48,12 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="border border-gray-200 bg-gray-50 rounded-xl p-2 flex-shrink-0 shadow-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-gray-900 font-black italic text-lg">
-                RSL
-              </span>
-              <span className="text-red-500 font-bold text-xs tracking-widest">
-                CARDS
-              </span>
-            </div>
+          <div className="flex-shrink-0">
+            <img 
+              src="/rslicon.jpeg" 
+              alt="RSL Cards Logo" 
+              className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white"
+            />
           </div>
 
           {!collapsed && (
@@ -98,15 +93,22 @@ export default function Sidebar() {
                 title={collapsed ? item.label : undefined}
                 className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-
-                {!collapsed && <span>{item.label}</span>}
-
-                {isActive && (
+                <item.icon
+                  className={`w-5 h-5 ${
+                    isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                  }`}
+                />
+                {!collapsed && (
+                  <span className="truncate">{item.label}</span>
+                )}
+                {collapsed && isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
+                )}
+                {!collapsed && isActive && (
                   <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-600"></div>
                 )}
               </Link>
@@ -127,8 +129,12 @@ export default function Sidebar() {
         )}
 
         <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-            {avatarInitial}
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm overflow-hidden">
+            {user?.photoUrl && !imgError ? (
+              <img src={user.photoUrl} alt="Avatar" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+            ) : (
+              avatarInitial
+            )}
           </div>
 
           {!collapsed && (

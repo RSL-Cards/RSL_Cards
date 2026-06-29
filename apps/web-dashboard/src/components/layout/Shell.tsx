@@ -18,11 +18,17 @@ export default function Shell({ children }: ShellProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const refreshAuth = useAuthStore((state) => state.refreshAuth)
 
+  const user = useAuthStore((state) => state.user)
+
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) {
-      router.replace('/login')
+    if (isHydrated) {
+      if (!isAuthenticated) {
+        router.replace('/login')
+      } else if (user && !user.onboardingCompleted) {
+        router.replace('/onboarding')
+      }
     }
-  }, [isAuthenticated, isHydrated, router])
+  }, [isAuthenticated, isHydrated, user, router])
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated || hasCheckedRefresh.current) return

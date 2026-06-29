@@ -25,6 +25,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
   const isForgotPassword = mode === 'forgot-password'
   const isResetPassword = mode === 'reset-password'
   const {
+    user,
     error,
     isAuthenticated,
     isHydrated,
@@ -66,10 +67,14 @@ export default function AuthCard({ mode }: AuthCardProps) {
   }, [toastError, toastSuccess])
 
   useEffect(() => {
-    if (isHydrated && isAuthenticated) {
-      router.replace('/')
+    if (isHydrated && isAuthenticated && user) {
+      if (!user.onboardingCompleted) {
+        router.replace('/onboarding')
+      } else {
+        router.replace('/')
+      }
     }
-  }, [isAuthenticated, isHydrated, router])
+  }, [isAuthenticated, isHydrated, user, router])
 
   const showValidationError = (message: string) => {
     clearError()

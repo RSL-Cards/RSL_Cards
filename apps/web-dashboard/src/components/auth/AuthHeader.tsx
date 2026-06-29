@@ -8,13 +8,13 @@ export default function AuthHeader({ copy }: AuthHeaderProps) {
   return (
     <>
       <div className="mb-8 lg:hidden">
-        <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 shadow-sm">
-          <span className="font-black italic tracking-tight text-gray-900">
-            RSL
-          </span>
-          <span className="text-xs font-bold tracking-[0.2em] text-red-500">
-            CARDS
-          </span>
+        <div className="inline-flex items-center gap-2">
+          <img 
+            src="/rslicon.jpeg" 
+            alt="RSL Cards Logo" 
+            className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white"
+          />
+          <span className="font-bold text-gray-900 tracking-tight text-lg">RSL Cards</span>
         </div>
       </div>
 

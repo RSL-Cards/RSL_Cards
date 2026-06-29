@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Search,
   Bell,
@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export default function Topbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const isOnline = true
   const lastSync = '2 min ago'
   const notificationCount = 2
@@ -22,8 +23,9 @@ export default function Topbar() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const isLoading = useAuthStore((state) => state.isLoading)
-  const displayValue = user?.displayName?.trim() || user?.email?.trim() || 'Dealer'
+  const displayValue = user?.displayName?.trim() || 'Dealer'
   const avatarInitial = displayValue.charAt(0).toUpperCase()
+  const [imgError, setImgError] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -31,17 +33,31 @@ export default function Topbar() {
     router.replace('/login')
   }
 
+  const getPageInfo = () => {
+    if (pathname.startsWith('/inventory/add')) return { title: 'Add Inventory', subtitle: 'Scan or manual entry' }
+    if (pathname.startsWith('/inventory')) return { title: 'Inventory', subtitle: 'Manage your collection' }
+    if (pathname.startsWith('/listings')) return { title: 'Listings', subtitle: 'Cross-platform listings' }
+    if (pathname.startsWith('/transactions')) return { title: 'Transactions', subtitle: 'Sales and purchases' }
+    if (pathname.startsWith('/reports')) return { title: 'Reports', subtitle: 'Financials and analytics' }
+    if (pathname.startsWith('/ai-insights')) return { title: 'AI Insights', subtitle: 'Smart recommendations' }
+    if (pathname.startsWith('/tasks')) return { title: 'Tasks', subtitle: 'Background processing' }
+    if (pathname.startsWith('/settings')) return { title: 'Settings', subtitle: 'Account and preferences' }
+    return { title: 'Dashboard', subtitle: 'Home Overview' }
+  }
+
+  const { title, subtitle } = getPageInfo()
+
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
       {/* Left */}
       <div className="flex items-center gap-4">
         <div>
           <h1 className="text-gray-900 font-bold text-2xl tracking-tight">
-            Dashboard
+            {title}
           </h1>
 
           <div className="text-gray-500 text-sm">
-            Home
+            {subtitle}
           </div>
         </div>
       </div>
@@ -130,8 +146,8 @@ export default function Topbar() {
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
-            {user?.photoUrl ? (
-              <img src={user.photoUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
+            {user?.photoUrl && !imgError ? (
+              <img src={user.photoUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" onError={() => setImgError(true)} />
             ) : (
               <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                 {avatarInitial}

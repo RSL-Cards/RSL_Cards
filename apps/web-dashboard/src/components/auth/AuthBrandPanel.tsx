@@ -4,11 +4,13 @@ export default function AuthBrandPanel() {
   return (
     <section className="hidden bg-gray-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
       <div>
-        <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2">
-          <span className="font-black italic tracking-tight">RSL</span>
-          <span className="text-xs font-bold tracking-[0.2em] text-red-400">
-            CARDS
-          </span>
+        <div className="inline-flex items-center gap-3">
+          <img 
+            src="/rslicon.jpeg" 
+            alt="RSL Cards Logo" 
+            className="h-12 w-12 rounded-xl object-contain shadow-sm bg-white"
+          />
+          <span className="font-bold text-white tracking-tight text-xl">RSL Cards</span>
         </div>
 
         <div className="mt-14 max-w-md">
