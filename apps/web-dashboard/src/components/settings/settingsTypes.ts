@@ -3,11 +3,13 @@ import { LucideIcon } from 'lucide-react'
 export type SettingsSection = 'account' | 'platforms' | 'payments' | 'notifications' | 'listings' | 'team'
 export type TeamRole = 'Owner' | 'Admin' | 'Lister' | 'Analyst'
 
-export type AccountSettings = {
+export interface AccountSettings {
   displayName: string
   customUrl: string
   email: string
   photoUrl?: string
+  sports: string[]
+  paymentMethods: { type: string; handle: string }[]
 }
 
 export type ListingDefaults = {

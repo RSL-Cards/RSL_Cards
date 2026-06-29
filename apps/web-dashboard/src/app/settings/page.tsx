@@ -43,6 +43,13 @@ export default function SettingsPage() {
     customUrl: '',
     email: '',
     photoUrl: '',
+    sports: [],
+    paymentMethods: [
+      { type: 'venmo', handle: '' },
+      { type: 'cashapp', handle: '' },
+      { type: 'zelle', handle: '' },
+      { type: 'paypal', handle: '' },
+    ],
   })
 
   useEffect(() => {
@@ -53,6 +60,13 @@ export default function SettingsPage() {
       customUrl: profile.customUrl ?? '',
       email: profile.email ?? '',
       photoUrl: profile.photoUrl ?? '',
+      sports: profile.sports ?? [],
+      paymentMethods: profile.paymentMethods ?? [
+        { type: 'venmo', handle: '' },
+        { type: 'cashapp', handle: '' },
+        { type: 'zelle', handle: '' },
+        { type: 'paypal', handle: '' },
+      ],
     })
   }, [profile])
   // const [account, setAccount] = useState({
@@ -109,15 +123,37 @@ export default function SettingsPage() {
     PLATFORM_FEE_TABLE.find((platform) => platform.platform === listingDefaults.platform)?.fee_pct ?? 0
   const inventoryReadyToList = INVENTORY_TABLE_DATA.filter((card) => card.status === 'unlisted').length
 
-  const togglePlatform = async (
-    platform: string,
-  ) => {
+  const handleConnectPlatform = (platform: string) => {
+    if (platform === 'ebay') {
+      const EBAY_AUTH_URL = process.env.NEXT_PUBLIC_EBAY_AUTH_URL
+      const EBAY_CLIENT_ID = process.env.NEXT_PUBLIC_EBAY_CLIENT_ID
+      const EBAY_RU_NAME = process.env.NEXT_PUBLIC_EBAY_RU_NAME
+
+      if (!EBAY_AUTH_URL || !EBAY_CLIENT_ID || !EBAY_RU_NAME) {
+        setSaveMessage('eBay environment variables not configured.')
+        window.setTimeout(() => setSaveMessage(''), 2500)
+        return
+      }
+
+      const returnUrl = window.location.origin + '/settings'
+      const stateStr = profile?.id ? `${profile.id}___${returnUrl}` : ''
+      const scope = encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')
+      const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${scope}&state=${encodeURIComponent(stateStr)}`
+
+      window.location.href = authUrl
+    }
+  }
+
+  const handleDisconnectPlatform = async (platform: string) => {
     try {
-      await disconnectPlatform(
-        platform.toLowerCase(),
-      )
+      await disconnectPlatform(platform.toLowerCase())
+      await fetchConnectedPlatforms()
+      setSaveMessage(`${platform} disconnected successfully.`)
+      window.setTimeout(() => setSaveMessage(''), 2500)
     } catch (error) {
       console.error(error)
+      setSaveMessage(`Failed to disconnect ${platform}.`)
+      window.setTimeout(() => setSaveMessage(''), 2500)
     }
   }
 
@@ -151,23 +187,16 @@ export default function SettingsPage() {
     try {
       await updateProfile({
         displayName: account.displayName,
+        customUrl: account.customUrl,
+        sports: account.sports,
+        paymentMethods: account.paymentMethods.filter(pm => pm.handle.trim() !== ''),
       })
 
-      setSaveMessage(
-        'Profile updated successfully.',
-      )
-
-      window.setTimeout(() => {
-        setSaveMessage('')
-      }, 2500)
+      setSaveMessage('Profile updated successfully.')
+      window.setTimeout(() => setSaveMessage(''), 2500)
     } catch {
-      setSaveMessage(
-        'Failed to update profile.',
-      )
-
-      window.setTimeout(() => {
-        setSaveMessage('')
-      }, 2500)
+      setSaveMessage('Failed to update profile.')
+      window.setTimeout(() => setSaveMessage(''), 2500)
     }
   }
   useEffect(() => {
@@ -179,6 +208,27 @@ export default function SettingsPage() {
     fetchPaymentMethods,
     fetchConnectedPlatforms,
   ])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const status = params.get('status')
+      const message = params.get('message')
+
+      if (status === 'success') {
+        setActiveSection('platforms')
+        setSaveMessage('Platform connected successfully!')
+        window.setTimeout(() => setSaveMessage(''), 3000)
+        window.history.replaceState({}, '', window.location.pathname)
+      } else if (status === 'error') {
+        setActiveSection('platforms')
+        setSaveMessage(message ? decodeURIComponent(message) : 'Failed to connect platform.')
+        window.setTimeout(() => setSaveMessage(''), 4000)
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+    }
+  }, [])
+
   const formattedPaymentMethods =
     paymentMethods.map((method) => ({
       id: method.id,
@@ -219,16 +269,17 @@ export default function SettingsPage() {
             {activeSection === 'platforms' && (
               <ConnectedPlatformsSection
                 platforms={connectedPlatforms}
-                onTogglePlatform={togglePlatform}
+                onConnectPlatform={handleConnectPlatform}
+                onDisconnectPlatform={handleDisconnectPlatform}
               />
             )}
 
             {activeSection === 'payments' && (
               <PaymentMethodsSection
-                paymentMethods={
-                  formattedPaymentMethods
-                }
-              />)}
+                paymentMethods={account.paymentMethods}
+                onChange={(paymentMethods) => setAccount({ ...account, paymentMethods })}
+              />
+            )}
 
             {activeSection === 'notifications' && (
               <NotificationsSection

@@ -4,12 +4,18 @@ import { ConnectedPlatform } from './settingsTypes'
 
 interface ConnectedPlatformsSectionProps {
   platforms: ConnectedPlatform[]
-  onTogglePlatform: (platform: string) => void
+  onConnectPlatform: (platform: string) => void
+  onDisconnectPlatform: (platform: string) => void
 }
+
+const AVAILABLE_PLATFORMS = [
+  { id: 'ebay', name: 'eBay' },
+]
 
 export default function ConnectedPlatformsSection({
   platforms,
-  onTogglePlatform,
+  onConnectPlatform,
+  onDisconnectPlatform,
 }: ConnectedPlatformsSectionProps) {
   return (
     <section className="dashboard-card border border-gray-200 bg-white p-5 shadow-sm">
@@ -23,74 +29,72 @@ export default function ConnectedPlatformsSection({
         </p>
       </div>
 
-      {platforms.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
-          No connected platforms found.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {platforms.map((platform) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {AVAILABLE_PLATFORMS.map((availablePlatform) => {
+          const connection = platforms.find(
+            (p) => p.platform.toLowerCase() === availablePlatform.id.toLowerCase()
+          )
+          const isConnected = !!connection && connection.isActive
+
+          return (
             <div
-              key={platform.platform}
-              className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+              key={availablePlatform.id}
+              className={`rounded-xl border ${isConnected ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 bg-gray-50/50'} p-5 transition-colors duration-200`}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-blue-600" />
-
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${isConnected ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-500'}`}>
+                    <Store className="h-5 w-5" />
+                  </div>
+                  <div>
                     <h3 className="font-bold text-gray-900">
-                      {platform.platform}
+                      {availablePlatform.name}
                     </h3>
-                  </div>
-
-                  <div className="mt-2 text-sm text-gray-500">
-                    User ID: {platform.platformUserId}
+                    <div className="text-sm text-gray-500 mt-0.5">
+                      {isConnected ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                          Connected
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+                          Not connected
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    onTogglePlatform(platform.platform)
-                  }
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    platform.isActive
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {platform.isActive
-                    ? 'Connected'
-                    : 'Disconnected'}
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="text-gray-400">
-                    Status
-                  </div>
-
-                  <span
-                    className={`mt-1 inline-flex ${getStatusClass(
-                      platform.isActive
-                        ? 'Connected'
-                        : 'Not Connected',
-                    )}`}
+                {isConnected ? (
+                  <button
+                    type="button"
+                    onClick={() => onDisconnectPlatform(availablePlatform.id)}
+                    className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm transition-colors hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/20"
                   >
-                    {platform.isActive
-                      ? 'Connected'
-                      : 'Not Connected'}
-                  </span>
-                </div>
-
-               
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onConnectPlatform(availablePlatform.id)}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  >
+                    Connect
+                  </button>
+                )}
               </div>
+
+              {isConnected && (
+                <div className="mt-5 rounded-lg bg-white p-3 border border-gray-100 shadow-sm flex items-center justify-between">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Platform User ID</div>
+                  <div className="text-sm font-medium text-gray-900">{connection.platformUserId}</div>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
     </section>
   )
 }

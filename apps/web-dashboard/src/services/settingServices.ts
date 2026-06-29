@@ -18,6 +18,7 @@ export interface UserProfile {
   subscriptionPlan: string
   customUrl: string | null
   isPublic?: boolean
+  paymentMethods?: { type: string; handle: string }[]
 }
 
 export interface PaymentMethod {

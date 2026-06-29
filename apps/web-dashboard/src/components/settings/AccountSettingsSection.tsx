@@ -109,9 +109,30 @@ export default function AccountSettingsSection({
             className={inputClass}
           />
         </label>
+      </div>
 
-
-
+      <div className="mt-8">
+        <h3 className="text-sm font-bold text-gray-900 mb-3">Games & Sports</h3>
+        <div className="flex flex-wrap gap-2">
+          {['Football', 'Baseball', 'Basketball', 'Hockey', 'Soccer', 'MMA'].map((sport) => (
+            <button
+              key={sport}
+              onClick={() => {
+                const sports = account.sports.includes(sport)
+                  ? account.sports.filter((s) => s !== sport)
+                  : [...account.sports, sport]
+                onAccountChange({ ...account, sports })
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                account.sports.includes(sport)
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {sport}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   )
