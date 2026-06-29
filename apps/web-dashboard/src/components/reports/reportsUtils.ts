@@ -60,10 +60,15 @@ export const buildReportCsv = ({
   totalRevenue: number
 }) =>
   toCsv([
-    ['RSL Cards Report'],
-    ['Period', period],
-    ['From', dateRange.from],
-    ['To', dateRange.to],
+    ["═══════════════════════════════════════════════════════"],
+    ["                        RSL CARDS                      "],
+    ["               Elevating Your Card Business            "],
+    ["═══════════════════════════════════════════════════════"],
+    [],
+    ['REPORT:', `${period} Report`],
+    ['FROM:', dateRange.from],
+    ['TO:', dateRange.to],
+    [],
     ['Total Revenue', totalRevenue],
     ['Total Profit', totalProfit],
     ['Margin %', margin.toFixed(1)],
@@ -109,7 +114,7 @@ const formatDollars = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value)
 
-export const exportPdf = ({
+export const exportPdf = async ({
   agingAlerts,
   bestMarginGroup,
   bestPlatform,
@@ -132,59 +137,52 @@ export const exportPdf = ({
   totalProfit: number
   totalRevenue: number
 }) => {
-  const reportWindow = window.open('', '_blank', 'width=960,height=720')
-  if (!reportWindow) return
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+  
+  const doc = new jsPDF()
 
-  const platformRows = salesByPlatform
-    .map(
-      (item) =>
-        `<tr><td>${item.platform}</td><td>${formatDollars(item.revenue)}</td><td>${formatDollars(item.profit)}</td></tr>`
-    )
-    .join('')
+  doc.setFontSize(18)
+  doc.text('RSL CARDS', 14, 20)
+  doc.setFontSize(10)
+  doc.setTextColor(100)
+  doc.text('Elevating Your Card Business', 14, 26)
 
-  reportWindow.document.write(`
-    <!doctype html>
-    <html>
-      <head>
-        <title>RSL Cards ${period} Report</title>
-        <style>
-          body { color: #111; font-family: Arial, sans-serif; margin: 32px; }
-          h1 { margin-bottom: 4px; }
-          .muted { color: #555; }
-          .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
-          .metric { border: 1px solid #ddd; border-radius: 8px; padding: 14px; }
-          .label { color: #555; font-size: 12px; text-transform: uppercase; }
-          .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
-          table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-          th { background: #f5f5f5; }
-          @media print { button { display: none; } body { margin: 20mm; } }
-        </style>
-      </head>
-      <body>
-        <button onclick="window.print()">Save as PDF</button>
-        <h1>RSL Cards ${period} Report</h1>
-        <div class="muted">${dateRange.from} to ${dateRange.to}</div>
-        <div class="metrics">
-          <div class="metric"><div class="label">Revenue</div><div class="value">${formatDollars(totalRevenue)}</div></div>
-          <div class="metric"><div class="label">Profit</div><div class="value">${formatDollars(totalProfit)}</div></div>
-          <div class="metric"><div class="label">Margin</div><div class="value">${margin.toFixed(1)}%</div></div>
-          <div class="metric"><div class="label">Cards Sold</div><div class="value">${cardsSold}</div></div>
-        </div>
-        <p>
-          ${bestPlatform.platform} led platform sales. ${bestMarginGroup.name} was the strongest
-          margin segment. ${agingAlerts} cards are currently held over 60 days.
-        </p>
-        <h2>Sales by Platform</h2>
-        <table>
-          <thead><tr><th>Platform</th><th>Revenue</th><th>Profit</th></tr></thead>
-          <tbody>${platformRows}</tbody>
-        </table>
-        <script>
-          window.onload = () => setTimeout(() => window.print(), 250)
-        </script>
-      </body>
-    </html>
-  `)
-  reportWindow.document.close()
+  doc.setFontSize(14)
+  doc.setTextColor(0)
+  doc.text(`${period} Report`, 14, 38)
+  doc.setFontSize(9)
+  doc.setTextColor(100)
+  doc.text(`${dateRange.from} to ${dateRange.to}`, 14, 44)
+
+  doc.setFontSize(12)
+  doc.setTextColor(0)
+  doc.text(`Total Revenue: ${formatDollars(totalRevenue)}`, 14, 56)
+  doc.text(`Total Profit: ${formatDollars(totalProfit)}`, 14, 64)
+  doc.text(`Margin: ${margin.toFixed(1)}%`, 14, 72)
+  doc.text(`Cards Sold: ${cardsSold}`, 14, 80)
+
+  doc.setFontSize(10)
+  doc.setTextColor(50)
+  doc.text(
+    `${bestPlatform.platform} led platform sales. ${bestMarginGroup.name} was the strongest margin segment.`,
+    14,
+    92
+  )
+  doc.text(`${agingAlerts} cards are currently held over 60 days.`, 14, 98)
+
+  autoTable(doc, {
+    startY: 108,
+    head: [['Platform', 'Revenue', 'Profit']],
+    body: salesByPlatform.map((item) => [
+      item.platform,
+      formatDollars(item.revenue),
+      formatDollars(item.profit),
+    ]),
+    headStyles: { fillColor: [0, 87, 255] },
+  })
+
+  doc.save(`rsl-${period.toLowerCase()}-report-${dateRange.from}-to-${dateRange.to}.pdf`)
 }

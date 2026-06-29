@@ -120,6 +120,21 @@ export default function TransactionsPage() {
   }))
 
   const exportCsv = () => {
+    const brandHeader = [
+      "═══════════════════════════════════════════════════════",
+      "                        RSL CARDS                      ",
+      "               Elevating Your Card Business            ",
+      "═══════════════════════════════════════════════════════",
+      "",
+      "REPORT:,Transaction Passbook",
+      `PERIOD:,${period}`,
+      `GENERATED:,${new Date().toISOString().slice(0, 10)}`,
+      `TOTAL RECORDS:,${filteredTransactions.length}`,
+      "",
+      "═══════════════════════════════════════════════════════",
+      "",
+    ]
+
     const headers = Object.keys(exportRows[0] ?? {
       Date: '',
       Time: '',
@@ -137,6 +152,7 @@ export default function TransactionsPage() {
       Balance: '',
     })
     const csv = [
+      ...brandHeader,
       headers.join(','),
       ...exportRows.map((row: any) =>
         headers
@@ -158,17 +174,25 @@ export default function TransactionsPage() {
     ])
     const doc = new jsPDF({ orientation: 'landscape' })
 
-    doc.setFontSize(16)
-    doc.text('RSL Cards Transaction Passbook', 14, 16)
+    doc.setFontSize(18)
+    doc.text('RSL CARDS', 14, 20)
+    doc.setFontSize(10)
+    doc.setTextColor(100)
+    doc.text('Elevating Your Card Business', 14, 26)
+
+    doc.setFontSize(14)
+    doc.setTextColor(0)
+    doc.text('Transaction Passbook', 14, 38)
     doc.setFontSize(9)
+    doc.setTextColor(100)
     doc.text(
       `Generated ${formatDate(new Date().toISOString().slice(0, 10))} | ${totals.count} transactions | Balance ${formatCurrency(currentBalance)}`,
       14,
-      23
+      44
     )
 
     autoTable(doc, {
-      startY: 30,
+      startY: 50,
       head: [[
         'Date',
         'Ref',
