@@ -1,4 +1,5 @@
 export const CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this card image and extract the following details in strict JSON format with NO markdown, NO extra text.
+IMPORTANT: If the image does NOT contain a sports card or trading card, return an empty JSON object: {}
 Return ONLY this JSON:
 {
   "player_name": "Full Player Name",

@@ -408,7 +408,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       ? prices.reduce((a, b) => a + b, 0) / prices.length
       : 0;
     const last = prices.length ? prices[0] : 0;
-    const lowest = activePrices.length ? activePrices[0] : 0;
+    const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
     // Always cache if we hit the APIs to avoid re-fetching, even if results are 0
     if (effectiveVariantId) {

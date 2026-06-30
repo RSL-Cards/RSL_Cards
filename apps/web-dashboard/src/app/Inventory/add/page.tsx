@@ -580,7 +580,7 @@ function BulkAddPage() {
                                               {item.title}
                                             </a>
                                             <div className="text-xs text-gray-500 mt-1 flex gap-2 truncate">
-                                              <span>{item.seller?.username || item.platform || 'Unknown Seller'}</span>
+                                              <span>Seller: {item.seller?.username || item.platform || 'Unknown'}</span>
                                               <span>•</span>
                                               <span>{item.condition || 'Used'}</span>
                                             </div>

@@ -80,7 +80,7 @@ export default function BuyScanScreen() {
   const handleFileUpload = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ["text/plain", "text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        type: "*/*",
         copyToCacheDirectory: true,
       });
 

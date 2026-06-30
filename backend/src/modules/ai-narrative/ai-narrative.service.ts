@@ -179,8 +179,13 @@ export class AiNarrativeService {
             throw err;
           }
         };
+        const parsedCard = parseGeminiResponse(rawResponse);
+        
+        if (!parsedCard.player_name || parsedCard.player_name.trim() === "" || parsedCard.player_name.toLowerCase() === "unknown") {
+          throw new Error("No card identified in image");
+        }
 
-        geminiCard = parseGeminiResponse(rawResponse);
+        geminiCard = parsedCard;
         console.log(`[SCAN-CARD] ✅ Successfully identified card using model: ${modelName}`);
         break;
       } catch (err: any) {

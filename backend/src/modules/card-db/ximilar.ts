@@ -163,6 +163,10 @@ export async function identifyCard(
       confidence: record.confidence || 0.8,
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "No card identified in image") {
+      throw error;
+    }
+    
     logger.info({
       msg: "Ximilar API failed, falling back to mock",
       error: (error as Error).message,

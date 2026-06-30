@@ -131,10 +131,19 @@ export const initWorker = () => {
             if (Array.isArray(parsed)) cards = parsed;
           }
 
-          logger.info(`[WORKER] Extracted ${cards.length} cards for batch ${batchId}. Pre-fetching comps...`);
+          logger.info(`[WORKER] Extracted ${cards.length} potential cards for batch ${batchId}. Filtering out invalids...`);
+
+          // Filter out hallucinated or empty cards
+          const validCards = cards.filter((c: any) => c.player_name && c.player_name.trim().length > 0);
+
+          logger.info(`[WORKER] Valid cards: ${validCards.length}. Pre-fetching comps...`);
+
+          if (validCards.length === 0) {
+            throw new Error("No cards identified in image or file");
+          }
 
           const enrichedCards = [];
-          for (const card of cards) {
+          for (const card of validCards) {
             const gradeKey = card.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
             const query = card.search_string || `${card.player_name} ${card.year} ${card.set_name} ${card.variation || ""}`.trim();
             

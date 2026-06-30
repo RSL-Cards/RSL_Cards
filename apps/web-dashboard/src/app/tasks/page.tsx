@@ -116,7 +116,7 @@ function TasksPage() {
                         </div>
                         <div>
                           <h4 className={`font-bold text-base ${isComplete ? 'text-blue-900' : isFailed ? 'text-red-900' : 'text-gray-900'}`}>
-                            {job.type === 'image_multi' ? 'Multi-Card Scan' : 'Batch File Upload'}
+                            {job.type === 'image_multi' ? 'AI Image Scan' : 'Batch File Upload'}
                           </h4>
                           <div className="flex items-center gap-2 mt-1">
                             <p className="text-sm text-gray-500">
