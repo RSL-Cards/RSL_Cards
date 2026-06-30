@@ -3,11 +3,30 @@
 import React, { useState } from 'react'
 import Shell from '@/components/layout/Shell'
 import { useBatchJobs } from '@/hooks/dashboard/useBatchJobs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2, Clock, XCircle, FileImage, FileText, Search, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 
-export default function TasksPage() {
+export default function TasksPageWrapper() {
+  return (
+    <React.Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <TasksPage />
+    </React.Suspense>
+  )
+}
+
+function TasksPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialToast = searchParams.get('toast')
+  const [toastMsg, setToastMsg] = useState(initialToast || '')
+
+  React.useEffect(() => {
+    if (initialToast) {
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+      setTimeout(() => setToastMsg(''), 5000)
+    }
+  }, [initialToast])
   
   const today = new Date().toISOString().split('T')[0]
   const [fromDate, setFromDate] = useState(today)
@@ -23,6 +42,12 @@ export default function TasksPage() {
   return (
     <Shell>
       <div className="max-w-5xl mx-auto space-y-6">
+        {toastMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="text-sm font-medium">{toastMsg}</span>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">Background Tasks</h1>

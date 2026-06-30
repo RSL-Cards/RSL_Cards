@@ -161,10 +161,15 @@ Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are
       "grade": "10",
       "cert_number": null
     },
+    "purchase_price": 50,
     "confidence": 0.95
   }
 ]
-Follow the exact same extraction and KILL ALGORITHM filtering rules as provided for the image scanning. Infer details if they are obvious from standard hobby terminology. Return ONLY the JSON ARRAY, nothing else.
+Follow the exact same extraction and KILL ALGORITHM filtering rules as provided for the image scanning.
+ADDITIONAL RULES FOR TEXT:
+- If no grade is explicitly mentioned in the text for a card, omit the "grading" object entirely (it will be considered a RAW card).
+- If a price or cost is mentioned (e.g. "$50", "bought for 20"), extract the numeric value into the "purchase_price" field as a number. Otherwise, omit "purchase_price".
+Infer details if they are obvious from standard hobby terminology. Return ONLY the JSON ARRAY, nothing else.
 
 RAW TEXT:
 `;

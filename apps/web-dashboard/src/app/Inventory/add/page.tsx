@@ -47,7 +47,8 @@ function BulkAddPage() {
   const [uploadMode, setUploadMode] = useState<UploadMode>('single_image')
   const [batchId, setBatchId] = useState<string | null>(initialBatchId)
   const [cards, setCards] = useState<any[]>([])
-  const [pricing, setPricing] = useState<Record<string, { condition: string, paidPrice: string, askPrice: string, channel: string, paymentMethod: string }>>({})
+  const [pricing, setPricing] = useState<Record<string, { condition: string, paidPrice: string, askPrice: string, channel: string, paymentMethod: string, sport: string }>>({})
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set())
   const [expandedComps, setExpandedComps] = useState<Record<string, boolean>>({})
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -61,7 +62,24 @@ function BulkAddPage() {
         try {
           const { data } = await apiClient.get(`/batch/jobs/${batchId}`)
           if (data.status === 'completed') {
-            setCards(data.resultsJson || [])
+            const results = data.resultsJson || []
+            setCards(results)
+            
+            // Auto-fill paidPrice from Gemini extraction if available
+            const initialPricing: Record<string, any> = {}
+            results.forEach((card: any) => {
+              initialPricing[card.id] = {
+                condition: card.gradeKey === 'RAW' ? 'Mint' : 'Graded',
+                paidPrice: card.purchase_price ? String(card.purchase_price) : '',
+                askPrice: '',
+                channel: 'other',
+                paymentMethod: 'other',
+                sport: card.sport || 'Unknown'
+              }
+            })
+            setPricing(initialPricing)
+            setSelectedCards(new Set(results.map((c: any) => c.id)))
+            
             setStatus('review')
           } else if (data.status === 'failed') {
             setErrorMsg(`Processing failed: ${data.error}`)
@@ -86,7 +104,7 @@ function BulkAddPage() {
       if (uploadMode === 'written_file') {
         const text = await files[0].text()
         await apiClient.post('/batch/upload', { rawText: text })
-        router.push('/')
+        router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       } else if (uploadMode === 'multiple_images') {
         const promises = Array.from(files).map((file) => {
           return new Promise<void>((resolve, reject) => {
@@ -102,14 +120,14 @@ function BulkAddPage() {
           })
         })
         await Promise.all(promises)
-        router.push('/')
+        router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       } else {
         // single_image
         const reader = new FileReader()
         reader.onload = async () => {
           const base64 = (reader.result as string).split(',')[1]
           await apiClient.post('/batch/scan-multi', { image: base64 })
-          router.push('/')
+          router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
         }
         reader.readAsDataURL(files[0])
       }
@@ -132,11 +150,11 @@ function BulkAddPage() {
     }
   }
 
-  const updatePricing = (id: string, field: 'condition' | 'paidPrice' | 'askPrice' | 'channel' | 'paymentMethod', value: string) => {
+  const updatePricing = (id: string, field: 'condition' | 'paidPrice' | 'askPrice' | 'channel' | 'paymentMethod' | 'sport', value: string) => {
     setPricing(prev => ({
       ...prev,
       [id]: {
-        ...(prev[id] || { condition: 'Mint', paidPrice: '', askPrice: '', channel: 'other', paymentMethod: 'other' }),
+        ...(prev[id] || { condition: 'Mint', paidPrice: '', askPrice: '', channel: 'other', paymentMethod: 'other', sport: '' }),
         [field]: value
       }
     }))
@@ -150,9 +168,15 @@ function BulkAddPage() {
   }
 
   const handleSave = async () => {
+    const cardsToSave = cards.filter(c => selectedCards.has(c.id))
+    if (cardsToSave.length === 0) {
+      setErrorMsg("Please select at least one card to save.")
+      return
+    }
+
     setStatus('saving')
     try {
-      for (const card of cards) {
+      for (const card of cardsToSave) {
         const p = pricing[card.id]
         const payload = {
           playerName: card.player_name,
@@ -160,7 +184,7 @@ function BulkAddPage() {
           setName: card.set_name,
           variation: card.variation,
           cardNumber: card.card_number,
-          sport: card.sport,
+          sport: p?.sport || card.sport,
           gradeCompany: card.grading?.company,
           gradeValue: card.grading?.grade,
           certNumber: card.grading?.cert_number,
@@ -305,7 +329,9 @@ function BulkAddPage() {
         {status === 'review' && (
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-              <h3 className="text-lg font-semibold text-gray-900">Review {cards.length} Extracted Cards</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Review {cards.length} Extracted Cards ({selectedCards.size} selected)
+              </h3>
               <button
                 onClick={handleSave}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm"
@@ -317,6 +343,20 @@ function BulkAddPage() {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-white border-b border-gray-200 text-gray-500 uppercase tracking-wider text-xs font-semibold">
                   <tr>
+                    <th className="px-6 py-4 w-12">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                        checked={cards.length > 0 && selectedCards.size === cards.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCards(new Set(cards.map(c => c.id)))
+                          } else {
+                            setSelectedCards(new Set())
+                          }
+                        }}
+                      />
+                    </th>
                     <th className="px-6 py-4">Card Info</th>
                     <th className="px-6 py-4">Market Analytics</th>
                     <th className="px-6 py-4">Your Pricing</th>
@@ -327,11 +367,25 @@ function BulkAddPage() {
                     const cPricing = pricing[card.id] || { condition: 'Mint', paidPrice: '', askPrice: '', channel: 'other', paymentMethod: 'other' }
                     const avgSold = card.comps?.snapshots?.[0]?.avgSoldPrice || "0.00"
                     const lowestActive = card.comps?.snapshots?.[0]?.lowestActive || "0.00"
+                    const isSelected = selectedCards.has(card.id)
                     
                     return (
                       <React.Fragment key={card.id}>
-                        <tr className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
+                        <tr className={`hover:bg-gray-50 transition-colors ${isSelected ? '' : 'opacity-40 grayscale-[0.3]'}`}>
+                          <td className="px-6 py-4 align-top">
+                            <input 
+                              type="checkbox"
+                              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer mt-1"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const newSet = new Set(selectedCards)
+                                if (e.target.checked) newSet.add(card.id)
+                                else newSet.delete(card.id)
+                                setSelectedCards(newSet)
+                              }}
+                            />
+                          </td>
+                          <td className="px-6 py-4 align-top">
                           <div className="font-bold text-gray-900 text-base mb-1">
                             {card.year} {card.set_name} {card.player_name}
                           </div>
@@ -346,7 +400,7 @@ function BulkAddPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 align-top">
                           <div className="flex gap-6">
                             <div>
                               <div className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wide">Avg Sold</div>
@@ -366,7 +420,7 @@ function BulkAddPage() {
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 align-top">
                           <div className="flex flex-wrap gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
@@ -395,6 +449,15 @@ function BulkAddPage() {
                                 value={cPricing.askPrice}
                                 placeholder="0.00"
                                 onChange={(e) => updatePricing(card.id, 'askPrice', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-500 mb-1">Sport</label>
+                              <input 
+                                type="text"
+                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-28 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                value={cPricing.sport}
+                                onChange={(e) => updatePricing(card.id, 'sport', e.target.value)}
                               />
                             </div>
                           </div>
