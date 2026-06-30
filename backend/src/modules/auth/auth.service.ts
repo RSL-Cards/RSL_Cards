@@ -194,7 +194,23 @@ export class AuthService {
       deviceInfo,
     );
 
-    return { tokens: newTokens };
+    const profile = await this.repository.getDealerProfile(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
+      tokens: newTokens,
+    };
   }
 
   async logoutUser(body: any) {

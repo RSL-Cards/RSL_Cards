@@ -137,8 +137,9 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const data = await authService.refresh(refreshToken)
           set({
+            user: data.user,
             tokens: data.tokens,
-            isAuthenticated: !!get().user,
+            isAuthenticated: !!data.user,
             isLoading: false,
           })
           return data.tokens

@@ -83,7 +83,7 @@ export const authService = {
   },
 
   refresh(refreshToken: string) {
-    return authRequest<{ tokens: AuthTokens }, { refreshToken: string }>(
+    return authRequest<AuthResponse, { refreshToken: string }>(
       ENDPOINTS.auth.refresh,
       { refreshToken },
     )

@@ -209,22 +209,32 @@ export default function OnboardingPage() {
               >
                 Back
               </button>
-              <button
-                disabled={isSubmitting || paymentMethods.every(pm => !pm.handle.trim())}
-                onClick={handleSubmit}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    Complete Setup <Check className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+
+              <div className="flex gap-3">
+                <button
+                  disabled={isSubmitting}
+                  onClick={handleSubmit}
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Skip
+                </button>
+                <button
+                  disabled={isSubmitting || paymentMethods.every(pm => !pm.handle.trim())}
+                  onClick={handleSubmit}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Complete Setup <Check className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
