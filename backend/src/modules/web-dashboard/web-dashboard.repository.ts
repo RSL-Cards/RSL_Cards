@@ -430,4 +430,154 @@ export class WebDashboardRepository {
       oldestCards: oldestCardsQuery.rows,
     };
   }
+
+  async getAiInsights(userId: string) {
+    const result = await db.execute(sql`
+      WITH user_insights AS (
+        SELECT DISTINCT ON (n.id)
+          n.id,
+          n.narrative_type as type,
+          n.player_name as player,
+          n.sport,
+          n.headline,
+          n.body,
+          n.price_change_pct || '%' as price_change,
+          n.price_range,
+          n.published_at as published,
+          n.card_ids,
+          n.price_direction as trend,
+          n.recommendation
+        FROM narratives n
+        JOIN players p ON n.player_name ILIKE p.name
+        JOIN inventory i ON i.player_id = p.id
+        WHERE n.status = 'published'
+          AND i.user_id = ${userId}
+          AND i.listing_status IN ('unlisted', 'listed')
+        ORDER BY n.id
+      )
+      SELECT * FROM user_insights
+      ORDER BY published DESC
+      LIMIT 20
+    `);
+
+    // Map DB output to match the UI's expected format as closely as possible
+    return result.rows.map(row => ({
+      ...row,
+      affected_cards: row.card_ids ? (row.card_ids as string[]).length : 0,
+      published: row.published ? new Date(row.published as string).toISOString() : new Date().toISOString()
+    }));
+  }
+
+  async getTopMovers() {
+    const result = await db.execute(sql`
+      SELECT 
+        p.name as player,
+        cs.price_trend_30d as change,
+        cs.avg_sold_price as price,
+        cs.grade_key as grade,
+        p.sport as sport,
+        CASE WHEN cs.price_trend_30d > 0 THEN 'up' ELSE 'down' END as trend,
+        'Market Trend' as reason
+      FROM card_comp_snapshots cs
+      JOIN card_variants cv ON cs.variant_id = cv.id
+      JOIN cards c ON cv.card_id = c.id
+      JOIN players p ON c.player_id = p.id
+      WHERE cs.price_trend_30d IS NOT NULL AND abs(cs.price_trend_30d) > 5
+      ORDER BY abs(cs.price_trend_30d) DESC
+      LIMIT 10
+    `);
+    
+    return result.rows.map(row => ({
+      player: row.player,
+      change: Number(row.change),
+      price: Number(row.price),
+      grade: row.grade,
+      sport: row.sport,
+      trend: row.trend,
+      reason: row.reason
+    }));
+  }
+
+  async getAffectedInventory(userId: string, playerName: string) {
+    const result = await db.execute(sql`
+      SELECT 
+        i.id,
+        i.photos[1] as image_url,
+        p.name as player_name,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.sport,
+        i.cost_basis,
+        i.current_market_value as market_value,
+        i.unrealized_gain,
+        CASE WHEN i.cost_basis > 0 THEN (i.unrealized_gain / i.cost_basis) * 100 ELSE 0 END as unrealized_gain_pct,
+        i.listing_status as status,
+        (CURRENT_DATE - DATE(i.added_at)) as days_held,
+        cs.avg_sold_price as comp_avg,
+        cs.price_trend_30d as comp_trend,
+        i.listed_platforms as platforms_listed
+      FROM inventory i
+      JOIN players p ON i.player_id = p.id
+      LEFT JOIN card_comp_snapshots cs ON cs.variant_id = i.variant_id AND cs.grade_key = i.grade_key
+      WHERE i.user_id = ${userId} AND p.name ILIKE ${'%' + playerName + '%'}
+    `);
+
+    return result.rows.map(row => ({
+      ...row,
+      unrealized_gain_pct: Number(row.unrealized_gain_pct),
+      days_held: Number(row.days_held),
+      comp_avg: Number(row.comp_avg || row.market_value),
+      comp_trend: Number(row.comp_trend || 0),
+      platforms_listed: row.platforms_listed || []
+    }));
+  }
+
+  async getCompHistory(insightId: string) {
+    // 1. Fetch card_ids for the narrative
+    const narrativeResult = await db.execute(sql`
+      SELECT card_ids FROM narratives WHERE id = ${insightId} LIMIT 1
+    `);
+    
+    if (narrativeResult.rows.length === 0) return [];
+    const cardIds = narrativeResult.rows[0].card_ids as string[] | null;
+    if (!cardIds || cardIds.length === 0) return [];
+
+    // 2. Query historical prices for these cards
+    const result = await db.execute(sql`
+      SELECT 
+        TO_CHAR(cph.recorded_date, 'Mon DD') as date,
+        AVG(cph.avg_sold_price)::numeric as price
+      FROM card_price_history cph
+      JOIN card_variants cv ON cph.variant_id = cv.id
+      JOIN cards c ON cv.card_id = c.id
+      WHERE c.id = ANY(${cardIds})
+      GROUP BY cph.recorded_date, DATE(cph.recorded_date)
+      ORDER BY DATE(cph.recorded_date) ASC
+      LIMIT 30
+    `);
+
+    return result.rows.map(row => ({
+      date: row.date,
+      price: Number(row.price)
+    }));
+  }
+
+  async getSportProfitMix(userId: string) {
+    const result = await db.execute(sql`
+      SELECT 
+        COALESCE(i.sport, 'Other') as sport,
+        SUM(COALESCE(t.profit, 0))::numeric as profit
+      FROM transactions t
+      LEFT JOIN inventory i ON t.inventory_id = i.id
+      WHERE t.user_id = ${userId} AND t.type = 'sell'
+      GROUP BY COALESCE(i.sport, 'Other')
+      ORDER BY profit DESC
+    `);
+
+    return result.rows.map(row => ({
+      sport: row.sport,
+      profit: Number(row.profit)
+    }));
+  }
 }

@@ -12,27 +12,34 @@ import SignalFeed from '@/components/ai-insights/SignalFeed'
 import { InsightType, RecommendationFilter } from '@/components/ai-insights/aiInsightsTypes'
 import { insightConfidence, insightUrgency } from '@/components/ai-insights/aiInsightsUtils'
 import Shell from '@/components/layout/Shell'
-import { AI_INSIGHTS, INVENTORY_TABLE_DATA, TOP_MOVERS } from '@/data/mockDashboard'
+import { useAiInsights, useTopMovers, useAffectedInventory, useCompHistory, useSportProfitMix } from '@/hooks/dashboard/useDashboard'
 
 export default function AIInsightsPage() {
+  const { data: insightsData, isLoading: insightsLoading } = useAiInsights()
+  const { data: moversData, isLoading: moversLoading } = useTopMovers()
+  const { data: sportProfitMixData } = useSportProfitMix()
+
+  const insights = useMemo(() => insightsData || [], [insightsData])
+  const movers = useMemo(() => moversData || [], [moversData])
+
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<InsightType>('all')
   const [sportFilter, setSportFilter] = useState('all')
   const [recommendationFilter, setRecommendationFilter] = useState<RecommendationFilter>('all')
   const [minConfidence, setMinConfidence] = useState(80)
   const [alertsEnabled, setAlertsEnabled] = useState(true)
-  const [selectedInsightId, setSelectedInsightId] = useState(AI_INSIGHTS[0]?.id ?? '')
+  const [selectedInsightId, setSelectedInsightId] = useState('')
   const [completedActions, setCompletedActions] = useState<string[]>([])
 
   const sports = useMemo(
-    () => Array.from(new Set(AI_INSIGHTS.map((insight) => insight.sport))),
-    []
+    () => Array.from(new Set(insights.map((insight) => insight.sport))),
+    [insights]
   )
 
   const filteredInsights = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    return AI_INSIGHTS.filter((insight) => {
+    return insights.filter((insight) => {
       const confidence = insightConfidence[insight.id] ?? 80
       const searchable = [
         insight.player,
@@ -55,41 +62,39 @@ export default function AIInsightsPage() {
         (!normalizedQuery || searchable.includes(normalizedQuery))
       )
     })
-  }, [minConfidence, query, recommendationFilter, sportFilter, typeFilter])
+  }, [insights, minConfidence, query, recommendationFilter, sportFilter, typeFilter])
 
-  const selectedInsight =
-    AI_INSIGHTS.find((insight) => insight.id === selectedInsightId) ??
-    filteredInsights[0] ??
-    AI_INSIGHTS[0]
-
-  const affectedInventory = useMemo(() => {
-    if (!selectedInsight) return []
-    const playerName = selectedInsight.player.toLowerCase()
-
-    return INVENTORY_TABLE_DATA.filter((card) =>
-      playerName.includes(card.player_name.toLowerCase()) ||
-      card.player_name.toLowerCase().includes(playerName.split(' ')[0])
+  const selectedInsight = useMemo(() => {
+    return (
+      insights.find((insight) => insight.id === selectedInsightId) ??
+      filteredInsights[0] ??
+      insights[0]
     )
-  }, [selectedInsight])
+  }, [insights, selectedInsightId, filteredInsights])
+
+  const { data: affectedInventoryData } = useAffectedInventory(selectedInsight?.player ?? '')
+  const affectedInventory = useMemo(() => affectedInventoryData || [], [affectedInventoryData])
+
+  const { data: compHistoryData } = useCompHistory(selectedInsight?.id ?? '')
 
   const matchedMovers = useMemo(
     () =>
-      TOP_MOVERS.filter((mover) =>
-        AI_INSIGHTS.some((insight) =>
+      movers.filter((mover) =>
+        insights.some((insight) =>
           insight.player.toLowerCase().includes(mover.player.toLowerCase())
         )
       ),
-    []
+    [insights, movers]
   )
 
   const metrics = useMemo(() => {
-    const highConfidence = AI_INSIGHTS.filter(
+    const highConfidence = insights.filter(
       (insight) => (insightConfidence[insight.id] ?? 80) >= 90
     ).length
-    const inventoryAtRisk = INVENTORY_TABLE_DATA.filter(
+    const inventoryAtRisk = affectedInventory.filter(
       (card) => card.unrealized_gain < 0 || card.days_held > 60
     ).length
-    const upsideValue = INVENTORY_TABLE_DATA.filter((card) => card.comp_trend > 0).reduce(
+    const upsideValue = affectedInventory.filter((card) => card.comp_trend > 0).reduce(
       (sum, card) => sum + card.market_value,
       0
     )
@@ -98,13 +103,13 @@ export default function AIInsightsPage() {
       highConfidence,
       inventoryAtRisk,
       upsideValue,
-      activeAlerts: AI_INSIGHTS.length + TOP_MOVERS.length,
+      activeAlerts: insights.length + movers.length,
     }
-  }, [])
+  }, [insights, movers, affectedInventory])
 
   const actionQueue = useMemo(
     () =>
-      AI_INSIGHTS.map((insight) => ({
+      insights.map((insight) => ({
         id: insight.id,
         player: insight.player,
         action:
@@ -121,7 +126,7 @@ export default function AIInsightsPage() {
               : 'Low' as const,
         due: insightUrgency[insight.id] ?? 'This week',
       })),
-    []
+    [insights]
   )
 
   const toggleAction = (actionId: string) => {
@@ -129,6 +134,16 @@ export default function AIInsightsPage() {
       current.includes(actionId)
         ? current.filter((id) => id !== actionId)
         : [...current, actionId]
+    )
+  }
+
+  if (insightsLoading || moversLoading) {
+    return (
+      <Shell>
+        <div className="flex h-[50vh] items-center justify-center">
+          <p className="text-gray-500">Loading AI insights and market data...</p>
+        </div>
+      </Shell>
     )
   }
 
@@ -169,7 +184,7 @@ export default function AIInsightsPage() {
           />
         </div>
 
-        <AIInsightCharts />
+        <AIInsightCharts compHistory={compHistoryData} sportProfitMix={sportProfitMixData} />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ActionQueue
@@ -178,7 +193,7 @@ export default function AIInsightsPage() {
             onToggleAction={toggleAction}
           />
 
-          <MoverWatchlist matchedMovers={matchedMovers} movers={TOP_MOVERS} />
+          <MoverWatchlist matchedMovers={matchedMovers} movers={movers} />
         </div>
       </div>
     </Shell>

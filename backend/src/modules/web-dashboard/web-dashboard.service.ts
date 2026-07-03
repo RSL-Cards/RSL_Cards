@@ -189,12 +189,17 @@ export class WebDashboardService {
     };
   }
 
-  getTopMovers() {
-    return TOP_MOVERS;
+  async getTopMovers() {
+    return this.repository.getTopMovers();
   }
 
-  getAiInsights() {
-    return AI_INSIGHTS;
+  async getAiInsights(userId: string) {
+    return this.repository.getAiInsights(userId);
+  }
+
+  async getAffectedInventory(userId: string, playerName: string) {
+    if (!playerName) return [];
+    return this.repository.getAffectedInventory(userId, playerName);
   }
 
   async getRecentTransactions(userId: string) {
@@ -453,7 +458,7 @@ export class WebDashboardService {
     }));
 
     // Get AI Insights directly
-    const aiInsights = await this.getAiInsights();
+    const aiInsights = await this.getAiInsights(userId);
 
     return {
       revenueData,
@@ -464,5 +469,14 @@ export class WebDashboardService {
       agingAlerts,
       aiInsights
     };
+  }
+
+  async getCompHistory(insightId: string) {
+    if (!insightId) return [];
+    return this.repository.getCompHistory(insightId);
+  }
+
+  async getSportProfitMix(userId: string) {
+    return this.repository.getSportProfitMix(userId);
   }
 }

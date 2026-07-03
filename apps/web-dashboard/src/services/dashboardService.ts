@@ -42,4 +42,13 @@ export const dashboardService = {
   getPassbookTransactions() {
     return dashboardRequest<any[]>(ENDPOINTS.webDashboard.transactionsPassbook)
   },
+  getAffectedInventory(playerName: string) {
+    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.affectedInventory(playerName))
+  },
+  getCompHistory(insightId: string) {
+    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.compHistory(insightId))
+  },
+  getSportProfitMix() {
+    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.sportProfitMix)
+  },
 }

@@ -44,8 +44,14 @@ export class WebDashboardController {
     return this.service.getTopMovers();
   };
 
-  getAiInsights = async () => {
-    return this.service.getAiInsights();
+  getAiInsights = async ({ request }: { request: Request }) => {
+    return this.service.getAiInsights(this.getUserId(request));
+  };
+
+  getAffectedInventory = async ({ request }: { request: Request }) => {
+    const url = new URL(request.url);
+    const playerName = url.searchParams.get("playerName") || "";
+    return await this.service.getAffectedInventory(this.getUserId(request), playerName);
   };
 
   getRecentTransactions = async ({ request }: { request: Request }) => {
@@ -77,5 +83,13 @@ export class WebDashboardController {
     const fromDate = url.searchParams.get("from") || new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString();
     const toDate = url.searchParams.get("to") || new Date().toISOString();
     return await this.service.getReportData(this.getUserId(request), fromDate, toDate);
+  };
+
+  getCompHistory = async ({ params }: { params: { id: string } }) => {
+    return await this.service.getCompHistory(params.id);
+  };
+
+  getSportProfitMix = async ({ request }: { request: Request }) => {
+    return await this.service.getSportProfitMix(this.getUserId(request));
   };
 }

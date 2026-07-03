@@ -87,6 +87,14 @@ export class BullMqAdapter {
         jobId: "refresh_all_comps_cron" // prevent duplicates
       });
       logger.info("🕒 Scheduled 'refresh_all_comps' cron job to run every 12 hours");
+
+      await this.queue.add("generate_ai_insights", {}, {
+        repeat: {
+          every: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+        },
+        jobId: "generate_ai_insights_cron"
+      });
+      logger.info("🕒 Scheduled 'generate_ai_insights' cron job to run every 6 hours");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

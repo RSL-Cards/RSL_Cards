@@ -14,6 +14,9 @@ export const dashboardKeys = {
   aiInsights: () => [...dashboardKeys.all, 'aiInsights'] as const,
   portfolioSnapshot: () => [...dashboardKeys.all, 'portfolioSnapshot'] as const,
   transactionsPassbook: () => [...dashboardKeys.all, 'transactionsPassbook'] as const,
+  affectedInventory: (playerName: string) => [...dashboardKeys.all, 'affectedInventory', playerName] as const,
+  compHistory: (insightId: string) => [...dashboardKeys.all, 'compHistory', insightId] as const,
+  sportProfitMix: () => [...dashboardKeys.all, 'sportProfitMix'] as const,
 };
 
 export function useDashboardMetrics() {
@@ -91,5 +94,28 @@ export function useDashboardPassbook() {
   return useQuery({
     queryKey: dashboardKeys.transactionsPassbook(),
     queryFn: dashboardService.getPassbookTransactions,
+  });
+}
+
+export function useAffectedInventory(playerName: string) {
+  return useQuery({
+    queryKey: dashboardKeys.affectedInventory(playerName),
+    queryFn: () => dashboardService.getAffectedInventory(playerName),
+    enabled: !!playerName,
+  });
+}
+
+export function useCompHistory(insightId: string) {
+  return useQuery({
+    queryKey: dashboardKeys.compHistory(insightId),
+    queryFn: () => dashboardService.getCompHistory(insightId),
+    enabled: !!insightId,
+  });
+}
+
+export function useSportProfitMix() {
+  return useQuery({
+    queryKey: dashboardKeys.sportProfitMix(),
+    queryFn: dashboardService.getSportProfitMix,
   });
 }

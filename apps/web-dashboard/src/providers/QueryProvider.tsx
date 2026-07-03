@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { authService } from '@/services/authService';
+import { useWebPush } from '@/hooks/useWebPush';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,9 @@ const queryClient = new QueryClient({
 });
 
 function SessionBootstrap({ children }: { children: React.ReactNode }) {
+  // Activate Web Push Notifications registration
+  useWebPush();
+
   const userId = useAuthStore((s) => s.user?.id);
   const client = useQueryClient();
 

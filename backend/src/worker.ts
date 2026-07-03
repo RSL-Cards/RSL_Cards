@@ -10,6 +10,7 @@ import { SoldCompsService } from "./modules/listing/sold-comps.service.js";
 import { MyslabsService } from "./modules/listing/myslabs.service.js";
 import { bullMqAdapter } from "./adapters/bullmq.adapter.js";
 import { batchJobs } from "./db/schema/batch.js";
+import { narratives } from "./db/schema/index.js";
 import { vertexAiClient } from "./lib/vertex-ai.client.js";
 import { MULTI_CARD_SCAN_PROMPT, TEXT_EXTRACTION_PROMPT } from "./config/prompts.js";
 
@@ -78,6 +79,145 @@ export const initWorker = () => {
 
         await delay(1500); // Avoid rate limits
         return { success: true, processed: variant_id };
+      }
+
+      else if (job.name === "generate_ai_insights") {
+        logger.info(`[WORKER] Running generate_ai_insights job (ID: ${job.id})`);
+        try {
+          // 1. Fetch top cards in user active inventory with price shifts >= 15% in last 30 days
+          const candidates = await db.execute(sql`
+            SELECT 
+              p.name as player_name,
+              p.sport,
+              c.id as card_id,
+              c.year,
+              c.set_name,
+              cv.name as variant_name,
+              cs.avg_sold_price as price,
+              cs.price_trend_30d as change,
+              cs.grade_key,
+              cs.variant_id
+            FROM card_comp_snapshots cs
+            JOIN card_variants cv ON cs.variant_id = cv.id
+            JOIN cards c ON cv.card_id = c.id
+            JOIN players p ON c.player_id = p.id
+            WHERE cs.price_trend_30d IS NOT NULL 
+              AND abs(cs.price_trend_30d) >= 15
+              AND EXISTS (
+                SELECT 1 FROM inventory i 
+                WHERE i.variant_id = cs.variant_id 
+                  AND i.grade_key = cs.grade_key 
+                  AND i.listing_status IN ('unlisted', 'listed')
+              )
+            ORDER BY abs(cs.price_trend_30d) DESC
+            LIMIT 10
+          `);
+
+          const items = candidates.rows as any[];
+          logger.info(`[WORKER] Found ${items.length} cards matching trend threshold for AI Insights.`);
+
+          // Dynamically import Notification modules to avoid circular dependencies
+          const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
+          const notifRepository = new NotificationRepository();
+
+          let generatedCount = 0;
+          for (const item of items) {
+            // Check if player already has a narrative in the last 24 hours
+            const existing = await db.execute(sql`
+              SELECT id FROM narratives 
+              WHERE player_name = ${item.player_name} 
+                AND created_at > now() - interval '24 hours'
+              LIMIT 1
+            `);
+
+            if (existing.rows.length > 0) {
+              logger.info(`[WORKER] Narrative for ${item.player_name} already generated in the last 24h. Skipping.`);
+              continue;
+            }
+
+            // Calculate price range
+            const currentPrice = Number(item.price);
+            const changePct = Number(item.change);
+            const oldPrice = currentPrice / (1 + (changePct / 100));
+            const priceRange = changePct >= 0 
+              ? `$${oldPrice.toFixed(0)} → $${currentPrice.toFixed(0)}`
+              : `$${oldPrice.toFixed(0)} → $${currentPrice.toFixed(0)}`; // e.g. "$100 -> $80" if changePct negative
+
+            const prompt = `
+You are an expert sports card market analyst. Analyze the following sports card pricing data:
+Player: ${item.player_name}
+Sport: ${item.sport}
+Card: ${item.year} ${item.set_name} (${item.variant_name}) Grade: ${item.grade_key}
+Current Comp Price: $${currentPrice.toFixed(2)}
+30-Day Price Trend: ${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}%
+Price Range: ${priceRange}
+
+Based on this trend and your general knowledge of this player and sport, write a market insight.
+Ensure your response is valid JSON matching this schema:
+{
+  "headline": "A short, punchy headline (e.g., 'Daniels rookies surge 18% after record game')",
+  "shortSummary": "A single sentence summary outlining what dealers should do (max 150 chars)",
+  "body": "A detailed explanation of the card's momentum, explaining why the price shifted (e.g., performance, injuries, contract status, or overall market corrections).",
+  "recommendation": "BUY" | "SELL" | "HOLD" | "PRICE ADJUST",
+  "narrativeType": "breakout" | "injury" | "hype" | "decline" | "seasonal" | "trade" | "hof" | "award" | "auction_record"
+}
+Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
+`;
+
+            try {
+              const res = await vertexAiClient.generateFromText(prompt, "gemini-3.1-flash-lite");
+              const parsed = JSON.parse(res.replace(/```json|```/g, "").trim());
+              
+              // Insert narrative into DB
+              const [inserted] = await db.insert(narratives).values({
+                playerName: item.player_name,
+                sport: item.sport,
+                cardIds: [item.card_id],
+                headline: parsed.headline,
+                shortSummary: parsed.shortSummary,
+                body: parsed.body,
+                narrativeType: parsed.narrativeType,
+                priceChangePct: changePct.toFixed(2),
+                priceDirection: changePct >= 0 ? "up" : "down",
+                priceRange: priceRange,
+                recommendation: parsed.recommendation,
+                status: "published", // Automatically publish cron insights
+                publishedAt: new Date()
+              }).returning();
+
+              logger.info(`[WORKER] Successfully generated AI Insight for ${item.player_name}. Finding owners to notify...`);
+
+              // Find users who own this card variant in active inventory
+              const ownersResult = await db.execute(sql`
+                SELECT DISTINCT user_id FROM inventory
+                WHERE variant_id = ${item.variant_id} AND listing_status IN ('unlisted', 'listed')
+              `);
+              
+              const owners = ownersResult.rows as any[];
+              for (const owner of owners) {
+                await notifRepository.sendNotification(
+                  owner.user_id,
+                  `AI Insight: ${parsed.headline}`,
+                  parsed.shortSummary,
+                  "ai_narrative",
+                  { screen: "ai-insights", id: inserted.id }
+                );
+              }
+
+              generatedCount++;
+
+              // Wait 2 seconds between calls to avoid API rate limit
+              await delay(2000);
+            } catch (err: any) {
+              logger.error(`[WORKER] Failed to generate/insert narrative for ${item.player_name}: ${err.message}`);
+            }
+          }
+
+          return { success: true, generated: generatedCount };
+        } catch (error: any) {
+          logger.error(`[WORKER] Failed to process generate_ai_insights: ${error.message}`);
+          throw error;
+        }
       }
 
       // -------------------------------------------------------------

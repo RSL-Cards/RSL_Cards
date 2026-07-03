@@ -6,6 +6,8 @@ export const narrativeStatusEnum = pgEnum('narrative_status',
   ['pending_review','approved','published','rejected'])
 export const watchlistTierEnum   = pgEnum('watchlist_tier', ['core','subscribed','on_demand'])
 
+export const narrativeRecommendationEnum = pgEnum('narrative_recommendation', ['BUY', 'SELL', 'HOLD', 'PRICE ADJUST'])
+
 export const narratives = pgTable('narratives', {
   id:               uuid('id').primaryKey().defaultRandom(),
   playerName:       varchar('player_name', { length: 255 }).notNull(),
@@ -18,6 +20,8 @@ export const narratives = pgTable('narratives', {
   narrativeType:    narrativeTypeEnum('narrative_type').notNull(),
   priceChangePct:   decimal('price_change_pct', { precision: 5, scale: 2 }),
   priceDirection:   varchar('price_direction', { length: 5 }),  // up | down
+  priceRange:       varchar('price_range', { length: 50 }), // e.g. "$48 -> $58"
+  recommendation:   narrativeRecommendationEnum('recommendation'),
   correlatedEvents: text('correlated_events'),          // JSON: [{event, score}]
   status:           narrativeStatusEnum('status').default('pending_review'),
   reviewedBy:       uuid('reviewed_by'),

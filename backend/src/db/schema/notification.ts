@@ -24,6 +24,16 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
 
+export const userPushTokens = pgTable('user_push_tokens', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token:     varchar('token', { length: 255 }).notNull().unique(), // Expo push token or FCM token
+  platform:  varchar('platform', { length: 50 }).notNull(), // 'ios' | 'android' | 'web'
+  isActive:  boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})
+
 export const notificationPreferences = pgTable('notification_preferences', {
   // Same as userPreferences in user service — use user_preferences table there
   // notification-service reads from user_preferences via internal API call

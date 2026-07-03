@@ -176,6 +176,13 @@
       "when": 1782708955123,
       "tag": "0024_wild_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1782811935100,
+      "tag": "0025_thankful_puck",
+      "breakpoints": true
     }
   ]
 }

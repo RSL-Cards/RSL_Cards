@@ -32,7 +32,8 @@ export default function SignalFeed({
 
       <div className="space-y-4">
         {insights.map((insight) => {
-          const styles = typeStyles[insight.type]
+          const typeKey = (insight.type || 'MOMENTUM').toUpperCase()
+          const styles = typeStyles[typeKey as keyof typeof typeStyles] || typeStyles.MOMENTUM
           const TypeIcon = styles.icon
           const isSelected = selectedInsightId === insight.id
 
