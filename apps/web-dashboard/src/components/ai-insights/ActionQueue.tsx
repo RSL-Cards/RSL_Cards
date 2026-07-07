@@ -50,6 +50,18 @@ export default function ActionQueue({
             </button>
           )
         })}
+
+        {actions.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-500">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">All caught up!</h3>
+            <p className="mt-1 max-w-xs text-xs text-gray-500">
+              There are currently no pending dealer actions or price adjustment recommendations from AI narratives.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

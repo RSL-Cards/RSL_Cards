@@ -517,6 +517,7 @@ export class WebDashboardRepository {
           SELECT 1 FROM inventory i
           WHERE i.user_id = ${userId || null}
             AND i.player_id = p.id
+            AND i.listing_status IN ('unlisted', 'listed')
         ) as in_inventory
       FROM card_comp_snapshots cs
       JOIN card_variants cv ON cs.variant_id = cv.id
@@ -561,7 +562,9 @@ export class WebDashboardRepository {
       FROM inventory i
       JOIN players p ON i.player_id = p.id
       LEFT JOIN card_comp_snapshots cs ON cs.variant_id = i.variant_id AND cs.grade_key = i.grade_key
-      WHERE i.user_id = ${userId} AND p.name ILIKE ${'%' + playerName + '%'}
+      WHERE i.user_id = ${userId} 
+        AND p.name ILIKE ${'%' + playerName + '%'}
+        AND i.listing_status IN ('unlisted', 'listed')
     `);
 
     return result.rows.map(row => ({

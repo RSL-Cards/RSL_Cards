@@ -2,14 +2,26 @@ import { Elysia } from "elysia";
 import { AppError } from "./app-error.js";
 import { BaseAppError } from "@rsl/shared-types";
 import { logger } from "../lib/logger.js";
+import { promMetrics } from "../lib/metrics.js";
 
 export const errorMiddleware = new Elysia({ name: "error-middleware" })
-  .onError({ as: "global" }, ({ code, error, set }) => {
+  .onError({ as: "global" }, ({ code, error, set, request, ...ctx }) => {
     const err = error as any;
-    // 1. Log error details with high visibility
-    logger.error(`[ERROR HANDLER] ${err.name || "Error"} (${code}): ${err.message || "Unknown error"}`);
+    promMetrics.errorCount++;
+
+    const startTime = (ctx as any).requestStartTime || Date.now();
+    const traceId = (ctx as any).traceId || "no_trace";
+    const elapsedMs = Date.now() - startTime;
+    const timestamp = new Date().toISOString();
+
+    // 1. Log error details with high visibility & Trace ID breakdown
+    logger.error(`[TRACE ${traceId}] ✖── BREAK at ${elapsedMs}ms: [${code}] ${err.name || "Error"} - ${err.message || "Unknown error"}`);
     if (err.stack) {
-      logger.debug(err.stack);
+      logger.debug(`[TRACE ${traceId}] Stack: ${err.stack}`);
+    }
+
+    if (set.headers) {
+      set.headers["X-Trace-Id"] = traceId;
     }
 
     // 2. Resolve the response structure based on the error type
@@ -21,6 +33,9 @@ export const errorMiddleware = new Elysia({ name: "error-middleware" })
           code: error.errorCode,
           message: error.message,
           details: error.details,
+          traceId,
+          timestamp,
+          elapsedMs,
         },
       };
     }
@@ -34,6 +49,9 @@ export const errorMiddleware = new Elysia({ name: "error-middleware" })
           code: "VALIDATION_ERROR",
           message: "Request payload validation failed",
           details: err.message,
+          traceId,
+          timestamp,
+          elapsedMs,
         },
       };
     }
@@ -48,6 +66,9 @@ export const errorMiddleware = new Elysia({ name: "error-middleware" })
           ? "An unexpected system error occurred" 
           : (err.message || "Unknown system error"),
         details: null,
+        traceId,
+        timestamp,
+        elapsedMs,
       },
     };
   });

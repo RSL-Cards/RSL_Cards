@@ -60,6 +60,18 @@ export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlist
             </div>
           )
         })}
+
+        {movers.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+              <TrendingUp className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">No market movers tracked</h3>
+            <p className="mt-1 max-w-xs text-xs text-gray-500">
+              We haven&apos;t detected any significant 30-day price shifts (&ge; 15%) across active sports card markets yet.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

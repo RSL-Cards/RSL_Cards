@@ -99,8 +99,16 @@ export default function SignalFeed({
         })}
 
         {insights.length === 0 && (
-          <div className="rounded-xl border border-gray-200 py-12 text-center text-sm text-gray-500">
-            No AI insights match the selected filters.
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/60 py-16 text-center my-4">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-bold text-gray-900">No signals generated yet</h3>
+            <p className="mt-1 max-w-sm text-xs text-gray-500">
+              We couldn&apos;t find any active AI market narratives or signals matching your current filter criteria. Try broadening your sport or confidence filters!
+            </p>
           </div>
         )}
       </div>

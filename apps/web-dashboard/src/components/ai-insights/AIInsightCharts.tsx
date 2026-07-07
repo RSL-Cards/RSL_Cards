@@ -30,9 +30,14 @@ export default function AIInsightCharts({ compHistory, sportProfitMix }: AIInsig
         </div>
         
         {activeCompHistory.length === 0 ? (
-          <div className="h-72 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-            <LineChart className="h-8 w-8 text-gray-400 mb-2" />
-            <p className="text-sm text-gray-500 font-medium">Select an insight to view 30-day historical pricing trends</p>
+          <div className="h-72 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60 text-center p-6">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+              <LineChart className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">No pricing trends available</h3>
+            <p className="mt-1 max-w-sm text-xs text-gray-500">
+              Select an AI signal from the feed to view 30-day historical comp pricing trends and transaction volume.
+            </p>
           </div>
         ) : (
           <div className="h-72">
@@ -73,8 +78,17 @@ export default function AIInsightCharts({ compHistory, sportProfitMix }: AIInsig
         <h2 className="text-xl font-bold text-gray-900">Sport Profit Mix</h2>
         
         {activeSportProfitMix.length === 0 ? (
-          <div className="mt-5 h-72 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-            <p className="text-sm text-gray-500 font-medium text-center px-4">No completed sales recorded to compile a profit mix by sport</p>
+          <div className="mt-5 h-72 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60 text-center p-6">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-500">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">No profit mix data</h3>
+            <p className="mt-1 max-w-xs text-xs text-gray-500">
+              No completed card sales recorded yet to compile a profit distribution breakdown by sport.
+            </p>
           </div>
         ) : (
           <div className="mt-5 h-72">

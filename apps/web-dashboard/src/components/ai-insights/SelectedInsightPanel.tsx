@@ -21,7 +21,17 @@ export default function SelectedInsightPanel({
     <div className="space-y-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-bold text-gray-900">Selected Insight</h2>
-        {selectedInsight && (
+        {!selectedInsight ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60 mt-4">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+              <Eye className="h-6 w-6" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">No insight selected</h3>
+            <p className="mt-1 max-w-xs text-xs text-gray-500">
+              Select an AI signal from the feed on the left to view detailed analysis and recommendations.
+            </p>
+          </div>
+        ) : (
           <div className="mt-4 space-y-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -93,8 +103,16 @@ export default function SelectedInsightPanel({
           ))}
 
           {affectedInventory.length === 0 && (
-            <div className="rounded-lg border border-gray-200 py-8 text-center text-sm text-gray-500">
-              No matching inventory card found.
+            <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-gray-200 rounded-xl bg-gray-50/60">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              </div>
+              <h3 className="text-xs font-semibold text-gray-900">No affected inventory</h3>
+              <p className="mt-1 max-w-xs text-xs text-gray-500">
+                You currently do not own any active inventory cards matching this player or signal.
+              </p>
             </div>
           )}
         </div>
