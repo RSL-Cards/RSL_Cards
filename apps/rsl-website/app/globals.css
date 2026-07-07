@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050505;
+  --foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: #050505;
+  --color-panel: #111111;
+  --color-panel2: #1a1a1a;
+  --color-line: #2a2a2a;
+  --color-rslRed: #e8001c;
+  --color-muted: #9ca3af;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Aptos", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.surface-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.store-badge {
+  display: inline-flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #ffffff;
+  color: #050505;
+  padding: 9px 16px;
+  font-weight: 800;
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.store-badge:hover {
+  transform: translateY(-2px);
+  border-color: #e8001c;
+}
+
+.display-title {
+  font-family: "Aptos Display", "Segoe UI", sans-serif;
+  font-weight: 650;
+  letter-spacing: 0;
+}

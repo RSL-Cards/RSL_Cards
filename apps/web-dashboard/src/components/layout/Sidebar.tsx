@@ -3,19 +3,20 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  Home, 
-  Package, 
-  ClipboardList, 
-  DollarSign, 
-  BarChart3, 
-  Zap, 
-  Users, 
+import {
+  Home,
+  Package,
+  ClipboardList,
+  DollarSign,
+  BarChart3,
+  Zap,
+  Users,
   Settings,
   ChevronRight,
-  Crown
+  Crown,
+  ListTodo
 } from 'lucide-react'
-import { DEALER } from '@/data/mockDashboard'
+import { useAuthStore } from '@/stores/authStore'
 
 const navItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
@@ -24,40 +25,57 @@ const navItems = [
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
   { icon: Zap, label: 'AI Insights', href: '/ai-insights' },
-  { icon: Users, label: 'Customers', href: '/customers' },
+  // { icon: Users, label: 'Customers', href: '/customers' },
+  { icon: ListTodo, label: 'Tasks', href: '/tasks' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const user = useAuthStore((state) => state.user)
+  const displayName = user?.displayName?.trim() || 'Dealer'
+  const email = user?.email ?? 'dealer@rslcards.com'
+  const avatarInitial = displayName.charAt(0).toUpperCase()
+  const [imgError, setImgError] = useState(false)
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-surface border-r border-border transition-all duration-300 z-40 ${
-      collapsed ? 'w-16' : 'w-64'
-    }`}>
-      {/* Logo Section */}
-      <div className="p-5 border-b border-border">
+    <div
+      className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm transition-all duration-300 z-40 ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+    >
+      {/* Logo */}
+      <div className="p-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="border border-white rounded p-2 flex-shrink-0">
-            <div className="flex items-center gap-1">
-              <span className="text-white font-black italic text-lg">RSL</span>
-              <span className="text-rsl-red font-bold text-xs tracking-widest">CARDS</span>
-            </div>
+          <div className="flex-shrink-0">
+            <img 
+              src="/rslicon.jpeg" 
+              alt="RSL Cards Logo" 
+              className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white"
+            />
           </div>
+
           {!collapsed && (
             <div className="flex-1">
-              <div className="text-white font-bold text-sm">Dealer Dashboard</div>
-              <div className="text-text-muted text-xs">by RSL Cards</div>
+              <div className="text-gray-900 font-semibold text-sm">
+                Dealer Dashboard
+              </div>
+              <div className="text-gray-500 text-xs">
+                by RSL Cards
+              </div>
             </div>
           )}
+
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-text-secondary hover:text-white transition-colors duration-200"
+            className="text-gray-400 hover:text-gray-700 transition-colors duration-200"
           >
-            <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
-              collapsed ? 'rotate-180' : ''
-            }`} />
+            <ChevronRight
+              className={`w-4 h-4 transition-transform duration-200 ${
+                collapsed ? 'rotate-180' : ''
+              }`}
+            />
           </button>
         </div>
       </div>
@@ -66,20 +84,34 @@ export default function Sidebar() {
       <nav className="flex-1 p-4">
         <div className="space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = item.href === '/' 
+              ? pathname === '/' 
+              : pathname.startsWith(item.href)
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`sidebar-item group ${
-                  isActive ? 'sidebar-item-active' : ''
-                }`}
                 title={collapsed ? item.label : undefined}
+                className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-                {isActive && !collapsed && (
-                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent-red"></div>
+                <item.icon
+                  className={`w-5 h-5 ${
+                    isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                  }`}
+                />
+                {!collapsed && (
+                  <span className="truncate">{item.label}</span>
+                )}
+                {collapsed && isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
+                )}
+                {!collapsed && isActive && (
+                  <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-600"></div>
                 )}
               </Link>
             )
@@ -87,31 +119,33 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* Bottom Section */}
-      <div className="p-4 border-t border-border">
-        {/* Plan Badge */}
+      {/* Bottom */}
+      <div className="p-4 border-t border-gray-100">
         {!collapsed && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
             <Crown className="w-4 h-4 text-amber-500" />
-            <span className="text-amber-500 font-semibold text-sm">PRO</span>
+            <span className="text-amber-700 font-semibold text-sm">
+              PRO
+            </span>
           </div>
         )}
 
-        {/* User Info */}
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div 
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-            style={{ backgroundColor: DEALER.avatar_color }}
-          >
-            {DEALER.initials}
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm overflow-hidden">
+            {user?.photoUrl && !imgError ? (
+              <img src={user.photoUrl} alt="Avatar" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+            ) : (
+              avatarInitial
+            )}
           </div>
+
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="text-white font-semibold text-sm truncate">
-                {DEALER.name}
+              <div className="text-gray-900 font-medium text-sm truncate">
+                {displayName}
               </div>
-              <div className="text-text-muted text-xs truncate">
-                {DEALER.email}
+              <div className="text-gray-500 text-xs truncate">
+                {email}
               </div>
             </div>
           )}

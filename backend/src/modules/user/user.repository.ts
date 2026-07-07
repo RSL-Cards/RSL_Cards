@@ -17,14 +17,35 @@ export class UserRepository {
     data: OnboardingPayload,
   ): Promise<void> {
     await db.transaction(async (tx: any) => {
-      await tx
+      const updatedRows = await tx
         .update(dealerProfiles as any)
         .set({
           sports: data.sports,
           sellChannels: data.sellChannels,
           updatedAt: new Date(),
         })
-        .where(eq((dealerProfiles as any).userId, userId));
+        .where(eq((dealerProfiles as any).userId, userId))
+        .returning();
+
+      if (updatedRows.length === 0) {
+        // If the profile did not exist, fetch user email to determine display name
+        const userRows = await tx
+          .select()
+          .from(users as any)
+          .where(eq((users as any).id, userId))
+          .limit(1);
+
+        const email = userRows[0]?.email || "User";
+        const displayName = email.split("@")[0] || "User";
+
+        await tx.insert(dealerProfiles as any).values({
+          userId,
+          displayName,
+          sports: data.sports,
+          sellChannels: data.sellChannels,
+          updatedAt: new Date(),
+        });
+      }
 
       if (data.paymentMethods.length > 0) {
         await tx

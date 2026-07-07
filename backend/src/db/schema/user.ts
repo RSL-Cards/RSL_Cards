@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, uniqueIndex, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const dealerProfiles = pgTable('dealer_profiles', {
@@ -40,7 +40,9 @@ export const paymentMethods = pgTable('payment_methods', {
   handle:      varchar('handle', { length: 255 }).notNull(),
   isDefault:   boolean('is_default').default(false),
   createdAt:   timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  paymentMethodsUserIdx: index('idx_payment_methods_user_id').on(t.userId),
+}))
 
 export const platformConnections = pgTable('platform_connections', {
   id:              uuid('id').primaryKey().defaultRandom(),
@@ -79,7 +81,10 @@ export const dealerFollowers = pgTable('dealer_followers', {
   dealerId:   uuid('dealer_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   followerId: uuid('follower_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   createdAt:  timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  dealerFollowersDealerIdx: index('idx_dealer_followers_dealer_id').on(t.dealerId),
+  dealerFollowersFollowerIdx: index('idx_dealer_followers_follower_id').on(t.followerId),
+}))
 
 export const customers = pgTable('customers', {
   id:               uuid('id').primaryKey().defaultRandom(),
@@ -93,4 +98,6 @@ export const customers = pgTable('customers', {
   totalSpent:       varchar('total_spent', { length: 20 }).default('0'), // decimal as string
   lastSeenAt:       timestamp('last_seen_at', { withTimezone: true }),
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  customersUserIdx: index('idx_customers_user_id').on(t.userId),
+}))

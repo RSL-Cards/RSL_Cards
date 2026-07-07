@@ -1,5 +1,10 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
+import { createHash, randomUUID } from "crypto";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+const t500 = (s?: string | null) => s ? s.slice(0, 500) : null;
 
 export class InventoryRepository {
   async getInventory(query: any, userId: string) {
@@ -88,10 +93,11 @@ export class InventoryRepository {
   }
 
   async postInventory(body: any, userId: string) {
-    const {
+    let {
       cardId,
       variantId,
       playerId,
+      playerName,
       year,
       setName,
       variation,
@@ -106,6 +112,7 @@ export class InventoryRepository {
       quantity = 1,
       photos,
       notes,
+      listedPlatforms,
       ebaySalesCompleted,
       ebayActiveListings,
       myslabsSalesCompleted,
@@ -113,9 +120,10 @@ export class InventoryRepository {
     } = body;
 
     // Sanitize empty strings to null for strict typed columns (UUID, integer, etc.)
-    const cleanCardId = cardId && cardId !== "" ? cardId : null;
+    let cleanCardId = cardId && cardId.trim() !== "" ? cardId : `rsl-${randomUUID()}`;
     const cleanVariantId = variantId && variantId !== "" ? variantId : null;
     const cleanPlayerId = playerId && playerId !== "" ? playerId : null;
+    const cleanPlayerName = playerName && playerName !== "" ? playerName : null;
     const cleanYear = year && year !== "" ? Number(year) : null;
     const cleanSetName = setName && setName !== "" ? setName : null;
     const cleanVariation = variation && variation !== "" ? variation : null;
@@ -123,68 +131,153 @@ export class InventoryRepository {
     const cleanSport = sport && sport !== "" ? sport : null;
     const cleanGradeCompany = gradeCompany && gradeCompany !== "" ? gradeCompany : null;
     const cleanGradeValue = gradeValue && gradeValue !== "" ? Number(gradeValue) : null;
+
+    if (gradeKey === "RAW" && cleanGradeCompany && cleanGradeValue) {
+      gradeKey = `${cleanGradeCompany} ${cleanGradeValue}`;
+    }
+
     const cleanCertNumber = certNumber && certNumber !== "" ? certNumber : null;
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
     const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
     const cleanQuantity = quantity && quantity !== "" ? Number(quantity) : 1;
-    // Convert JS string[] to PostgreSQL array literal e.g. {"url1","url2"}
-    const cleanPhotos = Array.isArray(photos) && photos.length > 0
-      ? `{${photos.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
+
+    let finalPhotosList = Array.isArray(photos) ? photos : [];
+
+    if (finalPhotosList.length === 0) {
+      let sourceImageUrl = null;
+      if (body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
+        const match = body.comps.activeListings.find((item: any) => item.image?.imageUrl || item.imageUrl);
+        if (match) {
+          sourceImageUrl = match.image?.imageUrl || match.imageUrl;
+        }
+      }
+      if (!sourceImageUrl && body.uploadedImageUrl) {
+        sourceImageUrl = body.uploadedImageUrl;
+      }
+
+      if (sourceImageUrl) {
+        const { env } = await import("../../config/index.js");
+        if (env.S3_BUCKET_NAME) {
+          const bucketDomain = `${env.S3_BUCKET_NAME}.s3`;
+          if (sourceImageUrl.includes(bucketDomain)) {
+            finalPhotosList = [sourceImageUrl];
+          } else {
+            try {
+              const fetchRes = await fetch(sourceImageUrl);
+              if (fetchRes.ok) {
+                const arrayBuf = await fetchRes.arrayBuffer();
+                const buffer = Buffer.from(arrayBuf);
+                const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+                const ext = contentType.includes("png") ? "png" : "jpg";
+                const key = `cards/${userId}/imported/${randomUUID()}.${ext}`;
+                const client = new S3Client({
+                  region: env.AWS_REGION || "us-east-1",
+                  credentials: {
+                    accessKeyId: env.AWS_ACCESS_KEY_ID || "",
+                    secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
+                  },
+                });
+                await client.send(
+                  new PutObjectCommand({
+                    Bucket: env.S3_BUCKET_NAME,
+                    Key: key,
+                    Body: buffer,
+                    ContentType: contentType,
+                  })
+                );
+                const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+                finalPhotosList = [publicUrl];
+              }
+            } catch (err: any) {
+              console.warn("Failed to download/upload dynamic card photo:", err.message);
+            }
+          }
+        }
+      }
+    }
+
+    const cleanPhotos = finalPhotosList.length > 0
+      ? `{${finalPhotosList.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
       : null;
     const cleanNotes = notes && notes !== "" ? notes : null;
+    const cleanListedPlatforms = Array.isArray(listedPlatforms) && listedPlatforms.length > 0
+      ? `{${listedPlatforms.map((platform: string) => `"${platform.replace(/"/g, '\\"')}"`).join(",")}}`
+      : null;
+    const cleanListingStatus = cleanListedPlatforms ? "listed" : "unlisted";
     const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
     const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
     const cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
     const cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
 
-    const duplicateCheck = await db.execute(sql`
-      SELECT id, added_at 
-      FROM inventory 
-      WHERE user_id = ${userId}
-        AND card_id = ${cleanCardId}
-        AND grade_key = ${gradeKey}
-        ${cleanCertNumber ? sql`AND cert_number = ${cleanCertNumber}` : sql``}
-      LIMIT 1
-    `);
 
-    if (duplicateCheck.rows.length > 0) {
-      const existing = duplicateCheck.rows[0];
-      throw new Error(
-        `You already have this card in your inventory (added ${existing.added_at})`,
-      );
-    }
 
     // Defensive Programming layer: Ensure target card exists in master cards catalog to prevent foreign key errors.
     let resolvedVariantId = cleanVariantId;
     let resolvedPlayerId = cleanPlayerId;
+
+    if (!resolvedPlayerId && cleanPlayerName) {
+      const existingPlayer = await db.execute(sql`
+        SELECT id FROM players
+        WHERE LOWER(name) = LOWER(${cleanPlayerName})
+          AND sport = ${cleanSport || "basketball"}
+        LIMIT 1
+      `);
+
+      if (existingPlayer.rows.length > 0) {
+        resolvedPlayerId = (existingPlayer.rows[0] as any).id;
+      } else {
+        const insertPlayer = await db.execute(sql`
+          INSERT INTO players (id, name, sport, created_at, updated_at)
+          VALUES (gen_random_uuid(), ${cleanPlayerName}, ${cleanSport || "basketball"}, NOW(), NOW())
+          RETURNING id
+        `);
+        resolvedPlayerId = (insertPlayer.rows[0] as any).id;
+      }
+    }
 
     if (cleanCardId) {
       const cardExists = await db.execute(sql`
         SELECT id, player_id FROM cards WHERE id = ${cleanCardId} LIMIT 1
       `);
       if (cardExists.rows.length === 0) {
-        // Resolve or create a fallback player
-        if (!resolvedPlayerId) {
-          const playerRes = await db.execute(sql`
-            SELECT id FROM players WHERE name = 'Unknown Player' LIMIT 1
-          `);
-          if (playerRes.rows.length > 0) {
-            resolvedPlayerId = (playerRes.rows[0] as any).id;
-          } else {
-            const insertPlayer = await db.execute(sql`
-              INSERT INTO players (id, name, sport, created_at, updated_at)
-              VALUES (gen_random_uuid(), 'Unknown Player', ${cleanSport || "basketball"}, NOW(), NOW())
-              RETURNING id
-            `);
-            resolvedPlayerId = (insertPlayer.rows[0] as any).id;
-          }
-        }
-
-        // Insert fallback base card
-        await db.execute(sql`
-          INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
-          VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, 'unknown', false, 'fallback', NOW(), NOW())
+        // Check if card with same details already exists to avoid unique constraint violation uq_card_player_year_set_number
+        const cardByDetails = await db.execute(sql`
+          SELECT id, player_id FROM cards 
+          WHERE player_id = ${resolvedPlayerId}
+            AND year = ${cleanYear}
+            AND set_name = ${cleanSetName}
+            ${cleanCardNumber ? sql`AND card_number = ${cleanCardNumber}` : sql`AND card_number IS NULL`}
+          LIMIT 1
         `);
+
+        if (cardByDetails.rows.length > 0) {
+          const existingCard = cardByDetails.rows[0] as any;
+          cleanCardId = existingCard.id;
+          resolvedPlayerId = existingCard.player_id;
+        } else {
+          // Resolve or create a fallback player
+          if (!resolvedPlayerId) {
+            const playerRes = await db.execute(sql`
+              SELECT id FROM players WHERE name = 'Unknown Player' LIMIT 1
+            `);
+            if (playerRes.rows.length > 0) {
+              resolvedPlayerId = (playerRes.rows[0] as any).id;
+            } else {
+              const insertPlayer = await db.execute(sql`
+                INSERT INTO players (id, name, sport, created_at, updated_at)
+                VALUES (gen_random_uuid(), 'Unknown Player', ${cleanSport || "basketball"}, NOW(), NOW())
+                RETURNING id
+              `);
+              resolvedPlayerId = (insertPlayer.rows[0] as any).id;
+            }
+          }
+
+          // Insert fallback base card
+          await db.execute(sql`
+            INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
+            VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, 'unknown', false, 'fallback', NOW(), NOW())
+          `);
+        }
 
         // Ensure "Base" variant exists
         const variantExists = await db.execute(sql`
@@ -241,10 +334,84 @@ export class InventoryRepository {
       RETURNING *
     `);
 
+    const invItem = result.rows[0] as any;
+
+    try {
+      console.log(`[DEBUG postInventory] body.comps exists?`, !!body.comps);
+      if (body.comps) {
+        console.log(`[DEBUG postInventory] body.comps keys:`, Object.keys(body.comps));
+        console.log(`[DEBUG postInventory] body.comps.snapshots length:`, body.comps.snapshots?.length);
+        console.log(`[DEBUG postInventory] resolvedVariantId:`, resolvedVariantId);
+      }
+      if (body.comps && body.comps.snapshots && body.comps.snapshots.length > 0 && resolvedVariantId) {
+        const snap = body.comps.snapshots[0];
+        await db.execute(sql`
+          INSERT INTO card_comp_snapshots
+            (id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at)
+          VALUES
+            (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(snap.avgSoldPrice)}, ${Number(snap.lastSoldPrice)}, ${Number(snap.lowestActive)}, ${Number(snap.salesCount30d)}, NOW())
+          ON CONFLICT (variant_id, grade_key, platform)
+          DO UPDATE SET
+            avg_sold_price = EXCLUDED.avg_sold_price,
+            last_sold_price = EXCLUDED.last_sold_price,
+            lowest_active = EXCLUDED.lowest_active,
+            sales_count_30d = EXCLUDED.sales_count_30d,
+            fetched_at = NOW()
+        `);
+
+        if (body.comps.last30Days?.items && Array.isArray(body.comps.last30Days.items)) {
+          for (const item of body.comps.last30Days.items) {
+            const endDate = item.endDate || item.endedAt;
+            const contentHash = createHash("sha256")
+              .update(`ebay:${resolvedVariantId}:${gradeKey}:${item.itemId}:${endDate}`)
+              .digest("hex")
+              .slice(0, 64);
+
+            await db.execute(sql`
+              INSERT INTO platform_sold_listings
+                (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
+              VALUES
+                (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(item.soldPrice?.value || item.soldPrice || 0)}, ${item.itemId}, ${endDate}, ${t500(item.title)}, ${item.condition || "Used"}, ${contentHash}, NOW())
+              ON CONFLICT (content_hash) DO NOTHING
+            `);
+          }
+        }
+
+        if (body.comps.activeListings && Array.isArray(body.comps.activeListings)) {
+          for (const item of body.comps.activeListings) {
+            const contentHash = createHash("sha256")
+              .update(`ebayactive:${resolvedVariantId}:${gradeKey}:${item.itemId}`)
+              .digest("hex")
+              .slice(0, 64);
+
+            await db.execute(sql`
+              INSERT INTO platform_active_listings
+                (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
+              VALUES
+                (gen_random_uuid(), ${resolvedVariantId}, ${gradeKey}, 'ebay', ${Number(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
+              ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
+            `);
+          }
+        }
+      } else {
+        await bullMqAdapter.getQueue().add("refresh_single_comp", {
+          item: {
+            variant_id: resolvedVariantId,
+            grade_key: gradeKey,
+            player_name: cleanPlayerName,
+            year: cleanYear,
+            set_name: cleanSetName,
+            variant_name: cleanVariation || "Base"
+          }
+        });
+      }
+    } catch (e: any) {
+      console.warn("Failed to process comps or enqueue refresh_single_comp job", e.message);
+    }
+
     return {
-      success: true,
       message: "Card added to inventory",
-      item: result.rows[0],
+      item: invItem,
     };
   }
 
@@ -264,8 +431,39 @@ export class InventoryRepository {
     return { message: `Trigger manual market value refresh for all cards for ${userId}` };
   }
 
-  async postInventoryBulkImport(userId: string, _body: any) {
-    return { message: `Upload CSV/Excel file for bulk import for ${userId}. Returns jobId` };
+  async postInventoryBulkImport(userId: string, body: any) {
+    const rows = Array.isArray(body?.rows) ? body.rows : [];
+    const results = [];
+
+    for (const row of rows) {
+      try {
+        const platform = row.platform && row.platform !== "Unlisted" ? row.platform : null;
+        const result = await this.postInventory(
+          {
+            playerName: row.playerName,
+            year: row.year,
+            setName: row.setName,
+            sport: row.sport,
+            gradeKey: row.gradeKey,
+            costBasis: row.costBasis,
+            currentMarketValue: row.currentMarketValue,
+            listedPlatforms: platform ? [platform] : [],
+          },
+          userId,
+        );
+        results.push({ success: true, item: result.item });
+      } catch (error: any) {
+        results.push({ success: false, message: error.message ?? "Import failed" });
+      }
+    }
+
+    return {
+      success: true,
+      imported: results.filter((result) => result.success).length,
+      failed: results.filter((result) => !result.success).length,
+      results,
+      message: `Imported ${results.filter((result) => result.success).length} of ${rows.length} rows`,
+    };
   }
 
   async getInventoryBulkImportJobId(jobId: string) {

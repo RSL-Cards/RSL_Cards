@@ -5,6 +5,7 @@ import { AuthError, AuthErrorCode } from "../../lib/errors.js";
 import type { Env } from "../../config/index.js";
 import { OAuth2Client } from "google-auth-library";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import type { EmailService } from "../email/email.service.js";
 
 export class AuthService {
   private googleClient: OAuth2Client;
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private readonly repository: AuthRepository,
     private readonly env: Env,
+    private readonly emailService?: EmailService,
   ) {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
   }
@@ -45,7 +47,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       newUser.id,
@@ -56,13 +58,19 @@ export class AuthService {
     );
 
     const profile = await this.repository.getDealerProfile(newUser.id);
+    const displayName = profile?.displayName ?? newUser.email.split("@")[0];
+
+    await this.emailService?.sendWelcomeEmail(newUser.email, { displayName }).catch((error) => {
+      console.error(`Failed to send welcome email to ${newUser.email}:`, error);
+    });
 
     return {
       user: {
         id: newUser.id,
         email: newUser.email,
         role: newUser.role,
-        displayName: profile?.displayName ?? newUser.email.split("@")[0],
+        displayName,
+        photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
@@ -103,7 +111,7 @@ export class AuthService {
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -121,6 +129,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
         ),
@@ -175,7 +184,7 @@ export class AuthService {
       if (decodedNew && decodedNew.exp) {
         expiresAt = new Date(decodedNew.exp * 1000);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await this.repository.updateRefreshToken(
       user.id,
@@ -185,7 +194,23 @@ export class AuthService {
       deviceInfo,
     );
 
-    return { tokens: newTokens };
+    const profile = await this.repository.getDealerProfile(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
+      tokens: newTokens,
+    };
   }
 
   async logoutUser(body: any) {
@@ -202,25 +227,65 @@ export class AuthService {
     return { success: true };
   }
 
-  async forgotPassword(body: { email: string }) {
-    const user = await this.repository.getUserByEmail(body.email);
-    if (!user) {
-      return { message: "If an account exists, an OTP has been sent" };
-    }
+ async forgotPassword(body: { email: string }) {
+  const user = await this.repository.getUserByEmail(body.email);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 15 * 60 * 1000);
-
-    await this.repository.updateUserResetToken(user.id, otp, expiry);
-
-    console.log("\n🔐 PASSWORD RESET OTP");
-    console.log(`📧 Email: ${body.email} | 🔢 OTP: ${otp}`);
+  if (!user) {
+    console.log("❌ User not found:", body.email);
 
     return {
       message: "If an account exists, an OTP has been sent",
-      ...(this.env.NODE_ENV === "development" && { otp }),
     };
   }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+  await this.repository.updateUserResetToken(user.id, otp, expiry);
+
+  console.log("\n🔐 PASSWORD RESET OTP");
+  console.log(`📧 Email: ${body.email}`);
+  console.log(`🔢 OTP: ${otp}`);
+
+  console.log("=================================");
+  console.log("FORGOT PASSWORD REQUEST");
+  console.log("Email:", body.email);
+  console.log("Generated OTP:", otp);
+
+  console.log("🔥 About to send password reset email");
+  console.log("EmailService exists:", !!this.emailService);
+
+  try {
+    if (!this.emailService) {
+      throw new Error("EmailService not initialized");
+    }
+
+    const result = await this.emailService.sendPasswordReset(
+      body.email,
+      {
+        displayName: user.email.split("@")[0],
+        otp,
+        expiresInMinutes: 15,
+      }
+    );
+
+    console.log("✅ Password reset email sent");
+    console.log(
+      "📨 Resend Response:",
+      JSON.stringify(result, null, 2)
+    );
+  } catch (error) {
+    console.error("❌ Password reset email failed");
+    console.error(error);
+
+    throw new Error("Failed to send password reset email");
+  }
+
+  return {
+    message: "If an account exists, an OTP has been sent",
+    ...(this.env.NODE_ENV === "development" && { otp }),
+  };
+}
 
   async resetPassword(body: any) {
     const user = await this.repository.getUserByEmail(body.email);
@@ -294,8 +359,21 @@ export class AuthService {
       deviceInfo,
     );
 
+    const profile = await this.repository.getDealerProfile(user.id);
+
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
       tokens,
     };
   }
@@ -350,8 +428,21 @@ export class AuthService {
       deviceInfo,
     );
 
+    const profile = await this.repository.getDealerProfile(user.id);
+
     return {
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
       tokens,
     };
   }

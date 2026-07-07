@@ -18,23 +18,27 @@ import { analyticsModule } from "./modules/analytics/index.js";
 import { adminModule } from "./modules/admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
 import { assistantModule } from "./modules/assistant/index.js";
+import { contactModule } from "./modules/contact/index.js";
+import { webDashboardModule } from "./modules/web-dashboard/index.js";
+import { batchRouter } from "./modules/batch/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
+import { promMetrics, getPrometheusOutput } from "./lib/metrics.js";
 
 const app = new Elysia()
   .use(cors())
   .use(swagger())
   .use(errorMiddleware)
-  // Advanced HTTP Request & Response Logging Middleware
+  // Advanced HTTP Request & Response Observability & Trace Logging Middleware
   .onRequest((ctx: any) => {
-    (ctx as any).requestStartTime = Date.now();
-  })
-  .onAfterResponse((ctx: any) => {
-    const startTime = (ctx as any).requestStartTime || Date.now();
-    const duration = Date.now() - startTime;
-    const status = ctx.set.status || 200;
-    
+    const startTime = Date.now();
+    const startCpu = process.cpuUsage();
+    const traceId = `tr_${startTime.toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    (ctx as any).requestStartTime = startTime;
+    (ctx as any).requestStartCpu = startCpu;
+    (ctx as any).traceId = traceId;
+
     let urlPath = "";
     try {
       const url = new URL(ctx.request.url);
@@ -42,13 +46,53 @@ const app = new Elysia()
     } catch {
       urlPath = ctx.request.url;
     }
-    
-    // Log API transaction with high visibility
-    logger.info(`[HTTP] ${ctx.request.method} ${urlPath} - ${status} (${duration}ms)`);
+    (ctx as any).urlPath = urlPath;
+
+    if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
+      logger.info(`[TRACE ${traceId}] ──► START ${ctx.request.method} ${urlPath}`);
+    }
+  })
+  .onAfterResponse((ctx: any) => {
+    const startTime = (ctx as any).requestStartTime || Date.now();
+    const traceId = (ctx as any).traceId || "no_trace";
+    const duration = Date.now() - startTime;
+    const status = ctx.set.status || 200;
+    const urlPath = (ctx as any).urlPath || ctx.request.url;
+
+    // Record Prometheus Metrics
+    promMetrics.totalRequests++;
+    promMetrics.statusCodes[status] = (promMetrics.statusCodes[status] || 0) + 1;
+    promMetrics.requestDurations.push(duration);
+    if (promMetrics.requestDurations.length > 2000) promMetrics.requestDurations.shift();
+
+    if (ctx.set && ctx.set.headers) {
+      ctx.set.headers["X-Trace-Id"] = traceId;
+    }
+
+    if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
+      const mem = process.memoryUsage();
+      const rssMb = (mem.rss / 1024 / 1024).toFixed(1);
+      const heapMb = (mem.heapUsed / 1024 / 1024).toFixed(1);
+
+      let cpuStr = "0.00ms (0.0%)";
+      const startCpu = (ctx as any).requestStartCpu;
+      if (startCpu) {
+        const cpuDiff = process.cpuUsage(startCpu);
+        const cpuMs = (cpuDiff.user + cpuDiff.system) / 1000;
+        const cpuPct = duration > 0 ? ((cpuMs / duration) * 100).toFixed(1) : "0.0";
+        cpuStr = `${cpuMs.toFixed(2)}ms (${cpuPct}%)`;
+      }
+
+      logger.info(`[TRACE ${traceId}] ◄── END ${ctx.request.method} ${urlPath} - ${status} (${duration}ms | CPU: ${cpuStr} | RSS: ${rssMb}MB | Heap: ${heapMb}MB)`);
+    }
   })
   .onBeforeHandle((ctx: any) => {
     const request = ctx.request;
     const authHeader = request.headers.get("authorization");
+    const traceId = (ctx as any).traceId || "no_trace";
+    const urlPath = (ctx as any).urlPath || request.url;
+    const startTime = (ctx as any).requestStartTime || Date.now();
+
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const token = authHeader.slice(7);
@@ -64,9 +108,12 @@ const app = new Elysia()
             if (lower === "x-service-key") return env.INTERNAL_SERVICE_KEY || "internal_key";
             return originalGet(name);
           };
+          if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
+            logger.info(`[TRACE ${traceId}] ├── AUTH OK (User: ${userId}, Role: ${userRole}) [${Date.now() - startTime}ms]`);
+          }
         }
       } catch (err) {
-        logger.debug(`Token verification failed: ${(err as Error).message}`);
+        logger.debug(`[TRACE ${traceId}] ├── AUTH FAILED: ${(err as Error).message}`);
       }
     }
   })
@@ -85,6 +132,15 @@ const app = new Elysia()
   .get("/ebay/callback", ({ request }: any) => {
     const url = new URL(request.url);
     return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
+  })
+  .use(contactModule)
+  .use(webDashboardModule)
+  .use(batchRouter)
+  // Prometheus Metrics Scrape Endpoint
+  .get("/metrics", () => {
+    return new Response(getPrometheusOutput(), {
+      headers: { "Content-Type": "text/plain; version=0.0.4" },
+    });
   })
   // Highly comprehensive Health Check Endpoint mapping DB, Redis, BullMQ, and backend systems
   .get("/health", async (ctx: any) => {

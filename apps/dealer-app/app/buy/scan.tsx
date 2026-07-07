@@ -14,9 +14,12 @@ import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
 import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
+import { useBatchUpload, useBatchScanMulti } from "../../src/hooks/useBatchScan";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 type Tab = "scan" | "barcode" | "search";
@@ -27,6 +30,7 @@ export default function BuyScanScreen() {
   const router = useRouter();
   const addTab = useDealTabStore((s) => s.addTab);
   const [activeTab, setActiveTab] = useState<Tab>("scan");
+  const [scanMode, setScanMode] = useState<"single" | "multi">("single");
   const [query, setQuery] = useState("");
 
   const filtered = MOCK_CARD_SEARCH_RESULTS.filter(
@@ -40,6 +44,9 @@ export default function BuyScanScreen() {
   const { mutate: scanImage, isPending: isScanning } = useCardScan();
   const { mutate: scanBarcode, isPending: isScanningBarcode } =
     useBarcodeScan();
+
+  const { mutate: batchScanMulti, isPending: isBatchScanning } = useBatchScanMulti();
+  const { mutate: batchUpload, isPending: isUploading } = useBatchUpload();
 
   const handleCapture = async () => {
     if (!cameraRef.current) return;
@@ -57,11 +64,36 @@ export default function BuyScanScreen() {
         );
 
         if (manipResult.base64) {
-          scanImage(manipResult.base64);
+          if (scanMode === "single") {
+            scanImage(manipResult.base64);
+          } else {
+            batchScanMulti(manipResult.base64);
+            router.push("/(tabs)/");
+          }
         }
       }
     } catch (error) {
       console.error("Camera capture failed:", error);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const fileUri = result.assets[0].uri;
+        // In a real app, you might upload the file as multipart/form-data. 
+        // For simplicity, if it's text/csv, we can read it directly:
+        const fileString = await FileSystem.readAsStringAsync(fileUri);
+        batchUpload(fileString);
+        router.push("/(tabs)/");
+      }
+    } catch (err) {
+      console.error("File upload error", err);
     }
   };
 
@@ -200,25 +232,50 @@ export default function BuyScanScreen() {
                   </Text>
                 </View>
 
-                {(isScanning || isScanningBarcode) && (
+                {(isScanning || isScanningBarcode || isBatchScanning) && (
                   <View style={styles.scanningOverlay}>
                     <ActivityIndicator color="#0057FF" size="large" />
-                    <Text style={styles.scanningText}>Identifying card...</Text>
+                    <Text style={styles.scanningText}>Identifying card{scanMode === "multi" ? "s" : ""}...</Text>
                   </View>
                 )}
               </View>
+
+              <View style={styles.modeToggleRow}>
+                <TouchableOpacity
+                  style={[styles.modeToggleBtn, scanMode === "single" && styles.modeToggleBtnActive]}
+                  onPress={() => setScanMode("single")}
+                >
+                  <Text style={[styles.modeToggleText, scanMode === "single" && styles.modeToggleTextActive]}>Single Scan</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeToggleBtn, scanMode === "multi" && styles.modeToggleBtnActive]}
+                  onPress={() => setScanMode("multi")}
+                >
+                  <Text style={[styles.modeToggleText, scanMode === "multi" && styles.modeToggleTextActive]}>Multi-Scan</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
                 style={[
                   styles.primaryBtn,
-                  (isScanning || isScanningBarcode) && styles.disabledBtn,
+                  (isScanning || isScanningBarcode || isBatchScanning) && styles.disabledBtn,
                 ]}
                 onPress={handleCapture}
                 activeOpacity={0.85}
-                disabled={isScanning || isScanningBarcode}
+                disabled={isScanning || isScanningBarcode || isBatchScanning}
               >
                 <Text style={styles.primaryBtnText}>
-                  {isScanning ? "Scanning..." : "Capture Card"}
+                  {isScanning || isBatchScanning ? "Scanning..." : (scanMode === "single" ? "Capture Card" : "Capture Multiple Cards")}
                 </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={handleFileUpload}
+                disabled={isUploading}
+              >
+                <Ionicons name="document-text-outline" size={20} color="#0057FF" style={{marginRight: 8}} />
+                <Text style={styles.uploadBtnText}>{isUploading ? "Uploading..." : "Upload File (CSV/TXT)"}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.simulateBtn}
@@ -430,6 +487,48 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  modeToggleRow: {
+    flexDirection: "row",
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    width: "100%",
+  },
+  modeToggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  modeToggleBtnActive: {
+    backgroundColor: "#333333",
+  },
+  modeToggleText: {
+    color: "#888888",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modeToggleTextActive: {
+    color: "white",
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "rgba(0, 87, 255, 0.1)",
+    borderRadius: 12,
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(0, 87, 255, 0.3)",
+  },
+  uploadBtnText: {
+    color: "#0057FF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

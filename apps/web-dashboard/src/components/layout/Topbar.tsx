@@ -1,78 +1,196 @@
 'use client'
 
-import { Search, Bell, Wifi, WifiOff, RefreshCw, User, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import {
+  Search,
+  Bell,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  ChevronDown,
+  LogOut
+} from 'lucide-react'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function Topbar() {
+  const router = useRouter()
+  const pathname = usePathname()
   const isOnline = true
   const lastSync = '2 min ago'
   const notificationCount = 2
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
+  const isLoading = useAuthStore((state) => state.isLoading)
+  const displayValue = user?.displayName?.trim() || 'Dealer'
+  const avatarInitial = displayValue.charAt(0).toUpperCase()
+  const [imgError, setImgError] = useState(false)
+
+  const handleLogout = async () => {
+    await logout()
+    setIsUserMenuOpen(false)
+    router.replace('/login')
+  }
+
+  const getPageInfo = () => {
+    if (pathname.startsWith('/inventory/add')) return { title: 'Add Inventory', subtitle: 'Scan or manual entry' }
+    if (pathname.startsWith('/inventory')) return { title: 'Inventory', subtitle: 'Manage your collection' }
+    if (pathname.startsWith('/listings')) return { title: 'Listings', subtitle: 'Cross-platform listings' }
+    if (pathname.startsWith('/transactions')) return { title: 'Transactions', subtitle: 'Sales and purchases' }
+    if (pathname.startsWith('/reports')) return { title: 'Reports', subtitle: 'Financials and analytics' }
+    if (pathname.startsWith('/ai-insights')) return { title: 'AI Insights', subtitle: 'Smart recommendations' }
+    if (pathname.startsWith('/tasks')) return { title: 'Tasks', subtitle: 'Background processing' }
+    if (pathname.startsWith('/settings')) return { title: 'Settings', subtitle: 'Account and preferences' }
+    return { title: 'Dashboard', subtitle: 'Home Overview' }
+  }
+
+  const { title, subtitle } = getPageInfo()
 
   return (
-    <div className="h-16 bg-surface border-b border-border flex items-center justify-between px-6">
-      {/* Left - Page Title */}
+    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
+      {/* Left */}
       <div className="flex items-center gap-4">
-        <h1 className="text-white font-bold text-xl">Dashboard</h1>
-        <div className="text-text-muted text-sm">
-          Home
+        <div>
+          <h1 className="text-gray-900 font-bold text-2xl tracking-tight">
+            {title}
+          </h1>
+
+          <div className="text-gray-500 text-sm">
+            {subtitle}
+          </div>
         </div>
       </div>
 
-      {/* Center - Search Bar */}
+      {/* Search */}
       <div className="flex-1 max-w-md mx-8">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
           <input
             type="text"
             placeholder="Search cards, transactions, customers..."
-            className="dashboard-input pl-10 pr-10 w-full"
+            className="
+              w-full
+              pl-10
+              pr-14
+              h-11
+              bg-gray-50
+              border
+              border-gray-200
+              rounded-xl
+              text-sm
+              text-gray-900
+              placeholder:text-gray-400
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500/20
+              focus:border-blue-500
+              transition-all
+            "
           />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-muted text-xs border border-border rounded px-2 py-0.5">
+
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs border border-gray-200 bg-white rounded-md px-2 py-0.5 shadow-sm">
             ⌘K
           </div>
         </div>
       </div>
 
-      {/* Right - Actions */}
-      <div className="flex items-center gap-4">
-        {/* Offline Indicator */}
+      {/* Right */}
+      <div className="flex items-center gap-5">
+        {/* Online
         <div className="flex items-center gap-2">
           {isOnline ? (
-            <Wifi className="w-4 h-4 text-success" />
+            <Wifi className="w-4 h-4 text-green-600" />
           ) : (
-            <WifiOff className="w-4 h-4 text-warning" />
+            <WifiOff className="w-4 h-4 text-amber-500" />
           )}
+
           {!isOnline && (
-            <span className="text-warning text-sm">Offline</span>
+            <span className="text-amber-600 text-sm">
+              Offline
+            </span>
           )}
         </div>
+        */}
 
         {/* Notifications */}
-        <div className="relative">
-          <button className="text-text-secondary hover:text-white transition-colors duration-200">
-            <Bell className="w-5 h-5" />
-            {notificationCount > 0 && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent-red rounded-full text-white text-xs flex items-center justify-center font-bold">
-                {notificationCount}
-              </div>
-            )}
-          </button>
-        </div>
+        <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200">
+          <Bell className="w-5 h-5 text-gray-600" />
 
-        {/* Sync Status */}
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-          <span className="text-text-secondary text-sm">Last sync: {lastSync}</span>
-          <button className="text-text-secondary hover:text-white transition-colors duration-200">
+          {notificationCount > 0 && (
+            <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+              {notificationCount}
+            </div>
+          )}
+        </button>
+
+        {/* Sync
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+
+          <span className="text-gray-500 text-sm whitespace-nowrap">
+            Last sync: {lastSync}
+          </span>
+
+          <button className="text-gray-400 hover:text-gray-700 transition-colors duration-200">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
+        */}
 
-        {/* User Menu */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent-red flex items-center justify-center text-white font-bold text-sm">
-            MS
-          </div>
-          <ChevronDown className="w-4 h-4 text-text-secondary" />
+        {/* User */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsUserMenuOpen((open) => !open)}
+            className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+            aria-expanded={isUserMenuOpen}
+            aria-haspopup="menu"
+          >
+            {user?.photoUrl && !imgError ? (
+              <img src={user.photoUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" onError={() => setImgError(true)} />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                {avatarInitial}
+              </div>
+            )}
+
+            <ChevronDown
+              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                isUserMenuOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {isUserMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+            >
+              <div className="border-b border-gray-100 px-3 py-2">
+                <div className="truncate text-sm font-semibold text-gray-900">
+                  {displayValue}
+                </div>
+                {user?.email && (
+                  <div className="truncate text-xs text-gray-500">
+                    {user.email}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleLogout}
+                disabled={isLoading}
+                className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LogOut className="h-4 w-4" />
+                {isLoading ? 'Logging out...' : 'Logout'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

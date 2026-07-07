@@ -34,6 +34,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isHydrated, segments]);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Register for push notifications dynamically
+      import("../src/services/notificationService").then(({ notificationService }) => {
+        notificationService.registerForPushNotificationsAsync().catch(console.error);
+      });
+    }
+  }, [isAuthenticated]);
+
   return <>{children}</>;
 }
 

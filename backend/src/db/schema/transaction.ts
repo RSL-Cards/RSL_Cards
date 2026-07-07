@@ -38,6 +38,10 @@ export const transactions = pgTable('transactions', {
   txUserIdIdx: drizzleIndex('idx_transactions_user_id').on(t.userId),
   txInventoryIdIdx: drizzleIndex('idx_transactions_inventory_id').on(t.inventoryId),
   txCustomerIdIdx: drizzleIndex('idx_transactions_customer_id').on(t.customerId),
+  // Composite indexes for fast dashboard revenue charts, recent sales & pagination
+  txUserTypeCreatedIdx: drizzleIndex('idx_transactions_user_type_created').on(t.userId, t.type, t.createdAt),
+  txUserCreatedIdx: drizzleIndex('idx_transactions_user_created').on(t.userId, t.createdAt),
+  txChannelIdx: drizzleIndex('idx_transactions_channel').on(t.channel),
 }))
 
 export const tradeItems = pgTable('trade_items', {

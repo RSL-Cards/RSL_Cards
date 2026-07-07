@@ -1,4 +1,5 @@
 import { InventoryService } from "./inventory.service.js";
+import { UnauthorizedError } from "../../errors/index.js";
 
 export class InventoryController {
   constructor(private readonly service: InventoryService) {}
@@ -6,7 +7,7 @@ export class InventoryController {
   private getUserId(request: Request): string {
     const userId = request.headers.get("x-user-id");
     if (!userId) {
-      throw new Error("User ID not found in request headers");
+      throw new UnauthorizedError("Authentication is required");
     }
     return userId;
   }

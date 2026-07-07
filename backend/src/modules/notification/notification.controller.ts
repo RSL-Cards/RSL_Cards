@@ -7,6 +7,18 @@ export class NotificationController {
     return request.headers.get("x-user-id") || "guest";
   }
 
+  registerToken = async ({ request }: { request: Request }) => {
+    const userId = this.getUserId(request);
+    if (userId === "guest") {
+      throw new Error("Authentication is required");
+    }
+    const { token, platform } = (await request.json()) as { token?: string; platform?: string };
+    if (!token || !platform) {
+      throw new Error("Missing token or platform");
+    }
+    return await this.service.registerToken(userId, token, platform);
+  };
+
   getNotifications = async ({ request }: { request: Request }) => {
     return await this.service.getNotifications(this.getUserId(request));
   };

@@ -10,10 +10,9 @@
  */
 
 // const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.4"; // Wi-Fi IP address
-// const DEV_HOST = "3.231.19.101"; // AWS EC2 Instance
+const DEV_HOST = "192.168.10.8"; // Wi-Fi IP address
 
-export const API_BASE_URL = `http://${DEV_HOST}`;
+export const API_BASE_URL = `http://${DEV_HOST}:8080`;
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.
@@ -100,6 +99,7 @@ export const ENDPOINTS = {
   notifications: {
     list: "/v1/notifications",
     markRead: (id: string) => `/v1/notifications/${id}/read`,
+    registerToken: "/v1/notifications/register-token",
   },
 
   analytics: {

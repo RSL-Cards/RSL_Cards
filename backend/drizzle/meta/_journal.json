@@ -162,6 +162,41 @@
       "when": 1781944318709,
       "tag": "0022_flaky_joshua_kane",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782460165386,
+      "tag": "0023_harsh_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782708955123,
+      "tag": "0024_wild_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1782811935100,
+      "tag": "0025_thankful_puck",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1783402499345,
+      "tag": "0026_shocking_jane_foster",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1783413860162,
+      "tag": "0027_hesitant_rockslide",
+      "breakpoints": true
     }
   ]
 }

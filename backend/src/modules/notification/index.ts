@@ -9,6 +9,7 @@ const controller = new NotificationController(service);
 
 export const notificationModule = new Elysia({ prefix: "/v1/notifications" })
   .get("/", controller.getNotifications)
+  .post("/register-token", controller.registerToken)
   .get("/unread-count", controller.getUnreadCount)
   .patch("/read-all", controller.markAllAsRead)
   .patch("/:id/read", controller.markAsRead)

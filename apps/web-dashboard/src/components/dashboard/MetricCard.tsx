@@ -17,18 +17,18 @@ interface MetricCardProps {
   color?: 'blue' | 'green' | 'red' | 'default'
 }
 
-export default function MetricCard({ 
-  title, 
-  value, 
-  trend, 
-  subtitle, 
+export default function MetricCard({
+  title,
+  value,
+  trend,
+  subtitle,
   sparklineData,
   format = 'currency',
   color = 'default'
 }: MetricCardProps) {
   const formatValue = (val: string | number) => {
     if (typeof val === 'string') return val
-    
+
     switch (format) {
       case 'currency':
         return new Intl.NumberFormat('en-US', {
@@ -51,7 +51,7 @@ export default function MetricCard({
   const getTrendColor = (trendValue: number) => {
     if (trendValue > 0) return 'text-success'
     if (trendValue < 0) return 'text-accent-red'
-    return 'text-text-secondary'
+    return 'text-gray-500'
   }
 
   const getChartColor = () => {
@@ -73,27 +73,31 @@ export default function MetricCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="metric-card"
+      className="metric-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-b from-white to-gray-50/70"
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-text-secondary text-sm font-medium mb-1">{title}</h3>
-          <div className="text-white font-mono text-3xl font-bold">
+          <h3 className="text-gray-500 text-sm font-medium mb-1">{title}</h3>
+          <div className="text-gray-900 font-mono text-3xl font-bold">
             {formatValue(value)}
           </div>
           {subtitle && (
-            <div className="text-text-muted text-sm mt-1">{subtitle}</div>
+            <div className="text-gray-400 text-sm mt-1">{subtitle}</div>
           )}
         </div>
 
-        {trend && (
-          <div className={`flex items-center gap-1 ${getTrendColor(trend.value)}`}>
-            <getTrendIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {trend.value > 0 ? '+' : ''}{trend.value}%
-            </span>
-          </div>
-        )}
+        {trend && (() => {
+          const TrendIcon = getTrendIcon(trend.value)
+
+          return (
+            <div className={`flex items-center gap-1 ${getTrendColor(trend.value)}`}>
+              <TrendIcon className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                {trend.value > 0 ? '+' : ''}{trend.value}%
+              </span>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Sparkline */}
@@ -103,14 +107,14 @@ export default function MetricCard({
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={getChartColor()} stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor={getChartColor()} stopOpacity={0}/>
+                  <stop offset="5%" stopColor={getChartColor()} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={getChartColor()} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke={getChartColor()} 
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={getChartColor()}
                 strokeWidth={1.5}
                 fill={`url(#gradient-${color})`}
               />

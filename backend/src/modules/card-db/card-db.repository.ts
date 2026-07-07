@@ -91,6 +91,11 @@ export class CardDbRepository {
 
     logger.info({ msg: "Calling AI model for card identification" });
     const identification = await identifyCard(env, imageBase64, logger);
+    
+    if (!identification.playerName || identification.playerName.toLowerCase() === "unknown") {
+      throw new Error("No card identified in image");
+    }
+    
     const cardId = this.generateCardId(identification);
 
     const existingCard = await db.execute(sql`

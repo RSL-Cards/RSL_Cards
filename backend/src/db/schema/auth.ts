@@ -5,6 +5,7 @@ import {
   boolean,
   timestamp,
   pgEnum,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", ["dealer", "consumer", "admin"]);
@@ -28,7 +29,9 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  usersOauthIdx: index("idx_users_oauth").on(t.oauthProvider, t.oauthId),
+}));
 
 export const refreshTokens = pgTable("refresh_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -40,7 +43,9 @@ export const refreshTokens = pgTable("refresh_tokens", {
   ipAddress: varchar("ip_address", { length: 50 }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  refreshTokensUserIdx: index("idx_refresh_tokens_user_id").on(t.userId),
+}));
 
 export const deviceTokens = pgTable("device_tokens", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -52,4 +57,6 @@ export const deviceTokens = pgTable("device_tokens", {
   deviceId: varchar("device_id", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+}, (t) => ({
+  deviceTokensUserIdx: index("idx_device_tokens_user_id").on(t.userId),
+}));

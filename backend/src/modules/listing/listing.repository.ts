@@ -218,6 +218,20 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
     }
 
     if (effectiveVariantId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(effectiveVariantId);
+      if (isUuid) {
+        const exists = await db.execute(sql`
+          SELECT id FROM card_variants WHERE id = ${effectiveVariantId} LIMIT 1
+        `);
+        if (exists.rows.length === 0) {
+          effectiveVariantId = undefined;
+        }
+      } else {
+        effectiveVariantId = undefined;
+      }
+    }
+
+    if (effectiveVariantId) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
@@ -408,7 +422,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       ? prices.reduce((a, b) => a + b, 0) / prices.length
       : 0;
     const last = prices.length ? prices[0] : 0;
-    const lowest = activePrices.length ? activePrices[0] : 0;
+    const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
     // Always cache if we hit the APIs to avoid re-fetching, even if results are 0
     if (effectiveVariantId) {
@@ -516,6 +530,20 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       `);
       if (found.rows.length > 0) {
         effectiveVariantId = (found.rows[0] as any).id;
+      }
+    }
+
+    if (effectiveVariantId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(effectiveVariantId);
+      if (isUuid) {
+        const exists = await db.execute(sql`
+          SELECT id FROM card_variants WHERE id = ${effectiveVariantId} LIMIT 1
+        `);
+        if (exists.rows.length === 0) {
+          effectiveVariantId = undefined;
+        }
+      } else {
+        effectiveVariantId = undefined;
       }
     }
 

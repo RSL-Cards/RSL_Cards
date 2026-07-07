@@ -44,6 +44,7 @@ The entire backend is structured in a **modular, domain-driven architecture** in
 ```
 
 > **Note on AI Features:** The platform utilizes Google Cloud Vertex AI (Gemini 2.5 Pro) for automated card scanning and descriptions. If you are setting up the project locally for the first time or encountering authentication errors, please see the [Vertex AI Setup & Authentication Guide](./docs/VERTEX_AI.md).
+> **Note on Observability & Logs:** For instructions on live log querying in Loki, Prometheus metric tables (RAM/CPU), and Grafana dashboard creation for AWS EC2 / Vercel deployments, please see the [Observability & Monitoring Guide](./docs/OBSERVABILITY_GUIDE.md).
 
 ---
 

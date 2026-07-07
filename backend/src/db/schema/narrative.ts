@@ -1,10 +1,12 @@
-import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum, index } from 'drizzle-orm/pg-core'
 
 export const narrativeTypeEnum   = pgEnum('narrative_type',
   ['breakout','injury','hype','decline','seasonal','trade','hof','award','auction_record'])
 export const narrativeStatusEnum = pgEnum('narrative_status',
   ['pending_review','approved','published','rejected'])
 export const watchlistTierEnum   = pgEnum('watchlist_tier', ['core','subscribed','on_demand'])
+
+export const narrativeRecommendationEnum = pgEnum('narrative_recommendation', ['BUY', 'SELL', 'HOLD', 'PRICE ADJUST'])
 
 export const narratives = pgTable('narratives', {
   id:               uuid('id').primaryKey().defaultRandom(),
@@ -18,12 +20,16 @@ export const narratives = pgTable('narratives', {
   narrativeType:    narrativeTypeEnum('narrative_type').notNull(),
   priceChangePct:   decimal('price_change_pct', { precision: 5, scale: 2 }),
   priceDirection:   varchar('price_direction', { length: 5 }),  // up | down
+  priceRange:       varchar('price_range', { length: 50 }), // e.g. "$48 -> $58"
+  recommendation:   narrativeRecommendationEnum('recommendation'),
   correlatedEvents: text('correlated_events'),          // JSON: [{event, score}]
   status:           narrativeStatusEnum('status').default('pending_review'),
   reviewedBy:       uuid('reviewed_by'),
   publishedAt:      timestamp('published_at', { withTimezone: true }),
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  narrativesStatusCreatedIdx: index('idx_narratives_status_created').on(t.status, t.createdAt),
+}))
 
 // NEW TABLE 1: 3-tier player monitoring list
 export const playerWatchlist = pgTable('player_watchlist', {
@@ -35,7 +41,9 @@ export const playerWatchlist = pgTable('player_watchlist', {
   active:        boolean('active').default(true),           // false when holderCount = 0
   lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
   createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  playerWatchlistTierIdx: index('idx_player_watchlist_tier').on(t.tier, t.active),
+}))
 
 // NEW TABLE 2: Current snapshot per player — UPSERTED every 2-hour cycle
 // This IS the memory. Next cycle loads this to know what changed.
@@ -77,7 +85,9 @@ export const playerSnapshotHistory = pgTable('player_snapshot_history', {
   fetchedFrom:      timestamp('fetched_from', { withTimezone: true }), // window start
   fetchedTo:        timestamp('fetched_to', { withTimezone: true }),   // window end
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  snapshotHistoryPlayerIdx: index('idx_snapshot_history_player').on(t.playerName, t.fetchedTo),
+}))
 
 export const priceAnomalies = pgTable('price_anomalies', {
   id:             uuid('id').primaryKey().defaultRandom(),
@@ -98,4 +108,24 @@ export const contentCalendar = pgTable('content_calendar', {
   scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
   notes:        text('notes'),
   isActive:     boolean('is_active').default(true),
-})
+});
+
+export const sportradarNewsArticles = pgTable('sportradar_news_articles', {
+  id:           varchar('id', { length: 255 }).primaryKey(), // Sportradar item.id
+  sport:        varchar('sport', { length: 50 }).notNull(),
+  title:        varchar('title', { length: 500 }).notNull(),
+  byline:       varchar('byline', { length: 255 }),
+  dateline:     varchar('dateline', { length: 255 }),
+  contentLong:  text('content_long'),
+  isInjury:     boolean('is_injury').default(false),
+  isTransaction:boolean('is_transaction').default(false),
+  publishedAt:  timestamp('published_at', { withTimezone: true }),
+  playerRefs:   text('player_refs').array(), // names mentioned
+  createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const sportradarFetchLog = pgTable('sportradar_fetch_log', {
+  sport:           varchar('sport', { length: 50 }).primaryKey(),
+  lastFetchedDate: varchar('last_fetched_date', { length: 10 }).notNull(), // YYYY-MM-DD
+  lastFetchedAt:   timestamp('last_fetched_at', { withTimezone: true }).defaultNow(),
+});

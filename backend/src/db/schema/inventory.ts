@@ -44,6 +44,9 @@ export const inventory = pgTable('inventory', {
   inventoryPlayerIdx: index('idx_inventory_player_id').on(t.playerId),
   inventoryStatusIdx: index('idx_inventory_status').on(t.listingStatus),
   inventoryGradeIdx: index('idx_inventory_grade_key').on(t.gradeKey),
+  // Composite indexes for fast dashboard queries & pagination
+  inventoryUserStatusIdx: index('idx_inventory_user_status').on(t.userId, t.listingStatus),
+  inventoryUserStatusAddedIdx: index('idx_inventory_user_status_added').on(t.userId, t.listingStatus, t.addedAt),
 }))
 
 export const bulkPurchases = pgTable('bulk_purchases', {
