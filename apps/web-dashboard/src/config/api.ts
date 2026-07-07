@@ -1,4 +1,4 @@
-const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://3.231.19.101'
+const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://32.192.247.244'
 
 // If running in a browser on an HTTPS page (like Vercel) and the target URL is plain HTTP (insecure),
 // automatically route through Next.js /api/proxy rewrite to avoid browser Mixed Content blocking!
