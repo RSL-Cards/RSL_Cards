@@ -119,7 +119,7 @@ export class InventoryRepository {
     } = body;
 
     // Sanitize empty strings to null for strict typed columns (UUID, integer, etc.)
-    const cleanCardId = cardId && cardId.trim() !== "" ? cardId : `rsl-${randomUUID()}`;
+    let cleanCardId = cardId && cardId.trim() !== "" ? cardId : `rsl-${randomUUID()}`;
     const cleanVariantId = variantId && variantId !== "" ? variantId : null;
     const cleanPlayerId = playerId && playerId !== "" ? playerId : null;
     const cleanPlayerName = playerName && playerName !== "" ? playerName : null;
@@ -148,22 +148,7 @@ export class InventoryRepository {
     const cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
     const cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
 
-    const duplicateCheck = await db.execute(sql`
-      SELECT id, added_at 
-      FROM inventory 
-      WHERE user_id = ${userId}
-        AND card_id = ${cleanCardId}
-        AND grade_key = ${gradeKey}
-        ${cleanCertNumber ? sql`AND cert_number = ${cleanCertNumber}` : sql``}
-      LIMIT 1
-    `);
 
-    if (duplicateCheck.rows.length > 0) {
-      const existing = duplicateCheck.rows[0];
-      throw new Error(
-        `You already have this card in your inventory (added ${existing.added_at})`,
-      );
-    }
 
     // Defensive Programming layer: Ensure target card exists in master cards catalog to prevent foreign key errors.
     let resolvedVariantId = cleanVariantId;
@@ -194,28 +179,44 @@ export class InventoryRepository {
         SELECT id, player_id FROM cards WHERE id = ${cleanCardId} LIMIT 1
       `);
       if (cardExists.rows.length === 0) {
-        // Resolve or create a fallback player
-        if (!resolvedPlayerId) {
-          const playerRes = await db.execute(sql`
-            SELECT id FROM players WHERE name = 'Unknown Player' LIMIT 1
-          `);
-          if (playerRes.rows.length > 0) {
-            resolvedPlayerId = (playerRes.rows[0] as any).id;
-          } else {
-            const insertPlayer = await db.execute(sql`
-              INSERT INTO players (id, name, sport, created_at, updated_at)
-              VALUES (gen_random_uuid(), 'Unknown Player', ${cleanSport || "basketball"}, NOW(), NOW())
-              RETURNING id
-            `);
-            resolvedPlayerId = (insertPlayer.rows[0] as any).id;
-          }
-        }
-
-        // Insert fallback base card
-        await db.execute(sql`
-          INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
-          VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, 'unknown', false, 'fallback', NOW(), NOW())
+        // Check if card with same details already exists to avoid unique constraint violation uq_card_player_year_set_number
+        const cardByDetails = await db.execute(sql`
+          SELECT id, player_id FROM cards 
+          WHERE player_id = ${resolvedPlayerId}
+            AND year = ${cleanYear}
+            AND set_name = ${cleanSetName}
+            ${cleanCardNumber ? sql`AND card_number = ${cleanCardNumber}` : sql`AND card_number IS NULL`}
+          LIMIT 1
         `);
+
+        if (cardByDetails.rows.length > 0) {
+          const existingCard = cardByDetails.rows[0] as any;
+          cleanCardId = existingCard.id;
+          resolvedPlayerId = existingCard.player_id;
+        } else {
+          // Resolve or create a fallback player
+          if (!resolvedPlayerId) {
+            const playerRes = await db.execute(sql`
+              SELECT id FROM players WHERE name = 'Unknown Player' LIMIT 1
+            `);
+            if (playerRes.rows.length > 0) {
+              resolvedPlayerId = (playerRes.rows[0] as any).id;
+            } else {
+              const insertPlayer = await db.execute(sql`
+                INSERT INTO players (id, name, sport, created_at, updated_at)
+                VALUES (gen_random_uuid(), 'Unknown Player', ${cleanSport || "basketball"}, NOW(), NOW())
+                RETURNING id
+              `);
+              resolvedPlayerId = (insertPlayer.rows[0] as any).id;
+            }
+          }
+
+          // Insert fallback base card
+          await db.execute(sql`
+            INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
+            VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, 'unknown', false, 'fallback', NOW(), NOW())
+          `);
+        }
 
         // Ensure "Base" variant exists
         const variantExists = await db.execute(sql`
@@ -277,9 +278,9 @@ export class InventoryRepository {
     try {
       console.log(`[DEBUG postInventory] body.comps exists?`, !!body.comps);
       if (body.comps) {
-         console.log(`[DEBUG postInventory] body.comps keys:`, Object.keys(body.comps));
-         console.log(`[DEBUG postInventory] body.comps.snapshots length:`, body.comps.snapshots?.length);
-         console.log(`[DEBUG postInventory] resolvedVariantId:`, resolvedVariantId);
+        console.log(`[DEBUG postInventory] body.comps keys:`, Object.keys(body.comps));
+        console.log(`[DEBUG postInventory] body.comps.snapshots length:`, body.comps.snapshots?.length);
+        console.log(`[DEBUG postInventory] resolvedVariantId:`, resolvedVariantId);
       }
       if (body.comps && body.comps.snapshots && body.comps.snapshots.length > 0 && resolvedVariantId) {
         const snap = body.comps.snapshots[0];
@@ -304,7 +305,7 @@ export class InventoryRepository {
               .update(`ebay:${resolvedVariantId}:${gradeKey}:${item.itemId}:${endDate}`)
               .digest("hex")
               .slice(0, 64);
-            
+
             await db.execute(sql`
               INSERT INTO platform_sold_listings
                 (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
@@ -321,7 +322,7 @@ export class InventoryRepository {
               .update(`ebayactive:${resolvedVariantId}:${gradeKey}:${item.itemId}`)
               .digest("hex")
               .slice(0, 64);
-            
+
             await db.execute(sql`
               INSERT INTO platform_active_listings
                 (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
@@ -334,12 +335,12 @@ export class InventoryRepository {
       } else {
         await bullMqAdapter.getQueue().add("refresh_single_comp", {
           item: {
-             variant_id: resolvedVariantId,
-             grade_key: gradeKey,
-             player_name: cleanPlayerName,
-             year: cleanYear,
-             set_name: cleanSetName,
-             variant_name: cleanVariation || "Base"
+            variant_id: resolvedVariantId,
+            grade_key: gradeKey,
+            player_name: cleanPlayerName,
+            year: cleanYear,
+            set_name: cleanSetName,
+            variant_name: cleanVariation || "Base"
           }
         });
       }
@@ -353,7 +354,7 @@ export class InventoryRepository {
     };
   }
 
-   async patchInventoryId(id: string, body: any, userId: string) {
+  async patchInventoryId(id: string, body: any, userId: string) {
     // Basic implementation, can be expanded to dynamic updates
     return { message: `Update card details for ${id}` };
   }

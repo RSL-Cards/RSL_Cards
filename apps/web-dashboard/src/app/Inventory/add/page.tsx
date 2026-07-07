@@ -420,95 +420,93 @@ function BulkAddPage() {
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 align-top">
-                          <div className="flex flex-wrap gap-3">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">Condition</label>
-                              <input 
-                                type="text"
-                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-28 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                value={cPricing.condition}
-                                onChange={(e) => updatePricing(card.id, 'condition', e.target.value)}
-                              />
+                        <td className="px-6 py-4 align-top min-w-[380px]">
+                          <div className="bg-gray-50 border border-gray-200/60 rounded-xl p-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Condition</label>
+                                <input 
+                                  type="text"
+                                  className="border border-gray-300 rounded-lg px-2.5 py-1.5 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white font-medium"
+                                  value={cPricing.condition}
+                                  onChange={(e) => updatePricing(card.id, 'condition', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Sport</label>
+                                <input 
+                                  type="text"
+                                  className="border border-gray-300 rounded-lg px-2.5 py-1.5 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white font-medium"
+                                  value={cPricing.sport}
+                                  onChange={(e) => updatePricing(card.id, 'sport', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Cost Basis ($)</label>
+                                <input 
+                                  type="number"
+                                  className="border border-gray-300 rounded-lg px-2.5 py-1.5 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white font-mono font-semibold"
+                                  value={cPricing.paidPrice}
+                                  placeholder="0.00"
+                                  onChange={(e) => updatePricing(card.id, 'paidPrice', e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1">Target Price ($)</label>
+                                <input 
+                                  type="number"
+                                  className="border border-gray-300 rounded-lg px-2.5 py-1.5 w-full text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white font-mono font-semibold"
+                                  value={cPricing.askPrice}
+                                  placeholder="0.00"
+                                  onChange={(e) => updatePricing(card.id, 'askPrice', e.target.value)}
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">Cost Basis (Bought For $)</label>
-                              <input 
-                                type="number"
-                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                value={cPricing.paidPrice}
-                                placeholder="0.00"
-                                onChange={(e) => updatePricing(card.id, 'paidPrice', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">Target Sale Price ($)</label>
-                              <input 
-                                type="number"
-                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-24 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                value={cPricing.askPrice}
-                                placeholder="0.00"
-                                onChange={(e) => updatePricing(card.id, 'askPrice', e.target.value)}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 mb-1">Sport</label>
-                              <input 
-                                type="text"
-                                className="border border-gray-300 rounded-lg px-3 py-1.5 w-28 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                value={cPricing.sport}
-                                onChange={(e) => updatePricing(card.id, 'sport', e.target.value)}
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="mt-6 border-t border-gray-100 pt-5 space-y-5">
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Where did you buy it?</label>
-                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            
+                            <div className="border-t border-gray-200/80 pt-3">
+                              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Where did you buy it?</label>
+                              <div className="flex flex-wrap gap-1.5">
                                 {BUY_CHANNELS.map((c) => {
                                   const isSelected = cPricing.channel === c.key;
                                   const Icon = c.icon;
                                   return (
                                     <button
                                       key={c.key}
+                                      type="button"
                                       onClick={() => updatePricing(card.id, 'channel', c.key)}
-                                      className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${
+                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                                         isSelected 
-                                          ? `${c.bg} ${c.border} ring-1 ring-${c.color.split('-')[1]}-500 shadow-sm` 
-                                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                          ? `${c.bg} ${c.border} ring-1 ring-blue-500 text-gray-900 shadow-sm` 
+                                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
                                       }`}
                                     >
-                                      <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? c.color : 'text-gray-500'}`} />
-                                      <span className={`text-[10px] font-medium ${isSelected ? 'text-gray-900' : 'text-gray-500'}`}>
-                                        {c.label}
-                                      </span>
+                                      <Icon className={`w-3.5 h-3.5 ${isSelected ? c.color : 'text-gray-400'}`} />
+                                      <span>{c.label}</span>
                                     </button>
                                   );
                                 })}
                               </div>
                             </div>
 
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">Payment Method</label>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="border-t border-gray-200/80 pt-3">
+                              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Payment Method</label>
+                              <div className="flex flex-wrap gap-1.5">
                                 {PAYMENT_METHODS.map((m) => {
                                   const isSelected = cPricing.paymentMethod === m.key;
                                   const Icon = m.icon;
                                   return (
                                     <button
                                       key={m.key}
+                                      type="button"
                                       onClick={() => updatePricing(card.id, 'paymentMethod', m.key)}
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
                                         isSelected 
-                                          ? `${m.bg} ${m.border} ring-1 ring-${m.color.split('-')[1]}-500 shadow-sm` 
-                                          : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                          ? `${m.bg} ${m.border} ring-1 ring-blue-500 text-gray-900 shadow-sm` 
+                                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
                                       }`}
                                     >
-                                      <Icon className={`w-4 h-4 ${isSelected ? m.color : 'text-gray-500'}`} />
-                                      <span className={`text-[11px] font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
-                                        {m.label}
-                                      </span>
+                                      <Icon className={`w-3.5 h-3.5 ${isSelected ? m.color : 'text-gray-400'}`} />
+                                      <span>{m.label}</span>
                                     </button>
                                   );
                                 })}
@@ -519,9 +517,8 @@ function BulkAddPage() {
                       </tr>
                       {expandedComps[card.id] && (
                         <tr className="bg-gray-50/50 border-b border-gray-100">
-                          <td colSpan={3} className="px-6 py-6">
+                          <td colSpan={4} className="px-6 py-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                              {/* Sold Items */}
                               <div>
                                 <h4 className="font-bold text-gray-900 text-sm mb-3">Recent Sold Items (30 Days)</h4>
                                 <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
@@ -559,7 +556,6 @@ function BulkAddPage() {
                                 </div>
                               </div>
 
-                              {/* Active Listings */}
                               <div>
                                 <h4 className="font-bold text-gray-900 text-sm mb-3">Live Active Listings</h4>
                                 <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
