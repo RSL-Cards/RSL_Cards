@@ -1,5 +1,13 @@
+const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://3.231.19.101'
+
+// If running in a browser on an HTTPS page (like Vercel) and the target URL is plain HTTP (insecure),
+// automatically route through Next.js /api/proxy rewrite to avoid browser Mixed Content blocking!
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://3.231.19.101'
+  typeof window !== 'undefined' &&
+  window.location.protocol === 'https:' &&
+  configuredUrl.startsWith('http://')
+    ? '/api/proxy'
+    : configuredUrl
 
 export const ENDPOINTS = {
   auth: {
