@@ -187,6 +187,7 @@ function BulkAddPage() {
           sport: p?.sport || card.sport,
           gradeCompany: card.grading?.company,
           gradeValue: card.grading?.grade,
+          gradeKey: card.gradeKey || (card.grading?.company && card.grading?.grade ? `${card.grading.company} ${card.grading.grade}` : 'RAW'),
           certNumber: card.grading?.cert_number,
           costBasis: parseFloat(p?.paidPrice || "0"),
           currentMarketValue: parseFloat(p?.askPrice || "0"),

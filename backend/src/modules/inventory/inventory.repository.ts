@@ -93,7 +93,7 @@ export class InventoryRepository {
   }
 
   async postInventory(body: any, userId: string) {
-    const {
+    let {
       cardId,
       variantId,
       playerId,
@@ -131,6 +131,11 @@ export class InventoryRepository {
     const cleanSport = sport && sport !== "" ? sport : null;
     const cleanGradeCompany = gradeCompany && gradeCompany !== "" ? gradeCompany : null;
     const cleanGradeValue = gradeValue && gradeValue !== "" ? Number(gradeValue) : null;
+
+    if (gradeKey === "RAW" && cleanGradeCompany && cleanGradeValue) {
+      gradeKey = `${cleanGradeCompany} ${cleanGradeValue}`;
+    }
+
     const cleanCertNumber = certNumber && certNumber !== "" ? certNumber : null;
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
     const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
