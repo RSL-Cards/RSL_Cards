@@ -1,6 +1,7 @@
 'use client'
 
-import { CalendarClock, LineChart, ReceiptText, Sparkles, Trash2, X } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarClock, LineChart, ReceiptText, Sparkles, Trash2, X, Tag, DollarSign } from 'lucide-react'
 import {
   Area,
   AreaChart,
@@ -18,6 +19,8 @@ import {
 } from './inventoryUtils'
 import Image from 'next/image'
 import { useDashboardInventoryItemDetails } from '@/hooks/dashboard/useDashboard'
+import ListingModal from '@/components/listings/ListingModal'
+import QuickSaleModal from './QuickSaleModal'
 
 interface CardDetailModalProps {
   card: InventoryCard
@@ -28,6 +31,8 @@ export default function CardDetailModal({
   card,
   onClose,
 }: CardDetailModalProps) {
+  const [showListingModal, setShowListingModal] = useState(false)
+  const [showQuickSaleModal, setShowQuickSaleModal] = useState(false)
   const { data, isLoading, error } = useDashboardInventoryItemDetails(card.id)
 
   const detailedCard = data?.item || card
@@ -238,7 +243,55 @@ export default function CardDetailModal({
           </div>
           <p className="text-sm leading-6 text-gray-600">{aiNarrative}</p>
         </div>
+
+        {/* Bottom Actions Bar (Parity with Dealer Mobile App) */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100 pt-5">
+          <div className="text-xs font-medium text-gray-500">
+            Manage inventory status across marketplaces &amp; sales channels
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => setShowListingModal(true)}
+              disabled={detailedCard.status === 'listed'}
+              className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+                detailedCard.status === 'listed'
+                  ? 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-70'
+                  : 'border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 hover:border-gray-400 shadow-sm'
+              }`}
+            >
+              <Tag className="h-4 w-4 shrink-0 text-gray-500" />
+              <span>{detailedCard.status === 'listed' ? 'Listed' : 'Put Listing'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowQuickSaleModal(true)}
+              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-6 py-2.5 text-sm font-bold text-white shadow-md hover:from-red-500 hover:to-rose-500 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <DollarSign className="h-4 w-4 shrink-0" />
+              <span>Quick Sale</span>
+            </button>
+          </div>
+        </div>
       </div>
+
+      {showListingModal && (
+        <ListingModal
+          selectedCards={[detailedCard]}
+          onClose={() => setShowListingModal(false)}
+        />
+      )}
+
+      {showQuickSaleModal && (
+        <QuickSaleModal
+          card={detailedCard}
+          onClose={() => setShowQuickSaleModal(false)}
+          onSuccess={() => {
+            setShowQuickSaleModal(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   )
 }

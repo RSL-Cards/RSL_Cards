@@ -57,6 +57,8 @@ const envSchema = z.object({
   APP_WEB_URL: z.string().url().optional().default("https://rslcardspro.com"),
   SENTRY_DSN: z.string().optional().default(""),
   SPORTRADAR_API_KEY: z.string().optional().default(""),
+  SPORTRADAR_ASSOCIATED_PRESS: z.string().optional().default(""),
+  SPORTRADAR_ACCESS_LEVEL: z.string().optional().default("t3"),
   VERTEX_AI_PROJECT_ID: z.string().optional().default("third-node-498216-h8"),
   VERTEX_AI_LOCATION: z.string().optional().default("us-central1"),
   GOOGLE_CLOUD_API_KEY: z.string().optional().default(""),

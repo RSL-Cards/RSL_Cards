@@ -102,4 +102,24 @@ export const contentCalendar = pgTable('content_calendar', {
   scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
   notes:        text('notes'),
   isActive:     boolean('is_active').default(true),
-})
+});
+
+export const sportradarNewsArticles = pgTable('sportradar_news_articles', {
+  id:           varchar('id', { length: 255 }).primaryKey(), // Sportradar item.id
+  sport:        varchar('sport', { length: 50 }).notNull(),
+  title:        varchar('title', { length: 500 }).notNull(),
+  byline:       varchar('byline', { length: 255 }),
+  dateline:     varchar('dateline', { length: 255 }),
+  contentLong:  text('content_long'),
+  isInjury:     boolean('is_injury').default(false),
+  isTransaction:boolean('is_transaction').default(false),
+  publishedAt:  timestamp('published_at', { withTimezone: true }),
+  playerRefs:   text('player_refs').array(), // names mentioned
+  createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const sportradarFetchLog = pgTable('sportradar_fetch_log', {
+  sport:           varchar('sport', { length: 50 }).primaryKey(),
+  lastFetchedDate: varchar('last_fetched_date', { length: 10 }).notNull(), // YYYY-MM-DD
+  lastFetchedAt:   timestamp('last_fetched_at', { withTimezone: true }).defaultNow(),
+});

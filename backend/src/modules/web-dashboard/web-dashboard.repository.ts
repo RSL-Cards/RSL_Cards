@@ -581,10 +581,14 @@ export class WebDashboardRepository {
     `);
     
     if (narrativeResult.rows.length === 0) return [];
-    const cardIds = narrativeResult.rows[0].card_ids as string[] | null;
-    if (!cardIds || cardIds.length === 0) return [];
+    let cardIds = narrativeResult.rows[0].card_ids as any;
+    if (typeof cardIds === 'string') {
+      try { cardIds = JSON.parse(cardIds); } catch (e) {}
+    }
+    if (!Array.isArray(cardIds) || cardIds.length === 0) return [];
 
     // 2. Query historical prices for these cards
+    const idList = cardIds.map((id: string) => sql`${id}`);
     const result = await db.execute(sql`
       SELECT 
         TO_CHAR(cph.recorded_date, 'Mon DD') as date,
@@ -592,7 +596,7 @@ export class WebDashboardRepository {
       FROM card_price_history cph
       JOIN card_variants cv ON cph.variant_id = cv.id
       JOIN cards c ON cv.card_id = c.id
-      WHERE c.id = ANY(${cardIds})
+      WHERE c.id IN (${sql.join(idList, sql`, `)}) OR cv.id::text IN (${sql.join(idList, sql`, `)})
       GROUP BY cph.recorded_date, DATE(cph.recorded_date)
       ORDER BY DATE(cph.recorded_date) ASC
       LIMIT 30

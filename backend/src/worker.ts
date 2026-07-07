@@ -118,9 +118,20 @@ export const initWorker = () => {
           const items = candidates.rows as any[];
           logger.info(`[WORKER] Found ${items.length} cards matching trend threshold for AI Insights.`);
 
-          // Dynamically import Notification modules to avoid circular dependencies
+          // Dynamically import Notification and Sportradar modules
           const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
+          const { sportradarNewsService } = await import("./modules/ai-narrative/sportradar.service.js");
           const notifRepository = new NotificationRepository();
+
+          // Sync news for unique sports present in candidate items (Delta sync)
+          const uniqueSports = Array.from(new Set(items.map((i) => i.sport || "nfl")));
+          for (const sp of uniqueSports) {
+            try {
+              await sportradarNewsService.syncNewsForSport(sp);
+            } catch (syncErr: any) {
+              logger.warn(`[WORKER] Failed news sync for ${sp}: ${syncErr.message}`);
+            }
+          }
 
           let generatedCount = 0;
           for (const item of items) {
@@ -145,8 +156,12 @@ export const initWorker = () => {
               ? `$${oldPrice.toFixed(0)} → $${currentPrice.toFixed(0)}`
               : `$${oldPrice.toFixed(0)} → $${currentPrice.toFixed(0)}`; // e.g. "$100 -> $80" if changePct negative
 
+            // Fetch recent news articles for this player
+            const recentArticles = await sportradarNewsService.getNewsForPlayer(item.player_name, item.sport, 5);
+            const newsPromptBlock = sportradarNewsService.formatNewsForPrompt(recentArticles);
+
             const prompt = `
-You are an expert sports card market analyst. Analyze the following sports card pricing data:
+You are an expert sports card market analyst. Analyze the following sports card pricing data alongside real-world news events:
 Player: ${item.player_name}
 Sport: ${item.sport}
 Card: ${item.year} ${item.set_name} (${item.variant_name}) Grade: ${item.grade_key}
@@ -154,12 +169,15 @@ Current Comp Price: $${currentPrice.toFixed(2)}
 30-Day Price Trend: ${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}%
 Price Range: ${priceRange}
 
-Based on this trend and your general knowledge of this player and sport, write a market insight.
+Recent Real-World News & Events (Sportradar AP News):
+${newsPromptBlock}
+
+Based on this trend and the real-world news events above, write a market insight. Explain the exact catalyst (injury, trade, playoff performance, award, or market overreaction) driving this price shift.
 Ensure your response is valid JSON matching this schema:
 {
   "headline": "A short, punchy headline (e.g., 'Daniels rookies surge 18% after record game')",
   "shortSummary": "A single sentence summary outlining what dealers should do (max 150 chars)",
-  "body": "A detailed explanation of the card's momentum, explaining why the price shifted (e.g., performance, injuries, contract status, or overall market corrections).",
+  "body": "A detailed explanation of the card's momentum, citing real-world news events if applicable and explaining why the price shifted.",
   "recommendation": "BUY" | "SELL" | "HOLD" | "PRICE ADJUST",
   "narrativeType": "breakout" | "injury" | "hype" | "decline" | "seasonal" | "trade" | "hof" | "award" | "auction_record"
 }
@@ -168,8 +186,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
 
             try {
               const res = await vertexAiClient.generateFromText(prompt, "gemini-3.1-flash-lite");
-              const parsed = JSON.parse(res.replace(/```json|```/g, "").trim());
+              const cleaned = res.replace(/```json|```/g, "").replace(/`/g, "").trim();
+              const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+              const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
               
+              const correlatedEventsJson = recentArticles.length > 0
+                ? JSON.stringify(recentArticles.map(a => ({ event: a.title, publishedAt: a.published_at, isInjury: a.is_injury, isTransaction: a.is_transaction })))
+                : null;
+
               // Insert narrative into DB
               const [inserted] = await db.insert(narratives).values({
                 playerName: item.player_name,
@@ -183,6 +207,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
                 priceDirection: changePct >= 0 ? "up" : "down",
                 priceRange: priceRange,
                 recommendation: parsed.recommendation,
+                correlatedEvents: correlatedEventsJson,
                 status: "published", // Automatically publish cron insights
                 publishedAt: new Date()
               }).returning();
