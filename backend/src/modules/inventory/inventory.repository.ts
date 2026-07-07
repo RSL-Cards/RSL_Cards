@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
 import { createHash, randomUUID } from "crypto";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const t500 = (s?: string | null) => s ? s.slice(0, 500) : null;
 
@@ -134,9 +135,64 @@ export class InventoryRepository {
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
     const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
     const cleanQuantity = quantity && quantity !== "" ? Number(quantity) : 1;
-    // Convert JS string[] to PostgreSQL array literal e.g. {"url1","url2"}
-    const cleanPhotos = Array.isArray(photos) && photos.length > 0
-      ? `{${photos.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
+
+    let finalPhotosList = Array.isArray(photos) ? photos : [];
+
+    if (finalPhotosList.length === 0) {
+      let sourceImageUrl = null;
+      if (body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
+        const match = body.comps.activeListings.find((item: any) => item.image?.imageUrl || item.imageUrl);
+        if (match) {
+          sourceImageUrl = match.image?.imageUrl || match.imageUrl;
+        }
+      }
+      if (!sourceImageUrl && body.uploadedImageUrl) {
+        sourceImageUrl = body.uploadedImageUrl;
+      }
+
+      if (sourceImageUrl) {
+        const { env } = await import("../../config/index.js");
+        if (env.S3_BUCKET_NAME) {
+          const bucketDomain = `${env.S3_BUCKET_NAME}.s3`;
+          if (sourceImageUrl.includes(bucketDomain)) {
+            finalPhotosList = [sourceImageUrl];
+          } else {
+            try {
+              const fetchRes = await fetch(sourceImageUrl);
+              if (fetchRes.ok) {
+                const arrayBuf = await fetchRes.arrayBuffer();
+                const buffer = Buffer.from(arrayBuf);
+                const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+                const ext = contentType.includes("png") ? "png" : "jpg";
+                const key = `cards/${userId}/imported/${randomUUID()}.${ext}`;
+                const client = new S3Client({
+                  region: env.AWS_REGION || "us-east-1",
+                  credentials: {
+                    accessKeyId: env.AWS_ACCESS_KEY_ID || "",
+                    secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
+                  },
+                });
+                await client.send(
+                  new PutObjectCommand({
+                    Bucket: env.S3_BUCKET_NAME,
+                    Key: key,
+                    Body: buffer,
+                    ContentType: contentType,
+                  })
+                );
+                const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+                finalPhotosList = [publicUrl];
+              }
+            } catch (err: any) {
+              console.warn("Failed to download/upload dynamic card photo:", err.message);
+            }
+          }
+        }
+      }
+    }
+
+    const cleanPhotos = finalPhotosList.length > 0
+      ? `{${finalPhotosList.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
       : null;
     const cleanNotes = notes && notes !== "" ? notes : null;
     const cleanListedPlatforms = Array.isArray(listedPlatforms) && listedPlatforms.length > 0

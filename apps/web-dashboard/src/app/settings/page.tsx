@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection'
-import ConnectedPlatformsSection from '@/components/settings/ConnectedPlatformsSection'
+import ConnectedPlatformsSection, { AVAILABLE_PLATFORMS } from '@/components/settings/ConnectedPlatformsSection'
 import ListingDefaultsSection from '@/components/settings/ListingDefaultsSection'
 import NotificationsSection from '@/components/settings/NotificationsSection'
 import PaymentMethodsSection from '@/components/settings/PaymentMethodsSection'
@@ -18,6 +18,7 @@ import {
 } from '@/components/settings/settingsUtils'
 import { useSettingsStore } from '@/stores/settingStore'
 import Shell from '@/components/layout/Shell'
+import { useDashboardInventoryCounts } from '@/hooks/dashboard/useDashboard'
 import {
   INVENTORY_TABLE_DATA,
   PLATFORM_FEE_TABLE,
@@ -37,6 +38,7 @@ export default function SettingsPage() {
     disconnectPlatform,
     uploadAvatar,
   } = useSettingsStore()
+  const { data: countsData } = useDashboardInventoryCounts()
   const [activeSection, setActiveSection] = useState<SettingsSection>('account')
   const [account, setAccount] = useState<AccountSettings>({
     displayName: '',
@@ -121,7 +123,7 @@ export default function SettingsPage() {
   )
   const defaultPlatformFee =
     PLATFORM_FEE_TABLE.find((platform) => platform.platform === listingDefaults.platform)?.fee_pct ?? 0
-  const inventoryReadyToList = INVENTORY_TABLE_DATA.filter((card) => card.status === 'unlisted').length
+  const inventoryReadyToList = countsData?.unlistedCards ?? 0
 
   const handleConnectPlatform = (platform: string) => {
     if (platform === 'ebay') {
@@ -248,7 +250,7 @@ export default function SettingsPage() {
           defaultPlatformFee={defaultPlatformFee}
           inventoryReadyToList={inventoryReadyToList}
           paymentMethodCount={paymentMethods.length}
-          platformCount={requestedPlatforms.length}
+          platformCount={AVAILABLE_PLATFORMS.length}
         />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">

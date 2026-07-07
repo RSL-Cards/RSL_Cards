@@ -191,6 +191,7 @@ function BulkAddPage() {
           costBasis: parseFloat(p?.paidPrice || "0"),
           currentMarketValue: parseFloat(p?.askPrice || "0"),
           comps: card.comps,
+          uploadedImageUrl: card.uploadedImageUrl,
         }
         const res = await apiClient.post('/v1/inventory', payload)
         

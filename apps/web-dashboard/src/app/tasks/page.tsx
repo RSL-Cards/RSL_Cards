@@ -43,9 +43,22 @@ function TasksPage() {
     <Shell>
       <div className="max-w-5xl mx-auto space-y-6">
         {toastMsg && (
-          <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="text-sm font-medium">{toastMsg}</span>
+          <div className="fixed bottom-6 right-6 z-[100] w-96 max-w-[calc(100vw-3rem)] transform rounded-2xl border border-green-200 bg-white p-4 shadow-xl flex items-center gap-3 transition-all duration-300 ease-out animate-bounce-short">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-gray-900">Task Started</div>
+              <p className="text-xs text-gray-500 mt-0.5">{toastMsg}</p>
+            </div>
+            <button 
+              onClick={() => setToastMsg('')}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">

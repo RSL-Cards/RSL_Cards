@@ -21,12 +21,71 @@ interface RevenueChartProps {
 }
 
 export default function RevenueChart({
-  data
+  data = []
 }: RevenueChartProps) {
 
   const [period, setPeriod] = useState('15D')
 
   const periods = ['7D', '15D', '30D', '90D', 'All']
+
+  // 1. Best Day Calculation
+  const bestDayItem = data.reduce((best, item) => {
+    return item.revenue > (best?.revenue || 0) ? item : best;
+  }, null as any);
+
+  const bestDayText = bestDayItem && bestDayItem.revenue > 0
+    ? `${bestDayItem.date} at $${bestDayItem.revenue.toLocaleString()}`
+    : 'N/A';
+
+  // 2. Best Margin Calculation
+  const bestMarginItem = data.reduce((best, item) => {
+    if (item.revenue <= 0) return best;
+    const itemMargin = (item.profit / item.revenue) * 100;
+    const bestMargin = best ? (best.profit / best.revenue) * 100 : -Infinity;
+    return itemMargin > bestMargin ? item : best;
+  }, null as any);
+
+  const bestMarginText = bestMarginItem
+    ? `${bestMarginItem.date} at ${((bestMarginItem.profit / bestMarginItem.revenue) * 100).toFixed(1)}%`
+    : 'N/A';
+
+  // 3. Trend Calculation (Second Half vs First Half of the selected period)
+  const mid = Math.floor(data.length / 2);
+  const firstHalf = data.slice(0, mid);
+  const secondHalf = data.slice(mid);
+  const firstHalfSum = firstHalf.reduce((acc, d) => acc + d.revenue, 0);
+  const secondHalfSum = secondHalf.reduce((acc, d) => acc + d.revenue, 0);
+  
+  let trendPct = 0;
+  if (firstHalfSum > 0) {
+    trendPct = ((secondHalfSum - firstHalfSum) / firstHalfSum) * 100;
+  } else if (secondHalfSum > 0) {
+    trendPct = 100;
+  }
+
+  const hasTrend = data.length >= 2 && (firstHalfSum > 0 || secondHalfSum > 0);
+  const trendText = hasTrend
+    ? `${trendPct >= 0 ? '+' : ''}${trendPct.toFixed(1)}% vs last period`
+    : 'N/A';
+
+  const isTrendPositive = trendPct >= 0;
+  const trendCardBg = !hasTrend
+    ? 'bg-gray-50 border-gray-200'
+    : isTrendPositive
+      ? 'bg-green-50 border-green-100'
+      : 'bg-red-50 border-red-100';
+
+  const trendLabelColor = !hasTrend
+    ? 'text-gray-500'
+    : isTrendPositive
+      ? 'text-green-600'
+      : 'text-red-600';
+
+  const trendValueColor = !hasTrend
+    ? 'text-gray-900'
+    : isTrendPositive
+      ? 'text-green-700'
+      : 'text-red-700';
 
   const CustomTooltip = ({
     active,
@@ -267,7 +326,7 @@ export default function RevenueChart({
           </div>
 
           <div className="text-gray-900 font-semibold text-sm">
-            Apr 13 at $1,680
+            {bestDayText}
           </div>
         </div>
 
@@ -278,18 +337,18 @@ export default function RevenueChart({
           </div>
 
           <div className="text-gray-900 font-semibold text-sm">
-            Apr 2 at 28.3%
+            {bestMarginText}
           </div>
         </div>
 
-        <div className="bg-green-50 border border-green-100 rounded-2xl px-5 py-4 text-center">
+        <div className={`${trendCardBg} border rounded-2xl px-5 py-4 text-center`}>
 
-          <div className="text-green-600 text-xs uppercase tracking-wide mb-2">
-            Monthly Trend
+          <div className={`${trendLabelColor} text-xs uppercase tracking-wide mb-2`}>
+            Trend
           </div>
 
-          <div className="text-green-700 font-semibold text-sm">
-            +8.2% vs last month
+          <div className={`${trendValueColor} font-semibold text-sm`}>
+            {trendText}
           </div>
         </div>
       </div>

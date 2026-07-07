@@ -13,6 +13,8 @@ import { batchJobs } from "./db/schema/batch.js";
 import { narratives } from "./db/schema/index.js";
 import { vertexAiClient } from "./lib/vertex-ai.client.js";
 import { MULTI_CARD_SCAN_PROMPT, TEXT_EXTRACTION_PROMPT } from "./config/prompts.js";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { randomUUID } from "crypto";
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -224,8 +226,8 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
       // NEW BATCH JOBS
       // -------------------------------------------------------------
       else if (job.name === "process_batch_upload" || job.name === "process_multi_scan") {
-        const { batchId } = job.data;
-        logger.info(`[WORKER] Processing batch job ${batchId} (${job.name})`);
+        const { batchId, userId } = job.data;
+        logger.info(`[WORKER] Processing batch job ${batchId} for user ${userId} (${job.name})`);
 
         try {
           await db.update(batchJobs).set({ status: "processing", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
@@ -257,6 +259,33 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
             }
           };
           
+          let uploadedImageUrl: string | null = null;
+          if (batchRecord.imageBase64 && env.S3_BUCKET_NAME) {
+            try {
+              const buffer = Buffer.from(batchRecord.imageBase64, "base64");
+              const key = `cards/${userId || "batch"}/batch-${batchId}/${randomUUID()}.jpg`;
+              const client = new S3Client({
+                region: env.AWS_REGION || "us-east-1",
+                credentials: {
+                  accessKeyId: env.AWS_ACCESS_KEY_ID || "",
+                  secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
+                },
+              });
+              await client.send(
+                new PutObjectCommand({
+                  Bucket: env.S3_BUCKET_NAME,
+                  Key: key,
+                  Body: buffer,
+                  ContentType: "image/jpeg",
+                })
+              );
+              uploadedImageUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+              logger.info(`[WORKER] Uploaded batch image to S3: ${uploadedImageUrl}`);
+            } catch (s3Err: any) {
+              logger.error(`[WORKER] Failed to upload batch image to S3: ${s3Err.message}`);
+            }
+          }
+
           if (job.name === "process_batch_upload") {
             const rawText = batchRecord.rawText || "";
             const prompt = TEXT_EXTRACTION_PROMPT + "\n\n" + rawText;
@@ -300,7 +329,8 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
               ...card,
               id: generateCardId(card),
               gradeKey,
-              comps: compsData 
+              comps: compsData,
+              uploadedImageUrl: uploadedImageUrl
             });
 
             // Delay between fetching each card's comps to avoid Vertex AI / eBay API rate limits

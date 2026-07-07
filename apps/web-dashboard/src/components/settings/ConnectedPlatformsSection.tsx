@@ -8,7 +8,7 @@ interface ConnectedPlatformsSectionProps {
   onDisconnectPlatform: (platform: string) => void
 }
 
-const AVAILABLE_PLATFORMS = [
+export const AVAILABLE_PLATFORMS = [
   { id: 'ebay', name: 'eBay' },
 ]
 
