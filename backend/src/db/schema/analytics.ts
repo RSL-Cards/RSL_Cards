@@ -44,3 +44,10 @@ export const expenses = pgTable('expenses', {
   expenseDate: timestamp('expense_date', { withTimezone: true }).notNull(),
   createdAt:   timestamp('created_at', { withTimezone: true }).defaultNow(),
 })
+
+// Read-optimized status counters for live dashboard metrics
+export const dashboardCounters = pgTable('dashboard_counters', {
+  name:      text('name').primaryKey(),
+  value:     integer('value').default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+})

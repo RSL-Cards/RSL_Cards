@@ -154,6 +154,7 @@ export const platformSoldListings = pgTable("platform_sold_listings", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({
   soldVariantIdx: index("idx_platform_sold_variant_id").on(t.variantId),
+  soldVariantGradeIdx: index("idx_platform_sold_variant_grade").on(t.variantId, t.gradeKey),
 }));
 
 // ALL platforms active listings. Replaced during 15min cache cycles.
@@ -175,6 +176,7 @@ export const platformActiveListings = pgTable("platform_active_listings", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (t) => ({
   activeVariantIdx: index("idx_platform_active_variant_id").on(t.variantId),
+  activeVariantGradeIdx: index("idx_platform_active_variant_grade").on(t.variantId, t.gradeKey),
 }));
 
 // One row per variant+gradeKey+platform. UPSERTED every 15min cache cycle.
@@ -219,6 +221,7 @@ export const cardPriceHistory = pgTable("card_price_history", {
   recordedDate: timestamp("recorded_date", { withTimezone: true }).defaultNow(),
 }, (t) => ({
   historyVariantIdx: index("idx_card_price_history_variant_id").on(t.variantId),
+  historyVariantGradeIdx: index("idx_card_price_history_variant_grade").on(t.variantId, t.gradeKey),
 }));
 
 // ─────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum, integer } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, text, timestamp, pgEnum, integer, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 
@@ -33,4 +33,9 @@ export const listings = pgTable('listings', {
   errorMessage:      text('error_message'),
   createdAt:         timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:         timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  listingsUserIdx: index('idx_listings_user_id').on(t.userId),
+  listingsInventoryIdx: index('idx_listings_inventory_id').on(t.inventoryId),
+  listingsStatusIdx: index('idx_listings_status').on(t.status),
+  listingsUserStatusIdx: index('idx_listings_user_status').on(t.userId, t.status),
+}))

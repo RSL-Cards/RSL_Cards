@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, decimal, boolean, timestamp, integer, pgEnum, index } from 'drizzle-orm/pg-core'
 
 export const narrativeTypeEnum   = pgEnum('narrative_type',
   ['breakout','injury','hype','decline','seasonal','trade','hof','award','auction_record'])
@@ -27,7 +27,9 @@ export const narratives = pgTable('narratives', {
   reviewedBy:       uuid('reviewed_by'),
   publishedAt:      timestamp('published_at', { withTimezone: true }),
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  narrativesStatusCreatedIdx: index('idx_narratives_status_created').on(t.status, t.createdAt),
+}))
 
 // NEW TABLE 1: 3-tier player monitoring list
 export const playerWatchlist = pgTable('player_watchlist', {
@@ -39,7 +41,9 @@ export const playerWatchlist = pgTable('player_watchlist', {
   active:        boolean('active').default(true),           // false when holderCount = 0
   lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
   createdAt:     timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  playerWatchlistTierIdx: index('idx_player_watchlist_tier').on(t.tier, t.active),
+}))
 
 // NEW TABLE 2: Current snapshot per player — UPSERTED every 2-hour cycle
 // This IS the memory. Next cycle loads this to know what changed.
@@ -81,7 +85,9 @@ export const playerSnapshotHistory = pgTable('player_snapshot_history', {
   fetchedFrom:      timestamp('fetched_from', { withTimezone: true }), // window start
   fetchedTo:        timestamp('fetched_to', { withTimezone: true }),   // window end
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  snapshotHistoryPlayerIdx: index('idx_snapshot_history_player').on(t.playerName, t.fetchedTo),
+}))
 
 export const priceAnomalies = pgTable('price_anomalies', {
   id:             uuid('id').primaryKey().defaultRandom(),
