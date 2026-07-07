@@ -40,8 +40,8 @@ export class WebDashboardController {
     return await this.service.getInventoryItemDetails(this.getUserId(request), params.id);
   };
 
-  getTopMovers = async () => {
-    return this.service.getTopMovers();
+  getTopMovers = async ({ request }: { request: Request }) => {
+    return this.service.getTopMovers(this.getUserId(request));
   };
 
   getAiInsights = async ({ request }: { request: Request }) => {

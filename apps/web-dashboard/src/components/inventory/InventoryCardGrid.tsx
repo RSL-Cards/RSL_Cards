@@ -63,9 +63,6 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
                       {card.sport}
                     </span>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                      ID: {card.id}
-                    </span>
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
                       <Clock3 className="h-3 w-3" />
                       {card.days_held} days held
@@ -75,7 +72,7 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
 
                 <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 lg:min-w-40 lg:text-right">
                   <div className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                    Market Value
+                    Your Target Price
                   </div>
                   <div className="mt-1 font-mono text-2xl font-bold text-gray-900">
                     {formatCurrency(card.market_value)}
@@ -104,14 +101,38 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                   <div className="text-xs text-gray-400">Comp Avg</div>
                   <div className="mt-1 font-mono text-sm font-semibold text-gray-900">
-                    {formatCurrency(card.comp_avg)}
+                    {card.comp_avg && card.comp_avg > 0 ? formatCurrency(card.comp_avg) : 'N/A'}
                   </div>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                   <div className="text-xs text-gray-400">Comp Trend</div>
-                  <div className={`mt-1 font-mono text-sm font-semibold ${card.comp_trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {card.comp_trend >= 0 ? '+' : ''}{card.comp_trend}%
+                  <div className={`mt-1 font-mono text-sm font-semibold ${card.comp_avg && card.comp_avg > 0 && card.comp_trend >= 0 ? 'text-green-600' : card.comp_avg && card.comp_avg > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                    {card.comp_avg && card.comp_avg > 0 ? `${card.comp_trend >= 0 ? '+' : ''}${card.comp_trend}%` : 'N/A'}
                   </div>
+                </div>
+              </div>
+
+              {/* Active & Sold Listing Comp Ranges */}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+                <div className="flex justify-between items-center bg-gray-50 px-3.5 py-2 rounded-lg border border-gray-200/60 text-xs">
+                  <span className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Active Range</span>
+                  <span className="font-mono text-gray-700 font-bold">
+                    {card.lowest_active && card.highest_active 
+                      ? `${formatCurrency(card.lowest_active)} - ${formatCurrency(card.highest_active)}` 
+                      : card.lowest_active 
+                        ? `${formatCurrency(card.lowest_active)}+` 
+                        : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-gray-50 px-3.5 py-2 rounded-lg border border-gray-200/60 text-xs">
+                  <span className="font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Sold Range (30D)</span>
+                  <span className="font-mono text-gray-700 font-bold">
+                    {card.lowest_sold && card.highest_sold 
+                      ? `${formatCurrency(card.lowest_sold)} - ${formatCurrency(card.highest_sold)}` 
+                      : card.lowest_sold 
+                        ? `${formatCurrency(card.lowest_sold)}+` 
+                        : 'N/A'}
+                  </span>
                 </div>
               </div>
 

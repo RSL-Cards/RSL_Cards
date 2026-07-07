@@ -21,6 +21,10 @@ export interface InventoryCard {
   cert_number?: string | null
   notes?: string | null
   added_at?: string | null
+  lowest_active?: number
+  highest_active?: number
+  lowest_sold?: number
+  highest_sold?: number
 }
 
 export interface InventorySummary {

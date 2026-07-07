@@ -3,15 +3,19 @@ import { formatCurrency, formatGrade } from '@/components/inventory/inventoryUti
 import { TopMover } from './aiInsightsTypes'
 import { getGradeColor, getNumericChange, getSportColor } from './aiInsightsUtils'
 
+interface ExtendedTopMover extends TopMover {
+  inInventory?: boolean
+}
+
 interface MoverWatchlistProps {
-  matchedMovers: TopMover[]
-  movers: TopMover[]
+  matchedMovers: ExtendedTopMover[]
+  movers: ExtendedTopMover[]
 }
 
 export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlistProps) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-gray-900">Mover Watchlist</h2>
+      <h2 className="text-xl font-bold text-gray-900">Top Market Movers</h2>
       <div className="mt-4 space-y-3">
         {movers.map((mover) => {
           const isMatched = matchedMovers.some((matched) => matched.player === mover.player)
@@ -42,6 +46,11 @@ export default function MoverWatchlist({ matchedMovers, movers }: MoverWatchlist
                 <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSportColor(mover.sport)}`}>
                   {mover.sport}
                 </span>
+                {mover.inInventory && (
+                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                    In Inventory
+                  </span>
+                )}
                 {isMatched && (
                   <span className="rounded-full bg-blue-600/15 px-2 py-1 text-xs font-semibold text-blue-600">
                     Linked insight

@@ -112,9 +112,9 @@ export default function CardDetailModal({
             <div className="text-sm text-gray-500">Cost Basis</div>
             <div className="mt-1 font-mono text-xl font-bold text-gray-950">{formatCurrency(detailedCard.cost_basis)}</div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm text-gray-500">Market Value</div>
-            <div className="mt-1 font-mono text-xl font-bold text-gray-950">{formatCurrency(detailedCard.market_value)}</div>
+          <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4">
+            <div className="text-sm text-blue-600 font-semibold">Your Target Price</div>
+            <div className="mt-1 font-mono text-xl font-bold text-blue-700">{formatCurrency(detailedCard.market_value)}</div>
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="text-sm text-gray-500">Profit/Loss</div>
@@ -124,7 +124,37 @@ export default function CardDetailModal({
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="text-sm text-gray-500">Days Held</div>
-            <div className="mt-1 font-mono text-xl font-bold text-gray-950">{detailedCard.days_held}</div>
+            <div className="mt-1 font-mono text-xl font-bold text-gray-950">{detailedCard.days_held} days</div>
+          </div>
+        </div>
+
+        {/* Clear Analysis / Comps Grid */}
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="text-sm text-gray-500">Comp Average</div>
+            <div className="mt-1 font-mono text-xl font-bold text-gray-950">
+              {detailedCard.comp_avg ? formatCurrency(detailedCard.comp_avg) : 'N/A'}
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="text-sm text-gray-500">Live Active Range</div>
+            <div className="mt-1 font-mono text-xl font-bold text-gray-955">
+              {detailedCard.lowest_active && detailedCard.highest_active 
+                ? `${formatCurrency(detailedCard.lowest_active)} - ${formatCurrency(detailedCard.highest_active)}` 
+                : detailedCard.lowest_active 
+                  ? `${formatCurrency(detailedCard.lowest_active)}+` 
+                  : 'N/A'}
+            </div>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="text-sm text-gray-500">Sold Range (30D)</div>
+            <div className="mt-1 font-mono text-xl font-bold text-gray-955">
+              {detailedCard.lowest_sold && detailedCard.highest_sold 
+                ? `${formatCurrency(detailedCard.lowest_sold)} - ${formatCurrency(detailedCard.highest_sold)}` 
+                : detailedCard.lowest_sold 
+                  ? `${formatCurrency(detailedCard.lowest_sold)}+` 
+                  : 'N/A'}
+            </div>
           </div>
         </div>
 

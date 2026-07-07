@@ -141,45 +141,62 @@ export class WebDashboardRepository {
   async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string) {
     const offset = (page - 1) * limit;
 
-    let condition = sql`${inventory.userId} = ${userId} AND ${inventory.listingStatus} IN ('unlisted', 'listed')`;
+    let condition = sql`i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')`;
 
     if (search) {
       const searchLower = `%${search.toLowerCase()}%`;
-      condition = sql`${condition} AND (LOWER(${players.name}) LIKE ${searchLower} OR LOWER(${inventory.setName}) LIKE ${searchLower})`;
+      condition = sql`${condition} AND (LOWER(p.name) LIKE ${searchLower} OR LOWER(i.set_name) LIKE ${searchLower})`;
     }
 
-    const items = await db
-      .select({
-        id: inventory.id,
-        year: inventory.year,
-        set_name: inventory.setName,
-        grade_key: inventory.gradeKey,
-        sport: inventory.sport,
-        cost_basis: inventory.costBasis,
-        market_value: inventory.currentMarketValue,
-        unrealized_gain: inventory.unrealizedGain,
-        status: inventory.listingStatus,
-        added_at: inventory.addedAt,
-        platforms_listed: inventory.listedPlatforms,
-        player_name: players.name,
-        photos: inventory.photos,
-      })
-      .from(inventory)
-      .leftJoin(players, eq(inventory.playerId, players.id))
-      .where(condition)
-      .orderBy(desc(inventory.addedAt))
-      .limit(limit)
-      .offset(offset);
+    const items = await db.execute(sql`
+      SELECT 
+        i.id,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.sport,
+        i.cost_basis,
+        i.current_market_value as market_value,
+        (COALESCE(i.current_market_value, 0) - i.cost_basis) as unrealized_gain,
+        i.listing_status as status,
+        i.added_at,
+        i.listed_platforms as platforms_listed,
+        p.name as player_name,
+        i.photos,
+        COALESCE(cs.avg_sold_price, 0) as comp_avg,
+        COALESCE(cs.price_trend_30d, 0) as comp_trend,
+        COALESCE(cs.lowest_active, 0) as lowest_active,
+        (
+          SELECT MAX(price) FROM platform_active_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as highest_active,
+        (
+          SELECT MIN(sold_price) FROM platform_sold_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as lowest_sold,
+        (
+          SELECT MAX(sold_price) FROM platform_sold_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as highest_sold
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      LEFT JOIN card_comp_snapshots cs ON cs.variant_id = i.variant_id AND cs.grade_key = i.grade_key AND cs.platform = 'ebay'
+      WHERE ${condition}
+      ORDER BY i.added_at DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `);
 
-    const totalResult = await db
-      .select({ count: count() })
-      .from(inventory)
-      .leftJoin(players, eq(inventory.playerId, players.id))
-      .where(condition);
+    const totalResult = await db.execute(sql`
+      SELECT COUNT(*) as count 
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      WHERE ${condition}
+    `);
 
     return {
-      items,
-      total: totalResult[0].count,
+      items: items.rows,
+      total: Number((totalResult.rows[0] as any).count || 0),
       page,
       limit,
     };
@@ -198,30 +215,46 @@ export class WebDashboardRepository {
   }
 
   async getInventoryItemDetails(userId: string, inventoryId: string) {
-    const itemResult = await db
-      .select({
-        id: inventory.id,
-        year: inventory.year,
-        set_name: inventory.setName,
-        grade_key: inventory.gradeKey,
-        sport: inventory.sport,
-        cost_basis: inventory.costBasis,
-        market_value: inventory.currentMarketValue,
-        unrealized_gain: inventory.unrealizedGain,
-        status: inventory.listingStatus,
-        added_at: inventory.addedAt,
-        platforms_listed: inventory.listedPlatforms,
-        player_name: players.name,
-        photos: inventory.photos,
-        variant_id: inventory.variantId,
-      })
-      .from(inventory)
-      .leftJoin(players, eq(inventory.playerId, players.id))
-      .where(and(eq(inventory.id, inventoryId), eq(inventory.userId, userId)))
-      .limit(1);
+    const itemResult = await db.execute(sql`
+      SELECT 
+        i.id,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.sport,
+        i.cost_basis,
+        i.current_market_value as market_value,
+        (COALESCE(i.current_market_value, 0) - i.cost_basis) as unrealized_gain,
+        i.listing_status as status,
+        i.added_at,
+        i.listed_platforms as platforms_listed,
+        p.name as player_name,
+        i.photos,
+        i.variant_id,
+        COALESCE(cs.avg_sold_price, 0) as comp_avg,
+        COALESCE(cs.price_trend_30d, 0) as comp_trend,
+        COALESCE(cs.lowest_active, 0) as lowest_active,
+        (
+          SELECT MAX(price) FROM platform_active_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as highest_active,
+        (
+          SELECT MIN(sold_price) FROM platform_sold_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as lowest_sold,
+        (
+          SELECT MAX(sold_price) FROM platform_sold_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as highest_sold
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      LEFT JOIN card_comp_snapshots cs ON cs.variant_id = i.variant_id AND cs.grade_key = i.grade_key AND cs.platform = 'ebay'
+      WHERE i.id = ${inventoryId} AND i.user_id = ${userId}
+      LIMIT 1
+    `);
 
-    if (!itemResult.length) return null;
-    const item = itemResult[0];
+    if (!itemResult.rows.length) return null;
+    const item = itemResult.rows[0] as any;
 
     let activeComps: any[] = [];
     let comps: any[] = [];
@@ -415,7 +448,9 @@ export class WebDashboardRepository {
         i.photos[1] as image_url,
         (CURRENT_DATE - DATE(i.added_at)) as days_held,
         i.current_market_value as market_value,
-        i.cost_basis
+        i.cost_basis,
+        (COALESCE(i.current_market_value, 0) - i.cost_basis) as unrealized_gain,
+        i.listing_status as status
       FROM inventory i
       LEFT JOIN players p ON p.id = i.player_id
       WHERE i.user_id = ${userId} AND i.listing_status IN ('listed', 'unlisted')
@@ -468,7 +503,7 @@ export class WebDashboardRepository {
     }));
   }
 
-  async getTopMovers() {
+  async getTopMovers(userId?: string) {
     const result = await db.execute(sql`
       SELECT 
         p.name as player,
@@ -477,7 +512,12 @@ export class WebDashboardRepository {
         cs.grade_key as grade,
         p.sport as sport,
         CASE WHEN cs.price_trend_30d > 0 THEN 'up' ELSE 'down' END as trend,
-        'Market Trend' as reason
+        'Market Trend' as reason,
+        EXISTS (
+          SELECT 1 FROM inventory i
+          WHERE i.user_id = ${userId || null}
+            AND i.player_id = p.id
+        ) as in_inventory
       FROM card_comp_snapshots cs
       JOIN card_variants cv ON cs.variant_id = cv.id
       JOIN cards c ON cv.card_id = c.id
@@ -494,7 +534,8 @@ export class WebDashboardRepository {
       grade: row.grade,
       sport: row.sport,
       trend: row.trend,
-      reason: row.reason
+      reason: row.reason,
+      inInventory: !!row.in_inventory
     }));
   }
 

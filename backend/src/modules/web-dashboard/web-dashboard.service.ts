@@ -118,8 +118,12 @@ export class WebDashboardService {
         unrealized_gain_pct: pct,
         status: item.status,
         days_held: daysHeld,
-        comp_avg: Number(item.market_value || 0),
-        comp_trend: 0,
+        comp_avg: Number(item.comp_avg || 0),
+        comp_trend: Number(item.comp_trend || 0),
+        lowest_active: Number(item.lowest_active || 0),
+        highest_active: Number(item.highest_active || 0),
+        lowest_sold: Number(item.lowest_sold || 0),
+        highest_sold: Number(item.highest_sold || 0),
         platforms_listed: item.platforms_listed || [],
       };
     });
@@ -167,6 +171,12 @@ export class WebDashboardService {
         status: item.status,
         days_held: daysHeld,
         platforms_listed: item.platforms_listed || [],
+        comp_avg: Number(item.comp_avg || 0),
+        comp_trend: Number(item.comp_trend || 0),
+        lowest_active: Number(item.lowest_active || 0),
+        highest_active: Number(item.highest_active || 0),
+        lowest_sold: Number(item.lowest_sold || 0),
+        highest_sold: Number(item.highest_sold || 0),
       },
       activeListings: activeListings.map(l => ({
         platform: l.platform,
@@ -189,8 +199,8 @@ export class WebDashboardService {
     };
   }
 
-  async getTopMovers() {
-    return this.repository.getTopMovers();
+  async getTopMovers(userId: string) {
+    return this.repository.getTopMovers(userId);
   }
 
   async getAiInsights(userId: string) {
@@ -454,7 +464,9 @@ export class WebDashboardService {
       image_url: row.image_url,
       days_held: Number(row.days_held),
       market_value: Number(row.market_value),
-      cost_basis: Number(row.cost_basis)
+      cost_basis: Number(row.cost_basis),
+      unrealized_gain: Number(row.unrealized_gain || 0),
+      status: row.status || 'unlisted'
     }));
 
     // Get AI Insights directly

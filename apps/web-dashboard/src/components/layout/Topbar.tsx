@@ -98,7 +98,7 @@ export default function Topbar() {
 
       {/* Right */}
       <div className="flex items-center gap-5">
-        {/* Online */}
+        {/* Online
         <div className="flex items-center gap-2">
           {isOnline ? (
             <Wifi className="w-4 h-4 text-green-600" />
@@ -112,6 +112,7 @@ export default function Topbar() {
             </span>
           )}
         </div>
+        */}
 
         {/* Notifications */}
         <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200">
@@ -124,7 +125,7 @@ export default function Topbar() {
           )}
         </button>
 
-        {/* Sync */}
+        {/* Sync
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
 
@@ -136,6 +137,7 @@ export default function Topbar() {
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
+        */}
 
         {/* User */}
         <div className="relative">
