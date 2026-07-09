@@ -41,6 +41,10 @@ export class WebDashboardController {
     return await this.service.getInventory(this.getUserId(request), page, limit, search);
   };
 
+  exportInventory = async ({ request }: { request: Request }) => {
+    return await this.service.getInventoryExport(this.getUserId(request));
+  };
+
   getInventoryCounts = async ({ request }: { request: Request }) => {
     return await this.service.getInventoryCounts(this.getUserId(request));
   };

@@ -137,6 +137,24 @@ export class WebDashboardService {
     };
   }
 
+  async getInventoryExport(userId: string) {
+    const rows = await this.repository.getInventoryExport(userId);
+    return rows.map((row: any) => ({
+      id: row.id,
+      player: row.player_name || 'Unknown',
+      year: row.year || '',
+      set: row.set_name || '',
+      grade: String(row.grade_key || 'RAW').replace('_', ' '),
+      sport: row.sport || 'Unknown',
+      costBasis: Number(row.cost_basis || 0),
+      marketValue: Number(row.market_value || 0),
+      unrealizedGain: Number(row.unrealized_gain || 0),
+      gainPct: row.cost_basis ? ((Number(row.market_value || 0) - Number(row.cost_basis)) / Number(row.cost_basis) * 100).toFixed(1) + '%' : '0%',
+      status: row.status || 'unlisted',
+      addedAt: row.added_at ? new Date(row.added_at as string | number | Date).toISOString().split('T')[0] : ''
+    }));
+  }
+
   async getInventoryCounts(userId: string) {
     const counts = await this.repository.getInventoryCounts(userId);
     return {

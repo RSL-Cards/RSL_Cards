@@ -235,7 +235,7 @@ export default function CardDetailModal({
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 font-semibold text-gray-950">
               <Sparkles className="h-4 w-4 text-blue-600" />
-              AI Narrative
+              RSL Narrative
             </div>
             <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-600 shadow-sm">
               {detailedCard.days_held > 60 || detailedCard.unrealized_gain < 0 ? 'REVIEW' : 'HOLD'}

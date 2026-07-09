@@ -320,7 +320,7 @@ function BulkAddPage() {
               <div className="flex flex-col items-center py-8">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  {status === 'uploading' ? 'Uploading...' : 'AI is extracting data & fetching comps...'}
+                  {status === 'uploading' ? 'Uploading...' : 'RSL is extracting data & fetching comps...'}
                 </h3>
                 <p className="text-sm text-gray-500">This may take up to 20 seconds depending on the file size.</p>
               </div>

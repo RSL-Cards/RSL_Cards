@@ -33,6 +33,9 @@ export const dashboardService = {
     if (search) params.append('search', search)
     return dashboardRequest<any>(`${ENDPOINTS.webDashboard.inventory}?${params.toString()}`)
   },
+  exportInventory() {
+    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.inventoryExport)
+  },
   getInventoryCounts() {
     return dashboardRequest<any>(ENDPOINTS.webDashboard.inventoryCounts)
   },

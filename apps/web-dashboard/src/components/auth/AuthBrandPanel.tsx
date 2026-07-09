@@ -18,7 +18,7 @@ export default function AuthBrandPanel() {
             Dealer operations, without the clutter.
           </h1>
           <p className="mt-4 text-base leading-7 text-gray-300">
-            Manage inventory, listings, transactions, reports, and AI insights
+            Manage inventory, listings, transactions, reports, and RSL insights
             from a single dashboard.
           </p>
         </div>

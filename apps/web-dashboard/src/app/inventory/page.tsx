@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import Shell from '@/components/layout/Shell'
 import CardDetailModal from '@/components/inventory/CardDetailModal'
 import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
@@ -14,6 +17,7 @@ import {
   useDashboardInventory,
   useDashboardInventoryCounts
 } from '@/hooks/dashboard/useDashboard'
+import { dashboardService } from '@/services/dashboardService'
 
 export default function InventoryPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
@@ -31,6 +35,8 @@ export default function InventoryPage() {
   
   const isLoading = isListLoading || isCountsLoading
   const [activeCard, setActiveCard] = useState<InventoryCard | null>(null)
+  const [isExportingExcel, setIsExportingExcel] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return
@@ -42,6 +48,110 @@ export default function InventoryPage() {
 
   const closeCardDetail = () => {
     setActiveCard(null)
+  }
+
+  const handleDownloadExcel = async () => {
+    try {
+      setIsExportingExcel(true)
+      let data = await dashboardService.exportInventory()
+      if (!data || data.length === 0) {
+        data = items.map((card: any) => ({
+          player: card.playerName || card.player || 'Unknown',
+          year: card.year || '',
+          set: card.setName || card.set || '',
+          grade: card.grade || card.gradeKey || 'RAW',
+          sport: card.sport || 'Unknown',
+          costBasis: Number(card.costBasis || 0),
+          marketValue: Number(card.marketValue || 0),
+          unrealizedGain: Number((card.marketValue || 0) - (card.costBasis || 0)),
+          gainPct: card.costBasis ? (((card.marketValue || 0) - card.costBasis) / card.costBasis * 100).toFixed(1) + '%' : '0%',
+          status: card.status || 'unlisted',
+          addedAt: card.addedAt || ''
+        }))
+      }
+
+      const worksheetData = data.map((card: any) => ({
+        'Player Name': card.player || 'Unknown',
+        'Year': card.year || '',
+        'Set / Card Name': card.set || '',
+        'Grade': card.grade || 'RAW',
+        'Sport': card.sport || 'Unknown',
+        'Cost Basis ($)': Number(card.costBasis || 0).toFixed(2),
+        'Market Value ($)': Number(card.marketValue || 0).toFixed(2),
+        'Unrealized Gain ($)': Number(card.unrealizedGain || 0).toFixed(2),
+        'Gain (%)': card.gainPct || '0%',
+        'Status': String(card.status || 'unlisted').toUpperCase(),
+        'Date Added': card.addedAt || ''
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Portfolio Inventory')
+      XLSX.writeFile(workbook, `RSL_Inventory_Export_${new Date().toISOString().split('T')[0]}.xlsx`)
+    } catch (err) {
+      console.error('Failed to export Excel:', err)
+    } finally {
+      setIsExportingExcel(false)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsExportingPdf(true)
+      let data = await dashboardService.exportInventory()
+      if (!data || data.length === 0) {
+        data = items.map((card: any) => ({
+          player: card.playerName || card.player || 'Unknown',
+          year: card.year || '',
+          set: card.setName || card.set || '',
+          grade: card.grade || card.gradeKey || 'RAW',
+          sport: card.sport || 'Unknown',
+          costBasis: Number(card.costBasis || 0),
+          marketValue: Number(card.marketValue || 0),
+          unrealizedGain: Number((card.marketValue || 0) - (card.costBasis || 0)),
+          status: card.status || 'unlisted',
+        }))
+      }
+
+      const doc = new jsPDF()
+      
+      doc.setFontSize(18)
+      doc.setTextColor(15, 23, 42)
+      doc.text('RSL Cards - Portfolio Inventory Report', 14, 20)
+      
+      doc.setFontSize(10)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} | Total Items: ${data.length}`, 14, 28)
+
+      const tableColumn = ['Player', 'Year', 'Set / Card Name', 'Grade', 'Sport', 'Cost ($)', 'Market ($)', 'Gain ($)', 'Status']
+      const tableRows = data.map((card: any) => [
+        card.player || 'Unknown',
+        card.year || '',
+        card.set || '',
+        card.grade || 'RAW',
+        card.sport || 'Unknown',
+        `$${Number(card.costBasis || 0).toFixed(2)}`,
+        `$${Number(card.marketValue || 0).toFixed(2)}`,
+        `$${Number(card.unrealizedGain || 0).toFixed(2)}`,
+        String(card.status || 'unlisted').toUpperCase()
+      ])
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 34,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      })
+
+      doc.save(`RSL_Inventory_Export_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err) {
+      console.error('Failed to export PDF:', err)
+    } finally {
+      setIsExportingPdf(false)
+    }
   }
 
   if (!isHydrated || (isLoading && !listData)) {
@@ -59,7 +169,10 @@ export default function InventoryPage() {
       <div className="space-y-6">
         <InventoryHeader
           onAddItem={() => {}}
-          onOpenImportTool={() => {}}
+          onDownloadExcel={handleDownloadExcel}
+          onDownloadPdf={handleDownloadPdf}
+          isExportingExcel={isExportingExcel}
+          isExportingPdf={isExportingPdf}
         />
 
         <InventoryMetrics

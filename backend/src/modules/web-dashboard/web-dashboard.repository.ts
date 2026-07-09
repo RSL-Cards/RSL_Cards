@@ -225,6 +225,28 @@ export class WebDashboardRepository {
     };
   }
 
+  async getInventoryExport(userId: string) {
+    const items = await db.execute(sql`
+      SELECT 
+        i.id,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.sport,
+        i.cost_basis,
+        i.current_market_value as market_value,
+        (COALESCE(i.current_market_value, 0) - i.cost_basis) as unrealized_gain,
+        i.listing_status as status,
+        i.added_at,
+        p.name as player_name
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      WHERE i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')
+      ORDER BY i.added_at DESC
+    `);
+    return items.rows;
+  }
+
   async getInventoryCounts(userId: string) {
     const result = await db.execute(sql`
       SELECT 
