@@ -12,7 +12,7 @@ export default function AuthHeader({ copy }: AuthHeaderProps) {
           <img 
             src="/rslicon.jpeg" 
             alt="RSL Cards Logo" 
-            className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white"
+            className="h-10 w-10 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-gray-200"
           />
           <span className="font-bold text-gray-900 tracking-tight text-lg">RSL Cards</span>
         </div>

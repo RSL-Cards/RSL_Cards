@@ -54,7 +54,7 @@ export default function Sidebar() {
                 src="/rslicon.jpeg" 
                 alt="RSL Cards Logo" 
                 onError={() => setImgError(true)}
-                className="h-10 w-10 rounded-2xl object-cover shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"
+                className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"
               />
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 shadow-md ring-1 ring-indigo-500/30">
