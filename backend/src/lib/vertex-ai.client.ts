@@ -18,7 +18,7 @@ export class VertexAiClient {
    * Generates content from an image and prompt with timeout and retry logic.
    */
   async generateFromImage(
-    
+
     prompt: string,
     imageBase64: string,
     mimeType: string = "image/jpeg",
@@ -26,8 +26,8 @@ export class VertexAiClient {
   ) {
     // Timeout Promise
     if (!this.ai) {
-  throw new Error("Vertex AI is disabled.");
-}
+      throw new Error("Vertex AI is disabled.");
+    }
     const timeoutMs = 60000; // 60 seconds
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Vertex AI request timed out")), timeoutMs)
@@ -190,6 +190,108 @@ export class VertexAiClient {
   }
 
   /**
+   * Generates a conversational response with full multi-turn AI function calling / tools execution.
+   */
+  async generateChatWithTools(
+    systemInstruction: string,
+    history: any[],
+    message: string,
+    functionDeclarations: any[],
+    toolHandler: (functionName: string, args: any) => Promise<any>,
+    modelName: string = "gemini-3.1-flash-lite"
+  ) {
+    const timeoutMs = 90000; // 90 seconds for potential multi-turn function calling
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Vertex AI request with tools timed out")), timeoutMs)
+    );
+
+    try {
+      logger.info({ modelName, projectId: env.VERTEX_AI_PROJECT_ID, toolsCount: functionDeclarations.length }, "Sending chat request with tools to Vertex AI");
+
+      const contents: any[] = [
+        ...history,
+        { role: "user", parts: [{ text: message }] }
+      ];
+
+      const maxRounds = 6;
+      for (let round = 0; round < maxRounds; round++) {
+        const generationPromise = this.ai.models.generateContent({
+          model: modelName,
+          contents,
+          config: {
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            tools: functionDeclarations && functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
+            temperature: 0.2,
+            maxOutputTokens: 4096,
+            topP: 0.95,
+            seed: 0,
+          }
+        });
+
+        const result = await Promise.race([
+          generationPromise,
+          timeoutPromise,
+        ]);
+
+        if (result.functionCalls && result.functionCalls.length > 0) {
+          logger.info({ round, functionCalls: result.functionCalls.map((fc: any) => fc.name) }, "Model requested tool calls");
+
+          if (result.candidates?.[0]?.content) {
+            contents.push(result.candidates[0].content);
+          } else {
+            contents.push({
+              role: "model",
+              parts: result.functionCalls.map((fc: any) => ({ functionCall: fc }))
+            });
+          }
+
+          const functionResponseParts = [];
+          for (const fc of result.functionCalls) {
+            logger.info({ functionName: fc.name, args: fc.args }, "Executing AI function tool");
+            try {
+              const toolResult = await toolHandler(fc.name ?? "", fc.args || {});
+              functionResponseParts.push({
+                functionResponse: {
+                  name: fc.name,
+                  response: { result: toolResult }
+                }
+              });
+            } catch (err: any) {
+              logger.error({ functionName: fc.name, error: err.message }, "AI function tool execution error");
+              functionResponseParts.push({
+                functionResponse: {
+                  name: fc.name,
+                  response: { error: err.message || "Failed to execute function" }
+                }
+              });
+            }
+          }
+
+          contents.push({
+            role: "user",
+            parts: functionResponseParts
+          });
+          continue;
+        }
+
+        const responseText = result.text;
+        if (!responseText && round === maxRounds - 1) {
+          throw new Error("No text returned from Vertex AI after function calls");
+        }
+        if (responseText) {
+          logger.info({ modelName, round }, "Received final chat text response after function calls");
+          return responseText;
+        }
+      }
+
+      throw new Error("Exceeded maximum tool execution rounds without a text response");
+    } catch (error: any) {
+      logger.error({ error: error.message, stack: error.stack }, "Vertex AI chat with tools request failed");
+      throw error;
+    }
+  }
+
+  /**
    * Generates content using a prompt and an array of items with optional inline base64 images.
    */
   async filterListingsWithImages(
@@ -206,7 +308,7 @@ export class VertexAiClient {
       logger.info({ modelName, projectId: env.VERTEX_AI_PROJECT_ID, itemsCount: listings.length }, "Sending multi-modal filter request to Vertex AI");
 
       const parts: any[] = [{ text: prompt }];
-      
+
       for (const listing of listings) {
         parts.push({ text: `Listing ID: ${listing.id}\nTitle: ${listing.title}` });
         if (listing.imageBase64) {

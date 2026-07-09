@@ -120,14 +120,14 @@ function AiSummaryCard() {
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
         <Ionicons name="flash" size={16} color={COLORS.primary} style={{ marginRight: SPACING.xs }} />
         <Typography variant="label" color={COLORS.primaryLight}>
-          AI SUMMARY
+          RSL SUMMARY
         </Typography>
       </View>
       <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
         Keep stacking — your margins are solid
       </Typography>
       <Typography variant="body" color={COLORS.zinc400} style={{ lineHeight: 20 }}>
-        AI-powered deal analysis coming soon. Your buying patterns and profit
+        RSL-powered deal analysis coming soon. Your buying patterns and profit
         trends will be summarized here automatically.
       </Typography>
     </Surface>

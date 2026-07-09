@@ -57,8 +57,8 @@ export default function ActionQueue({
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-semibold text-gray-900">All caught up!</h3>
-            <p className="mt-1 max-w-xs text-xs text-gray-500">
-              There are currently no pending dealer actions or price adjustment recommendations from AI narratives.
+            <p className="mt-1 max-w-sm text-xs text-gray-400">
+              There are currently no pending dealer actions or price adjustment recommendations from RSL narratives.
             </p>
           </div>
         )}

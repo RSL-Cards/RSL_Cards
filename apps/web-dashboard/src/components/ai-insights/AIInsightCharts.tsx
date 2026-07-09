@@ -36,7 +36,7 @@ export default function AIInsightCharts({ compHistory, sportProfitMix }: AIInsig
             </div>
             <h3 className="text-sm font-semibold text-gray-900">No pricing trends available</h3>
             <p className="mt-1 max-w-sm text-xs text-gray-500">
-              Select an AI signal from the feed to view 30-day historical comp pricing trends and transaction volume.
+              Select an RSL signal from the feed to view 30-day historical comp pricing trends and transaction volume.
             </p>
           </div>
         ) : (

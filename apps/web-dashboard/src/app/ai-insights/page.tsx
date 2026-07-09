@@ -141,7 +141,7 @@ export default function AIInsightsPage() {
     return (
       <Shell>
         <div className="flex h-[50vh] items-center justify-center">
-          <p className="text-gray-500">Loading AI insights and market data...</p>
+          <p className="text-gray-500">Loading RSL insights and market data...</p>
         </div>
       </Shell>
     )

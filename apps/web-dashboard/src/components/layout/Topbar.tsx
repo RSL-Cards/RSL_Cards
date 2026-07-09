@@ -39,7 +39,7 @@ export default function Topbar() {
     if (pathname.startsWith('/listings')) return { title: 'Listings', subtitle: 'Cross-platform listings' }
     if (pathname.startsWith('/transactions')) return { title: 'Transactions', subtitle: 'Sales and purchases' }
     if (pathname.startsWith('/reports')) return { title: 'Reports', subtitle: 'Financials and analytics' }
-    if (pathname.startsWith('/ai-insights')) return { title: 'AI Insights', subtitle: 'Smart recommendations' }
+    if (pathname.startsWith('/ai-insights')) return { title: 'RSL Insights', subtitle: 'Smart recommendations' }
     if (pathname.startsWith('/tasks')) return { title: 'Tasks', subtitle: 'Background processing' }
     if (pathname.startsWith('/settings')) return { title: 'Settings', subtitle: 'Account and preferences' }
     return { title: 'Dashboard', subtitle: 'Home Overview' }

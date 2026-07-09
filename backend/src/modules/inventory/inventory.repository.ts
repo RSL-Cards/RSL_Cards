@@ -12,11 +12,14 @@ export class InventoryRepository {
       sport,
       grade,
       status,
+      search,
+      q,
       sort = "added_at",
       page = 1,
-      limit = 5,
-    } = query;
+      limit = 20,
+    } = query || {};
 
+    const searchTerm = search || q;
     const offset = (Number(page) - 1) * Number(limit);
 
     const result = await db.execute(sql`
@@ -27,16 +30,19 @@ export class InventoryRepository {
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
       ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
       ORDER BY i.${sql.raw(sort)} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
     `);
 
     const countResult = await db.execute(sql`
-      SELECT COUNT(*) as total FROM inventory 
-      WHERE user_id = ${userId}
-      ${sport ? sql`AND sport = ${sport}` : sql``}
-      ${grade ? sql`AND grade_key = ${grade}` : sql``}
-      ${status === 'available' ? sql`AND listing_status IN ('unlisted', 'listed')` : status ? sql`AND listing_status = ${status}` : sql``}
+      SELECT COUNT(*) as total FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.user_id = ${userId}
+      ${sport ? sql`AND i.sport = ${sport}` : sql``}
+      ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
+      ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
     `);
 
     return {

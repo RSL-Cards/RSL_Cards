@@ -49,7 +49,7 @@ export default function InventorySidePanel({
             className={actionClass}
           >
             <span>
-              <span className="block font-semibold text-gray-900">AI Column Mapping</span>
+              <span className="block font-semibold text-gray-900">RSL Column Mapping</span>
               <span className="text-sm text-gray-500">Map card, grade, cost, and platform</span>
             </span>
             <Sparkles className="h-4 w-4 text-amber-500" />

@@ -122,20 +122,112 @@ export class TransactionRepository {
     return { message: `Bulk sync offline transactions (array of localIds)` };
   }
 
-  async getTransactions(_userId: string, _query: any) {
-    return { message: `List all transactions. Query: type, channel, dateFrom, dateTo, page` };
+  async getTransactions(userId: string, query: any) {
+    const {
+      type,
+      channel,
+      search,
+      dateFrom,
+      dateTo,
+      page = 1,
+      limit = 20,
+    } = query || {};
+
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const result = await db.execute(sql`
+      SELECT 
+        t.id,
+        t.type,
+        t.channel,
+        t.player_name,
+        t.grade_key,
+        t.price,
+        t.cost_basis,
+        t.profit,
+        t.profit_pct,
+        t.payment_method,
+        t.deal_rating,
+        t.comp_price_at_time,
+        t.created_at,
+        i.photos as inventory_photos
+      FROM transactions t
+      LEFT JOIN inventory i ON t.inventory_id = i.id
+      WHERE t.user_id = ${userId}
+      ${type ? sql`AND t.type = ${type}` : sql``}
+      ${channel ? sql`AND t.channel = ${channel}` : sql``}
+      ${search ? sql`AND (t.player_name ILIKE ${'%' + search + '%'} OR t.grade_key ILIKE ${'%' + search + '%'})` : sql``}
+      ${dateFrom ? sql`AND t.created_at >= ${dateFrom}::timestamptz` : sql``}
+      ${dateTo ? sql`AND t.created_at <= ${dateTo}::timestamptz` : sql``}
+      ORDER BY t.created_at DESC
+      LIMIT ${Number(limit)} OFFSET ${offset}
+    `);
+
+    const countResult = await db.execute(sql`
+      SELECT COUNT(*) as total FROM transactions t
+      WHERE t.user_id = ${userId}
+      ${type ? sql`AND t.type = ${type}` : sql``}
+      ${channel ? sql`AND t.channel = ${channel}` : sql``}
+      ${search ? sql`AND (t.player_name ILIKE ${'%' + search + '%'} OR t.grade_key ILIKE ${'%' + search + '%'})` : sql``}
+      ${dateFrom ? sql`AND t.created_at >= ${dateFrom}::timestamptz` : sql``}
+      ${dateTo ? sql`AND t.created_at <= ${dateTo}::timestamptz` : sql``}
+    `);
+
+    return {
+      items: result.rows,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: Number(countResult.rows[0]?.total || 0),
+      },
+    };
   }
 
-  async getTransactionsId(_userId: string, id: string) {
-    return { message: `Get single transaction detail for ${id}` };
+  async getTransactionsId(userId: string, id: string) {
+    const result = await db.execute(sql`
+      SELECT t.*, i.photos as inventory_photos, i.set_name, i.year, i.card_number
+      FROM transactions t
+      LEFT JOIN inventory i ON t.inventory_id = i.id
+      WHERE t.id = ${id} AND t.user_id = ${userId}
+      LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      throw new Error("Transaction not found");
+    }
+
+    return result.rows[0];
   }
 
-  async getTransactionsToday(_userId: string) {
-    return { message: `Today's stats: bought, sold, spent, revenue, net profit` };
+  async getTransactionsToday(userId: string) {
+    const rows = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE type = 'buy')                          AS cards_bought,
+        COUNT(*) FILTER (WHERE type = 'sell')                         AS cards_sold,
+        COALESCE(SUM(price) FILTER (WHERE type = 'buy'), 0)           AS total_spent,
+        COALESCE(SUM(price) FILTER (WHERE type = 'sell'), 0)          AS total_revenue,
+        COALESCE(SUM(profit) FILTER (WHERE type = 'sell'), 0)         AS net_profit
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND created_at >= CURRENT_DATE
+    `);
+    const r = (rows.rows[0] as any) ?? {};
+    return {
+      cards_bought: Number(r.cards_bought ?? 0),
+      cards_sold: Number(r.cards_sold ?? 0),
+      total_spent: parseFloat(r.total_spent ?? "0").toFixed(2),
+      total_revenue: parseFloat(r.total_revenue ?? "0").toFixed(2),
+      net_profit: parseFloat(r.net_profit ?? "0").toFixed(2),
+    };
   }
 
-  async getTransactionsCustomersCustomerId(_userId: string, customerId: string) {
-    return { message: `All transactions with a specific customer ${customerId}` };
+  async getTransactionsCustomersCustomerId(userId: string, customerId: string) {
+    const result = await db.execute(sql`
+      SELECT * FROM transactions
+      WHERE user_id = ${userId} AND customer_id = ${customerId}
+      ORDER BY created_at DESC
+    `);
+    return { items: result.rows, total: result.rows.length };
   }
 
   async getTransactionsExport(userId: string, query: any) {
@@ -166,7 +258,15 @@ export class TransactionRepository {
     return { rows: result.rows, total: result.rows.length };
   }
 
-  async deleteTransactionsId(_userId: string, id: string) {
-    return { message: `Delete/void a transaction ${id} (with reason)` };
+  async deleteTransactionsId(userId: string, id: string) {
+    const result = await db.execute(sql`
+      DELETE FROM transactions
+      WHERE id = ${id} AND user_id = ${userId}
+      RETURNING id
+    `);
+    if (result.rows.length === 0) {
+      throw new Error("Transaction not found or not owned by user");
+    }
+    return { success: true, id: result.rows[0].id };
   }
 }

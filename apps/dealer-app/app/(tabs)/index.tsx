@@ -260,10 +260,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── AI INSIGHT CARD ── */}
+        {/* ── RSL INSIGHT CARD ── */}
         <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
           <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
-            AI INSIGHT
+            RSL INSIGHT
           </Typography>
           <Surface variant="elevated" padding="lg" style={{ borderLeftWidth: 3, borderLeftColor: COLORS.primary }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
