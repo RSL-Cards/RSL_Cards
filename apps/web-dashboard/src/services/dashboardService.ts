@@ -7,14 +7,26 @@ async function dashboardRequest<TResponse>(path: string) {
 }
 
 export const dashboardService = {
-  getMetrics() {
-    return dashboardRequest<any>(ENDPOINTS.webDashboard.metrics)
+  getMetrics(from?: string, to?: string) {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return dashboardRequest<any>(`${ENDPOINTS.webDashboard.metrics}${qs}`)
   },
-  getRevenueChart() {
-    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.revenueChart)
+  getRevenueChart(from?: string, to?: string) {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return dashboardRequest<any[]>(`${ENDPOINTS.webDashboard.revenueChart}${qs}`)
   },
-  getChannelData() {
-    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.channelData)
+  getChannelData(from?: string, to?: string) {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return dashboardRequest<any[]>(`${ENDPOINTS.webDashboard.channelData}${qs}`)
   },
   getInventory(page: number = 1, limit: number = 20, search?: string) {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) })
@@ -30,8 +42,12 @@ export const dashboardService = {
   getTopMovers() {
     return dashboardRequest<any[]>(ENDPOINTS.webDashboard.topMovers)
   },
-  getRecentTransactions() {
-    return dashboardRequest<any[]>(ENDPOINTS.webDashboard.recentTransactions)
+  getRecentTransactions(from?: string, to?: string) {
+    const params = new URLSearchParams()
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return dashboardRequest<any[]>(`${ENDPOINTS.webDashboard.recentTransactions}${qs}`)
   },
   getAiInsights() {
     return dashboardRequest<any[]>(ENDPOINTS.webDashboard.aiInsights)

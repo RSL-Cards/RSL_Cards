@@ -46,23 +46,31 @@ export default function Sidebar() {
       }`}
     >
       {/* Logo */}
-      <div className="p-5 border-b border-gray-100">
+      <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            <img 
-              src="/rslicon.jpeg" 
-              alt="RSL Cards Logo" 
-              className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white"
-            />
+            {!imgError ? (
+              <img 
+                src="/rslicon.jpeg" 
+                alt="RSL Cards Logo" 
+                onError={() => setImgError(true)}
+                className="h-10 w-10 rounded-2xl object-cover shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 shadow-md ring-1 ring-indigo-500/30">
+                <span className="font-extrabold tracking-tighter text-white text-base">RSL</span>
+              </div>
+            )}
           </div>
 
           {!collapsed && (
-            <div className="flex-1">
-              <div className="text-gray-900 font-semibold text-sm">
-                Dealer Dashboard
+            <div className="flex-1 overflow-hidden">
+              <div className="text-gray-900 font-extrabold text-base tracking-tight leading-none flex items-center gap-1.5">
+                <span>RSL</span>
+                <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 border border-indigo-100">PRO</span>
               </div>
-              <div className="text-gray-500 text-xs">
-                by RSL Cards
+              <div className="text-gray-400 font-medium text-[11px] tracking-wider uppercase mt-1">
+                Dealer Portal
               </div>
             </div>
           )}
