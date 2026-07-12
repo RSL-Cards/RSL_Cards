@@ -69,7 +69,8 @@ export class UserRepository {
         u.id, u.email, u.role,
         dp.display_name, dp.bio, dp.phone, dp.photo_url,
         dp.sports, dp.sell_channels, dp.subscription_plan,
-        dp.custom_url, dp.is_public
+        dp.custom_url, dp.is_public, dp.rating, dp.review_count,
+        dp.follower_count, dp.notification_preferences
       FROM users u
       LEFT JOIN dealer_profiles dp ON dp.user_id = u.id
       WHERE u.id = ${userId}
@@ -96,6 +97,16 @@ export class UserRepository {
       subscriptionPlan: r.subscription_plan ?? "free",
       customUrl: r.custom_url ?? null,
       isPublic: r.is_public ?? true,
+      rating: r.rating,
+      reviewCount: r.review_count,
+      followerCount: r.follower_count,
+      notificationPreferences: r.notification_preferences || {
+        priceSpikes: { push: true, email: true },
+        inventoryAging: { push: false, email: true },
+        failedSync: { push: true, email: false },
+        newSales: { push: true, email: true },
+        weeklyReport: { push: false, email: true }
+      },
       paymentMethods: pmRows.map((m: any) => ({
         id: m.id,
         type: m.type,
@@ -115,6 +126,7 @@ export class UserRepository {
       photoUrl?: string;
       sports?: string[];
       sellChannels?: string[];
+      notificationPreferences?: any;
       paymentMethods?: { type: string; handle: string }[];
     },
   ) {
@@ -129,6 +141,8 @@ export class UserRepository {
       if (body.sports !== undefined) updates.sports = body.sports;
       if (body.sellChannels !== undefined)
         updates.sellChannels = body.sellChannels;
+      if (body.notificationPreferences !== undefined)
+        updates.notificationPreferences = body.notificationPreferences;
 
       await tx
         .update(dealerProfiles as any)

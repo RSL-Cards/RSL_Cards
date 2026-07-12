@@ -1,5 +1,4 @@
 import { Stack, useRouter, useSegments } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -65,9 +64,8 @@ export default function RootLayout() {
 
   return (
     <QueryProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
-        <SafeAreaProvider>
-          <StatusBar style="light" />
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: COLORS.background }}>
+        <StatusBar style="light" />
           <GlobalSSEProvider>
             <AuthGuard>
               <Stack
@@ -115,8 +113,7 @@ export default function RootLayout() {
           {isAuthenticated && <AskRslFab onPress={() => setIsAssistantOpen(true)} />}
           {isAuthenticated && <AssistantModal visible={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />}
           <Toast config={toastConfig} />
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+      </SafeAreaProvider>
     </QueryProvider>
   );
 }

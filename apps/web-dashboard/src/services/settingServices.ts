@@ -19,6 +19,13 @@ export interface UserProfile {
   customUrl: string | null
   isPublic?: boolean
   paymentMethods?: { type: string; handle: string }[]
+  notificationPreferences?: {
+    priceSpikes: { push: boolean, email: boolean },
+    inventoryAging: { push: boolean, email: boolean },
+    failedSync: { push: boolean, email: boolean },
+    newSales: { push: boolean, email: boolean },
+    weeklyReport: { push: boolean, email: boolean }
+  }
 }
 
 export interface PaymentMethod {

@@ -85,6 +85,26 @@ export default function SettingsPage() {
   //   }, {})
   // )
   const [notifications, setNotifications] = useState(notificationDefaults)
+
+  // Map profile.notificationPreferences to the notifications array when profile loads
+  useEffect(() => {
+    if (profile?.notificationPreferences) {
+      setNotifications((current) => current.map(notif => {
+        const prefKey = notif.id === 'price_spikes' ? 'priceSpikes' :
+                        notif.id === 'aging_inventory' ? 'inventoryAging' :
+                        notif.id === 'failed_sync' ? 'failedSync' :
+                        notif.id === 'new_sales' ? 'newSales' :
+                        notif.id === 'weekly_report' ? 'weeklyReport' : null;
+        
+        if (prefKey && profile.notificationPreferences) {
+          // A notification is enabled if either push or email is true
+          const pref = profile.notificationPreferences[prefKey as keyof typeof profile.notificationPreferences];
+          return { ...notif, enabled: pref.push || pref.email };
+        }
+        return notif;
+      }));
+    }
+  }, [profile?.notificationPreferences]);
   const [listingDefaults, setListingDefaults] = useState({
     platform: 'eBay',
     pricingMode: 'Auto optimize by platform fees',
@@ -187,11 +207,35 @@ export default function SettingsPage() {
 
   const saveSettings = async () => {
     try {
+      const notificationPreferences = {
+        priceSpikes: { 
+          push: notifications.find(n => n.id === 'price_spikes')?.enabled ?? true,
+          email: notifications.find(n => n.id === 'price_spikes')?.enabled ?? true,
+        },
+        inventoryAging: {
+          push: false, // UI says Email only
+          email: notifications.find(n => n.id === 'aging_inventory')?.enabled ?? true,
+        },
+        failedSync: {
+          push: notifications.find(n => n.id === 'failed_sync')?.enabled ?? true,
+          email: false, // UI says Push only
+        },
+        newSales: {
+          push: notifications.find(n => n.id === 'new_sales')?.enabled ?? true,
+          email: notifications.find(n => n.id === 'new_sales')?.enabled ?? true,
+        },
+        weeklyReport: {
+          push: false, // UI says Email only
+          email: notifications.find(n => n.id === 'weekly_report')?.enabled ?? false,
+        }
+      };
+
       await updateProfile({
         displayName: account.displayName,
         customUrl: account.customUrl,
         sports: account.sports,
         paymentMethods: account.paymentMethods.filter(pm => pm.handle.trim() !== ''),
+        notificationPreferences,
       })
 
       setSaveMessage('Profile updated successfully.')

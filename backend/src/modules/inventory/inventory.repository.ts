@@ -95,7 +95,49 @@ export class InventoryRepository {
       throw new Error("Inventory item not found");
     }
 
-    return result.rows[0];
+    const item = result.rows[0];
+
+    if (item.variant_id && item.grade_key) {
+      const soldListings = await db.execute(sql`
+        SELECT * FROM platform_sold_listings 
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY sold_at DESC LIMIT 20
+      `);
+
+      const activeListings = await db.execute(sql`
+        SELECT * FROM platform_active_listings 
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY price ASC LIMIT 20
+      `);
+
+      const mappedSold = soldListings.rows.map(row => ({
+        itemId: row.platform_item_id,
+        title: row.title,
+        condition: row.condition,
+        soldPrice: { value: row.sold_price },
+        endDate: row.sold_at,
+        platform: row.platform
+      }));
+
+      const mappedActive = activeListings.rows.map(row => ({
+        itemId: row.platform_item_id,
+        title: row.title,
+        condition: row.condition,
+        price: { value: row.price },
+        itemWebUrl: row.item_web_url,
+        image: { imageUrl: row.image_url },
+        platform: row.platform
+      }));
+
+      item.ebay_sales_completed = JSON.stringify(mappedSold);
+      item.ebay_active_listings = JSON.stringify(mappedActive);
+    }
+    
+    // Calculate days_held on backend to guarantee sync with web-dashboard
+    const addedAtTime = item.added_at ? new Date(item.added_at as string | number).getTime() : Date.now();
+    item.days_held = Math.floor((Date.now() - addedAtTime) / (1000 * 60 * 60 * 24));
+
+    return item;
   }
 
   async postInventory(body: any, userId: string) {

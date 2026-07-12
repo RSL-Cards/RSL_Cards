@@ -1,7 +1,11 @@
 import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 import * as Device from "expo-device";
-import { Platform } from "react-native";
+import { Platform, LogBox } from "react-native";
+
+LogBox.ignoreLogs([
+  "expo-notifications: Android Push notifications",
+]);
 
 let Notifications: any = null;
 try {

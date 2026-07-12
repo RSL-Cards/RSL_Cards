@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
-import Animated, { FadeInUp, FadeOutUp, Layout } from "react-native-reanimated";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated } from "react-native";
 import { useNotificationStore, NotificationEvent } from "../stores/useNotificationStore";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -31,12 +30,30 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
     }
   }, [notification, removeNotification]);
 
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
   return (
     <Animated.View
-      entering={FadeInUp.springify()}
-      exiting={FadeOutUp}
-      layout={Layout.springify()}
-      style={styles.toastContainer}
+      style={[
+        styles.toastContainer,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+      ]}
     >
       <View style={styles.iconContainer}>
         {getIcon(notification.type, notification.status)}

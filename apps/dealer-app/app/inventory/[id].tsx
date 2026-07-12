@@ -95,10 +95,11 @@ export default function CardDetailScreen() {
     costBasis > 0 && marketValue > 0
       ? Math.round(((marketValue - costBasis) / costBasis) * 100)
       : 0;
-  const _addedAtRaw = card.added_at ? new Date(card.added_at) : null;
+  const _addedAtStr = card.added_at ? String(card.added_at).replace(' ', 'T') : null;
+  const _addedAtRaw = _addedAtStr ? new Date(_addedAtStr) : null;
   const addedAt =
     _addedAtRaw && isValid(_addedAtRaw) ? _addedAtRaw : new Date();
-  const daysHeld = Math.floor((Date.now() - addedAt.getTime()) / 86400000);
+  const daysHeld = typeof card.days_held === 'number' ? card.days_held : Math.floor((Date.now() - addedAt.getTime()) / 86400000);
   const gainColor = unrealizedGain >= 0 ? "#00C853" : "#E8001C";
 
   const initials = (card.player_name ?? "?")
@@ -155,7 +156,7 @@ export default function CardDetailScreen() {
       color: "#888888",
     },
     {
-      label: "Market Value",
+      label: "Your Target Price",
       value: marketValue > 0 ? `$${marketValue.toFixed(2)}` : "—",
       color: "white",
     },
