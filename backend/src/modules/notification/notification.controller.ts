@@ -1,11 +1,25 @@
 import { NotificationService } from "./notification.service.js";
 import { sseEmitter } from "./sse.service.js";
+import { verifyToken } from "../../lib/jwt.js";
+import { env } from "../../config/index.js";
 
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 
   private getUserId(request: Request): string {
-    return request.headers.get("x-user-id") || "guest";
+    const headerUserId = request.headers.get("x-user-id");
+    if (headerUserId) return headerUserId;
+
+    try {
+      const url = new URL(request.url);
+      const token = url.searchParams.get("token");
+      if (token) {
+        const payload = verifyToken(token, env);
+        if (payload && payload.userId) return payload.userId;
+      }
+    } catch (e) {}
+
+    return "guest";
   }
 
   streamNotifications = ({ request }: { request: Request }) => {

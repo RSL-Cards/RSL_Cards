@@ -263,6 +263,7 @@ export default function SettingsPage() {
             {activeSection === 'account' && (
               <AccountSettingsSection
                 account={account}
+                profileId={profile?.id}
                 onAccountChange={setAccount}
                 onUploadAvatar={uploadAvatar}
               />

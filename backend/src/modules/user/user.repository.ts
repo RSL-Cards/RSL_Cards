@@ -109,6 +109,7 @@ export class UserRepository {
     userId: string,
     body: {
       displayName?: string;
+      customUrl?: string;
       bio?: string;
       phone?: string;
       photoUrl?: string;
@@ -121,6 +122,7 @@ export class UserRepository {
       const updates: Record<string, any> = { updatedAt: new Date() };
       if (body.displayName !== undefined)
         updates.displayName = body.displayName;
+      if (body.customUrl !== undefined) updates.customUrl = body.customUrl;
       if (body.bio !== undefined) updates.bio = body.bio;
       if (body.phone !== undefined) updates.phone = body.phone;
       if (body.photoUrl !== undefined) updates.photoUrl = body.photoUrl;

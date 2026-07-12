@@ -21,6 +21,7 @@ import { assistantModule } from "./modules/assistant/index.js";
 import { contactModule } from "./modules/contact/index.js";
 import { webDashboardModule } from "./modules/web-dashboard/index.js";
 import { batchRouter } from "./modules/batch/index.js";
+import { showcaseModule } from "./modules/showcase/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -88,6 +89,7 @@ const app = new Elysia()
       logger.info(`[TRACE ${traceId}] ◄── END ${ctx.request.method} ${urlPath} - ${status} (${duration}ms | CPU: ${cpuStr} | RSS: ${rssMb}MB | Heap: ${heapMb}MB)`);
     }
   })
+  .use(showcaseModule)
   .onBeforeHandle((ctx: any) => {
     const request = ctx.request;
     const authHeader = request.headers.get("authorization");
