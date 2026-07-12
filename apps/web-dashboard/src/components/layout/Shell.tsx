@@ -48,7 +48,7 @@ export default function Shell({ children }: ShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB]">
+    <div className="min-h-screen bg-[#F5F7FB] text-gray-900">
       <Sidebar />
       <div className="ml-64">
         <Topbar />

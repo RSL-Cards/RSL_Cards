@@ -1,4 +1,5 @@
 import { NotificationRepository } from "./notification.repository.js";
+import { sseService } from "./sse.service.js";
 
 export class NotificationService {
   constructor(private readonly repository: NotificationRepository) {}
@@ -8,7 +9,9 @@ export class NotificationService {
   }
 
   async sendNotification(userId: string, title: string, body: string, type: string, data?: any) {
-    return this.repository.sendNotification(userId, title, body, type, data);
+    const notification = await this.repository.sendNotification(userId, title, body, type, data);
+    await sseService.publish(userId, notification);
+    return notification;
   }
 
   async getNotifications(userId: string) {

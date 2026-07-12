@@ -4,7 +4,7 @@ import { TOP_MOVERS, AI_INSIGHTS } from "./mockData.js";
 export class WebDashboardService {
   constructor(private readonly repository: WebDashboardRepository) {}
 
-  async getMetrics(userId: string) {
+  async getMetrics(userId: string, fromDate?: string, toDate?: string) {
     const {
       todayTx,
       todayBuys,
@@ -14,7 +14,7 @@ export class WebDashboardService {
       monthTx,
       monthBuys,
       activeInvStats
-    } = await this.repository.getMetrics(userId);
+    } = await this.repository.getMetrics(userId, fromDate, toDate);
 
     const t = todayTx;
     const tb = todayBuys;
@@ -64,8 +64,8 @@ export class WebDashboardService {
     };
   }
 
-  async getRevenueChart(userId: string) {
-    const rows = await this.repository.getRevenueChart(userId);
+  async getRevenueChart(userId: string, fromDate?: string, toDate?: string) {
+    const rows = await this.repository.getRevenueChart(userId, fromDate, toDate);
     return rows.map(row => ({
       date: row.date_label,
       revenue: Number(row.revenue),
@@ -73,8 +73,8 @@ export class WebDashboardService {
     }));
   }
 
-  async getChannelData(userId: string) {
-    const rows = await this.repository.getChannelData(userId);
+  async getChannelData(userId: string, fromDate?: string, toDate?: string) {
+    const rows = await this.repository.getChannelData(userId, fromDate, toDate);
     const colorMap: Record<string, string> = {
       'card_show': '#3B82F6',
       'ebay': '#60A5FA',
@@ -135,6 +135,24 @@ export class WebDashboardService {
       limit,
       totalPages: Math.ceil(total / limit)
     };
+  }
+
+  async getInventoryExport(userId: string) {
+    const rows = await this.repository.getInventoryExport(userId);
+    return rows.map((row: any) => ({
+      id: row.id,
+      player: row.player_name || 'Unknown',
+      year: row.year || '',
+      set: row.set_name || '',
+      grade: String(row.grade_key || 'RAW').replace('_', ' '),
+      sport: row.sport || 'Unknown',
+      costBasis: Number(row.cost_basis || 0),
+      marketValue: Number(row.market_value || 0),
+      unrealizedGain: Number(row.unrealized_gain || 0),
+      gainPct: row.cost_basis ? ((Number(row.market_value || 0) - Number(row.cost_basis)) / Number(row.cost_basis) * 100).toFixed(1) + '%' : '0%',
+      status: row.status || 'unlisted',
+      addedAt: row.added_at ? new Date(row.added_at as string | number | Date).toISOString().split('T')[0] : ''
+    }));
   }
 
   async getInventoryCounts(userId: string) {
@@ -212,10 +230,11 @@ export class WebDashboardService {
     return this.repository.getAffectedInventory(userId, playerName);
   }
 
-  async getRecentTransactions(userId: string) {
-    const recent = await this.repository.getRecentTransactions(userId);
+  async getRecentTransactions(userId: string, fromDate?: string, toDate?: string) {
+    const recent = await this.repository.getRecentTransactions(userId, fromDate, toDate);
     return recent.map(tx => ({
       id: tx.id,
+      date: tx.createdAt || new Date().toISOString(),
       type: tx.type,
       player: tx.playerName || 'Unknown',
       grade: tx.gradeKey?.replace('_', ' ') || 'RAW',

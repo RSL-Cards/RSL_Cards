@@ -10,7 +10,7 @@ export default function OnboardingLayout({ children }: { children: ReactNode }) 
           <img 
             src="/rslicon.jpeg" 
             alt="RSL Cards Logo" 
-            className="h-8 w-8 rounded-lg object-contain shadow-sm bg-white"
+            className="h-8 w-8 rounded-lg bg-white object-contain p-0.5 shadow-sm ring-1 ring-gray-200"
           />
           <span className="font-bold text-gray-900 tracking-tight">RSL Cards</span>
         </div>

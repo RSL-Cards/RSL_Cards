@@ -21,13 +21,16 @@ import { assistantModule } from "./modules/assistant/index.js";
 import { contactModule } from "./modules/contact/index.js";
 import { webDashboardModule } from "./modules/web-dashboard/index.js";
 import { batchRouter } from "./modules/batch/index.js";
+import { showcaseModule } from "./modules/showcase/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
 import { promMetrics, getPrometheusOutput } from "./lib/metrics.js";
 
 const app = new Elysia()
+  // @ts-ignore
   .use(cors())
+  // @ts-ignore
   .use(swagger())
   .use(errorMiddleware)
   // Advanced HTTP Request & Response Observability & Trace Logging Middleware
@@ -86,6 +89,7 @@ const app = new Elysia()
       logger.info(`[TRACE ${traceId}] ◄── END ${ctx.request.method} ${urlPath} - ${status} (${duration}ms | CPU: ${cpuStr} | RSS: ${rssMb}MB | Heap: ${heapMb}MB)`);
     }
   })
+  .use(showcaseModule)
   .onBeforeHandle((ctx: any) => {
     const request = ctx.request;
     const authHeader = request.headers.get("authorization");
@@ -93,9 +97,18 @@ const app = new Elysia()
     const urlPath = (ctx as any).urlPath || request.url;
     const startTime = (ctx as any).requestStartTime || Date.now();
 
+    let token = "";
     if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
+    } else {
       try {
-        const token = authHeader.slice(7);
+        const url = new URL(request.url);
+        token = url.searchParams.get("token") || "";
+      } catch (e) {}
+    }
+
+    if (token) {
+      try {
         const payload = verifyToken(token, env);
         if (payload && payload.userId) {
           const userId = payload.userId;

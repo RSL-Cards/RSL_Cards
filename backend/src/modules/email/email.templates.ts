@@ -38,6 +38,14 @@ type DeliveryStatusInput = {
   trackingUrl?: string | null;
 };
 
+type NotificationAlertInput = {
+  displayName?: string | null;
+  alertTitle: string;
+  alertBody: string;
+  actionUrl?: string | null;
+  actionText?: string | null;
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -178,23 +186,56 @@ export const emailTemplates = {
   },
 
   deliveryStatus(input: DeliveryStatusInput): EmailTemplateResult {
-    const subject = `Delivery update for ${input.orderId}`;
-    const tracking = input.trackingNumber ? `\nTracking: ${input.trackingNumber}` : "";
-    const text = `${input.displayName ? `Hi ${input.displayName},` : "Hi,"}\n\nDelivery status for order ${input.orderId}: ${input.status}${tracking}${input.trackingUrl ? `\nTrack shipment: ${input.trackingUrl}` : ""}`;
+    const subject = `Update on your order #${input.orderId}`;
+    
+    const text = `${greeting(input.displayName)}\n\nThe status of your order #${input.orderId} is now: ${input.status}.${
+      input.trackingNumber ? `\nTracking Number: ${input.trackingNumber}` : ""
+    }${
+      input.trackingUrl ? `\nTrack your package: ${input.trackingUrl}` : ""
+    }\n\nThanks,\nThe RSL Cards Team`;
+
     const html = baseTemplate(
-      subject,
-      "Your RSL Cards delivery status has changed.",
+      "Delivery Status Update",
+      `Update on order #${input.orderId}`,
       `
-        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;">Delivery update</h1>
-        <p style="margin:0 0 16px;color:#374151;line-height:24px;">${greeting(input.displayName)}</p>
-        <p style="margin:0 0 10px;color:#374151;line-height:24px;">Order <strong>${escapeHtml(input.orderId)}</strong> is now <strong>${escapeHtml(input.status)}</strong>.</p>
+        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;">Order Update</h1>
+        <p style="margin:0 0 24px;color:#374151;line-height:24px;">The status of your order <strong>#${escapeHtml(input.orderId)}</strong> is now: <strong>${escapeHtml(input.status)}</strong>.</p>
         ${
           input.trackingNumber
-            ? `<p style="margin:0 0 24px;color:#374151;line-height:24px;">Tracking number: <strong>${escapeHtml(input.trackingNumber)}</strong></p>`
+            ? `<p style="margin:0 0 16px;color:#374151;line-height:24px;">Tracking Number: <strong>${escapeHtml(input.trackingNumber)}</strong></p>`
             : ""
         }
-        ${input.trackingUrl ? button(input.trackingUrl, "Track Delivery") : ""}
-      `,
+        ${
+          input.trackingUrl
+            ? button(input.trackingUrl, "Track Package")
+            : ""
+        }
+      `
+    );
+
+    return { subject, html, text };
+  },
+
+  notificationAlert(input: NotificationAlertInput): EmailTemplateResult {
+    const subject = input.alertTitle;
+    
+    const text = `${greeting(input.displayName)}\n\n${input.alertBody}${
+      input.actionUrl ? `\n\n${input.actionText || "View Details"}: ${input.actionUrl}` : ""
+    }\n\nManage your notification preferences in the RSL Cards app settings.\nThanks,\nThe RSL Cards Team`;
+
+    const html = baseTemplate(
+      input.alertTitle,
+      "RSL Cards Alert",
+      `
+        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;">${escapeHtml(input.alertTitle)}</h1>
+        <p style="margin:0 0 24px;color:#374151;line-height:24px;white-space:pre-wrap;">${escapeHtml(input.alertBody)}</p>
+        ${
+          input.actionUrl
+            ? button(input.actionUrl, input.actionText || "View Details")
+            : ""
+        }
+        <p style="margin-top:24px;color:#6b7280;font-size:12px;">You can manage your notification preferences in your RSL Cards account settings.</p>
+      `
     );
 
     return { subject, html, text };

@@ -116,6 +116,34 @@ export function useRefetchDashboardOnFocus() {
       };
       refetchIfStale(["analytics", "daily", userId]);
       refetchIfStale(["analytics", "today-activity", userId]);
+      refetchIfStale(["ai-insights", userId]);
     }, [queryClient, userId]),
   );
+}
+
+export interface AIInsight {
+  id: string;
+  type: "BREAKOUT" | "MOMENTUM" | "DECLINE";
+  player: string;
+  sport: string;
+  headline: string;
+  price_change: string;
+  price_range: string;
+  published: string;
+  affected_cards: number;
+  trend: "up" | "down";
+  recommendation: string;
+}
+
+export function useAiInsights() {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery<AIInsight[]>({
+    queryKey: ["ai-insights", userId],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/v1/web-dashboard/ai-insights");
+      return data ?? [];
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
 }

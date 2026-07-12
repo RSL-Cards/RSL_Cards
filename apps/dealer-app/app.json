@@ -49,7 +49,8 @@
           "microphonePermission": "Allow RSL Cards to access your microphone for voice queries.",
           "speechRecognitionPermission": "Allow RSL Cards to recognize your speech for voice queries."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "autolinkingModuleResolution": true

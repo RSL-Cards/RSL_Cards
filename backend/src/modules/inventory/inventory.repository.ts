@@ -12,11 +12,14 @@ export class InventoryRepository {
       sport,
       grade,
       status,
+      search,
+      q,
       sort = "added_at",
       page = 1,
-      limit = 5,
-    } = query;
+      limit = 20,
+    } = query || {};
 
+    const searchTerm = search || q;
     const offset = (Number(page) - 1) * Number(limit);
 
     const result = await db.execute(sql`
@@ -27,16 +30,19 @@ export class InventoryRepository {
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
       ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
       ORDER BY i.${sql.raw(sort)} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
     `);
 
     const countResult = await db.execute(sql`
-      SELECT COUNT(*) as total FROM inventory 
-      WHERE user_id = ${userId}
-      ${sport ? sql`AND sport = ${sport}` : sql``}
-      ${grade ? sql`AND grade_key = ${grade}` : sql``}
-      ${status === 'available' ? sql`AND listing_status IN ('unlisted', 'listed')` : status ? sql`AND listing_status = ${status}` : sql``}
+      SELECT COUNT(*) as total FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.user_id = ${userId}
+      ${sport ? sql`AND i.sport = ${sport}` : sql``}
+      ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
+      ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
     `);
 
     return {
@@ -89,7 +95,49 @@ export class InventoryRepository {
       throw new Error("Inventory item not found");
     }
 
-    return result.rows[0];
+    const item = result.rows[0];
+
+    if (item.variant_id && item.grade_key) {
+      const soldListings = await db.execute(sql`
+        SELECT * FROM platform_sold_listings 
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY sold_at DESC LIMIT 20
+      `);
+
+      const activeListings = await db.execute(sql`
+        SELECT * FROM platform_active_listings 
+        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        ORDER BY price ASC LIMIT 20
+      `);
+
+      const mappedSold = soldListings.rows.map(row => ({
+        itemId: row.platform_item_id,
+        title: row.title,
+        condition: row.condition,
+        soldPrice: { value: row.sold_price },
+        endDate: row.sold_at,
+        platform: row.platform
+      }));
+
+      const mappedActive = activeListings.rows.map(row => ({
+        itemId: row.platform_item_id,
+        title: row.title,
+        condition: row.condition,
+        price: { value: row.price },
+        itemWebUrl: row.item_web_url,
+        image: { imageUrl: row.image_url },
+        platform: row.platform
+      }));
+
+      item.ebay_sales_completed = JSON.stringify(mappedSold);
+      item.ebay_active_listings = JSON.stringify(mappedActive);
+    }
+    
+    // Calculate days_held on backend to guarantee sync with web-dashboard
+    const addedAtTime = item.added_at ? new Date(item.added_at as string | number).getTime() : Date.now();
+    item.days_held = Math.floor((Date.now() - addedAtTime) / (1000 * 60 * 60 * 24));
+
+    return item;
   }
 
   async postInventory(body: any, userId: string) {

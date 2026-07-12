@@ -95,6 +95,14 @@ export class BullMqAdapter {
         jobId: "generate_ai_insights_cron"
       });
       logger.info("🕒 Scheduled 'generate_ai_insights' cron job to run every 6 hours");
+
+      await this.queue.add("check_inventory_aging", {}, {
+        repeat: {
+          every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
+        },
+        jobId: "check_inventory_aging_cron"
+      });
+      logger.info("🕒 Scheduled 'check_inventory_aging' cron job to run every 12 hours");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

@@ -107,7 +107,7 @@ export default function SignalFeed({
             </div>
             <h3 className="text-base font-bold text-gray-900">No signals generated yet</h3>
             <p className="mt-1 max-w-sm text-xs text-gray-500">
-              We couldn&apos;t find any active AI market narratives or signals matching your current filter criteria. Try broadening your sport or confidence filters!
+              We couldn&apos;t find any active RSL market narratives or signals matching your current filter criteria. Try broadening your sport or confidence filters!
             </p>
           </div>
         )}

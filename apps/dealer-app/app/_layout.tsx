@@ -1,8 +1,8 @@
 import { Stack, useRouter, useSegments } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { QueryProvider } from "../src/providers/QueryProvider";
 import Toast from "react-native-toast-message";
 import { useAuthStore } from "../src/stores/authStore";
@@ -10,6 +10,7 @@ import { useAuthStore } from "../src/stores/authStore";
 import { toastConfig } from "../src/components/ToastConfig";
 import { AskRslFab } from "../src/components/assistant/AskRslFab";
 import { AssistantModal } from "../src/components/assistant/AssistantModal";
+import { GlobalSSEProvider } from "../src/components/GlobalSSEProvider";
 import { COLORS } from "../src/constants/theme";
 import {
   useFonts,
@@ -64,9 +65,9 @@ export default function RootLayout() {
 
   return (
     <QueryProvider>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
-        <SafeAreaProvider>
-          <StatusBar style="light" />
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: COLORS.background }}>
+        <StatusBar style="light" />
+        <GlobalSSEProvider>
           <AuthGuard>
             <Stack
               screenOptions={{
@@ -109,11 +110,11 @@ export default function RootLayout() {
               />
             </Stack>
           </AuthGuard>
-          {isAuthenticated && <AskRslFab onPress={() => setIsAssistantOpen(true)} />}
-          {isAuthenticated && <AssistantModal visible={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />}
-          <Toast config={toastConfig} />
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+        </GlobalSSEProvider>
+        {isAuthenticated && <AskRslFab onPress={() => setIsAssistantOpen(true)} />}
+        {isAuthenticated && <AssistantModal visible={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />}
+        <Toast config={toastConfig} />
+      </SafeAreaProvider>
     </QueryProvider>
   );
 }

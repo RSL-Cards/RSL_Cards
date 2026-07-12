@@ -53,6 +53,8 @@ jobs:
       - name: Type-check backend
         run: bun run type-check
         working-directory: backend
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Job 2: Backend Tests

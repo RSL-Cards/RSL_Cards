@@ -13,15 +13,24 @@ export class WebDashboardController {
   }
 
   getMetrics = async ({ request }: { request: Request }) => {
-    return await this.service.getMetrics(this.getUserId(request));
+    const url = new URL(request.url);
+    const fromDate = url.searchParams.get("from") || undefined;
+    const toDate = url.searchParams.get("to") || undefined;
+    return await this.service.getMetrics(this.getUserId(request), fromDate, toDate);
   };
 
   getRevenueChart = async ({ request }: { request: Request }) => {
-    return await this.service.getRevenueChart(this.getUserId(request));
+    const url = new URL(request.url);
+    const fromDate = url.searchParams.get("from") || undefined;
+    const toDate = url.searchParams.get("to") || undefined;
+    return await this.service.getRevenueChart(this.getUserId(request), fromDate, toDate);
   };
 
   getChannelData = async ({ request }: { request: Request }) => {
-    return await this.service.getChannelData(this.getUserId(request));
+    const url = new URL(request.url);
+    const fromDate = url.searchParams.get("from") || undefined;
+    const toDate = url.searchParams.get("to") || undefined;
+    return await this.service.getChannelData(this.getUserId(request), fromDate, toDate);
   };
 
   getInventory = async ({ request }: { request: Request }) => {
@@ -30,6 +39,10 @@ export class WebDashboardController {
     const limit = parseInt(url.searchParams.get("limit") || "20", 10);
     const search = url.searchParams.get("search") || undefined;
     return await this.service.getInventory(this.getUserId(request), page, limit, search);
+  };
+
+  exportInventory = async ({ request }: { request: Request }) => {
+    return await this.service.getInventoryExport(this.getUserId(request));
   };
 
   getInventoryCounts = async ({ request }: { request: Request }) => {
@@ -55,7 +68,10 @@ export class WebDashboardController {
   };
 
   getRecentTransactions = async ({ request }: { request: Request }) => {
-    return await this.service.getRecentTransactions(this.getUserId(request));
+    const url = new URL(request.url);
+    const fromDate = url.searchParams.get("from") || undefined;
+    const toDate = url.searchParams.get("to") || undefined;
+    return await this.service.getRecentTransactions(this.getUserId(request), fromDate, toDate);
   };
 
   getPortfolioSnapshot = async ({ request }: { request: Request }) => {

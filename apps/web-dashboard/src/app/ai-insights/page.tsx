@@ -13,6 +13,7 @@ import { InsightType, RecommendationFilter } from '@/components/ai-insights/aiIn
 import { insightConfidence, insightUrgency } from '@/components/ai-insights/aiInsightsUtils'
 import Shell from '@/components/layout/Shell'
 import { useAiInsights, useTopMovers, useAffectedInventory, useCompHistory, useSportProfitMix } from '@/hooks/dashboard/useDashboard'
+import { AlertCircle } from 'lucide-react'
 
 export default function AIInsightsPage() {
   const { data: insightsData, isLoading: insightsLoading } = useAiInsights()
@@ -141,7 +142,7 @@ export default function AIInsightsPage() {
     return (
       <Shell>
         <div className="flex h-[50vh] items-center justify-center">
-          <p className="text-gray-500">Loading AI insights and market data...</p>
+          <p className="text-gray-500">Loading RSL insights and market data...</p>
         </div>
       </Shell>
     )
@@ -154,6 +155,13 @@ export default function AIInsightsPage() {
           alertsEnabled={alertsEnabled}
           onToggleAlerts={() => setAlertsEnabled((current) => !current)}
         />
+
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800 shadow-sm">
+          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+          <div>
+            <span className="font-semibold">Disclaimer:</span> This information is gathered from market signals and may not be 100% accurate. It is presented as-is for informational purposes.
+          </div>
+        </div>
 
         <AIInsightsMetrics metrics={metrics} />
 

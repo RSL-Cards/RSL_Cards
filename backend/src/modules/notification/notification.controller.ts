@@ -1,11 +1,51 @@
 import { NotificationService } from "./notification.service.js";
+import { sseEmitter } from "./sse.service.js";
+import { verifyToken } from "../../lib/jwt.js";
+import { env } from "../../config/index.js";
+import { Stream } from "@elysiajs/stream";
 
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 
   private getUserId(request: Request): string {
-    return request.headers.get("x-user-id") || "guest";
+    const headerUserId = request.headers.get("x-user-id");
+    if (headerUserId) return headerUserId;
+
+    try {
+      const url = new URL(request.url);
+      const token = url.searchParams.get("token");
+      if (token) {
+        const payload = verifyToken(token, env);
+        if (payload && payload.userId) return payload.userId;
+      }
+    } catch (e) {}
+
+    return "guest";
   }
+
+  streamNotifications = ({ request }: { request: Request }) => {
+    const userId = this.getUserId(request);
+    if (userId === "guest") {
+      throw new Error("Authentication is required for SSE");
+    }
+
+    return new Stream((stream) => {
+      // Send an initial event so the client knows it connected
+      stream.event = "connected";
+      stream.send({ status: "connected" });
+      
+      const listener = (data: any) => {
+        stream.send(data);
+      };
+
+      sseEmitter.on(`notification:${userId}`, listener);
+
+      request.signal.addEventListener("abort", () => {
+        sseEmitter.off(`notification:${userId}`, listener);
+        stream.close();
+      });
+    });
+  };
 
   registerToken = async ({ request }: { request: Request }) => {
     const userId = this.getUserId(request);

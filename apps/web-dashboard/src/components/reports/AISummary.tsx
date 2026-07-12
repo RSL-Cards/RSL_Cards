@@ -31,7 +31,7 @@ export default function AISummary({
     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <BrainCircuit className="h-5 w-5 text-blue-600" />
-        <h2 className="text-xl font-bold text-gray-900">AI Summary</h2>
+        <h2 className="text-xl font-bold text-gray-900">RSL Summary</h2>
       </div>
       <div className="space-y-4">
         <p className="text-sm leading-6 text-gray-500">

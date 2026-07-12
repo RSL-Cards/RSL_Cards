@@ -31,6 +31,5 @@ export function useBatchJobs({ page = 1, limit = 10, fromDate, toDate }: UseBatc
       })
       return data
     },
-    refetchInterval: 5000,
   })
 }

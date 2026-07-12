@@ -240,49 +240,18 @@ export default function BuyScanScreen() {
                 )}
               </View>
 
-              <View style={styles.modeToggleRow}>
-                <TouchableOpacity
-                  style={[styles.modeToggleBtn, scanMode === "single" && styles.modeToggleBtnActive]}
-                  onPress={() => setScanMode("single")}
-                >
-                  <Text style={[styles.modeToggleText, scanMode === "single" && styles.modeToggleTextActive]}>Single Scan</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modeToggleBtn, scanMode === "multi" && styles.modeToggleBtnActive]}
-                  onPress={() => setScanMode("multi")}
-                >
-                  <Text style={[styles.modeToggleText, scanMode === "multi" && styles.modeToggleTextActive]}>Multi-Scan</Text>
-                </TouchableOpacity>
-              </View>
-
               <TouchableOpacity
                 style={[
                   styles.primaryBtn,
-                  (isScanning || isScanningBarcode || isBatchScanning) && styles.disabledBtn,
+                  (isScanning || isScanningBarcode) && styles.disabledBtn,
                 ]}
                 onPress={handleCapture}
                 activeOpacity={0.85}
-                disabled={isScanning || isScanningBarcode || isBatchScanning}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isScanning || isBatchScanning ? "Scanning..." : (scanMode === "single" ? "Capture Card" : "Capture Multiple Cards")}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.uploadBtn}
-                onPress={handleFileUpload}
-                disabled={isUploading}
-              >
-                <Ionicons name="document-text-outline" size={20} color="#0057FF" style={{marginRight: 8}} />
-                <Text style={styles.uploadBtnText}>{isUploading ? "Uploading..." : "Upload File (CSV/TXT)"}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.simulateBtn}
-                onPress={handleSimulateScan}
                 disabled={isScanning || isScanningBarcode}
               >
-                <Text style={styles.simulateText}>Simulate Scan (Debug)</Text>
+                <Text style={styles.primaryBtnText}>
+                  {isScanning ? "Scanning..." : "Capture Card"}
+                </Text>
               </TouchableOpacity>
             </>
           )}

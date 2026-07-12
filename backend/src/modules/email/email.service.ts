@@ -6,7 +6,8 @@ export type EmailTemplateName =
   | "emailVerification"
   | "passwordReset"
   | "orderConfirmation"
-  | "deliveryStatus";
+  | "deliveryStatus"
+  | "notificationAlert";
 
 type SendEmailInput = {
   to: string | string[];
@@ -172,6 +173,20 @@ const data: ResendResponse | null =
     },
   ) {
     const template = emailTemplates.deliveryStatus(input);
+    return this.sendEmail({ to, ...template });
+  }
+
+  async sendNotificationAlert(
+    to: string,
+    input: {
+      displayName?: string | null;
+      alertTitle: string;
+      alertBody: string;
+      actionUrl?: string | null;
+      actionText?: string | null;
+    },
+  ) {
+    const template = emailTemplates.notificationAlert(input);
     return this.sendEmail({ to, ...template });
   }
 

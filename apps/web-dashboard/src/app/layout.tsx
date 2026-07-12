@@ -1,9 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import './globals.css'
 import { QueryProvider } from '@/providers/QueryProvider'
+import { GlobalSSEProvider } from '@/components/layout/GlobalSSEProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+const outfit = Outfit({ 
+  subsets: ['latin'], 
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'RSL Cards - Dealer Dashboard',
@@ -17,8 +22,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <QueryProvider>{children}</QueryProvider>
+      <body className={`${outfit.className} antialiased bg-gray-50 text-gray-900 selection:bg-indigo-500 selection:text-white`}>
+        <QueryProvider>
+          <GlobalSSEProvider>
+            {children}
+          </GlobalSSEProvider>
+        </QueryProvider>
       </body>
     </html>
   )

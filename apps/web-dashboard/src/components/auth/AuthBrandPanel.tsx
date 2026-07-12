@@ -8,7 +8,7 @@ export default function AuthBrandPanel() {
           <img 
             src="/rslicon.jpeg" 
             alt="RSL Cards Logo" 
-            className="h-12 w-12 rounded-xl object-contain shadow-sm bg-white"
+            className="h-12 w-12 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-white/20"
           />
           <span className="font-bold text-white tracking-tight text-xl">RSL Cards</span>
         </div>
@@ -18,7 +18,7 @@ export default function AuthBrandPanel() {
             Dealer operations, without the clutter.
           </h1>
           <p className="mt-4 text-base leading-7 text-gray-300">
-            Manage inventory, listings, transactions, reports, and AI insights
+            Manage inventory, listings, transactions, reports, and RSL insights
             from a single dashboard.
           </p>
         </div>

@@ -5,12 +5,14 @@ import Image from 'next/image'
 
 interface AccountSettingsSectionProps {
   account: AccountSettings
+  profileId?: string
   onAccountChange: (account: AccountSettings) => void
   onUploadAvatar?: (file: File) => Promise<string>
 }
 
 export default function AccountSettingsSection({
   account,
+  profileId,
   onAccountChange,
   onUploadAvatar,
 }: AccountSettingsSectionProps) {
@@ -92,13 +94,40 @@ export default function AccountSettingsSection({
         </label>
         <label className="text-sm font-medium text-gray-600">
           Custom URL
-          <div className="mt-2 flex overflow-hidden rounded-xl border border-gray-200 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-            <span className="border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400">rslcards.com/</span>
-            <input
-              value={account.customUrl}
-              onChange={(event) => onAccountChange({ ...account, customUrl: event.target.value })}
-              className="w-full bg-transparent px-3 py-2 text-sm text-gray-900 outline-none"
-            />
+          <div className="mt-2 flex flex-col gap-2">
+            <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+              <span className="border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400">rslcards.com/showcase/</span>
+              <input
+                value={account.customUrl}
+                onChange={(event) => onAccountChange({ ...account, customUrl: event.target.value })}
+                placeholder="your-handle"
+                className="w-full bg-transparent px-3 py-2 text-sm text-gray-900 outline-none"
+              />
+            </div>
+            {profileId && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const linkSlug = account.customUrl || profileId;
+                    navigator.clipboard.writeText(`${window.location.origin}/showcase/${linkSlug}`)
+                    alert('Link copied to clipboard!')
+                  }}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Copy Link
+                </button>
+                <span className="text-gray-300">•</span>
+                <a
+                  href={`/showcase/${account.customUrl || profileId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                >
+                  Preview Page
+                </a>
+              </div>
+            )}
           </div>
         </label>
         <label className="text-sm font-medium text-gray-600">

@@ -11,13 +11,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { MOCK_AI_NARRATIVE, MOCK_NOTIFICATIONS } from "../../src/constants/mockData";
+
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useAuthStore } from "../../src/stores/authStore";
 import {
   useDailyStats,
   useTodayActivity,
   useRefetchDashboardOnFocus,
+  useAiInsights,
 } from "../../src/hooks/useDashboard";
 import { useInventorySummary } from "../../src/hooks/useCardScan";
 import { useBatchJobs } from "../../src/hooks/useBatchScan";
@@ -25,10 +26,13 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
+import { useNotificationStore } from "../../src/stores/useNotificationStore";
 
 export default function HomeScreen() {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifications = useNotificationStore((s) => s.notifications);
+  const unreadCount = notifications.filter((n) => n.status !== 'read').length;
   const user = useAuthStore((s) => s.user);
   const initials = (user?.displayName ?? user?.email ?? "U")
     .split(" ")
@@ -43,6 +47,7 @@ export default function HomeScreen() {
   const { data: summary } = useInventorySummary();
   const { data: todayActivity } = useTodayActivity();
   const { data: batchJobs } = useBatchJobs();
+  const { data: aiInsights } = useAiInsights();
   useRefetchDashboardOnFocus();
 
   const handleBuy = () => router.push("/buy/scan");
@@ -75,23 +80,25 @@ export default function HomeScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
             <TouchableOpacity onPress={() => setShowNotifications(true)} style={{ position: "relative" }}>
               <Ionicons name="notifications-outline" size={24} color={COLORS.zinc100} />
-              <View
-                style={{
-                  position: "absolute",
-                  top: -2,
-                  right: -2,
-                  backgroundColor: COLORS.destructive,
-                  borderRadius: RADIUS.full,
-                  width: 16,
-                  height: 16,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Typography variant="caption" weight="800" color={COLORS.white} style={{ fontSize: 9 }}>
-                  2
-                </Typography>
-              </View>
+              {unreadCount > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    backgroundColor: COLORS.destructive,
+                    borderRadius: RADIUS.full,
+                    width: 16,
+                    height: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography variant="caption" weight="800" color={COLORS.white} style={{ fontSize: 9 }}>
+                    {unreadCount}
+                  </Typography>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push("/(tabs)/more")}
@@ -169,65 +176,6 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* ── BACKGROUND TASKS ── */}
-        {batchJobs && batchJobs.length > 0 && (
-          <View style={{ marginTop: SPACING.xl, paddingHorizontal: SPACING.lg }}>
-            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
-              BACKGROUND TASKS
-            </Typography>
-            {batchJobs.map((job) => (
-              <TouchableOpacity
-                key={job.id}
-                onPress={() => {
-                  if (job.status === "completed") {
-                    // Navigate to batch review screen
-                    router.push(`/buy/multi-review?batchId=${job.id}`);
-                  }
-                }}
-                disabled={job.status !== "completed"}
-                style={{
-                  backgroundColor: job.status === "completed" ? "rgba(0, 87, 255, 0.1)" : COLORS.zinc800,
-                  borderWidth: 1,
-                  borderColor: job.status === "completed" ? COLORS.primary : COLORS.border,
-                  borderRadius: RADIUS.md,
-                  padding: SPACING.md,
-                  marginBottom: SPACING.sm,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between"
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-                  <Ionicons 
-                    name={job.type === "image_multi" ? "images-outline" : "document-text-outline"} 
-                    size={20} 
-                    color={job.status === "completed" ? COLORS.primary : COLORS.zinc400} 
-                  />
-                  <View>
-                    <Typography variant="body" weight="600" color={COLORS.white}>
-                      {job.type === "image_multi" ? "Multi-Card Scan" : "Batch File Upload"}
-                    </Typography>
-                    <Typography variant="caption" color={COLORS.zinc400}>
-                      {new Date(job.createdAt).toLocaleTimeString()}
-                    </Typography>
-                  </View>
-                </View>
-                <View>
-                  {job.status === "pending" || job.status === "processing" ? (
-                    <Typography variant="caption" color={COLORS.zinc400}>Working...</Typography>
-                  ) : job.status === "completed" ? (
-                    <View style={{ backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full }}>
-                      <Typography variant="caption" weight="700" color={COLORS.white}>Work Success</Typography>
-                    </View>
-                  ) : (
-                    <Typography variant="caption" color={COLORS.destructive}>Failed</Typography>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
         {/* ── ACTIVE DEAL TABS ── */}
         {tabs.length > 0 && (
           <View style={{ marginTop: SPACING.xl }}>
@@ -260,34 +208,52 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── AI INSIGHT CARD ── */}
-        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
-          <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
-            AI INSIGHT
-          </Typography>
-          <Surface variant="elevated" padding="lg" style={{ borderLeftWidth: 3, borderLeftColor: COLORS.primary }}>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
-              <Ionicons name="flash" size={16} color={COLORS.primary} style={{ marginRight: SPACING.xs }} />
-              <Typography variant="label" color={COLORS.primaryLight}>
-                {MOCK_AI_NARRATIVE.narrative_type}
-              </Typography>
-              <View style={{ marginLeft: "auto" }}>
-                <Typography variant="body" weight="700" color={COLORS.success}>
-                  +{MOCK_AI_NARRATIVE.price_change_pct}%
-                </Typography>
-              </View>
-            </View>
-            <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
-              {MOCK_AI_NARRATIVE.headline}
+        {/* ── RSL INSIGHT CARD ── */}
+        {aiInsights && aiInsights.length > 0 && (
+          <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
+            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+              RSL INSIGHTS
             </Typography>
-            <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.md }}>
-              {MOCK_AI_NARRATIVE.short_summary}
-            </Typography>
-            <Typography variant="caption" color={COLORS.zinc500}>
-              {MOCK_AI_NARRATIVE.affected_in_inventory} cards in your inventory affected
-            </Typography>
-          </Surface>
-        </View>
+            {aiInsights.slice(0, 2).map((insight) => {
+              const isUp = insight.trend === 'up';
+              const typeColor = insight.type === 'BREAKOUT' ? COLORS.success : insight.type === 'DECLINE' ? COLORS.destructive : COLORS.primary;
+              return (
+                <Surface key={insight.id} variant="elevated" padding="lg" style={{ borderLeftWidth: 3, borderLeftColor: typeColor, marginBottom: SPACING.sm }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
+                    <Ionicons name={insight.type === 'DECLINE' ? 'trending-down' : 'flash'} size={16} color={typeColor} style={{ marginRight: SPACING.xs }} />
+                    <Typography variant="label" color={typeColor}>
+                      {insight.type}
+                    </Typography>
+                    <Typography variant="caption" color={COLORS.zinc500} style={{ marginLeft: SPACING.sm }}>
+                      {insight.sport}
+                    </Typography>
+                    <View style={{ marginLeft: "auto" }}>
+                      <Typography variant="body" weight="700" color={isUp ? COLORS.success : COLORS.destructive}>
+                        {insight.price_change}
+                      </Typography>
+                    </View>
+                  </View>
+                  <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
+                    {insight.headline}
+                  </Typography>
+                  <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.sm }}>
+                    {insight.price_range}
+                  </Typography>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    {insight.affected_cards > 0 && (
+                      <Typography variant="caption" color={COLORS.zinc500}>
+                        {insight.affected_cards} cards in your inventory affected
+                      </Typography>
+                    )}
+                    <Typography variant="caption" weight="600" color={insight.recommendation === 'BUY' ? COLORS.success : insight.recommendation === 'SELL' ? COLORS.destructive : COLORS.primary}>
+                      {insight.recommendation}
+                    </Typography>
+                  </View>
+                </Surface>
+              );
+            })}
+          </View>
+        )}
 
         {/* ── INVENTORY SNAPSHOT ── */}
         <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
@@ -400,39 +366,62 @@ export default function HomeScreen() {
                 <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.md }}>
                   Notifications
                 </Typography>
-                {MOCK_NOTIFICATIONS.map((n, idx) => (
-                  <TouchableOpacity
-                    key={n.id}
-                    style={{
-                      flexDirection: "row",
-                      gap: SPACING.sm,
-                      paddingVertical: SPACING.md,
-                      borderTopWidth: idx > 0 ? 1 : 0,
-                      borderTopColor: COLORS.border,
-                    }}
-                  >
-                    <View
+                {notifications.length === 0 ? (
+                  <Typography variant="body" color={COLORS.zinc400} style={{ paddingVertical: SPACING.sm }}>
+                    No new notifications
+                  </Typography>
+                ) : (
+                  notifications.slice(0, 5).map((n, idx) => (
+                    <TouchableOpacity
+                      key={n.id}
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: RADIUS.full,
-                        backgroundColor: n.type === "sale" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        flexDirection: "row",
+                        gap: SPACING.sm,
+                        paddingVertical: SPACING.md,
+                        borderTopWidth: idx > 0 ? 1 : 0,
+                        borderTopColor: COLORS.border,
                       }}
                     >
-                      <Ionicons name={n.type === "sale" ? "cash-outline" : "warning-outline"} size={20} color={n.type === "sale" ? COLORS.success : COLORS.warning} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Typography variant="body" weight="700" style={{ marginBottom: SPACING.xs }}>
-                        {n.title}
-                      </Typography>
-                      <Typography variant="caption" color={COLORS.zinc400}>
-                        {n.body}
-                      </Typography>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                      <View
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: RADIUS.full,
+                          backgroundColor: n.type === "sale" ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Ionicons name={n.type === "sale" ? "cash-outline" : "warning-outline"} size={20} color={n.type === "sale" ? COLORS.success : COLORS.warning} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="700" style={{ marginBottom: SPACING.xs }} numberOfLines={1}>
+                          {n.title}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.zinc400} numberOfLines={2}>
+                          {n.body || n.message}
+                        </Typography>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )}
+                <TouchableOpacity
+                  style={{
+                    marginTop: SPACING.md,
+                    paddingTop: SPACING.md,
+                    borderTopWidth: 1,
+                    borderTopColor: COLORS.border,
+                    alignItems: "center",
+                  }}
+                  onPress={() => {
+                    setShowNotifications(false);
+                    router.push("/notifications");
+                  }}
+                >
+                  <Typography variant="label" color={COLORS.primary}>
+                    View All
+                  </Typography>
+                </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
           </View>

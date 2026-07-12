@@ -15,7 +15,7 @@ export default function ReportsHeader({ onExportCsv, onExportPdf }: ReportsHeade
         </div>
         <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
         <p className="mt-1 max-w-2xl text-sm text-gray-500">
-          Review sales, margin, aging inventory, and AI period performance from one reporting view.
+          Review sales, margin, aging inventory, and RSL period performance from one reporting view.
         </p>
       </div>
 

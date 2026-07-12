@@ -3,14 +3,14 @@ import { dashboardService } from '@/services/dashboardService';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
-  metrics: () => [...dashboardKeys.all, 'metrics'] as const,
-  revenueChart: () => [...dashboardKeys.all, 'revenueChart'] as const,
-  channelData: () => [...dashboardKeys.all, 'channelData'] as const,
+  metrics: (from?: string, to?: string) => [...dashboardKeys.all, 'metrics', from, to] as const,
+  revenueChart: (from?: string, to?: string) => [...dashboardKeys.all, 'revenueChart', from, to] as const,
+  channelData: (from?: string, to?: string) => [...dashboardKeys.all, 'channelData', from, to] as const,
   inventory: (page: number, limit: number, search?: string) => [...dashboardKeys.all, 'inventory', page, limit, search] as const,
   inventoryCounts: () => [...dashboardKeys.all, 'inventoryCounts'] as const,
   inventoryItemDetails: (id: string) => [...dashboardKeys.all, 'inventoryItemDetails', id] as const,
   topMovers: () => [...dashboardKeys.all, 'topMovers'] as const,
-  recentTransactions: () => [...dashboardKeys.all, 'recentTransactions'] as const,
+  recentTransactions: (from?: string, to?: string) => [...dashboardKeys.all, 'recentTransactions', from, to] as const,
   aiInsights: () => [...dashboardKeys.all, 'aiInsights'] as const,
   portfolioSnapshot: () => [...dashboardKeys.all, 'portfolioSnapshot'] as const,
   transactionsPassbook: () => [...dashboardKeys.all, 'transactionsPassbook'] as const,
@@ -19,24 +19,24 @@ export const dashboardKeys = {
   sportProfitMix: () => [...dashboardKeys.all, 'sportProfitMix'] as const,
 };
 
-export function useDashboardMetrics() {
+export function useDashboardMetrics(from?: string, to?: string) {
   return useQuery({
-    queryKey: dashboardKeys.metrics(),
-    queryFn: dashboardService.getMetrics,
+    queryKey: dashboardKeys.metrics(from, to),
+    queryFn: () => dashboardService.getMetrics(from, to),
   });
 }
 
-export function useRevenueChart() {
+export function useRevenueChart(from?: string, to?: string) {
   return useQuery({
-    queryKey: dashboardKeys.revenueChart(),
-    queryFn: dashboardService.getRevenueChart,
+    queryKey: dashboardKeys.revenueChart(from, to),
+    queryFn: () => dashboardService.getRevenueChart(from, to),
   });
 }
 
-export function useChannelData() {
+export function useChannelData(from?: string, to?: string) {
   return useQuery({
-    queryKey: dashboardKeys.channelData(),
-    queryFn: dashboardService.getChannelData,
+    queryKey: dashboardKeys.channelData(from, to),
+    queryFn: () => dashboardService.getChannelData(from, to),
   });
 }
 
@@ -69,10 +69,10 @@ export function useTopMovers() {
   });
 }
 
-export function useRecentTransactions() {
+export function useRecentTransactions(from?: string, to?: string) {
   return useQuery({
-    queryKey: dashboardKeys.recentTransactions(),
-    queryFn: dashboardService.getRecentTransactions,
+    queryKey: dashboardKeys.recentTransactions(from, to),
+    queryFn: () => dashboardService.getRecentTransactions(from, to),
   });
 }
 

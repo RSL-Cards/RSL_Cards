@@ -85,12 +85,11 @@ export default function AIInsightsPreview({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
-            AI Insights
+            RSL Insights
           </h3>
-
-          <div className="text-gray-500 text-sm mt-1">
-            Smart market intelligence powered by AI
-          </div>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Smart market intelligence powered by RSL
+          </p>
         </div>
 
         <div className="flex items-center gap-4">

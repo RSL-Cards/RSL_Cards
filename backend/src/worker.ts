@@ -9,6 +9,9 @@ import { EbayService } from "./modules/listing/ebay.service.js";
 import { SoldCompsService } from "./modules/listing/sold-comps.service.js";
 import { MyslabsService } from "./modules/listing/myslabs.service.js";
 import { bullMqAdapter } from "./adapters/bullmq.adapter.js";
+import { sseService } from "./modules/notification/sse.service.js";
+import { NotificationRepository } from "./modules/notification/notification.repository.js";
+import { NotificationService } from "./modules/notification/notification.service.js";
 import { batchJobs } from "./db/schema/batch.js";
 import { narratives } from "./db/schema/index.js";
 import { vertexAiClient } from "./lib/vertex-ai.client.js";
@@ -80,7 +83,134 @@ export const initWorker = () => {
         // catch (err: any) { logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); }
 
         await delay(1500); // Avoid rate limits
+        
+        // Dynamically trigger Price Spikes Check for this variant
+        const queue = bullMqAdapter.getQueue();
+        await queue.add("check_price_spikes", { variant_id: variant_id, grade_key: grade_key, item });
+
         return { success: true, processed: variant_id };
+      }
+
+      else if (job.name === "check_price_spikes") {
+        const { variant_id, grade_key, item } = job.data;
+        logger.info(`[WORKER] Running check_price_spikes for variant ${variant_id}`);
+
+        try {
+          // Fetch the latest comp
+          const compsResult = await db.execute(sql`
+            SELECT avg_sold_price FROM card_comp_snapshots 
+            WHERE variant_id = ${variant_id} AND grade_key = ${grade_key}
+            ORDER BY created_at DESC LIMIT 1
+          `);
+          if (compsResult.rows.length === 0) return { success: true, message: "No comp data" };
+          const currentMarketValue = Number(compsResult.rows[0].avg_sold_price);
+
+          // Find inventory where currentMarketValue > cost_basis * 1.10
+          const spikeInventory = await db.execute(sql`
+            SELECT i.id as inventory_id, i.cost_basis, i.user_id, dp.notification_preferences, u.email as user_email
+            FROM inventory i
+            JOIN dealer_profiles dp ON dp.user_id = i.user_id
+            JOIN users u ON u.id = i.user_id
+            WHERE i.variant_id = ${variant_id} 
+              AND i.grade_key = ${grade_key}
+              AND i.listing_status IN ('unlisted', 'listed')
+              AND i.cost_basis > 0
+              AND ${currentMarketValue} > (i.cost_basis * 1.10)
+          `);
+
+          const matches = spikeInventory.rows as any[];
+          logger.info(`[WORKER] Found ${matches.length} dealers with +10% price spike on variant ${variant_id}`);
+
+          if (matches.length > 0) {
+            const { emailService } = await import("./modules/email/index.js");
+            
+            for (const match of matches) {
+              const prefs = match.notification_preferences?.priceSpikes || { push: true, email: true };
+              
+              const title = `Price Spike Alert: ${item.player_name}`;
+              const body = `Great news! Your ${item.year} ${item.player_name} ${item.set_name} (${item.variant_name}) ${grade_key} has seen a price spike.\n\nYour Cost Basis: $${Number(match.cost_basis).toFixed(2)}\nCurrent Market Value: $${currentMarketValue.toFixed(2)}`;
+              
+              if (prefs.push) {
+                await sseService.publish(match.user_id, {
+                  type: "INFO",
+                  title: title,
+                  message: body,
+                  timestamp: new Date().toISOString()
+                });
+              }
+
+              if (prefs.email) {
+                await emailService.sendNotificationAlert(match.user_email, {
+                  alertTitle: title,
+                  alertBody: body,
+                  actionUrl: `https://app.rslcards.com/inventory?search=${encodeURIComponent(item.player_name)}`,
+                  actionText: "View Inventory"
+                });
+              }
+            }
+          }
+
+          return { success: true, matches: matches.length };
+        } catch (error: any) {
+          logger.error(`[WORKER] Error in check_price_spikes: ${error.message}`);
+          throw error;
+        }
+      }
+
+      else if (job.name === "check_inventory_aging") {
+        logger.info(`[WORKER] Running check_inventory_aging cron job`);
+        try {
+          const agingInventory = await db.execute(sql`
+            SELECT i.id as inventory_id, i.added_at, i.user_id, dp.notification_preferences, u.email as user_email,
+                   c.player_id, p.name as player_name, c.year, c.set_name, cv.name as variant_name
+            FROM inventory i
+            JOIN dealer_profiles dp ON dp.user_id = i.user_id
+            JOIN users u ON u.id = i.user_id
+            JOIN card_variants cv ON cv.id = i.variant_id
+            JOIN cards c ON c.id = cv.card_id
+            JOIN players p ON p.id = c.player_id
+            WHERE i.listing_status IN ('unlisted', 'listed')
+              AND i.added_at < now() - interval '60 days'
+          `);
+
+          const matches = agingInventory.rows as any[];
+          logger.info(`[WORKER] Found ${matches.length} aging inventory items (> 60 days)`);
+
+          if (matches.length > 0) {
+            const { emailService } = await import("./modules/email/index.js");
+            
+            for (const match of matches) {
+              const prefs = match.notification_preferences?.inventoryAging || { push: false, email: true };
+              if (!prefs.push && !prefs.email) continue;
+              
+              const title = `Aging Inventory Alert`;
+              const body = `Your ${match.year} ${match.player_name} ${match.set_name} (${match.variant_name}) has been sitting in your inventory for over 60 days.\n\nConsider running a sale or updating the price.`;
+              
+              if (prefs.push) {
+                await sseService.publish(match.user_id, {
+                  type: "INFO",
+                  title: title,
+                  message: body,
+                  timestamp: new Date().toISOString()
+                });
+              }
+
+              if (prefs.email) {
+                await emailService.sendNotificationAlert(match.user_email, {
+                  alertTitle: title,
+                  alertBody: body,
+                  actionUrl: `https://app.rslcards.com/inventory?search=${encodeURIComponent(match.player_name)}`,
+                  actionText: "Manage Inventory"
+                });
+              }
+            }
+          }
+
+          return { success: true, processed: matches.length };
+        } catch (error: any) {
+          logger.error(`[WORKER] Error in check_inventory_aging: ${error.message}`);
+          throw error;
+        }
       }
 
       else if (job.name === "generate_ai_insights") {
@@ -258,6 +388,10 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           await db.update(batchJobs).set({ status: "processing", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
           const [batchRecord] = await db.select().from(batchJobs).where(eq(batchJobs.id, batchId));
 
+          if (userId) {
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "processing", message: "Task is in progress..." });
+          }
+
           let cards: any[] = [];
           
           const parseGeminiResponse = (text: string) => {
@@ -326,6 +460,10 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           }
 
           logger.info(`[WORKER] Extracted ${cards.length} potential cards for batch ${batchId}. Filtering out invalids...`);
+          
+          if (userId) {
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "progress", message: `Extracted ${cards.length} cards, pre-fetching comps...` });
+          }
 
           // Filter out hallucinated or empty cards
           const validCards = cards.filter((c: any) => c.player_name && c.player_name.trim().length > 0);
@@ -371,6 +509,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           }).where(eq(batchJobs.id, batchId));
           
           logger.info(`[WORKER] Completed batch job ${batchId}`);
+          
+          if (userId) {
+            const notifRepo = new NotificationRepository();
+            const notifService = new NotificationService(notifRepo);
+            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${cards.length} cards.`, "system", { batchId });
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "completed", message: "Task completed successfully" });
+          }
+          
           return { success: true, count: cards.length };
 
         } catch (error: any) {
@@ -380,6 +526,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
             error: error.message,
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
+          
+          if (userId) {
+            const notifRepo = new NotificationRepository();
+            const notifService = new NotificationService(notifRepo);
+            await notifService.sendNotification(userId, "Upload Failed", `Task failed: ${error.message}`, "system", { batchId });
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "failed", message: error.message });
+          }
+          
           throw error;
         }
       }

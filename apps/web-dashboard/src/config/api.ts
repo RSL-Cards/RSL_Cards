@@ -1,11 +1,11 @@
-const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://32.192.247.244'
+const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080'
 
 // If running in a browser on an HTTPS page (like Vercel) and the target URL is plain HTTP (insecure),
 // automatically route through Next.js /api/proxy rewrite to avoid browser Mixed Content blocking!
 export const API_BASE_URL =
   typeof window !== 'undefined' &&
-  window.location.protocol === 'https:' &&
-  configuredUrl.startsWith('http://')
+    window.location.protocol === 'https:' &&
+    configuredUrl.startsWith('http://')
     ? '/api/proxy'
     : configuredUrl
 
@@ -48,6 +48,7 @@ export const ENDPOINTS = {
     revenueChart: '/v1/web-dashboard/revenue-chart',
     channelData: '/v1/web-dashboard/channel-data',
     inventory: '/v1/web-dashboard/inventory',
+    inventoryExport: '/v1/web-dashboard/inventory/export',
     inventoryCounts: '/v1/web-dashboard/inventory/counts',
     inventoryItemDetails: (id: string) => `/v1/web-dashboard/inventory/${id}/details`,
     affectedInventory: (playerName: string) => `/v1/web-dashboard/inventory/affected?playerName=${encodeURIComponent(playerName)}`,

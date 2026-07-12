@@ -3,9 +3,10 @@ import { inventory, transactions, players, listings } from "../../db/schema/inde
 import { sql, eq, and, gte, desc, sum, count, or, inArray } from "drizzle-orm";
 
 export class WebDashboardRepository {
-  async getMetrics(userId: string) {
+  async getMetrics(userId: string, fromDate?: string, toDate?: string) {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = fromDate ? new Date(fromDate) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endToday = toDate ? new Date(new Date(toDate).getTime() + 86400000) : null;
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -17,12 +18,30 @@ export class WebDashboardRepository {
         cards_sold: count(),
       })
       .from(transactions)
-      .where(and(eq(transactions.userId, userId), eq(transactions.type, "sell"), gte(transactions.createdAt, today)));
+      .where(
+        endToday
+          ? and(
+              eq(transactions.userId, userId),
+              eq(transactions.type, "sell"),
+              gte(transactions.createdAt, today),
+              sql`${transactions.createdAt} < ${endToday}`
+            )
+          : and(eq(transactions.userId, userId), eq(transactions.type, "sell"), gte(transactions.createdAt, today))
+      );
 
     const todayBuys = await db
       .select({ cards_bought: count(), total_spent: sum(transactions.price).mapWith(Number) })
       .from(transactions)
-      .where(and(eq(transactions.userId, userId), eq(transactions.type, "buy"), gte(transactions.createdAt, today)));
+      .where(
+        endToday
+          ? and(
+              eq(transactions.userId, userId),
+              eq(transactions.type, "buy"),
+              gte(transactions.createdAt, today),
+              sql`${transactions.createdAt} < ${endToday}`
+            )
+          : and(eq(transactions.userId, userId), eq(transactions.type, "buy"), gte(transactions.createdAt, today))
+      );
 
     const yesterdayTx = await db
       .select({
@@ -88,14 +107,14 @@ export class WebDashboardRepository {
     };
   }
 
-  async getRevenueChart(userId: string) {
+  async getRevenueChart(userId: string, fromDate?: string, toDate?: string) {
+    let dateRangeSql = sql`generate_series(current_date - interval '13 days', current_date, '1 day'::interval)::date`;
+    if (fromDate && toDate) {
+      dateRangeSql = sql`generate_series(${fromDate}::date, ${toDate}::date, '1 day'::interval)::date`;
+    }
     const result = await db.execute(sql`
       WITH dates AS (
-        SELECT generate_series(
-          current_date - interval '13 days',
-          current_date,
-          '1 day'::interval
-        )::date as date
+        SELECT ${dateRangeSql} as date
       )
       SELECT 
         to_char(d.date, 'Mon FMDD') as date_label,
@@ -112,7 +131,11 @@ export class WebDashboardRepository {
     return result.rows;
   }
 
-  async getChannelData(userId: string) {
+  async getChannelData(userId: string, fromDate?: string, toDate?: string) {
+    let dateFilter = sql``;
+    if (fromDate && toDate) {
+      dateFilter = sql` AND DATE(created_at) >= DATE(${fromDate}) AND DATE(created_at) <= DATE(${toDate})`;
+    }
     const result = await db.execute(sql`
       WITH channel_sums AS (
         SELECT 
@@ -120,7 +143,7 @@ export class WebDashboardRepository {
           COALESCE(SUM(price), 0) as revenue,
           COALESCE(SUM(profit), 0) as profit
         FROM transactions
-        WHERE user_id = ${userId} AND type = 'sell'
+        WHERE user_id = ${userId} AND type = 'sell'${dateFilter}
         GROUP BY channel
       ),
       total_revenue AS (
@@ -200,6 +223,28 @@ export class WebDashboardRepository {
       page,
       limit,
     };
+  }
+
+  async getInventoryExport(userId: string) {
+    const items = await db.execute(sql`
+      SELECT 
+        i.id,
+        i.year,
+        i.set_name,
+        i.grade_key,
+        i.sport,
+        i.cost_basis,
+        i.current_market_value as market_value,
+        (COALESCE(i.current_market_value, 0) - i.cost_basis) as unrealized_gain,
+        i.listing_status as status,
+        i.added_at,
+        p.name as player_name
+      FROM inventory i
+      LEFT JOIN players p ON p.id = i.player_id
+      WHERE i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')
+      ORDER BY i.added_at DESC
+    `);
+    return items.rows;
   }
 
   async getInventoryCounts(userId: string) {
@@ -285,13 +330,22 @@ export class WebDashboardRepository {
     };
   }
 
-  async getRecentTransactions(userId: string) {
+  async getRecentTransactions(userId: string, fromDate?: string, toDate?: string) {
+    let whereClause = eq(transactions.userId, userId);
+    if (fromDate && toDate) {
+      const endTo = new Date(new Date(toDate).getTime() + 86400000);
+      whereClause = and(
+        eq(transactions.userId, userId),
+        gte(transactions.createdAt, new Date(fromDate)),
+        sql`${transactions.createdAt} < ${endTo}`
+      ) as any;
+    }
     return await db
       .select()
       .from(transactions)
-      .where(eq(transactions.userId, userId))
+      .where(whereClause)
       .orderBy(desc(transactions.createdAt))
-      .limit(10);
+      .limit(50);
   }
 
   async getPassbookTransactions(userId: string) {

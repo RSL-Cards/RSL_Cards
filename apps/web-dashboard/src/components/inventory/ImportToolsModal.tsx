@@ -208,7 +208,7 @@ export default function ImportToolsModal({ initialMode, onClose }: ImportToolsMo
             className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-left transition-colors duration-200 ${mode === 'mapping' ? 'border-accent-blue bg-accent-blue/15 text-white' : 'border-border bg-white/5 text-text-secondary hover:text-white'}`}
           >
             <Bot className="h-4 w-4" />
-            AI Column Mapping
+            RSL Column Mapping
           </button>
           <button
             type="button"
