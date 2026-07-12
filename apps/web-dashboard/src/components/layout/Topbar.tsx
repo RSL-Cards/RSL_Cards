@@ -12,17 +12,26 @@ import {
   LogOut
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useNotificationStore } from '@/stores/useNotificationStore'
+import { apiClient } from '@/lib/axios'
 
 export default function Topbar() {
   const router = useRouter()
   const pathname = usePathname()
   const isOnline = true
   const lastSync = '2 min ago'
-  const notificationCount = 2
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const isLoading = useAuthStore((state) => state.isLoading)
+  
+  const notifications = useNotificationStore((state) => state.notifications)
+  const removeNotification = useNotificationStore((state) => state.removeNotification)
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
+  const notificationCount = notifications.filter(n => n.status !== 'read').length
+
   const displayValue = user?.displayName?.trim() || 'Dealer'
   const avatarInitial = displayValue.charAt(0).toUpperCase()
   const [imgError, setImgError] = useState(false)
@@ -115,15 +124,65 @@ export default function Topbar() {
         */}
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-          <Bell className="w-5 h-5 text-gray-600" />
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsNotificationsOpen((open) => !open)}
+            className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+          >
+            <Bell className="w-5 h-5 text-gray-600" />
 
-          {notificationCount > 0 && (
-            <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
-              {notificationCount}
+            {notificationCount > 0 && (
+              <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                {notificationCount}
+              </div>
+            )}
+          </button>
+
+          {isNotificationsOpen && (
+            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden flex flex-col max-h-96">
+              <div className="border-b border-gray-100 px-4 py-3 flex justify-between items-center bg-gray-50">
+                <span className="font-semibold text-gray-900 text-sm">Notifications</span>
+                {notifications.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      markAllAsRead();
+                      apiClient.patch("/v1/notifications/read-all").catch(console.error);
+                    }}
+                    className="text-xs text-blue-600 font-medium hover:text-blue-700"
+                  >
+                    Mark All as Read
+                  </button>
+                )}
+              </div>
+              <div className="overflow-y-auto flex-1 p-2">
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-gray-500">
+                    No new notifications
+                  </div>
+                ) : (
+                  notifications.map((notif) => (
+                    <div key={notif.id} className="p-3 mb-1 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-100 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <span className="font-semibold text-gray-900 text-sm">{notif.title || 'Update'}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeNotification(notif.id);
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <LogOut className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notif.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
-        </button>
+        </div>
 
         {/* Sync
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">

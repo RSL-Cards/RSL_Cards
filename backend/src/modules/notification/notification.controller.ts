@@ -1,4 +1,5 @@
 import { NotificationService } from "./notification.service.js";
+import { sseEmitter } from "./sse.service.js";
 
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
@@ -6,6 +7,36 @@ export class NotificationController {
   private getUserId(request: Request): string {
     return request.headers.get("x-user-id") || "guest";
   }
+
+  streamNotifications = ({ request }: { request: Request }) => {
+    const userId = this.getUserId(request);
+    if (userId === "guest") {
+      throw new Error("Authentication is required for SSE");
+    }
+
+    const stream = new ReadableStream({
+      start(controller) {
+        const listener = (data: any) => {
+          controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        sseEmitter.on(`notification:${userId}`, listener);
+
+        request.signal.addEventListener("abort", () => {
+          sseEmitter.off(`notification:${userId}`, listener);
+          try { controller.close(); } catch(e) {}
+        });
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    });
+  };
 
   registerToken = async ({ request }: { request: Request }) => {
     const userId = this.getUserId(request);

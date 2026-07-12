@@ -27,7 +27,9 @@ import { errorMiddleware } from "./errors/error.middleware.js";
 import { promMetrics, getPrometheusOutput } from "./lib/metrics.js";
 
 const app = new Elysia()
+  // @ts-ignore
   .use(cors())
+  // @ts-ignore
   .use(swagger())
   .use(errorMiddleware)
   // Advanced HTTP Request & Response Observability & Trace Logging Middleware
@@ -93,9 +95,18 @@ const app = new Elysia()
     const urlPath = (ctx as any).urlPath || request.url;
     const startTime = (ctx as any).requestStartTime || Date.now();
 
+    let token = "";
     if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
+    } else {
       try {
-        const token = authHeader.slice(7);
+        const url = new URL(request.url);
+        token = url.searchParams.get("token") || "";
+      } catch (e) {}
+    }
+
+    if (token) {
+      try {
         const payload = verifyToken(token, env);
         if (payload && payload.userId) {
           const userId = payload.userId;

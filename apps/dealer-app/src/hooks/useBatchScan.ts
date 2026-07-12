@@ -38,6 +38,5 @@ export function useBatchJobs() {
   return useQuery({
     queryKey: ["batch_jobs"],
     queryFn: () => batchService.getJobs(),
-    refetchInterval: 5000, // Poll every 5s for job updates
   });
 }

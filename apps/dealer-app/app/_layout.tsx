@@ -10,6 +10,7 @@ import { useAuthStore } from "../src/stores/authStore";
 import { toastConfig } from "../src/components/ToastConfig";
 import { AskRslFab } from "../src/components/assistant/AskRslFab";
 import { AssistantModal } from "../src/components/assistant/AssistantModal";
+import { GlobalSSEProvider } from "../src/components/GlobalSSEProvider";
 import { COLORS } from "../src/constants/theme";
 import {
   useFonts,
@@ -67,48 +68,50 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS.background }}>
         <SafeAreaProvider>
           <StatusBar style="light" />
-          <AuthGuard>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: COLORS.background },
-              }}
-            >
-              <Stack.Screen name="index" />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="buy"
-                options={{
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
+          <GlobalSSEProvider>
+            <AuthGuard>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: COLORS.background },
                 }}
-              />
-              <Stack.Screen
-                name="sell"
-                options={{
-                  presentation: "modal",
-                  animation: "slide_from_bottom",
-                }}
-              />
-              <Stack.Screen
-                name="inventory/[id]"
-                options={{ animation: "slide_from_right" }}
-              />
-              <Stack.Screen
-                name="listings/index"
-                options={{ animation: "slide_from_right" }}
-              />
-              <Stack.Screen
-                name="listings/create"
-                options={{ presentation: "modal" }}
-              />
-              <Stack.Screen
-                name="notifications/index"
-                options={{ animation: "slide_from_right" }}
-              />
-            </Stack>
-          </AuthGuard>
+              >
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="buy"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                  }}
+                />
+                <Stack.Screen
+                  name="sell"
+                  options={{
+                    presentation: "modal",
+                    animation: "slide_from_bottom",
+                  }}
+                />
+                <Stack.Screen
+                  name="inventory/[id]"
+                  options={{ animation: "slide_from_right" }}
+                />
+                <Stack.Screen
+                  name="listings/index"
+                  options={{ animation: "slide_from_right" }}
+                />
+                <Stack.Screen
+                  name="listings/create"
+                  options={{ presentation: "modal" }}
+                />
+                <Stack.Screen
+                  name="notifications/index"
+                  options={{ animation: "slide_from_right" }}
+                />
+              </Stack>
+            </AuthGuard>
+          </GlobalSSEProvider>
           {isAuthenticated && <AskRslFab onPress={() => setIsAssistantOpen(true)} />}
           {isAuthenticated && <AssistantModal visible={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />}
           <Toast config={toastConfig} />

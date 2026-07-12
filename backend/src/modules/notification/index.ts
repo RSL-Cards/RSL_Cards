@@ -8,6 +8,7 @@ const service = new NotificationService(repository);
 const controller = new NotificationController(service);
 
 export const notificationModule = new Elysia({ prefix: "/v1/notifications" })
+  .get("/stream", controller.streamNotifications)
   .get("/", controller.getNotifications)
   .post("/register-token", controller.registerToken)
   .get("/unread-count", controller.getUnreadCount)

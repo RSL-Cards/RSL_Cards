@@ -9,6 +9,9 @@ import { EbayService } from "./modules/listing/ebay.service.js";
 import { SoldCompsService } from "./modules/listing/sold-comps.service.js";
 import { MyslabsService } from "./modules/listing/myslabs.service.js";
 import { bullMqAdapter } from "./adapters/bullmq.adapter.js";
+import { sseService } from "./modules/notification/sse.service.js";
+import { NotificationRepository } from "./modules/notification/notification.repository.js";
+import { NotificationService } from "./modules/notification/notification.service.js";
 import { batchJobs } from "./db/schema/batch.js";
 import { narratives } from "./db/schema/index.js";
 import { vertexAiClient } from "./lib/vertex-ai.client.js";
@@ -258,6 +261,10 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           await db.update(batchJobs).set({ status: "processing", updatedAt: new Date() }).where(eq(batchJobs.id, batchId));
           const [batchRecord] = await db.select().from(batchJobs).where(eq(batchJobs.id, batchId));
 
+          if (userId) {
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "processing", message: "Task is in progress..." });
+          }
+
           let cards: any[] = [];
           
           const parseGeminiResponse = (text: string) => {
@@ -326,6 +333,10 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           }
 
           logger.info(`[WORKER] Extracted ${cards.length} potential cards for batch ${batchId}. Filtering out invalids...`);
+          
+          if (userId) {
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "progress", message: `Extracted ${cards.length} cards, pre-fetching comps...` });
+          }
 
           // Filter out hallucinated or empty cards
           const validCards = cards.filter((c: any) => c.player_name && c.player_name.trim().length > 0);
@@ -371,6 +382,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           }).where(eq(batchJobs.id, batchId));
           
           logger.info(`[WORKER] Completed batch job ${batchId}`);
+          
+          if (userId) {
+            const notifRepo = new NotificationRepository();
+            const notifService = new NotificationService(notifRepo);
+            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${cards.length} cards.`, "system", { batchId });
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "completed", message: "Task completed successfully" });
+          }
+          
           return { success: true, count: cards.length };
 
         } catch (error: any) {
@@ -380,6 +399,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
             error: error.message,
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
+          
+          if (userId) {
+            const notifRepo = new NotificationRepository();
+            const notifService = new NotificationService(notifRepo);
+            await notifService.sendNotification(userId, "Upload Failed", `Task failed: ${error.message}`, "system", { batchId });
+            await sseService.publish(userId, { type: "batch_status", batchId, status: "failed", message: error.message });
+          }
+          
           throw error;
         }
       }
