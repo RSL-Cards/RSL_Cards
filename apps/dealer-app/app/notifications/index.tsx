@@ -1,7 +1,8 @@
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { MOCK_NOTIFICATIONS } from "../../src/constants/mockData";
+import { useNotificationStore } from "../../src/stores/useNotificationStore";
+import { apiClient } from "../../src/lib/apiClient";
 
 const TYPE_CONFIG: Record<string, { icon: string; accent: string }> = {
   sale:         { icon: "💰", accent: "#00C853" },
@@ -20,7 +21,19 @@ function timeAgo(dateStr: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const unread = MOCK_NOTIFICATIONS.filter((n) => !n.is_read).length;
+  const notifications = useNotificationStore((s) => s.notifications);
+  const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
+
+  const unread = notifications.filter((n) => n.status !== 'read').length;
+
+  const handleMarkAllRead = async () => {
+    try {
+      markAllAsRead();
+      await apiClient.patch("/v1/notifications/read-all");
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -35,18 +48,19 @@ export default function NotificationsScreen() {
             <Text style={styles.unreadHint}>{unread} unread</Text>
           )}
         </View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleMarkAllRead}>
           <Text style={styles.markAll}>Mark all read</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        {MOCK_NOTIFICATIONS.map((n) => {
+        {notifications.map((n) => {
           const cfg = TYPE_CONFIG[n.type] ?? { icon: "🔔", accent: "#555555" };
+          const isRead = n.status === 'read';
           return (
-            <TouchableOpacity key={n.id} style={[styles.card, !n.is_read && styles.cardUnread]} activeOpacity={0.75}>
+            <TouchableOpacity key={n.id} style={[styles.card, !isRead && styles.cardUnread]} activeOpacity={0.75}>
               {/* Unread dot */}
-              {!n.is_read && <View style={[styles.unreadDot, { backgroundColor: cfg.accent }]} />}
+              {!isRead && <View style={[styles.unreadDot, { backgroundColor: cfg.accent }]} />}
 
               {/* Icon */}
               <View style={[styles.iconWrap, { backgroundColor: `${cfg.accent}18` }]}>
@@ -56,12 +70,12 @@ export default function NotificationsScreen() {
               {/* Content */}
               <View style={styles.content}>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.notifTitle, !n.is_read && { color: "white" }]} numberOfLines={1}>
+                  <Text style={[styles.notifTitle, !isRead && { color: "white" }]} numberOfLines={1}>
                     {n.title}
                   </Text>
-                  <Text style={styles.time}>{timeAgo(n.created_at)}</Text>
+                  <Text style={styles.time}>{timeAgo(n.created_at || new Date(n.createdAt).toISOString())}</Text>
                 </View>
-                <Text style={styles.body} numberOfLines={2}>{n.body}</Text>
+                <Text style={styles.body} numberOfLines={2}>{n.body || n.message}</Text>
               </View>
             </TouchableOpacity>
           );

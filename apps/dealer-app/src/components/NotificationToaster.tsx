@@ -19,16 +19,16 @@ const getIcon = (type: string, status?: string) => {
 };
 
 const NotificationItem = ({ notification }: { notification: NotificationEvent }) => {
-  const removeNotification = useNotificationStore((state) => state.removeNotification);
+  const dismissToast = useNotificationStore((state) => state.dismissToast);
 
   useEffect(() => {
     if (notification.status !== "processing" && notification.status !== "progress") {
       const timer = setTimeout(() => {
-        removeNotification(notification.id);
+        dismissToast(notification.id);
       }, 6000);
       return () => clearTimeout(timer);
     }
-  }, [notification, removeNotification]);
+  }, [notification, dismissToast]);
 
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(-20)).current;
@@ -62,11 +62,11 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
         {notification.title ? (
           <Text style={styles.titleText}>{notification.title}</Text>
         ) : null}
-        <Text style={styles.messageText}>{notification.message}</Text>
+        <Text style={styles.messageText}>{notification.message || notification.body}</Text>
       </View>
       <TouchableOpacity
         style={styles.closeButton}
-        onPress={() => removeNotification(notification.id)}
+        onPress={() => dismissToast(notification.id)}
       >
         <Ionicons name="close" size={20} color="#9ca3af" />
       </TouchableOpacity>
@@ -76,12 +76,13 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
 
 export function NotificationToaster() {
   const notifications = useNotificationStore((state) => state.notifications);
+  const visibleToasts = notifications.filter((n) => !n.dismissedToast);
 
-  if (notifications.length === 0) return null;
+  if (visibleToasts.length === 0) return null;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {notifications.map((notif) => (
+      {visibleToasts.map((notif) => (
         <NotificationItem key={notif.id} notification={notif} />
       ))}
     </View>

@@ -10,12 +10,17 @@ export interface NotificationEvent {
   status?: string;
   batchId?: string;
   createdAt: number;
+  created_at?: string;
+  dismissedToast?: boolean;
 }
 
 interface NotificationState {
   notifications: NotificationEvent[];
-  addNotification: (notification: Omit<NotificationEvent, "id" | "createdAt">) => void;
+  addNotification: (notification: Omit<NotificationEvent, "id" | "createdAt"> & { id?: string; createdAt?: number }) => void;
   removeNotification: (id: string) => void;
+  dismissToast: (id: string) => void;
+  markAllAsRead: () => void;
+  setNotifications: (notifications: NotificationEvent[]) => void;
   clearNotifications: () => void;
 }
 
@@ -39,11 +44,12 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
       const newNotification = {
         ...notification,
-        id: Math.random().toString(36).substring(2, 9),
-        createdAt: Date.now(),
+        id: notification.id || Math.random().toString(36).substring(2, 9),
+        createdAt: notification.createdAt || Date.now(),
+        dismissedToast: false,
       };
-      // Keep only the 10 most recent notifications to prevent clutter
-      const newNotifications = [newNotification, ...state.notifications].slice(0, 10);
+      // Keep only the 50 most recent notifications to prevent clutter
+      const newNotifications = [newNotification, ...state.notifications].slice(0, 50);
       return { notifications: newNotifications };
     });
   },
@@ -51,5 +57,17 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     set((state) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     })),
+  dismissToast: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => (n.id === id ? { ...n, dismissedToast: true } : n)),
+    })),
+  markAllAsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, status: "read" })),
+    })),
+  setNotifications: (notifications) =>
+    set({
+      notifications: notifications.map((n) => ({ ...n, dismissedToast: true })), // historic don't popup
+    }),
   clearNotifications: () => set({ notifications: [] }),
 }));
