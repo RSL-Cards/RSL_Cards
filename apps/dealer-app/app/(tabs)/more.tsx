@@ -360,11 +360,19 @@ function MoreScreen() {
         <SectionCard>
           <SettingsRow
             icon="notifications-outline"
-            label="Notifications"
-            onPress={() => router.push("/settings")}
+            label="Notification Preferences"
+            onPress={() => router.push("/notifications/preferences")}
           />
-          <SettingsRow icon="help-circle-outline" label="Help & Support" />
-          <SettingsRow icon="information-circle-outline" label="About RSL Cards" />
+          <SettingsRow
+            icon="help-circle-outline"
+            label="Help & Support"
+            onPress={() => router.push("/about")}
+          />
+          <SettingsRow
+            icon="information-circle-outline"
+            label="About RSL Cards"
+            onPress={() => router.push("/about")}
+          />
           <SettingsRow icon="phone-portrait-outline" label="Version" value="1.0.0" isLast />
         </SectionCard>
 

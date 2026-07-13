@@ -83,7 +83,51 @@ export class AnalyticsRepository {
       WHERE user_id = ${userId}
         AND created_at >= NOW() - CAST(${interval} AS INTERVAL)
     `);
+    
+    // Fetch daily revenue for bar chart
+    const dailyRevenueRows = await db.execute(sql`
+      SELECT 
+        DATE(created_at) as day,
+        COALESCE(SUM(price) FILTER (WHERE type = 'sell'), 0) as revenue
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND created_at >= NOW() - CAST(${interval} AS INTERVAL)
+      GROUP BY DATE(created_at)
+      ORDER BY day ASC
+    `);
+
+    // Fetch best deal
+    const bestDealRows = await db.execute(sql`
+      SELECT 
+        player_name as player,
+        profit,
+        CASE WHEN price > 0 THEN ROUND((profit / price) * 100, 1) ELSE 0 END as margin
+      FROM transactions
+      WHERE user_id = ${userId}
+        AND type = 'sell'
+        AND profit > 0
+        AND created_at >= NOW() - CAST(${interval} AS INTERVAL)
+      ORDER BY profit DESC NULLS LAST
+      LIMIT 1
+    `);
+
     const r = (rows.rows[0] as any) ?? {};
+    
+    const daily_revenue = (dailyRevenueRows.rows as any[]).map(row => ({
+      day: new Date(row.day).toISOString().split('T')[0],
+      revenue: parseFloat(row.revenue ?? "0")
+    }));
+
+    let best_deal = null;
+    if (bestDealRows.rows.length > 0) {
+      const b = bestDealRows.rows[0] as any;
+      best_deal = {
+        player: b.player ?? "Unknown Player",
+        profit: parseFloat(b.profit ?? "0").toFixed(2),
+        margin: parseFloat(b.margin ?? "0")
+      };
+    }
+
     return {
       period,
       cards_bought: Number(r.cards_bought ?? 0),
@@ -92,6 +136,8 @@ export class AnalyticsRepository {
       total_revenue: parseFloat(r.total_revenue ?? "0").toFixed(2),
       net_profit: parseFloat(r.net_profit ?? "0").toFixed(2),
       avg_margin: parseFloat(r.avg_margin ?? "0"),
+      daily_revenue,
+      best_deal
     };
   }
 
