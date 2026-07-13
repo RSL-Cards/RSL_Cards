@@ -15,6 +15,7 @@ import {
   useReport,
   useProfitByChannel,
   useRefetchDashboardOnFocus,
+  useAiInsights,
 } from "../../src/hooks/useDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
@@ -115,6 +116,9 @@ function DonutChart({ data, size = 180, strokeWidth = 24 }: { data: { value: num
 }
 
 function AiSummaryCard() {
+  const { data: insights, isLoading } = useAiInsights();
+  const topInsight = insights?.[0];
+
   return (
     <Surface variant="elevated" style={styles.aiCard}>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
@@ -123,13 +127,29 @@ function AiSummaryCard() {
           RSL SUMMARY
         </Typography>
       </View>
-      <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
-        Keep stacking — your margins are solid
-      </Typography>
-      <Typography variant="body" color={COLORS.zinc400} style={{ lineHeight: 20 }}>
-        RSL-powered deal analysis coming soon. Your buying patterns and profit
-        trends will be summarized here automatically.
-      </Typography>
+      
+      {isLoading ? (
+        <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+      ) : topInsight ? (
+        <>
+          <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
+            {topInsight.headline}
+          </Typography>
+          <Typography variant="body" color={COLORS.zinc400} style={{ lineHeight: 20 }}>
+            {topInsight.body}
+          </Typography>
+        </>
+      ) : (
+        <>
+          <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
+            Keep stacking — your margins are solid
+          </Typography>
+          <Typography variant="body" color={COLORS.zinc400} style={{ lineHeight: 20 }}>
+            RSL-powered deal analysis coming soon. Your buying patterns and profit
+            trends will be summarized here automatically.
+          </Typography>
+        </>
+      )}
     </Surface>
   );
 }

@@ -127,6 +127,7 @@ export interface AIInsight {
   player: string;
   sport: string;
   headline: string;
+  body: string;
   price_change: string;
   price_range: string;
   published: string;
