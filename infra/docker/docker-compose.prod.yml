@@ -1,13 +1,90 @@
 name: rsl-prod
 
 services:
+  postgres-prod:
+    image: postgres:16-alpine
+    container_name: rsl-postgres-prod
+    environment:
+      POSTGRES_USER: rsl_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: rslcards_prod
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rsl_user -d rslcards_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rsl-prod
+
+  redis-prod:
+    image: redis:7-alpine
+    container_name: rsl-redis-prod
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_prod_data:/data
+    networks:
+      - rsl-prod
+
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    container_name: rsl-pgbouncer-prod
+    environment:
+      POSTGRESQL_HOST: postgres-prod
+      POSTGRESQL_PORT_NUMBER: "5432"
+      POSTGRESQL_USERNAME: rsl_user
+      POSTGRESQL_PASSWORD: password
+      PGBOUNCER_DATABASE: rslcards_prod
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: "150"
+      PGBOUNCER_DEFAULT_POOL_SIZE: "30"
+    depends_on:
+      postgres-prod:
+        condition: service_healthy
+    networks:
+      - rsl-prod
+    restart: always
+
+  # Single production backend monorepo service serving all modules
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    container_name: rsl-backend-prod
+    env_file:
+      - .env.prod
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+      AUTH_SERVICE_PORT: 3000
+      AUTH_GATEWAY_IN_DOCKER: "1"
+    ports:
+      - "3000:3000"
+    depends_on:
+      pgbouncer:
+        condition: service_started
+      redis-prod:
+        condition: service_started
+    networks:
+      - rsl-prod
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+    restart: always
+
   nginx-prod:
     image: nginx:alpine
+    container_name: rsl-nginx-prod
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ../nginx/prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
     networks:
       - rsl-prod
     deploy:
@@ -24,6 +101,10 @@ services:
         parallelism: 1
         delay: 10s
         order: start-first
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
 
 networks:
   rsl-prod:

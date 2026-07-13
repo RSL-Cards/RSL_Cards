@@ -9,6 +9,7 @@ const TYPE_CONFIG: Record<string, { icon: string; accent: string }> = {
   aging_alert:  { icon: "⚠️",  accent: "#FFB300" },
   ai_narrative: { icon: "🤖", accent: "#0057FF" },
   price_alert:  { icon: "📈", accent: "#E8001C" },
+  failed_sync:  { icon: "❌", accent: "#E8001C" },
 };
 
 function timeAgo(dateStr: string): string {
