@@ -14,7 +14,7 @@ const nextConfig = {
     return [
       {
         source: '/api/proxy/:path*',
-        destination: `${process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://32.192.247.244'}/:path*`,
+        destination: `${process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.rslcards.com'}/:path*`,
       },
     ]
   },

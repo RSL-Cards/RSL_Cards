@@ -26,7 +26,7 @@ services:
       - rsl-qa
 
   pgbouncer:
-    image: bitnami/pgbouncer:latest
+    image: bitnami/pgbouncer:1.22.1
     environment:
       POSTGRESQL_HOST: postgres-qa
       POSTGRESQL_PORT_NUMBER: "5432"

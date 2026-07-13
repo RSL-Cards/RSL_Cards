@@ -28,17 +28,19 @@ services:
       - rsl-prod
 
   pgbouncer:
-    image: bitnami/pgbouncer:latest
+    image: edoburu/pgbouncer:latest
     container_name: rsl-pgbouncer-prod
     environment:
-      POSTGRESQL_HOST: postgres-prod
-      POSTGRESQL_PORT_NUMBER: "5432"
-      POSTGRESQL_USERNAME: ${POSTGRES_USER:-rsl_user}
-      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      PGBOUNCER_DATABASE: ${POSTGRES_DB:-rslcards_prod}
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-150}"
-      PGBOUNCER_DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-30}"
+      DB_HOST: postgres-prod
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:-rsl_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DB_NAME: ${POSTGRES_DB:-rslcards_prod}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-150}"
+      DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-30}"
+      ADMIN_USERS: ${POSTGRES_USER:-rsl_user}
+      AUTH_TYPE: scram-sha-256
     depends_on:
       postgres-prod:
         condition: service_healthy
@@ -60,7 +62,7 @@ services:
       AUTH_SERVICE_PORT: 3000
       AUTH_GATEWAY_IN_DOCKER: "1"
     ports:
-      - "3000:3000"
+      - "8080:8080"
     depends_on:
       pgbouncer:
         condition: service_started
@@ -87,6 +89,7 @@ services:
       - "443:443"
     volumes:
       - ../nginx/prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     networks:
