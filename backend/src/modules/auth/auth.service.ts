@@ -319,7 +319,11 @@ export class AuthService {
   ) {
     const ticket = await this.googleClient.verifyIdToken({
       idToken,
-      audience: this.env.GOOGLE_CLIENT_ID,
+      audience: [
+        this.env.GOOGLE_CLIENT_ID,
+        this.env.GOOGLE_IOS_CLIENT_ID,
+        this.env.GOOGLE_ANDROID_CLIENT_ID,
+      ].filter(Boolean),
     });
 
     const payload = ticket.getPayload();

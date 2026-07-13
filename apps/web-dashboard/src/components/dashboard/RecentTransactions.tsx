@@ -104,8 +104,60 @@ export default function RecentTransactions({
         </Link>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-gray-100">
+      {/* Mobile Card View (Hidden on md and up) */}
+      <div className="md:hidden space-y-4">
+        {transactions.length === 0 ? (
+          <div className="py-12 text-center flex flex-col items-center justify-center space-y-2 bg-gray-50/50 rounded-2xl border border-gray-100">
+            <div className="rounded-full bg-gray-100 p-3">
+              <CreditCard className="h-6 w-6 text-gray-400" />
+            </div>
+            <p className="font-medium text-gray-900">No recent transactions</p>
+            <p className="text-sm text-gray-500 px-4">When you buy or sell cards, they will appear here.</p>
+          </div>
+        ) : (
+          transactions.map((transaction) => {
+            const PaymentIcon = getPaymentIcon(transaction.payment)
+            return (
+              <div key={transaction.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-semibold text-gray-900">{transaction.player}</div>
+                    <div className="text-xs text-gray-500 mt-1">{transaction.channel} • {transaction.time}</div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="font-mono font-bold text-gray-900">${transaction.price}</div>
+                    <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${transaction.type === 'buy' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
+                      {transaction.type.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold tracking-wide ${getGradeColor(transaction.grade)}`}>
+                    {transaction.grade}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded-md">
+                      <PaymentIcon className="w-3.5 h-3.5 text-gray-500" />
+                      <span>{transaction.payment}</span>
+                    </div>
+                    {transaction.profit !== null && (
+                      <div className={`flex items-center gap-1 text-sm font-semibold ${transaction.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.profit > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                        {transaction.profit > 0 ? '+' : '-'}${Math.abs(transaction.profit)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop Table View (Hidden on mobile) */}
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-100">
 
         <table className="w-full min-w-[900px]">
 
@@ -147,8 +199,20 @@ export default function RecentTransactions({
 
           {/* Body */}
           <tbody className="divide-y divide-gray-100 bg-white">
-
-            {transactions.map((transaction) => {
+            {transactions.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-5 py-12 text-center text-gray-500 text-sm">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="rounded-full bg-gray-50 p-3">
+                      <CreditCard className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <p className="font-medium text-gray-900">No recent transactions</p>
+                    <p>When you buy or sell cards, they will appear here.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              transactions.map((transaction) => {
 
               const PaymentIcon =
                 getPaymentIcon(transaction.payment)
@@ -325,7 +389,8 @@ export default function RecentTransactions({
                   </td>
                 </tr>
               )
-            })}
+            })
+            )}
           </tbody>
         </table>
       </div>

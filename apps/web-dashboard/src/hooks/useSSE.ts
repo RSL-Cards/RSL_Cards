@@ -47,8 +47,8 @@ export function useSSE(url: string) {
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error("SSE connection error", err);
+    eventSource.onerror = () => {
+      console.warn("SSE connection closed or interrupted.");
       eventSource.close();
       // Optional: implement reconnect with exponential backoff
     };

@@ -82,7 +82,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
     setToastError(message)
   }
 
-  const handleOAuth = async (provider: OAuthProvider) => {
+  const handleOAuth = async (provider: OAuthProvider, providedIdToken?: string) => {
     clearError()
     setToastError(null)
     setToastSuccess(null)
@@ -90,7 +90,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
     try {
       const idToken =
-        provider === 'google' ? await getGoogleIdToken() : await getAppleIdToken()
+        providedIdToken || (provider === 'google' ? await getGoogleIdToken() : await getAppleIdToken())
       const authenticate = provider === 'google' ? googleLogin : appleLogin
       await authenticate({ idToken, role: 'dealer' })
       router.replace('/')
@@ -186,12 +186,12 @@ export default function AuthCard({ mode }: AuthCardProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F7FB] px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-white sm:bg-[#F5F7FB] sm:px-6 lg:px-8 flex items-center justify-center">
       {toastError && <AuthToast message={toastError} variant="error" />}
       {toastSuccess && <AuthToast message={toastSuccess} variant="success" />}
 
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-lg lg:grid-cols-[1fr_420px]">
+      <div className="w-full sm:mx-auto sm:max-w-6xl">
+        <div className="grid w-full overflow-hidden sm:rounded-[20px] sm:border sm:border-gray-200 bg-white sm:shadow-lg lg:grid-cols-[1fr_420px]">
           <AuthBrandPanel />
 
           <section className="p-6 sm:p-8">
@@ -202,7 +202,8 @@ export default function AuthCard({ mode }: AuthCardProps) {
                 activeProvider={activeProvider}
                 isBusy={isBusy}
                 onAppleAuth={() => handleOAuth('apple')}
-                onGoogleAuth={() => handleOAuth('google')}
+                onGoogleSuccess={(token) => handleOAuth('google', token)}
+                onGoogleError={() => showValidationError('Google sign in failed.')}
               />
             )}
 
