@@ -68,6 +68,10 @@ services:
         condition: service_started
     networks:
       - rsl-prod
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     deploy:
       resources:
         limits:
@@ -87,6 +91,10 @@ services:
       - backend
     networks:
       - rsl-prod
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     deploy:
       replicas: 1
       resources:
