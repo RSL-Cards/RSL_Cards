@@ -6,6 +6,7 @@ type GoogleAccountsId = {
   initialize: (config: {
     client_id: string
     callback: (response: GoogleCredentialResponse) => void
+    use_fedcm_for_prompt?: boolean
   }) => void
   prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void
   cancel: () => void
@@ -77,6 +78,7 @@ export async function getGoogleIdToken() {
 
     googleId.initialize({
       client_id: clientId,
+      use_fedcm_for_prompt: false,
       callback: (response) => {
         if (response.credential) {
           resolve(response.credential)

@@ -7,11 +7,17 @@ LogBox.ignoreLogs([
   "expo-notifications: Android Push notifications",
 ]);
 
+import Constants from "expo-constants";
+
 let Notifications: any = null;
-try {
-  Notifications = require("expo-notifications");
-} catch (err) {
-  console.warn("expo-notifications is not supported in this client (Expo Go Android). Background notifications disabled.");
+if (Constants.appOwnership !== 'expo') {
+  try {
+    Notifications = require("expo-notifications");
+  } catch (err) {
+    console.warn("expo-notifications load error:", err);
+  }
+} else {
+  console.warn("expo-notifications is disabled in Expo Go Android. Background notifications disabled.");
 }
 
 export const notificationService = {

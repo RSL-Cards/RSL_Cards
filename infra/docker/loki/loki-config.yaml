@@ -5,6 +5,7 @@ server:
   grpc_listen_port: 9096
 
 common:
+  instance_addr: 127.0.0.1
   path_prefix: /loki
   storage:
     filesystem:
@@ -12,9 +13,12 @@ common:
       rules_directory: /loki/rules
   replication_factor: 1
   ring:
-    instance_addr: 127.0.0.1
     kvstore:
       store: inmemory
+
+ingester:
+  wal:
+    disk_full_threshold: 0
 
 schema_config:
   configs:

@@ -3,6 +3,7 @@ import { Outfit } from 'next/font/google'
 import './globals.css'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { GlobalSSEProvider } from '@/components/layout/GlobalSSEProvider'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 const outfit = Outfit({ 
   subsets: ['latin'], 
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className={`${outfit.className} antialiased bg-gray-50 text-gray-900 selection:bg-indigo-500 selection:text-white`}>
         <QueryProvider>
           <GlobalSSEProvider>
-            {children}
+            <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
+              {children}
+            </GoogleOAuthProvider>
           </GlobalSSEProvider>
         </QueryProvider>
       </body>

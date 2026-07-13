@@ -17,6 +17,9 @@ import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect } from "react";
+import Constants from "expo-constants";
+import * as AuthSession from "expo-auth-session";
+
 WebBrowser.maybeCompleteAuthSession();
 function getErrorMessage(error: unknown, fallback: string): string {
   return (
@@ -184,9 +187,11 @@ export function useGoogleAuth() {
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-    redirectUri: "https://auth.expo.io/@gollavinay/dealer-app", // Using the Expo auth proxy URI
+    ...(Constants.appOwnership !== 'expo' && {
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
+      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    }),
+    redirectUri: AuthSession.makeRedirectUri(),
   });
 
   useEffect(() => {

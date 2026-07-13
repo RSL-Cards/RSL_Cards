@@ -17,7 +17,7 @@ Use `rsync` to transfer your latest local code to the remote EC2 instance. It is
 Run the following command from the root of your local repository:
 
 ```bash
-# Replace 3.231.19.101 with the actual public IP of the EC2 instance if it changes
+# Replace 32.192.247.244 with the actual public IP of the EC2 instance if it changes
 rsync -avz \
   --exclude 'node_modules' \
   --exclude '.git' \
@@ -27,7 +27,7 @@ rsync -avz \
   --exclude 'apps/dealer-app/node_modules' \
   --exclude 'backend/node_modules' \
   -e "ssh -i rslcardspem.pem -o StrictHostKeyChecking=no" \
-  ./ ubuntu@3.231.19.101:~/RSL_Cards/
+  ./ ubuntu@32.192.247.244:~/RSL_Cards/
 ```
 
 ## 2. Restarting Docker Containers
@@ -38,7 +38,7 @@ Once the code has synced, you need to rebuild and restart the Docker containers 
 If the EC2 instance is running the **Dev** stack, execute the following command via SSH:
 
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
+ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@32.192.247.244 \
   "cd RSL_Cards && docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env.dev up --build -d"
 ```
 
@@ -46,7 +46,7 @@ ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
 If the instance is running the **QA** stack, run:
 
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
+ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@32.192.247.244 \
   "cd RSL_Cards && docker compose -f infra/docker/docker-compose.qa.yml --env-file infra/docker/.env.qa up --build -d"
 ```
 
@@ -54,7 +54,7 @@ ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
 If the instance is running the **Production** stack, run:
 
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
+ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@32.192.247.244 \
   "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
 ```
 
@@ -63,13 +63,13 @@ ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 \
 You can verify that the containers are running properly by checking the Docker process list:
 
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 "docker ps"
+ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@32.192.247.244 "docker ps"
 ```
 
 To view logs for a specific container (e.g. the backend in dev), you can use:
 
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@3.231.19.101 "cd RSL_Cards && docker compose -f infra/docker/docker-compose.dev.yml logs -f rsl-backend-dev"
+ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@32.192.247.244 "cd RSL_Cards && docker compose -f infra/docker/docker-compose.dev.yml logs -f rsl-backend-dev"
 ```
 
 > **Note:** If you install `make` on the EC2 instance (`sudo apt-get install make`), you can simplify the restart commands to `make dev-restart`, `make qa-restart`, or `make prod-restart`.

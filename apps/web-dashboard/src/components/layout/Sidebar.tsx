@@ -51,7 +51,7 @@ export default function Sidebar() {
           <div className="flex-shrink-0">
             {!imgError ? (
               <img 
-                src="/rslicon.jpeg" 
+                src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
                 alt="RSL Cards Logo" 
                 onError={() => setImgError(true)}
                 className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"

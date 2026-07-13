@@ -129,7 +129,7 @@ export class UserService {
     }
 
     const ext = contentType === "image/png" ? "png" : "jpg";
-    const key = `avatars/${userId}/profile.${ext}`;
+    const key = `profilepic/${userId}/profile.${ext}`;
 
     const client = new S3Client({
       region: env.AWS_REGION,

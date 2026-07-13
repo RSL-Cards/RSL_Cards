@@ -111,6 +111,48 @@ export class TransactionRepository {
     }
 
     const row = result.rows[0] as any;
+
+    // Send push/SSE notification for new sale
+    try {
+      const prefResult = await db.execute(sql`
+        SELECT notification_preferences FROM dealer_profiles
+        WHERE user_id = ${userId}
+        LIMIT 1
+      `);
+      
+      let sendPush = true;
+      if (prefResult.rows.length > 0) {
+        const prefs = prefResult.rows[0].notification_preferences as any;
+        if (prefs && prefs.newSales) {
+          sendPush = !!prefs.newSales.push;
+        }
+      }
+
+      if (sendPush) {
+        const { NotificationRepository } = await import("../notification/notification.repository.js");
+        const { NotificationService } = await import("../notification/notification.service.js");
+        const notifRepository = new NotificationRepository();
+        const notifService = new NotificationService(notifRepository);
+        await notifService.sendNotification(
+          userId,
+          "New Sale Recorded",
+          `Sold ${playerName}${gradeKey ? ` (${gradeKey})` : ""} for $${sellPrice.toFixed(2)}. Profit: $${profit.toFixed(2)}${profitPct !== null ? ` (${profitPct}%)` : ""}.`,
+          "sale",
+          { transactionId: row.id }
+        );
+      }
+    } catch (err: any) {
+      console.error(`[TRANSACTION] Failed to send new sale notification: ${err.message}`);
+    }
+
+    // Invalidate inventory summary cache as item count / value has changed
+    try {
+      const { redisAdapter } = await import("../../adapters/redis.adapter.js");
+      await redisAdapter.delete(`cache:inventory_summary:${userId}`);
+    } catch (err: any) {
+      console.error(`[TRANSACTION] Redis summary cache invalidate failed: ${err.message}`);
+    }
+
     return { success: true, id: row.id, createdAt: row.created_at, profit, profitPct };
   }
 

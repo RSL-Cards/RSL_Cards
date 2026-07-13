@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
       {/* Logo Card */}
       <View style={styles.centerContent}>
         <Image
-          source={require('../../assets/rslicon.jpeg')}
+          source={process.env.EXPO_PUBLIC_LOGO_URL ? { uri: process.env.EXPO_PUBLIC_LOGO_URL } : require('../../assets/rslicon.jpeg')}
           style={{ width: 160, height: 160, borderRadius: 24 }}
           resizeMode="contain"
         />

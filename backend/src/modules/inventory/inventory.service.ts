@@ -1,16 +1,44 @@
 import { InventoryRepository } from "./inventory.repository.js";
+import { redisAdapter } from "../../adapters/redis.adapter.js";
 
 export class InventoryService {
   constructor(
     private readonly repository: InventoryRepository
   ) {}
 
+  private async invalidateSummaryCache(userId: string) {
+    const cacheKey = `cache:inventory_summary:${userId}`;
+    try {
+      await redisAdapter.delete(cacheKey);
+    } catch (err: any) {
+      console.warn(`[INVENTORY] Redis cache delete failed: ${err.message}`);
+    }
+  }
+
   async getInventory(query: any, userId: string) {
     return this.repository.getInventory(query, userId);
   }
 
   async getInventorySummary(userId: string) {
-    return this.repository.getInventorySummary(userId);
+    const cacheKey = `cache:inventory_summary:${userId}`;
+    try {
+      const cached = await redisAdapter.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (err: any) {
+      console.warn(`[INVENTORY] Redis cache get failed: ${err.message}`);
+    }
+
+    const summary = await this.repository.getInventorySummary(userId);
+
+    try {
+      await redisAdapter.set(cacheKey, JSON.stringify(summary), 300); // 5 min TTL
+    } catch (err: any) {
+      console.warn(`[INVENTORY] Redis cache set failed: ${err.message}`);
+    }
+
+    return summary;
   }
 
   async getInventoryAgingAlerts(userId: string) {
@@ -22,18 +50,22 @@ export class InventoryService {
   }
 
   async postInventory(body: any, userId: string) {
+    await this.invalidateSummaryCache(userId);
     return this.repository.postInventory(body, userId);
   }
 
   async patchInventoryId(id: string, body: any, userId: string) {
+    await this.invalidateSummaryCache(userId);
     return this.repository.patchInventoryId(id, body, userId);
   }
 
   async deleteInventoryId(id: string, userId: string) {
+    await this.invalidateSummaryCache(userId);
     return this.repository.deleteInventoryId(id, userId);
   }
 
   async postInventoryRevalue(userId: string) {
+    await this.invalidateSummaryCache(userId);
     return this.repository.postInventoryRevalue(userId);
   }
 
@@ -66,7 +98,7 @@ export class InventoryService {
     }
 
     const ext = contentType === "image/png" ? "png" : "jpg";
-    const key = `cards/${userId}/${inventoryId}/${fileName ?? `photo-${Date.now()}.${ext}`}`;
+    const key = `cardimages/${userId}/${inventoryId}/${fileName ?? `photo-${Date.now()}.${ext}`}`;
 
     const { S3Service } = await import("./s3.service.js");
     const s3 = new S3Service(env);

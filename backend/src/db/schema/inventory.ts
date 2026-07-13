@@ -57,4 +57,6 @@ export const bulkPurchases = pgTable('bulk_purchases', {
   paymentMethod:varchar('payment_method', { length: 50 }),
   notes:        text('notes'),
   createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  bulkPurchasesUserIdx: index('idx_bulk_purchases_user_id').on(t.userId),
+}))

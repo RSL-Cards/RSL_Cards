@@ -102,6 +102,10 @@ services:
         condition: service_started
     ports:
       - "8080:8080"
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -206,6 +210,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - loki
       - prometheus

@@ -1,4 +1,4 @@
-import { Bell, Sparkles, Target } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 interface AIInsightsHeaderProps {
   alertsEnabled: boolean
@@ -22,22 +22,7 @@ export default function AIInsightsHeader({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={onToggleAlerts}
-          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-            alertsEnabled ? 'bg-green-600/15 text-green-600' : 'inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2'
-          }`}
-        >
-          <Bell className="h-4 w-4" />
-          Alerts {alertsEnabled ? 'On' : 'Off'}
-        </button>
-        <button type="button" className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 inline-flex items-center gap-2 text-sm">
-          <Target className="h-4 w-4" />
-          Build Watchlist
-        </button>
-      </div>
+
     </div>
   )
 }

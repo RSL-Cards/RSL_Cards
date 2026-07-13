@@ -100,6 +100,7 @@ export const ENDPOINTS = {
     list: "/v1/notifications",
     markRead: (id: string) => `/v1/notifications/${id}/read`,
     registerToken: "/v1/notifications/register-token",
+    preferences: "/v1/users/me/notification-preferences",
   },
 
   analytics: {

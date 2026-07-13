@@ -64,6 +64,8 @@ const envSchema = z.object({
   GOOGLE_CLOUD_API_KEY: z.string().optional().default(""),
   GEMINI_API_KEY: z.string().optional().default(""),
   GOOGLE_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_IOS_CLIENT_ID: z.string().optional().default(""),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().optional().default(""),
   APPLE_AUDIENCE: z.string().optional().default(""),
   APPLE_ISSUER: z.string().optional().default("https://appleid.apple.com"),
   AWS_ACCESS_KEY_ID: z.string().optional().default(""),
