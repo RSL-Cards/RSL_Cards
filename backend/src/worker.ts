@@ -422,7 +422,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           if (batchRecord.imageBase64 && env.S3_BUCKET_NAME) {
             try {
               const buffer = Buffer.from(batchRecord.imageBase64, "base64");
-              const key = `cards/${userId || "batch"}/batch-${batchId}/${randomUUID()}.jpg`;
+              const key = `cardimages/${userId || "batch"}/batch-${batchId}/${randomUUID()}.jpg`;
               const client = new S3Client({
                 region: env.AWS_REGION || "us-east-1",
                 credentials: {

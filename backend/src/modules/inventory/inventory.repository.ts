@@ -217,7 +217,7 @@ export class InventoryRepository {
                 const buffer = Buffer.from(arrayBuf);
                 const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
                 const ext = contentType.includes("png") ? "png" : "jpg";
-                const key = `cards/${userId}/imported/${randomUUID()}.${ext}`;
+                const key = `cardimages/${userId}/imported/${randomUUID()}.${ext}`;
                 const client = new S3Client({
                   region: env.AWS_REGION || "us-east-1",
                   credentials: {

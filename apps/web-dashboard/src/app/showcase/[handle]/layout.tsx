@@ -7,7 +7,7 @@ export default function ShowcaseLayout({ children }: { children: React.ReactNode
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src="/rslicon.jpeg" 
+              src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
               alt="RSL Cards Logo" 
               className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"
             />

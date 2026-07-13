@@ -145,6 +145,14 @@ export class TransactionRepository {
       console.error(`[TRANSACTION] Failed to send new sale notification: ${err.message}`);
     }
 
+    // Invalidate inventory summary cache as item count / value has changed
+    try {
+      const { redisAdapter } = await import("../../adapters/redis.adapter.js");
+      await redisAdapter.delete(`cache:inventory_summary:${userId}`);
+    } catch (err: any) {
+      console.error(`[TRANSACTION] Redis summary cache invalidate failed: ${err.message}`);
+    }
+
     return { success: true, id: row.id, createdAt: row.created_at, profit, profitPct };
   }
 

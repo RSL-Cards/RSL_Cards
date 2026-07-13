@@ -1,0 +1,1 @@
+CREATE INDEX "idx_bulk_purchases_user_id" ON "bulk_purchases" USING btree ("user_id");

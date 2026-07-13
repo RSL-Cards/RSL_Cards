@@ -6,7 +6,7 @@ export default function AuthBrandPanel() {
       <div>
         <div className="inline-flex items-center gap-3">
           <img 
-            src="/rslicon.jpeg" 
+            src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
             alt="RSL Cards Logo" 
             className="h-12 w-12 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-white/20"
           />
