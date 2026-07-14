@@ -4,28 +4,19 @@ import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
 export const navLinks = [
-  { label: 'Home', href: '/home' },
-  { label: 'For Dealers', href: '/dealers' },
-  // { label: 'For Collectors', href: '/collectors' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'About', href: '/about' },
+  { label: 'Coming Soon', href: '#coming-soon' },
+  { label: 'Features', href: '#features' },
+  { label: 'About Us', href: '#about' },
 ]
 
-export type HeaderCtaType = 'none' | 'download' | 'dealer'
-
-interface HeaderProps {
-  ctaType?: HeaderCtaType
-}
-
-export default function Header({ ctaType = 'download' }: HeaderProps) {
+export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur-xl">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
-        <a href="/home" className="flex items-center gap-3">
+        <a href="/" className="flex items-center gap-3">
           <span className="border border-white px-3 py-2 text-xl font-black italic tracking-tight">
             RSL
           </span>
@@ -48,25 +39,14 @@ export default function Header({ ctaType = 'download' }: HeaderProps) {
         </div>
 
         {/* Desktop CTA */}
-        {ctaType !== 'none' && (
-          <div className="hidden items-center gap-3 lg:flex">
-            {ctaType === 'dealer' && (
-              <a
-                href="#signin"
-                className="border border-white/20 px-5 py-3 text-sm font-black transition hover:border-white"
-              >
-                Sign In
-              </a>
-            )}
-
-            <a
-              href="#download"
-              className="bg-rslRed px-5 py-3 text-sm font-black transition hover:bg-white hover:text-black"
-            >
-              Download App
-            </a>
-          </div>
-        )}
+        <div className="hidden items-center gap-3 lg:flex">
+          <a
+            href="#coming-soon"
+            className="bg-rslRed px-5 py-3 text-sm font-black transition hover:bg-white hover:text-black"
+          >
+            Join Early Access
+          </a>
+        </div>
 
         {/* Mobile Menu Button */}
         <button
@@ -97,27 +77,15 @@ export default function Header({ ctaType = 'download' }: HeaderProps) {
               </a>
             ))}
 
-            {ctaType !== 'none' && (
-              <div className="mt-6 flex flex-col gap-3">
-                {ctaType === 'dealer' && (
-                  <a
-                    href="#signin"
-                    onClick={() => setIsOpen(false)}
-                    className="flex h-12 items-center justify-center border border-white/20 font-bold"
-                  >
-                    Sign In
-                  </a>
-                )}
-
-                <a
-                  href="#download"
-                  onClick={() => setIsOpen(false)}
-                  className="flex h-12 items-center justify-center bg-rslRed font-bold text-white"
-                >
-                  Download App
-                </a>
-              </div>
-            )}
+            <div className="mt-6 flex flex-col gap-3">
+              <a
+                href="#coming-soon"
+                onClick={() => setIsOpen(false)}
+                className="flex h-12 items-center justify-center bg-rslRed font-bold text-white"
+              >
+                Join Early Access
+              </a>
+            </div>
           </div>
         </div>
       )}

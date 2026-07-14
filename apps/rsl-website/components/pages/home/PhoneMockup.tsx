@@ -57,7 +57,7 @@ export default function PhoneMockup() {
                 AI Insight
               </div>
               <p className="mt-2 text-sm font-bold leading-snug">
-                Three cards in your inventory are trending after last night's game.
+                Patrick Mahomes' market is up 14% after throwing 3 TDs in last night's game. Your inventory value increased by $120.
               </p>
             </div>
           </div>

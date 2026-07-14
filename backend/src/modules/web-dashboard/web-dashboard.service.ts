@@ -107,11 +107,11 @@ export class WebDashboardService {
       return {
         id: item.id,
         image_url: item.photos?.[0] || '/placeholder.png', 
-        player_name: item.player_name || 'Unknown',
+        player_name: item.player_name || '',
         year: item.year || new Date().getFullYear(),
-        set_name: item.set_name || 'Unknown',
+        set_name: item.set_name || '',
         grade_key: item.grade_key || 'RAW',
-        sport: item.sport || 'Unknown',
+        sport: item.sport || '',
         cost_basis: cost,
         market_value: Number(item.market_value || cost),
         unrealized_gain: gain,
@@ -141,11 +141,11 @@ export class WebDashboardService {
     const rows = await this.repository.getInventoryExport(userId);
     return rows.map((row: any) => ({
       id: row.id,
-      player: row.player_name || 'Unknown',
+      player: row.player_name || '',
       year: row.year || '',
       set: row.set_name || '',
       grade: String(row.grade_key || 'RAW').replace('_', ' '),
-      sport: row.sport || 'Unknown',
+      sport: row.sport || '',
       costBasis: Number(row.cost_basis || 0),
       marketValue: Number(row.market_value || 0),
       unrealizedGain: Number(row.unrealized_gain || 0),
@@ -177,11 +177,11 @@ export class WebDashboardService {
       item: {
         id: item.id,
         image_url: item.photos?.[0] || '/placeholder.png',
-        player_name: item.player_name || 'Unknown',
+        player_name: item.player_name || '',
         year: item.year || new Date().getFullYear(),
-        set_name: item.set_name || 'Unknown',
+        set_name: item.set_name || '',
         grade_key: item.grade_key || 'RAW',
-        sport: item.sport || 'Unknown',
+        sport: item.sport || '',
         cost_basis: cost,
         market_value: Number(item.market_value || cost),
         unrealized_gain: gain,
@@ -236,7 +236,7 @@ export class WebDashboardService {
       id: tx.id,
       date: tx.createdAt || new Date().toISOString(),
       type: tx.type,
-      player: tx.playerName || 'Unknown',
+      player: tx.playerName || '',
       grade: tx.gradeKey?.replace('_', ' ') || 'RAW',
       price: Number(tx.price),
       profit: tx.profit ? Number(tx.profit) : null,
@@ -280,7 +280,7 @@ export class WebDashboardService {
         time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         reference: tx.id.slice(0, 8).toUpperCase(),
         type,
-        card: tx.player_name || 'Unknown',
+        card: tx.player_name || '',
         customer: tx.customer_name || 'Direct',
         grade: String(tx.grade_key || 'RAW').replace('_', ' '),
         channel: tx.channel || 'Direct',
@@ -305,7 +305,7 @@ export class WebDashboardService {
       losingValue: Number(snapshotRow.losing_value || 0),
       agingAlerts: Number(snapshotRow.aging_alerts || 0),
       agingCards: agingCardsRows.map(r => ({
-        player: r.player || 'Unknown',
+        player: r.player || '',
         grade: String(r.grade || 'RAW').replace('_', ' '),
         daysHeld: Number(r.daysHeld || 0),
         change: Number(r.change || 0)
@@ -403,8 +403,8 @@ export class WebDashboardService {
     let agingAlerts = 0;
 
     data.inventoryStats.forEach((row: any) => {
-      const sport = row.sport || 'Unknown';
-      const year = row.year || 'Unknown';
+      const sport = row.sport || '';
+      const year = row.year || '';
       let grade = row.grade || 'RAW';
       grade = grade.replace('_', ' ');
 

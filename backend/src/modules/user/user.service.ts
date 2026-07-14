@@ -53,21 +53,56 @@ export class UserService {
       });
 
       try {
+        const { InventoryRepository } = await import("../inventory/inventory.repository.js");
+        const { InventoryService } = await import("../inventory/inventory.service.js");
+        const inventoryService = new InventoryService(new InventoryRepository());
+
         const listings = await this.ebayOauthService.fetchEbayActiveListings(tokens.access_token);
         if (listings && listings.length > 0) {
-          const inventoryData = listings.map((l: any) => {
-            return {
-              userId,
-              costBasis: "0", 
+          for (const l of listings) {
+            const aspects = l.product?.aspects || {};
+            // Filter: only trading cards (must have Sport, Player, or Set)
+            if (!aspects.Sport && !aspects.Player && !aspects['Set Name'] && !aspects.Season && !aspects.Year) {
+              continue;
+            }
+
+            const playerName = aspects.Player?.[0] || aspects.Athlete?.[0] || "";
+            let year = aspects.Season?.[0] || aspects.Year?.[0] || "";
+            // Keep only numbers for year if it's like "2020-21" to fit integers
+            year = year.replace(/[^0-9]/g, '').substring(0, 4);
+            const setName = aspects['Set Name']?.[0] || aspects.Set?.[0] || "";
+            const sport = aspects.Sport?.[0] || "";
+            const cardNumber = aspects['Card Number']?.[0] || "";
+            const gradeCompany = aspects['Professional Grader']?.[0] || "";
+            const gradeValue = aspects.Grade?.[0] || "";
+            
+            let gradeKey = "RAW";
+            if (gradeCompany && gradeValue) {
+              gradeKey = `${gradeCompany}_${gradeValue}`.toUpperCase().replace(/ /g, '_');
+            } else if (aspects.Graded?.[0] === "Yes") {
+              gradeKey = "GRADED";
+            }
+
+            const photos = l.product?.imageUrls || [];
+
+            await inventoryService.postInventory({
+              playerName,
+              year,
+              setName,
+              sport,
+              cardNumber,
+              gradeCompany,
+              gradeValue,
+              gradeKey,
+              costBasis: "0",
+              currentMarketValue: "0",
               quantity: l.availability?.shipToLocationAvailability?.quantity ?? 1,
               listedPlatforms: ["ebay"],
-              listingStatus: "listed" as any,
-              notes: `eBay SKU: ${l.sku || "Unknown"}`,
               ebayActiveListings: JSON.stringify([l]),
-            };
-          });
-          
-          await db.insert(inventory).values(inventoryData);
+              notes: `eBay SKU: ${l.sku || "Unknown"}`,
+              photos
+            }, userId);
+          }
         }
       } catch (err) {
         console.error("Failed to sync eBay listings:", err);

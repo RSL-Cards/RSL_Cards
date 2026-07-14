@@ -23,7 +23,7 @@ export class InventoryRepository {
     const offset = (Number(page) - 1) * Number(limit);
 
     const result = await db.execute(sql`
-      SELECT i.*, COALESCE(p.name, 'Unknown Player') as player_name 
+      SELECT i.*, COALESCE(p.name, '') as player_name 
       FROM inventory i
       LEFT JOIN players p ON i.player_id = p.id
       WHERE i.user_id = ${userId}
@@ -84,7 +84,7 @@ export class InventoryRepository {
 
   async getInventoryId(id: string, userId: string) {
     const result = await db.execute(sql`
-      SELECT i.*, COALESCE(p.name, 'Unknown Player') as player_name 
+      SELECT i.*, COALESCE(p.name, '') as player_name 
       FROM inventory i
       LEFT JOIN players p ON i.player_id = p.id
       WHERE i.id = ${id} AND i.user_id = ${userId}
@@ -172,6 +172,10 @@ export class InventoryRepository {
     const cleanVariantId = variantId && variantId !== "" ? variantId : null;
     const cleanPlayerId = playerId && playerId !== "" ? playerId : null;
     const cleanPlayerName = playerName && playerName !== "" ? playerName : null;
+    if (!cleanPlayerName) {
+      throw new Error("Could not accurately identify card details. Player name is required to add a card.");
+    }
+
     const cleanYear = year && year !== "" ? Number(year) : null;
     const cleanSetName = setName && setName !== "" ? setName : null;
     const cleanVariation = variation && variation !== "" ? variation : null;
@@ -303,42 +307,32 @@ export class InventoryRepository {
           cleanCardId = existingCard.id;
           resolvedPlayerId = existingCard.player_id;
         } else {
-          // Resolve or create a fallback player
+          // If no player, we can't create a real card since player is required.
           if (!resolvedPlayerId) {
-            const playerRes = await db.execute(sql`
-              SELECT id FROM players WHERE name = 'Unknown Player' LIMIT 1
+            cleanCardId = null;
+          } else {
+            // Insert fallback base card
+            await db.execute(sql`
+              INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
+              VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, null, false, 'fallback', NOW(), NOW())
             `);
-            if (playerRes.rows.length > 0) {
-              resolvedPlayerId = (playerRes.rows[0] as any).id;
-            } else {
-              const insertPlayer = await db.execute(sql`
-                INSERT INTO players (id, name, sport, created_at, updated_at)
-                VALUES (gen_random_uuid(), 'Unknown Player', ${cleanSport || "basketball"}, NOW(), NOW())
-                RETURNING id
-              `);
-              resolvedPlayerId = (insertPlayer.rows[0] as any).id;
-            }
           }
-
-          // Insert fallback base card
-          await db.execute(sql`
-            INSERT INTO cards (id, player_id, year, set_name, card_number, manufacturer, is_rookie, source, created_at, updated_at)
-            VALUES (${cleanCardId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, ${cleanCardNumber}, 'unknown', false, 'fallback', NOW(), NOW())
-          `);
         }
 
-        // Ensure "Base" variant exists
-        const variantExists = await db.execute(sql`
-          SELECT id FROM card_variants WHERE card_id = ${cleanCardId} AND name = 'Base' LIMIT 1
-        `);
-        if (variantExists.rows.length === 0) {
-          const insertVariant = await db.execute(sql`
-            INSERT INTO card_variants (id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${cleanCardId}, 'rsl-' || gen_random_uuid(), ${cleanCardId} || '_base', ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
-            RETURNING id
+        if (cleanCardId) {
+          // Ensure "Base" variant exists
+          const variantExists = await db.execute(sql`
+            SELECT id FROM card_variants WHERE card_id = ${cleanCardId} AND name = 'Base' LIMIT 1
           `);
-          if (!resolvedVariantId) {
-            resolvedVariantId = (insertVariant.rows[0] as any).id;
+          if (variantExists.rows.length === 0) {
+            const insertVariant = await db.execute(sql`
+              INSERT INTO card_variants (id, card_id, rsl_card_id, rsl_card_unique_name, year, set_name, name, is_parallel, is_base, created_at, updated_at)
+              VALUES (gen_random_uuid(), ${cleanCardId}, 'rsl-' || gen_random_uuid(), ${cleanCardId} || '_base', ${cleanYear}, ${cleanSetName}, 'Base', false, true, NOW(), NOW())
+              RETURNING id
+            `);
+            if (!resolvedVariantId) {
+              resolvedVariantId = (insertVariant.rows[0] as any).id;
+            }
           }
         }
       } else {
@@ -349,7 +343,7 @@ export class InventoryRepository {
       }
 
       // If resolvedVariantId is null, try to query base variant as fallback
-      if (!resolvedVariantId) {
+      if (!resolvedVariantId && cleanCardId) {
         const varExists = await db.execute(sql`
           SELECT id FROM card_variants WHERE card_id = ${cleanCardId} AND name = 'Base' LIMIT 1
         `);
@@ -524,7 +518,7 @@ export class InventoryRepository {
     const result = await db.execute(sql`
       SELECT 
         i.id,
-        COALESCE(p.name, 'Unknown Player') as player_name,
+        COALESCE(p.name, '') as player_name,
         i.year,
         i.set_name,
         i.variation,

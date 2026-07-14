@@ -56,7 +56,7 @@ export class AnalyticsRepository {
         type: r.type,
         price: parseFloat(r.price ?? "0").toFixed(2),
         profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
-        playerName: r.player_name ?? "Unknown Card",
+        playerName: r.player_name ?? "",
         imageUrl,
         time: new Date(r.created_at).toLocaleTimeString("en-US", {
           hour: "numeric",
@@ -122,7 +122,7 @@ export class AnalyticsRepository {
     if (bestDealRows.rows.length > 0) {
       const b = bestDealRows.rows[0] as any;
       best_deal = {
-        player: b.player ?? "Unknown Player",
+        player: b.player ?? "",
         profit: parseFloat(b.profit ?? "0").toFixed(2),
         margin: parseFloat(b.margin ?? "0")
       };

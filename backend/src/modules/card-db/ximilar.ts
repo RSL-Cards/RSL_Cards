@@ -149,13 +149,18 @@ export async function identifyCard(
     }
 
     const label = record.best_label;
+    const playerName = label.player_name || label.playerName;
+    if (!playerName || playerName.trim() === "") {
+      throw new Error("Could not accurately identify card details: Player name is missing");
+    }
+    
     return {
-      playerName: label.player_name || label.playerName || "Unknown",
+      playerName,
       year: parseInt(label.year) || new Date().getFullYear(),
-      setName: label.set_name || label.setName || "Unknown Set",
+      setName: label.set_name || label.setName || "",
       variation: label.variation || label.card_variation,
       cardNumber: label.card_number || label.cardNumber,
-      sport: label.sport || "Unknown",
+      sport: label.sport || "",
       manufacturer: label.manufacturer || label.brand,
       isRookie: label.is_rookie || label.isRookie || false,
       isAutograph: label.is_autograph || label.isAutograph || false,
