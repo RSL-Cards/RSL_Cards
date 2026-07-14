@@ -146,7 +146,7 @@ export default function PhoneMockup() {
               </div>
             </div>
             <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-              <div className="w-full h-full opacity-60 bg-[url('https://images.unsplash.com/photo-1614624532983-4ce03382d63d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
+              <div className="w-full h-full opacity-60 bg-[url('https://images.unsplash.com/photo-1611931960487-4932667079f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
               <div className="absolute inset-0 bg-black/40" />
               <div className="absolute w-[280px] h-[400px] border-2 border-white/20 rounded-xl flex items-center justify-center overflow-hidden">
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#0057FF] rounded-tl-xl" />
@@ -179,7 +179,7 @@ export default function PhoneMockup() {
             <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar pb-28">
               <div className="flex gap-4">
                 <div className="w-16 h-20 bg-[#222222] rounded-lg">
-                  <img src="https://images.unsplash.com/photo-1614624532983-4ce03382d63d?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
+                  <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
                 </div>
                 <div className="flex-1">
                   <div className="font-bold text-[15px] leading-tight mb-2">2017 Panini Prizm Patrick Mahomes II Base</div>
@@ -297,7 +297,7 @@ export default function PhoneMockup() {
             <div className="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar mt-4 pb-28">
               <div className={`flex gap-4 p-4 rounded-2xl bg-[#111111] border border-[#0057FF] shadow-[0_0_15px_rgba(0,87,255,0.15)] relative overflow-hidden transition-colors ${isClicking && step === 4 ? 'bg-[#1a1a1a]' : ''}`}>
                 <div className="w-14 h-20 bg-[#222222] rounded-lg">
-                  <img src="https://images.unsplash.com/photo-1614624532983-4ce03382d63d?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
+                  <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
                 </div>
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="font-bold leading-tight line-clamp-1 text-sm">2017 Panini Prizm Patrick Mahomes II Base</div>
@@ -342,7 +342,7 @@ export default function PhoneMockup() {
             
             <div className="flex-1 overflow-y-auto no-scrollbar pb-28">
               <div className="w-full h-[300px] bg-[#111] p-4 flex items-center justify-center">
-                <img src="https://images.unsplash.com/photo-1614624532983-4ce03382d63d?auto=format&fit=crop&w=400&q=80" className="max-h-full max-w-full object-contain" />
+                <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=400&q=80" className="max-h-full max-w-full object-contain" />
               </div>
               
               <div className="p-5">
