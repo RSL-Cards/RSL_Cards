@@ -2,7 +2,7 @@ import PhoneMockup from './PhoneMockup'
 
 export default function ComingSoonSection() {
   return (
-    <section id="coming-soon" className="surface-grid relative overflow-hidden border-b border-line pt-28">
+    <section id="coming-soon" className="surface-grid relative overflow-hidden border-b border-line pt-20">
       <div className="absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_center,rgba(232,0,28,0.24),transparent_58%)] lg:right-[5%]" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-24 lg:pt-20">
         <div className="flex flex-col justify-center">

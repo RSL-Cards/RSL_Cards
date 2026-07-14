@@ -17,10 +17,8 @@ export default function Header() {
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
         <a href="/" className="flex items-center gap-3">
-          <span className="border border-white px-3 py-2 text-xl font-black italic tracking-tight">
-            RSL
-          </span>
-          <span className="text-sm font-black uppercase tracking-[0.22em] text-rslRed">
+          <img src="/rslicon.jpeg" alt="RSL Cards Logo" className="h-10 w-10 rounded-md object-contain" />
+          <span className="text-sm font-black uppercase tracking-[0.22em] text-white">
             Cards
           </span>
         </a>
