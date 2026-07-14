@@ -12,7 +12,19 @@ const pool = new pg.Pool({
   max: env.DB_POOL_MAX,
 });
 
-export const db = drizzle(pool, { schema });
+import { DefaultLogger, LogWriter } from "drizzle-orm/logger";
+import { logger } from "../lib/logger.js";
+
+class DbLogWriter implements LogWriter {
+  write(message: string) {
+    // Only log actual SQL queries to avoid noise, stripping the generic "Query: " prefix if present
+    const cleanMsg = message.replace(/^Query: /, "");
+    logger.info(`[DB] ${cleanMsg}`);
+  }
+}
+
+const dbLogger = new DefaultLogger({ writer: new DbLogWriter() });
+export const db = drizzle(pool, { schema, logger: dbLogger });
 
 export async function testDbConnection() {
   try {

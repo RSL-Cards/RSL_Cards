@@ -199,7 +199,7 @@ export default function CardDetailScreen() {
             <Image
               source={{ uri: card.photos[0] }}
               style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : (
             <Text style={styles.imageInitials}>{initials}</Text>
@@ -370,7 +370,7 @@ export default function CardDetailScreen() {
                         <Text style={styles.salePrice}>
                           ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
                         </Text>
-                        {sale.endDate && (
+                        {sale.endDate && !isNaN(new Date(sale.endDate).getTime()) && (
                           <Text
                             style={{
                               color: "#555555",
@@ -470,7 +470,7 @@ export default function CardDetailScreen() {
                         <Text style={styles.salePrice}>
                           ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
                         </Text>
-                        {sale.endDate && (
+                        {sale.endDate && !isNaN(new Date(sale.endDate).getTime()) && (
                           <Text
                             style={{
                               color: "#555555",

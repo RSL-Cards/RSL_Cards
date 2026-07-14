@@ -100,7 +100,7 @@ export const initWorker = () => {
           const compsResult = await db.execute(sql`
             SELECT avg_sold_price FROM card_comp_snapshots 
             WHERE variant_id = ${variant_id} AND grade_key = ${grade_key}
-            ORDER BY created_at DESC LIMIT 1
+            ORDER BY fetched_at DESC LIMIT 1
           `);
           if (compsResult.rows.length === 0) return { success: true, message: "No comp data" };
           const currentMarketValue = Number(compsResult.rows[0].avg_sold_price);
@@ -214,7 +214,8 @@ export const initWorker = () => {
       }
 
       else if (job.name === "generate_ai_insights") {
-        logger.info(`[WORKER] Running generate_ai_insights job (ID: ${job.id})`);
+        const { userId } = job.data || {};
+        logger.info(`[WORKER] Running generate_ai_insights job (ID: ${job.id}) ${userId ? `for User: ${userId}` : "Globally"}`);
         try {
           // 1. Fetch top cards in user active inventory with price shifts >= 15% in last 30 days
           const candidates = await db.execute(sql`
@@ -240,6 +241,7 @@ export const initWorker = () => {
                 WHERE i.variant_id = cs.variant_id 
                   AND i.grade_key = cs.grade_key 
                   AND i.listing_status IN ('unlisted', 'listed')
+                  ${userId ? sql`AND i.user_id = ${userId}` : sql``}
               )
             ORDER BY abs(cs.price_trend_30d) DESC
             LIMIT 10
@@ -348,6 +350,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
               const ownersResult = await db.execute(sql`
                 SELECT DISTINCT user_id FROM inventory
                 WHERE variant_id = ${item.variant_id} AND listing_status IN ('unlisted', 'listed')
+                ${userId ? sql`AND user_id = ${userId}` : sql``}
               `);
               
               const owners = ownersResult.rows as any[];

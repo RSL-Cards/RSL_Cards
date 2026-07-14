@@ -320,6 +320,7 @@ export default function BuyConfirmScreen() {
                 cardId: cardId || undefined,
                 variantId: variantId || undefined,
                 playerId: activeTab?.playerId ?? "",
+                playerName: card?.player_name ?? undefined,
                 year: card.year ? Number(card.year) : undefined,
                 setName: card.set_name ?? undefined,
                 variation: card.variation ?? undefined,
@@ -348,7 +349,7 @@ export default function BuyConfirmScreen() {
                     await apiClient.post(ENDPOINTS.transactions.buy, {
                       inventoryId,
                       playerId: activeTab?.playerId,
-                      playerName: card?.player_name || "Unknown Card",
+                      playerName: card?.player_name ?? "",
                       price: String(price),
                       costBasis: String(price),
                       channel,

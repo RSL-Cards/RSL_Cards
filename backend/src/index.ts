@@ -27,6 +27,24 @@ import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
 import { promMetrics, getPrometheusOutput } from "./lib/metrics.js";
 
+function getApiTaskName(method: string, path: string) {
+  if (path.includes("/v1/transactions/buy")) return "Record Buy Transaction";
+  if (path.includes("/v1/transactions/sell")) return "Record Sell Transaction";
+  if (path.includes("/v1/inventory/summary")) return "Fetch Inventory Summary";
+  if (path.includes("/v1/inventory") && method === "GET") return "Fetch Inventory List";
+  if (path.includes("/v1/inventory") && method === "POST") return "Add to Inventory";
+  if (path.includes("/v1/analytics/daily")) return "Fetch Daily Analytics";
+  if (path.includes("/v1/analytics/today-activity")) return "Fetch Today's Activity";
+  if (path.includes("/v1/analytics/dashboard")) return "Fetch Dashboard Data";
+  if (path.includes("/v1/cards/scan/barcode")) return "Scan Barcode";
+  if (path.includes("/v1/narratives/scan-card")) return "AI Card Scan";
+  if (path.includes("/v1/auth/login")) return "User Login";
+  
+  const segments = path.split("/").filter(Boolean);
+  const resource = segments[1] || "unknown";
+  return `${method} ${resource.toUpperCase()}`;
+}
+
 const app = new Elysia()
   // @ts-ignore
   .use(cors())
@@ -52,7 +70,9 @@ const app = new Elysia()
     (ctx as any).urlPath = urlPath;
 
     if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
-      logger.info(`[TRACE ${traceId}] ──► START ${ctx.request.method} ${urlPath}`);
+      const pathOnly = urlPath.split("?")[0];
+      const taskName = getApiTaskName(ctx.request.method, pathOnly);
+      logger.info(`[TRACE ${traceId}] ──► START [${taskName}] ${ctx.request.method} ${urlPath}`);
     }
   })
   .onAfterResponse((ctx: any) => {
@@ -73,20 +93,25 @@ const app = new Elysia()
     }
 
     if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
-      const mem = process.memoryUsage();
-      const rssMb = (mem.rss / 1024 / 1024).toFixed(1);
-      const heapMb = (mem.heapUsed / 1024 / 1024).toFixed(1);
-
-      let cpuStr = "0.00ms (0.0%)";
-      const startCpu = (ctx as any).requestStartCpu;
-      if (startCpu) {
-        const cpuDiff = process.cpuUsage(startCpu);
-        const cpuMs = (cpuDiff.user + cpuDiff.system) / 1000;
-        const cpuPct = duration > 0 ? ((cpuMs / duration) * 100).toFixed(1) : "0.0";
-        cpuStr = `${cpuMs.toFixed(2)}ms (${cpuPct}%)`;
+      const userId = ctx.request.headers.get("x-user-id") || "guest";
+      
+      let reqStr = "";
+      if (ctx.request.method !== "GET" && ctx.body) {
+        try {
+          const b = JSON.stringify(ctx.body);
+          reqStr = b.length > 300 ? ` | Req: ${b.substring(0, 300)}...` : ` | Req: ${b}`;
+        } catch (e) {}
+      }
+      
+      let resStr = "";
+      if (ctx.response) {
+        try {
+          const r = JSON.stringify(ctx.response);
+          resStr = r.length > 300 ? ` | Res: ${r.substring(0, 300)}...` : ` | Res: ${r}`;
+        } catch (e) {}
       }
 
-      logger.info(`[TRACE ${traceId}] ◄── END ${ctx.request.method} ${urlPath} - ${status} (${duration}ms | CPU: ${cpuStr} | RSS: ${rssMb}MB | Heap: ${heapMb}MB)`);
+      logger.info(`[TRACE ${traceId}] ◄── END ${ctx.request.method} ${urlPath} - ${status} (${duration}ms) | User: ${userId}${reqStr}${resStr}`);
     }
   })
   .use(showcaseModule)

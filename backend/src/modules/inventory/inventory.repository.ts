@@ -451,6 +451,12 @@ export class InventoryRepository {
       console.warn("Failed to process comps or enqueue refresh_single_comp job", e.message);
     }
 
+    try {
+      await bullMqAdapter.getQueue().add("generate_ai_insights", { userId });
+    } catch (e: any) {
+      console.warn("Failed to trigger instant AI insights for user", e.message);
+    }
+
     return {
       message: "Card added to inventory",
       item: invItem,
