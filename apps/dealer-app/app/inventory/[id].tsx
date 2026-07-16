@@ -132,9 +132,20 @@ export default function CardDetailScreen() {
     .slice(0, 2)
     .toUpperCase();
 
-  const localEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
-  const localMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
-  
+  const rawEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
+  const rawMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
+  const rawEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
+  const rawMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
+
+  const allSales = [...rawEbaySales, ...rawMyslabsSales];
+  const allActive = [...rawEbayActive, ...rawMyslabsActive];
+
+  const localEbaySales = allSales.filter((i: any) => !i.platform || i.platform.toLowerCase() === 'ebay').map((i: any) => ({ ...i, platform: 'eBay' }));
+  const localMyslabsSales = allSales.filter((i: any) => i.platform && i.platform.toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
+
+  const localEbayActive = allActive.filter((i: any) => !i.platform || i.platform.toLowerCase() === 'ebay').map((i: any) => ({ ...i, platform: 'eBay' }));
+  const localMyslabsActive = allActive.filter((i: any) => i.platform && i.platform.toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
+
   const sortedEbaySales = localEbaySales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
   const sortedMyslabsSales = localMyslabsSales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
 
@@ -148,8 +159,6 @@ export default function CardDetailScreen() {
   const recentSalesGraded = recentSales.filter((item: any) => isGraded(item.title, item.condition));
   const recentSalesRaw = recentSales.filter((item: any) => !isGraded(item.title, item.condition));
 
-  const localEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
-  const localMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
   
   const sortedEbayActive = localEbayActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"));
   const sortedMyslabsActive = localMyslabsActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? a.soldPrice?.value ?? "0") - parseFloat(b.price?.value ?? b.soldPrice?.value ?? "0"));
