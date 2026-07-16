@@ -130,11 +130,11 @@ export default function BuyCompsScreen() {
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
-const ebayQuery = buildEbayQuery(card);
+  const ebayQuery = buildEbayQuery(card);
 
   const soldQueryKeywords = ebayQuery;
 
-  // const myslabsQuery = buildMyslabsQuery(card);
+  const myslabsQuery = buildMyslabsQuery(card);
 
   const [salesVisibleCount, setSalesVisibleCount] = useState(20);
   const [activeVisibleCount, setActiveVisibleCount] = useState(20);
@@ -156,23 +156,24 @@ const ebayQuery = buildEbayQuery(card);
     enabled: !isExisting,
   });
 
-  // const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
-  //   limit: 50,
-  //   variantId: activeTab?.variantId,
-  //   gradeKey: resolvedGradeKey,
-  // });
+  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
+    limit: 50,
+    variantId: activeTab?.variantId,
+    gradeKey: resolvedGradeKey,
+    enabled: !isExisting,
+  });
 
   const ebayPages = data?.pages ?? [];
-  const myslabsPages: any[] = []; // myslabsData?.pages ?? [];
+  const myslabsPages = myslabsData?.pages ?? [];
 
   let ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  let myslabsActive: any[] = []; // myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
+  let myslabsActive = myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: (i as any).price?.value ?? i.soldPrice?.value }));
 
   let ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  let myslabsSold30: any[] = []; // myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  let myslabsSold30 = myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
 
   let ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  let myslabsSold7: any[] = []; // myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+  let myslabsSold7 = myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
 
   if (isExisting && activeCard) {
     try {
@@ -220,8 +221,8 @@ const ebayQuery = buildEbayQuery(card);
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
 
-  const isLoadingAll = isLoading; // || myslabsLoading;
-  const isErrorAll = isError; // || myslabsError;
+  const isLoadingAll = isLoading || myslabsLoading;
+  const isErrorAll = isError || myslabsError;
 
   const initials =
     card?.player_name
