@@ -177,17 +177,27 @@ export default function BuyCompsScreen() {
 
   if (isExisting && activeCard) {
     try {
-      if (typeof activeCard.ebay_active_listings === "string") ebayActive = JSON.parse(activeCard.ebay_active_listings);
-      if (typeof activeCard.myslabs_active_listings === "string") myslabsActive = JSON.parse(activeCard.myslabs_active_listings);
+      let rawEbayActive = [];
+      let rawMyslabsActive = [];
+      let rawEbaySold = [];
+      let rawMyslabsSold = [];
+
+      if (typeof activeCard.ebay_active_listings === "string") rawEbayActive = JSON.parse(activeCard.ebay_active_listings);
+      if (typeof activeCard.myslabs_active_listings === "string") rawMyslabsActive = JSON.parse(activeCard.myslabs_active_listings);
+      if (typeof activeCard.ebay_sales_completed === "string") rawEbaySold = JSON.parse(activeCard.ebay_sales_completed);
+      if (typeof activeCard.myslabs_sales_completed === "string") rawMyslabsSold = JSON.parse(activeCard.myslabs_sales_completed);
+
+      const allActive = [...rawEbayActive, ...rawMyslabsActive];
+      const allSold = [...rawEbaySold, ...rawMyslabsSold];
+
+      ebayActive = allActive.filter(i => !i.platform || i.platform.toLowerCase() === 'ebay').map(i => ({ ...i, platform: 'eBay' }));
+      myslabsActive = allActive.filter(i => i.platform && i.platform.toLowerCase() === 'myslabs').map(i => ({ ...i, platform: 'MySlabs' }));
+
+      ebaySold30 = allSold.filter(i => !i.platform || i.platform.toLowerCase() === 'ebay').map(i => ({ ...i, platform: 'eBay' }));
+      myslabsSold30 = allSold.filter(i => i.platform && i.platform.toLowerCase() === 'myslabs').map(i => ({ ...i, platform: 'MySlabs' }));
       
-      if (typeof activeCard.ebay_sales_completed === "string") {
-        ebaySold30 = JSON.parse(activeCard.ebay_sales_completed);
-        ebaySold7 = ebaySold30;
-      }
-      if (typeof activeCard.myslabs_sales_completed === "string") {
-        myslabsSold30 = JSON.parse(activeCard.myslabs_sales_completed);
-        myslabsSold7 = myslabsSold30;
-      }
+      ebaySold7 = ebaySold30;
+      myslabsSold7 = myslabsSold30;
     } catch (e) {
       console.warn("Failed to parse cached DB listings", e);
     }
@@ -261,6 +271,12 @@ export default function BuyCompsScreen() {
             {(activeTab?.isExisting && card?.photos?.[0]) ? (
               <Image
                 source={{ uri: card.photos[0] }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 8 }]}
+                resizeMode="cover"
+              />
+            ) : activeTab?.capturedPhoto ? (
+              <Image
+                source={{ uri: `data:image/jpeg;base64,${activeTab.capturedPhoto}` }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 8 }]}
                 resizeMode="cover"
               />
