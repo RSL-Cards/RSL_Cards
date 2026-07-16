@@ -15,7 +15,7 @@ export default function ComingSoonSection() {
           <div className="mt-8">
             <a
               href="#early-access"
-              className="inline-flex items-center justify-center bg-rslRed px-8 py-4 text-base font-black transition hover:bg-white hover:text-black"
+              className="inline-flex items-center justify-center bg-rslRed px-8 py-4 text-base font-black transition text-white hover:bg-white hover:!text-black"
             >
               Join Early Access
             </a>
