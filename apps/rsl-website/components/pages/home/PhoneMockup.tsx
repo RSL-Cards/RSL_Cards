@@ -83,53 +83,97 @@ export default function PhoneMockup() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
-              <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar pb-2">
-                <div className="min-w-[100px] rounded-xl bg-[#111111] p-4 border border-[#2A2A2A]">
-                  <div className="text-[10px] text-zinc-400 font-bold mb-2 uppercase tracking-widest">Bought</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-[#0057FF]">2</span>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase">cards</span>
-                  </div>
-                </div>
-                <div className="min-w-[100px] rounded-xl bg-[#111111] p-4 border border-[#2A2A2A]">
-                  <div className="text-[10px] text-zinc-400 font-bold mb-2 uppercase tracking-widest">Sold</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-red-500">0</span>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase">cards</span>
-                  </div>
-                </div>
-                <div className="min-w-[100px] rounded-xl bg-[#111111] p-4 border border-[#2A2A2A]">
-                  <div className="text-[10px] text-zinc-400 font-bold mb-2 uppercase tracking-widest">Spent</div>
-                  <div className="text-xl font-black text-zinc-300">$19.00</div>
-                </div>
-              </div>
-              
-              <div className="mt-6 px-5">
-                <div className="text-[10px] text-[#888888] font-bold uppercase tracking-widest mb-3">RSL Insights</div>
-                <div className="rounded-2xl bg-[#111111] border border-[#2A2A2A] border-l-4 border-l-[#0057FF] p-5 relative overflow-hidden">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2 text-xs font-bold">
-                      <Zap className="w-4 h-4 text-[#0057FF] fill-[#0057FF]" />
-                      <span className="text-[#0057FF] uppercase tracking-wider">BREAKOUT</span>
+              {/* ── ACTIVE DAILY LOG ── */}
+              <div className="px-5 py-2">
+                <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-[#00C853]" />
+                      <span className="text-xs font-bold text-zinc-100">Dallas Card Show</span>
                     </div>
-                    <div className="text-[#00C853] font-black text-sm">18.50%</div>
+                    <span className="text-xs font-bold text-red-500">Close</span>
                   </div>
-                  <h3 className="text-lg font-bold leading-tight mb-3">Mahomes base cards surge 18.5% after AFC Championship</h3>
-                  <div className="text-zinc-400 text-sm font-semibold">
-                    $2132 <span className="mx-2 text-[#555555]">→</span> <span className="text-white">$2527</span>
+                  <div className="flex justify-between mt-1">
+                    <div>
+                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Money In</div>
+                      <div className="text-sm font-black text-[#00C853]">$2,450</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Money Out</div>
+                      <div className="text-sm font-black text-red-500">$1,850</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Profit</div>
+                      <div className="text-sm font-black text-zinc-50">$600</div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-8 px-5">
-                <div className="text-[10px] text-[#888888] font-bold uppercase tracking-widest mb-3">Recent Activity</div>
-                <div className="rounded-2xl bg-[#111111] border border-[#2A2A2A] p-4 flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-[#0057FF]/20 flex items-center justify-center">
-                    <Check className="w-5 h-5 text-[#0057FF]" />
+              {/* ── WORKFLOW BUTTONS (HERO) ── */}
+              <div className="px-5 mt-3">
+                <div className="flex gap-3 mb-3">
+                  <div className="flex-1 bg-[#0057FF] rounded-[16px] h-[52px] flex items-center justify-center font-bold text-white text-[15px]">
+                    Buy
                   </div>
-                  <div>
-                    <div className="font-bold text-sm">Purchased Mahomes Prizm</div>
-                    <div className="text-xs text-zinc-500 mt-1">Today at 10:42 AM</div>
+                  <div className="flex-1 bg-[#E8001C] rounded-[16px] h-[52px] flex items-center justify-center font-bold text-white text-[15px]">
+                    Sell
+                  </div>
+                </div>
+                <div className="w-full rounded-[16px] h-[48px] flex items-center justify-center font-bold text-white border border-white/20 text-[14px]">
+                  Add Expense
+                </div>
+              </div>
+
+              {/* ── ACTIVE DEALS ── */}
+              <div className="mt-7">
+                <div className="px-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Active Deals</div>
+                <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar pb-2">
+                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md relative">
+                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Mahomes Prizm Base</div>
+                    <div className="text-[10px] text-zinc-400 font-semibold">Step 2/5 · BUY</div>
+                    <div className="absolute top-4 right-3 text-zinc-500">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </div>
+                  </div>
+                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md relative">
+                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Ohtani Bowman Auto</div>
+                    <div className="text-[10px] text-zinc-400 font-semibold">Step 1/5 · SELL</div>
+                    <div className="absolute top-4 right-3 text-zinc-500">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── TODAY'S ACTIVITY ── */}
+              <div className="mt-7 px-5 pb-6">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Today's Activity</div>
+                <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
+                  <div className="flex items-center p-4 border-b border-white/10">
+                    <div className="w-10 h-10 rounded-lg bg-[#0057FF]/15 flex items-center justify-center mr-3 shrink-0">
+                      <span className="text-[#0057FF] font-black text-sm">B</span>
+                    </div>
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div className="font-bold text-sm text-white truncate">LeBron Topps Chrome</div>
+                      <div className="text-xs text-zinc-500 mt-0.5">10:42 AM</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-sm text-white">$450</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-4">
+                    <div className="w-10 h-10 rounded-lg bg-red-500/15 flex items-center justify-center mr-3 shrink-0">
+                      <span className="text-red-500 font-black text-sm">S</span>
+                    </div>
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div className="font-bold text-sm text-white truncate">Curry NT Patch Auto</div>
+                      <div className="text-xs text-zinc-500 mt-0.5">09:15 AM</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-sm text-white">$1,200</div>
+                      <div className="text-[10px] font-bold text-[#00C853] mt-0.5">+$350</div>
+                    </div>
                   </div>
                 </div>
               </div>
