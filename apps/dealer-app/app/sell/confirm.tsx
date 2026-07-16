@@ -38,6 +38,9 @@ export default function SellConfirmScreen() {
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
+  const { useActiveDailyLog } = require("../../src/hooks/useDashboard");
+  const { data: activeLog } = useActiveDailyLog();
+
   const sellPrice = activeTab?.price ?? 0;
   const costBasis = parseFloat(card?.cost_basis ?? card?.costBasis ?? "0");
   const paymentMethod = activeTab?.paymentMethod ?? null;
@@ -90,6 +93,7 @@ export default function SellConfirmScreen() {
         paymentMethod,
         gradeKey,
         cardSnapshot: JSON.stringify(card),
+        dailyLogId: activeLog?.id,
       });
 
       // Invalidate analytics & inventory caches so home screen updates
@@ -102,6 +106,9 @@ export default function SellConfirmScreen() {
         });
         queryClient.invalidateQueries({
           queryKey: ["inventory", userId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["daily-logs", "active", userId],
         });
       }
 

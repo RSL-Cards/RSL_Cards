@@ -385,11 +385,11 @@ export default function CardDetailScreen() {
                           <View
                             style={[
                               styles.platformBadge,
-                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                              { backgroundColor: sale.platform?.toLowerCase() === "ebay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
                             ]}
                           >
                             <Text
-                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                              style={[styles.platformBadgeText, { color: sale.platform?.toLowerCase() === "ebay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
                             >
                               {sale.platform}
                             </Text>
@@ -485,11 +485,11 @@ export default function CardDetailScreen() {
                           <View
                             style={[
                               styles.platformBadge,
-                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                              { backgroundColor: sale.platform?.toLowerCase() === "ebay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
                             ]}
                           >
                             <Text
-                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                              style={[styles.platformBadgeText, { color: sale.platform?.toLowerCase() === "ebay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
                             >
                               {sale.platform}
                             </Text>
@@ -564,11 +564,11 @@ export default function CardDetailScreen() {
                           <View
                             style={[
                               styles.platformBadge,
-                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                              { backgroundColor: item.platform?.toLowerCase() === "ebay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
                             ]}
                           >
                             <Text
-                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                              style={[styles.platformBadgeText, { color: item.platform?.toLowerCase() === "ebay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
                             >
                               {item.platform}
                             </Text>
@@ -637,11 +637,11 @@ export default function CardDetailScreen() {
                           <View
                             style={[
                               styles.platformBadge,
-                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                              { backgroundColor: item.platform?.toLowerCase() === "ebay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
                             ]}
                           >
                             <Text
-                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                              style={[styles.platformBadgeText, { color: item.platform?.toLowerCase() === "ebay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
                             >
                               {item.platform}
                             </Text>

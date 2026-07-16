@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, decimal, integer, timestamp, text, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './auth'
+import { dailyLogs } from './dailyLogs'
 
 // Pre-aggregated daily summaries — built by analytics-snapshot BullMQ job at 2am
 export const dailySummaries = pgTable('daily_summaries', {
@@ -37,10 +38,12 @@ export const taxRecords = pgTable('tax_records', {
 export const expenses = pgTable('expenses', {
   id:          uuid('id').primaryKey().defaultRandom(),
   userId:      uuid('user_id').references(() => users.id).notNull(),
+  dailyLogId:  uuid('daily_log_id').references(() => dailyLogs.id),
   category:    varchar('category', { length: 100 }),  // show_fee|travel|supplies|shipping
   description: varchar('description', { length: 255 }),
   amount:      decimal('amount', { precision: 10, scale: 2 }).notNull(),
   receiptUrl:  varchar('receipt_url', { length: 500 }),
+
   expenseDate: timestamp('expense_date', { withTimezone: true }).notNull(),
   createdAt:   timestamp('created_at', { withTimezone: true }).defaultNow(),
 })

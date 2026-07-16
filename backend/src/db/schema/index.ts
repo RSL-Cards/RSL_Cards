@@ -2,6 +2,7 @@ export * from './auth';
 export * from './user';
 export * from './inventory';
 export * from './transaction';
+export * from './dailyLogs';
 export * from './listing';
 export * from './carddb';
 export * from './narrative';

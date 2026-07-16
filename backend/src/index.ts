@@ -22,6 +22,7 @@ import { contactModule } from "./modules/contact/index.js";
 import { webDashboardModule } from "./modules/web-dashboard/index.js";
 import { batchRouter } from "./modules/batch/index.js";
 import { showcaseModule } from "./modules/showcase/index.js";
+import { dailyLogsModule } from "./modules/daily-logs/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
@@ -174,6 +175,7 @@ const app = new Elysia()
   .use(contactModule)
   .use(webDashboardModule)
   .use(batchRouter)
+  .use(dailyLogsModule)
   // Prometheus Metrics Scrape Endpoint
   .get("/metrics", () => {
     return new Response(getPrometheusOutput(), {

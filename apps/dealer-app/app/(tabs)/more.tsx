@@ -18,7 +18,6 @@ import { userService } from "../../src/services/userService";
 import { Ionicons } from "@expo/vector-icons";
 import { useLogout } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/stores/authStore";
-import { ExportModal } from "../../src/components/ExportModal";
 import {
   usePaymentMethods,
   paymentMethodIcon,
@@ -29,7 +28,6 @@ import {
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
-// import { UserErrorBoundary } from "../../src/components/ServiceErrorBoundary";
 
 const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
 const EBAY_CLIENT_ID = process.env.EXPO_PUBLIC_EBAY_CLIENT_ID;
@@ -91,7 +89,6 @@ function MoreScreen() {
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadAvatar();
   const [localUri, setLocalUri] = useState<string | null>(null);
-  const [exportType, setExportType] = useState<"transactions" | "inventory" | null>(null);
   const queryClient = useQueryClient();
 
   const { data: connectedPlatforms = [] } = useQuery({
@@ -112,21 +109,11 @@ function MoreScreen() {
       return;
     }
 
-    // Generate a deep link return URL that works perfectly in Expo Go and Production
     const returnUrl = makeRedirectUri({ path: 'oauth/ebay' });
-
     const userId = user?.id || 'current-user';
-    
-    // Pass both the userId and the Expo return URL in the state param so the backend knows where to redirect back to
-    // Pass both the userId and the Expo return URL in the state param so the backend knows where to redirect back to
-    // We avoid JSON or base64 because eBay's sandbox gets confused by special characters
     const stateStr = `${userId}___${returnUrl}`;
     
     const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')}&state=${encodeURIComponent(stateStr)}`;
-    
-    console.log("Opening eBay Auth:");
-    console.log("authUrl:", authUrl);
-    console.log("returnUrl:", returnUrl);
     
     try {
       const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl);
@@ -171,7 +158,6 @@ function MoreScreen() {
     }
   };
 
-  // Only fetch data when screen is focused (user clicks More tab)
   const hasFocused = useFetchOnFocus();
 
   const { data: profile } = useProfile(hasFocused);
@@ -250,24 +236,8 @@ function MoreScreen() {
           </TouchableOpacity>
         </Surface>
 
-        {/* Business */}
-        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>BUSINESS</Typography>
-        <SectionCard>
-          <SettingsRow
-            icon="people-outline"
-            label="Customers"
-          />
-          <SettingsRow icon="calendar-outline" label="Card Shows" />
-          <SettingsRow
-            icon="list-outline"
-            label="My Listings"
-            onPress={() => router.push("/listings")}
-            isLast
-          />
-        </SectionCard>
-
         {/* Platforms */}
-        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>PLATFORMS</Typography>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>MARKETPLACE CONNECTIONS</Typography>
         <SectionCard>
           {(() => {
             const ebayConnection = connectedPlatforms.find((c: any) => c.platform === 'ebay');
@@ -295,35 +265,6 @@ function MoreScreen() {
                     handleEbayConnect();
                   }
                 }}
-              />
-            );
-          })()}
-          {(() => {
-            const myslabsConnection = connectedPlatforms.find((c: any) => c.platform === 'myslabs');
-            const isMyslabsConnected = !!myslabsConnection && myslabsConnection.isActive;
-            return (
-              <SettingsRow
-                icon="albums-outline"
-                label="MySlabs"
-                value={isMyslabsConnected ? "🟢 Connected" : "⚫ Connect"}
-                onPress={() => {
-                  if (isMyslabsConnected) {
-                    Alert.alert(
-                      "Disconnect MySlabs?",
-                      "This will disconnect your MySlabs account.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { 
-                          text: "Disconnect", 
-                          style: "destructive",
-                          onPress: () => disconnectMutation.mutate('myslabs')
-                        },
-                      ]
-                    );
-                  } else {
-                    Alert.alert("Coming Soon", "MySlabs connection is not yet implemented.");
-                  }
-                }}
                 isLast
               />
             );
@@ -333,7 +274,7 @@ function MoreScreen() {
         {/* Payments */}
         {paymentMethods && paymentMethods.length > 0 && (
           <>
-            <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>PAYMENTS</Typography>
+            <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>PAYMENT METHODS</Typography>
             <SectionCard>
               {paymentMethods.map((pm, i) => (
                 <SettingsRow
@@ -348,15 +289,8 @@ function MoreScreen() {
           </>
         )}
 
-        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>DATA & EXPORTS</Typography>
-        <SectionCard>
-          <SettingsRow icon="document-text-outline" label="Export Transactions (CSV)" onPress={() => setExportType("transactions")} />
-          <SettingsRow icon="cube-outline" label="Export Inventory (CSV)" onPress={() => setExportType("inventory")} />
-          <SettingsRow icon="cash-outline" label="Tax Report (PDF)" isLast />
-        </SectionCard>
-
         {/* App */}
-        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>APP</Typography>
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>SUPPORT & SETTINGS</Typography>
         <SectionCard>
           <SettingsRow
             icon="notifications-outline"
@@ -369,8 +303,8 @@ function MoreScreen() {
             onPress={() => router.push("/about")}
           />
           <SettingsRow
-            icon="information-circle-outline"
-            label="About RSL Cards"
+            icon="document-text-outline"
+            label="Privacy & Terms"
             onPress={() => router.push("/about")}
           />
           <SettingsRow icon="phone-portrait-outline" label="Version" value="1.0.0" isLast />
@@ -385,20 +319,10 @@ function MoreScreen() {
           <Typography variant="body" weight="800" color={COLORS.destructive}>Sign Out</Typography>
         </TouchableOpacity>
       </ScrollView>
-
-      {/* Export Modal */}
-      {exportType && (
-        <ExportModal
-          visible={!!exportType}
-          type={exportType}
-          onClose={() => setExportType(null)}
-        />
-      )}
     </SafeAreaView>
   );
 }
 
-// Export without error boundary
 export default MoreScreen;
 
 const styles = StyleSheet.create({

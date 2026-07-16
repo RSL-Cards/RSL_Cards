@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { expenses } from "../../db/schema/analytics.js";
 
 export class AnalyticsRepository {
   async getDaily(userId: string) {
@@ -27,14 +28,25 @@ export class AnalyticsRepository {
   async getTodayActivity(userId: string) {
     const rows = await db.execute(sql`
       SELECT
-        t.id, t.type, t.price, t.profit, t.player_name, t.created_at,
+        t.id, t.type::text, t.price, t.profit, t.player_name, t.created_at,
         i.photos as inventory_photos,
         t.card_snapshot
       FROM transactions t
       LEFT JOIN inventory i ON i.id = t.inventory_id
       WHERE t.user_id = ${userId}
         AND t.created_at >= NOW() - INTERVAL '24 hours'
-      ORDER BY t.created_at DESC
+      
+      UNION ALL
+      
+      SELECT
+        e.id, 'expense' as type, e.amount as price, NULL as profit, e.category as player_name, e.expense_date as created_at,
+        NULL as inventory_photos,
+        NULL as card_snapshot
+      FROM expenses e
+      WHERE e.user_id = ${userId}
+        AND e.expense_date >= NOW() - INTERVAL '24 hours'
+        
+      ORDER BY created_at DESC
       LIMIT 20
     `);
     
@@ -170,7 +182,17 @@ export class AnalyticsRepository {
   async getPlatformPerformance(userId: string) { return { message: "Platform performance" }; }
   async getTaxYear(userId: string, year: string) { return { message: `Tax for ${year}` }; }
   async getExpenses(userId: string) { return { message: "Expenses" }; }
-  async postExpense(userId: string, body: any) { return { success: true }; }
+  async postExpense(userId: string, body: any) {
+    const inserted = await db.insert(expenses).values({
+      userId,
+      dailyLogId: body.dailyLogId || null,
+      category: body.category || "other",
+      description: body.description || null,
+      amount: body.amount.toString(),
+      expenseDate: new Date(),
+    }).returning();
+    return { success: true, expense: inserted[0] };
+  }
   async patchExpense(userId: string, id: string, body: any) { return { success: true }; }
   async deleteExpense(userId: string, id: string) { return { success: true }; }
   async getCollection(userId: string) { return { message: "Collection" }; }

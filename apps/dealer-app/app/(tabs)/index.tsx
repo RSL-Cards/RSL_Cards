@@ -6,22 +6,23 @@ import {
   Modal,
   TouchableWithoutFeedback,
   StyleSheet,
+  TextInput,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiClient } from "../../src/lib/apiClient";
 
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useAuthStore } from "../../src/stores/authStore";
 import {
-  useDailyStats,
   useTodayActivity,
   useRefetchDashboardOnFocus,
-  useAiInsights,
+  useActiveDailyLog,
 } from "../../src/hooks/useDashboard";
-import { useInventorySummary } from "../../src/hooks/useCardScan";
-import { useBatchJobs } from "../../src/hooks/useBatchScan";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
@@ -43,15 +44,60 @@ export default function HomeScreen() {
   const tabs = useDealTabStore((s) => s.tabs);
   const removeTab = useDealTabStore((s) => s.removeTab);
 
-  const { data: dailyStats } = useDailyStats();
-  const { data: summary } = useInventorySummary();
+  const { data: activeLog } = useActiveDailyLog();
   const { data: todayActivity } = useTodayActivity();
-  const { data: batchJobs } = useBatchJobs();
-  const { data: aiInsights } = useAiInsights();
   useRefetchDashboardOnFocus();
+  
+  const queryClient = useQueryClient();
+  const [showOpenLogModal, setShowOpenLogModal] = useState(false);
+  const [logName, setLogName] = useState("");
+  const [startingCash, setStartingCash] = useState("");
+  const [isCreatingLog, setIsCreatingLog] = useState(false);
+  const [showCloseLogModal, setShowCloseLogModal] = useState(false);
+  const [isClosingLog, setIsClosingLog] = useState(false);
+  const [alertInfo, setAlertInfo] = useState<{ title: string; message: string; type: 'error' | 'success' } | null>(null);
+
+  const handleCreateLog = async () => {
+    if (!logName) {
+      setAlertInfo({ title: "Error", message: "Please provide a name for the log", type: "error" });
+      return;
+    }
+    setIsCreatingLog(true);
+    try {
+      await apiClient.post("/v1/daily-logs/", {
+        name: logName,
+        startingCash: startingCash ? parseFloat(startingCash) : 0
+      });
+      await queryClient.invalidateQueries({ queryKey: ["daily-logs", "active", user?.id] });
+      setShowOpenLogModal(false);
+      setLogName("");
+      setStartingCash("");
+    } catch (e: any) {
+      setAlertInfo({ title: "Error", message: e?.message || "Failed to open log", type: "error" });
+    } finally {
+      setIsCreatingLog(false);
+    }
+  };
+
+  const handleCloseLog = async () => {
+    if (!activeLog) return;
+    setIsClosingLog(true);
+    try {
+      await apiClient.patch(`/v1/daily-logs/${activeLog.id}/close`);
+      await queryClient.invalidateQueries({ queryKey: ["daily-logs", "active", user?.id] });
+      setShowCloseLogModal(false);
+      setAlertInfo({ title: "Success", message: "Daily log closed successfully", type: "success" });
+    } catch (e: any) {
+      setAlertInfo({ title: "Error", message: e?.message || "Failed to close log", type: "error" });
+    } finally {
+      setIsClosingLog(false);
+    }
+  };
 
   const handleBuy = () => router.push("/buy/scan");
   const handleSell = () => router.push("/sell/scan");
+  const handleExpense = () => router.push("/expense");
+  const handleTrade = () => router.push("/trade");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -125,54 +171,69 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── TODAY STATS BAR ── */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: SPACING.lg,
-            gap: SPACING.sm,
-            paddingVertical: SPACING.sm,
-          }}
-        >
-          {[
-            { label: "Bought", value: `${dailyStats?.cards_bought ?? 0}`, unit: "cards", color: COLORS.primaryLight },
-            { label: "Sold", value: `${dailyStats?.cards_sold ?? 0}`, unit: "cards", color: COLORS.destructive },
-            { label: "Spent", value: `$${dailyStats?.total_spent ?? "0.00"}`, color: COLORS.zinc400 },
-            { label: "Revenue", value: `$${dailyStats?.total_revenue ?? "0.00"}`, color: COLORS.zinc50 },
-            { label: "Profit", value: `$${dailyStats?.net_profit ?? "0.00"}`, color: COLORS.success },
-          ].map((stat) => (
-            <TouchableOpacity key={stat.label} onPress={() => router.push("/reports/daily")}>
-              <Surface variant="glass" padding="md" style={{ minWidth: 100 }}>
-                <Typography variant="label" color={COLORS.zinc400} style={{ marginBottom: SPACING.xs }}>
-                  {stat.label}
+        {/* ── ACTIVE DAILY LOG ── */}
+        <View style={{ paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm }}>
+          <Surface variant="glass" padding="md">
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.sm }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.xs }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: activeLog ? COLORS.success : COLORS.zinc500 }} />
+                <Typography variant="label" color={COLORS.zinc100}>
+                  {activeLog ? activeLog.name : "No Active Log"}
                 </Typography>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: SPACING.xs }}>
-                  <Typography variant="h3" weight="800" color={stat.color}>
-                    {stat.value}
-                  </Typography>
-                  {stat.unit && <Typography variant="caption" color={COLORS.zinc500}>{stat.unit}</Typography>}
+              </View>
+              {!activeLog ? (
+                <TouchableOpacity onPress={() => setShowOpenLogModal(true)}>
+                  <Typography variant="label" color={COLORS.primaryLight}>Open Log</Typography>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => setShowCloseLogModal(true)}>
+                  <Typography variant="label" color={COLORS.destructive}>Close</Typography>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {activeLog && (
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: SPACING.xs }}>
+                <View>
+                  <Typography variant="caption" color={COLORS.zinc400}>Money In</Typography>
+                  <Typography variant="body" weight="700" color={COLORS.success}>${activeLog.stats?.moneyIn || "0"}</Typography>
                 </View>
-              </Surface>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <View>
+                  <Typography variant="caption" color={COLORS.zinc400}>Money Out</Typography>
+                  <Typography variant="body" weight="700" color={COLORS.destructive}>${activeLog.stats?.moneyOut || "0"}</Typography>
+                </View>
+                <View>
+                  <Typography variant="caption" color={COLORS.zinc400}>Profit</Typography>
+                  <Typography variant="body" weight="700" color={COLORS.zinc50}>${activeLog.stats?.profit || "0"}</Typography>
+                </View>
+              </View>
+            )}
+          </Surface>
+        </View>
 
-        {/* ── BUY / SELL BUTTONS (HERO) ── */}
-        <View style={{ flexDirection: "row", gap: SPACING.md, paddingHorizontal: SPACING.lg, marginTop: SPACING.md }}>
+        {/* ── WORKFLOW BUTTONS (HERO) ── */}
+        <View style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.md }}>
+          <View style={{ flexDirection: "row", gap: SPACING.md, marginBottom: SPACING.md }}>
+            <Button
+              label="Buy"
+              variant="primary"
+              size="hero"
+              onPress={handleBuy}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="Sell"
+              variant="destructive"
+              size="hero"
+              onPress={handleSell}
+              style={{ flex: 1 }}
+            />
+          </View>
           <Button
-            label="Buy"
-            variant="primary"
-            size="hero"
-            onPress={handleBuy}
-            style={{ flex: 1 }}
-          />
-          <Button
-            label="Sell"
-            variant="destructive"
-            size="hero"
-            onPress={handleSell}
-            style={{ flex: 1 }}
+            label="Add Expense"
+            variant="outline"
+            onPress={handleExpense}
+            style={{ width: "100%" }}
           />
         </View>
 
@@ -208,85 +269,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── RSL INSIGHT CARD ── */}
-        {aiInsights && aiInsights.length > 0 && (
-          <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
-            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
-              RSL INSIGHTS
-            </Typography>
-            {aiInsights.slice(0, 2).map((insight) => {
-              const isUp = insight.trend === 'up';
-              const typeColor = insight.type === 'BREAKOUT' ? COLORS.success : insight.type === 'DECLINE' ? COLORS.destructive : COLORS.primary;
-              return (
-                <Surface key={insight.id} variant="elevated" padding="lg" style={{ borderLeftWidth: 3, borderLeftColor: typeColor, marginBottom: SPACING.sm }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: SPACING.sm }}>
-                    <Ionicons name={insight.type === 'DECLINE' ? 'trending-down' : 'flash'} size={16} color={typeColor} style={{ marginRight: SPACING.xs }} />
-                    <Typography variant="label" color={typeColor}>
-                      {insight.type}
-                    </Typography>
-                    <Typography variant="caption" color={COLORS.zinc500} style={{ marginLeft: SPACING.sm }}>
-                      {insight.sport}
-                    </Typography>
-                    <View style={{ marginLeft: "auto" }}>
-                      <Typography variant="body" weight="700" color={isUp ? COLORS.success : COLORS.destructive}>
-                        {insight.price_change}
-                      </Typography>
-                    </View>
-                  </View>
-                  <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.xs }}>
-                    {insight.headline}
-                  </Typography>
-                  <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.sm }}>
-                    {insight.price_range}
-                  </Typography>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                    {insight.affected_cards > 0 && (
-                      <Typography variant="caption" color={COLORS.zinc500}>
-                        {insight.affected_cards} cards in your inventory affected
-                      </Typography>
-                    )}
-                    <Typography variant="caption" weight="600" color={insight.recommendation === 'BUY' ? COLORS.success : insight.recommendation === 'SELL' ? COLORS.destructive : COLORS.primary}>
-                      {insight.recommendation}
-                    </Typography>
-                  </View>
-                </Surface>
-              );
-            })}
-          </View>
-        )}
-
-        {/* ── INVENTORY SNAPSHOT ── */}
-        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.sm }}>
-            <Typography variant="label" color={COLORS.zinc500}>INVENTORY</Typography>
-            <TouchableOpacity onPress={() => router.push("/(tabs)/inventory")}>
-              <Typography variant="body" color={COLORS.primaryLight}>See all →</Typography>
-            </TouchableOpacity>
-          </View>
-          <Surface padding="lg" variant="elevated">
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              {[
-                { label: "Cards", value: `${summary?.total_cards ?? 0}` },
-                { label: "Value", value: `$${parseFloat(summary?.total_market_value ?? "0").toLocaleString("en-US", { maximumFractionDigits: 0 })}` },
-                {
-                  label: "Gain",
-                  value: `${parseFloat(summary?.total_unrealized_gain ?? "0") >= 0 ? "+" : "-"}$${Math.abs(parseFloat(summary?.total_unrealized_gain ?? "0")).toFixed(0)}`,
-                  isNegative: parseFloat(summary?.total_unrealized_gain ?? "0") < 0,
-                },
-              ].map((item) => (
-                <View key={item.label} style={{ alignItems: "center" }}>
-                  <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>
-                    {item.label}
-                  </Typography>
-                  <Typography variant="h3" weight="800" color={item.label === "Gain" ? (item.isNegative ? COLORS.destructive : COLORS.success) : COLORS.zinc50}>
-                    {item.value}
-                  </Typography>
-                </View>
-              ))}
-            </View>
-          </Surface>
-        </View>
-
         {/* ── TODAY'S ACTIVITY ── */}
         {todayActivity && todayActivity.length > 0 && (
           <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
@@ -310,14 +292,14 @@ export default function HomeScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: RADIUS.sm,
-                      backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : 'rgba(225,29,72,0.15)',
+                      backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : tx.type === "expense" ? 'rgba(245,158,11,0.15)' : 'rgba(225,29,72,0.15)',
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: SPACING.md,
                     }}
                   >
-                    <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : COLORS.destructive}>
-                      {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : "T"}
+                    <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : tx.type === "expense" ? COLORS.warning : COLORS.destructive}>
+                      {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : tx.type === "expense" ? "E" : "T"}
                     </Typography>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -427,6 +409,187 @@ export default function HomeScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* ── OPEN LOG MODAL ── */}
+      <Modal visible={showOpenLogModal} transparent={true} animationType="fade" onRequestClose={() => setShowOpenLogModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowOpenLogModal(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" }}>
+            <TouchableWithoutFeedback>
+              <View
+                style={{
+                  width: '85%',
+                  backgroundColor: COLORS.surface,
+                  borderRadius: RADIUS.lg,
+                  padding: SPACING.xl,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                  ...SHADOWS.lg,
+                }}
+              >
+                <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.md }}>
+                  Start a Daily Log
+                </Typography>
+
+                <Typography variant="label" color={COLORS.zinc400} style={{ marginBottom: SPACING.xs }}>
+                  LOG NAME *
+                </Typography>
+                <TextInput
+                  placeholder="e.g., Dallas Card Show - Day 1"
+                  placeholderTextColor={COLORS.zinc600}
+                  style={{
+                    backgroundColor: COLORS.background,
+                    color: COLORS.white,
+                    padding: SPACING.md,
+                    borderRadius: RADIUS.sm,
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    marginBottom: SPACING.lg,
+                  }}
+                  value={logName}
+                  onChangeText={setLogName}
+                />
+
+                <Typography variant="label" color={COLORS.zinc400} style={{ marginBottom: SPACING.xs }}>
+                  STARTING CASH
+                </Typography>
+                <TextInput
+                  placeholder="e.g., 500"
+                  placeholderTextColor={COLORS.zinc600}
+                  keyboardType="numeric"
+                  style={{
+                    backgroundColor: COLORS.background,
+                    color: COLORS.white,
+                    padding: SPACING.md,
+                    borderRadius: RADIUS.sm,
+                    borderWidth: 1,
+                    borderColor: COLORS.border,
+                    marginBottom: SPACING.xl,
+                  }}
+                  value={startingCash}
+                  onChangeText={setStartingCash}
+                />
+
+                <View style={{ flexDirection: "row", gap: SPACING.md }}>
+                  <Button
+                    label="Cancel"
+                    variant="outline"
+                    onPress={() => setShowOpenLogModal(false)}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    label={isCreatingLog ? "Starting..." : "Start Log"}
+                    variant="primary"
+                    onPress={handleCreateLog}
+                    disabled={isCreatingLog}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* ── CLOSE LOG MODAL ── */}
+      <Modal visible={showCloseLogModal} transparent={true} animationType="fade" onRequestClose={() => setShowCloseLogModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowCloseLogModal(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" }}>
+            <TouchableWithoutFeedback>
+              <View
+                style={{
+                  width: '85%',
+                  backgroundColor: COLORS.surface,
+                  borderRadius: RADIUS.lg,
+                  padding: SPACING.xl,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                  ...SHADOWS.lg,
+                }}
+              >
+                <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.md }}>
+                  Close Daily Log
+                </Typography>
+
+                <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.xl, lineHeight: 22 }}>
+                  Are you sure you want to close your daily log "{activeLog?.name}"? This will finalize your stats for today.
+                </Typography>
+
+                <View style={{ flexDirection: "row", gap: SPACING.md }}>
+                  <Button
+                    label="Cancel"
+                    variant="outline"
+                    onPress={() => setShowCloseLogModal(false)}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    label={isClosingLog ? "Closing..." : "Close Log"}
+                    variant="destructive"
+                    onPress={handleCloseLog}
+                    disabled={isClosingLog}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* ── CUSTOM ALERT MODAL ── */}
+      <Modal visible={!!alertInfo} transparent={true} animationType="fade" onRequestClose={() => setAlertInfo(null)}>
+        <TouchableWithoutFeedback onPress={() => setAlertInfo(null)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center" }}>
+            <TouchableWithoutFeedback>
+              <View
+                style={{
+                  width: '85%',
+                  backgroundColor: COLORS.surface,
+                  borderRadius: RADIUS.lg,
+                  padding: SPACING.xl,
+                  borderWidth: 1,
+                  borderColor: COLORS.border,
+                  ...SHADOWS.lg,
+                  alignItems: "center"
+                }}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: alertInfo?.type === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(225,29,72,0.15)',
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: SPACING.md
+                  }}
+                >
+                  <Ionicons 
+                    name={alertInfo?.type === 'success' ? "checkmark-circle" : "alert-circle"} 
+                    size={28} 
+                    color={alertInfo?.type === 'success' ? COLORS.success : COLORS.destructive} 
+                  />
+                </View>
+                
+                <Typography variant="h3" weight="800" style={{ marginBottom: SPACING.sm, textAlign: "center" }}>
+                  {alertInfo?.title}
+                </Typography>
+
+                <Typography variant="body" color={COLORS.zinc400} style={{ marginBottom: SPACING.xl, textAlign: "center", lineHeight: 22 }}>
+                  {alertInfo?.message}
+                </Typography>
+
+                <Button
+                  label="Okay"
+                  variant="outline"
+                  onPress={() => setAlertInfo(null)}
+                  style={{ width: '100%' }}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
     </SafeAreaView>
   );
 }

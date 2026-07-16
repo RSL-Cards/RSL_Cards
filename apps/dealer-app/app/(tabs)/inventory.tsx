@@ -304,7 +304,10 @@ function InventoryScreen() {
           <Typography variant="h1" weight="800">Inventory</Typography>
           <Typography variant="caption" color={COLORS.zinc400}>{totalCards} cards</Typography>
         </View>
-        <Button label="+ Add" onPress={() => router.push("/buy/scan")} size="sm" />
+        <View style={{ flexDirection: "row", gap: SPACING.sm }}>
+          <Button label="Trade" onPress={() => router.push("/trade")} size="sm" variant="outline" />
+          <Button label="Add Existing Card" onPress={() => router.push("/buy/scan")} size="sm" />
+        </View>
       </View>
 
       {/* ── SUMMARY STRIP ── */}

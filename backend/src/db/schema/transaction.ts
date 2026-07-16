@@ -1,7 +1,9 @@
-import { index as drizzleIndex, pgTable, uuid, varchar, decimal, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
+import { index as drizzleIndex, pgTable, uuid, varchar, decimal, boolean, timestamp, text, pgEnum, pgMaterializedView } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { inventory } from './inventory'
 import { customers } from './user'
+import { dailyLogs } from './dailyLogs'
+
 
 export const txTypeEnum      = pgEnum('tx_type', ['buy','sell','trade'])
 export const txChannelEnum   = pgEnum('tx_channel', ['card_show','ebay','whatnot','mercari',
@@ -13,6 +15,7 @@ export const dealRatingEnum  = pgEnum('deal_rating', ['good_deal','fair_price','
 export const transactions = pgTable('transactions', {
   id:              uuid('id').primaryKey().defaultRandom(),
   userId:          uuid('user_id').references(() => users.id).notNull(),
+  dailyLogId:      uuid('daily_log_id').references(() => dailyLogs.id),
   inventoryId:     uuid('inventory_id').references(() => inventory.id),
   customerId:      uuid('customer_id').references(() => customers.id),
   type:            txTypeEnum('type').notNull(),
@@ -38,8 +41,11 @@ export const transactions = pgTable('transactions', {
   txUserIdIdx: drizzleIndex('idx_transactions_user_id').on(t.userId),
   txInventoryIdIdx: drizzleIndex('idx_transactions_inventory_id').on(t.inventoryId),
   txCustomerIdIdx: drizzleIndex('idx_transactions_customer_id').on(t.customerId),
+  txDailyLogIdx: drizzleIndex('idx_transactions_daily_log_id').on(t.dailyLogId),
+  txDailyLogTypeIdx: drizzleIndex('idx_transactions_daily_log_type').on(t.dailyLogId, t.type),
   // Composite indexes for fast dashboard revenue charts, recent sales & pagination
   txUserTypeCreatedIdx: drizzleIndex('idx_transactions_user_type_created').on(t.userId, t.type, t.createdAt),
+
   txUserCreatedIdx: drizzleIndex('idx_transactions_user_created').on(t.userId, t.createdAt),
   txChannelIdx: drizzleIndex('idx_transactions_channel').on(t.channel),
 }))
@@ -70,3 +76,18 @@ export const offlineSyncQueue = pgTable('offline_sync_queue', {
 }, (t) => ({
   syncQueueUserIdIdx: drizzleIndex('idx_offline_sync_user_id').on(t.userId),
 }))
+
+export const mvDailyLogStats = pgMaterializedView('mv_daily_log_stats').as((qb) => {
+  const sql = require('drizzle-orm').sql
+  return qb.select({
+    dailyLogId: transactions.dailyLogId,
+    moneyIn: sql<string>`sum(case when ${transactions.type} = 'sell' then ${transactions.price} else 0 end)`.as('money_in'),
+    moneyOut: sql<string>`sum(case when ${transactions.type} = 'buy' then ${transactions.price} else 0 end)`.as('money_out'),
+    profit: sql<string>`sum(${transactions.profit})`.as('profit'),
+    cardsBought: sql<number>`count(case when ${transactions.type} = 'buy' then 1 end)`.as('cards_bought'),
+    cardsSold: sql<number>`count(case when ${transactions.type} = 'sell' then 1 end)`.as('cards_sold'),
+  })
+  .from(transactions)
+  .where(sql`${transactions.dailyLogId} is not null`)
+  .groupBy(transactions.dailyLogId)
+})

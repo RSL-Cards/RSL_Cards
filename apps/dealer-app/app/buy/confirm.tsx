@@ -98,6 +98,10 @@ export default function BuyConfirmScreen() {
       .map((w: string) => w[0])
       .join("")
       .slice(0, 2) ?? "?";
+  
+  const { useActiveDailyLog } = require("../../src/hooks/useDashboard");
+  const { data: activeLog } = useActiveDailyLog();
+
   const { mutate: addToInventory, isPending } = useAddToInventory();
   const [confirmed, setConfirmed] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -358,6 +362,7 @@ export default function BuyConfirmScreen() {
                       compPriceAtTime: avgComp ? String(avgComp) : null,
                       gradeKey,
                       cardSnapshot: JSON.stringify(card),
+                      dailyLogId: activeLog?.id,
                     });
                     // Refresh homepage stats immediately
                     if (userId) {
@@ -366,6 +371,9 @@ export default function BuyConfirmScreen() {
                       });
                       queryClient.invalidateQueries({
                         queryKey: ["analytics", "today-activity", userId],
+                      });
+                      queryClient.invalidateQueries({
+                        queryKey: ["daily-logs", "active", userId],
                       });
                     }
                   } catch {

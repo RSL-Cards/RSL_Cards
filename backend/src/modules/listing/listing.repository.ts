@@ -54,7 +54,8 @@ ${gradeInstruction}
 5. Reject any lots, sealed boxes, packs, or digital cards.
 6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
 7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
-8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.${filterInstructions}
+8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.
+9. Be very lenient with punctuation, capitalization, and slight variations in subset or parallel names (e.g., "Downtown!" vs "Downtown"). If the meaning is clearly the same, accept it.${filterInstructions}
 
 Return a JSON array of ONLY the "id"s of the listings that perfectly match.
 If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
@@ -479,6 +480,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       endDate: item.endedAt,
       shippingCost: item.shippingPrice || "0.00",
       itemWebUrl: item.url,
+      image: { imageUrl: (item as any).thumbnailUrl || (item as any).fullResThumbnailUrl || (item as any).image?.imageUrl }
     }));
 
     const snapshot = {

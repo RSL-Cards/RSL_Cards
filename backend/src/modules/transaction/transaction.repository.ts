@@ -15,6 +15,7 @@ export class TransactionRepository {
       gradeKey,
       cardSnapshot,
       rslCardId,
+      dailyLogId,
     } = body;
 
     if (!playerName || !price) {
@@ -23,13 +24,14 @@ export class TransactionRepository {
 
     const result = await db.execute(sql`
       INSERT INTO transactions (
-        id, user_id, inventory_id, type, channel, price, cost_basis,
+        id, user_id, inventory_id, daily_log_id, type, channel, price, cost_basis,
         payment_method, deal_rating, comp_price_at_time,
         player_name, grade_key, card_snapshot, rsl_card_id, created_at
       ) VALUES (
         gen_random_uuid(),
         ${userId},
         ${inventoryId || null},
+        ${dailyLogId || null},
         'buy',
         ${channel},
         ${price},
@@ -63,6 +65,7 @@ export class TransactionRepository {
       gradeKey,
       cardSnapshot,
       rslCardId,
+      dailyLogId,
     } = body;
 
     if (!playerName || !price) {
@@ -76,13 +79,14 @@ export class TransactionRepository {
 
     const result = await db.execute(sql`
       INSERT INTO transactions (
-        id, user_id, inventory_id, type, channel, price, cost_basis,
+        id, user_id, inventory_id, daily_log_id, type, channel, price, cost_basis,
         profit, profit_pct, payment_method, deal_rating, comp_price_at_time,
         player_name, grade_key, card_snapshot, rsl_card_id, created_at
       ) VALUES (
         gen_random_uuid(),
         ${userId},
         ${inventoryId || null},
+        ${dailyLogId || null},
         'sell',
         ${channel},
         ${sellPrice},

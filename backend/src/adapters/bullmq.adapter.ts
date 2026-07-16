@@ -103,6 +103,14 @@ export class BullMqAdapter {
         jobId: "check_inventory_aging_cron"
       });
       logger.info("🕒 Scheduled 'check_inventory_aging' cron job to run every 12 hours");
+
+      await this.queue.add("notify_close_daily_logs", {}, {
+        repeat: {
+          pattern: "0 23 * * *" // 11:00 PM server time every day
+        },
+        jobId: "notify_close_daily_logs_cron"
+      });
+      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM daily");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

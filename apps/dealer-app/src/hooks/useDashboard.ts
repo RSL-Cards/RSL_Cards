@@ -15,7 +15,7 @@ export interface DailyStats {
 
 export interface TodayActivity {
   id: string;
-  type: "buy" | "sell" | "trade";
+  type: "buy" | "sell" | "trade" | "expense";
   price: string;
   profit: string | null;
   playerName: string;
@@ -46,6 +46,32 @@ export function useTodayActivity() {
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 2,
+  });
+}
+
+export interface ActiveDailyLog {
+  id: string;
+  name: string;
+  status: string;
+  startingCash: string;
+  stats?: {
+    moneyIn: string;
+    moneyOut: string;
+    profit: string;
+    cardsBought: number;
+    cardsSold: number;
+  } | null;
+}
+
+export function useActiveDailyLog() {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery<ActiveDailyLog | null>({
+    queryKey: ["daily-logs", "active", userId],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/v1/daily-logs/active");
+      return data;
+    },
+    enabled: !!userId,
   });
 }
 

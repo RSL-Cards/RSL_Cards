@@ -115,21 +115,7 @@ export default function BuyCompsScreen() {
 
 const ebayQuery = buildEbayQuery(card);
 
-  let soldQueryKeywords = ebayQuery;
-  if (card?.filter) {
-    try {
-      const f = typeof card.filter === 'string' ? JSON.parse(card.filter) : card.filter;
-      if (f.must_exclude && Array.isArray(f.must_exclude)) {
-        // Filter out single digits, short terms, and limit to max 10 to avoid breaking search engine limits
-        const safeExcludes = f.must_exclude
-          .filter((w: string) => w.length > 2)
-          .slice(0, 10);
-        if (safeExcludes.length > 0) {
-          soldQueryKeywords = `${ebayQuery} ${safeExcludes.map((w: string) => `-${w}`).join(" ")}`;
-        }
-      }
-    } catch(e) {}
-  }
+  const soldQueryKeywords = ebayQuery;
 
   // const myslabsQuery = buildMyslabsQuery(card);
 

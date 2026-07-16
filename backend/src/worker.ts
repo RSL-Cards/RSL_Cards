@@ -157,6 +157,43 @@ export const initWorker = () => {
         }
       }
 
+      else if (job.name === "notify_close_daily_logs") {
+        logger.info(`[WORKER] Running notify_close_daily_logs cron job`);
+        try {
+          const openLogs = await db.execute(sql`
+            SELECT id, user_id, name 
+            FROM daily_logs 
+            WHERE status = 'open'
+          `);
+          
+          const logs = openLogs.rows as any[];
+          logger.info(`[WORKER] Found ${logs.length} open daily logs.`);
+
+          const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
+          const notifRepository = new NotificationRepository();
+
+          for (const log of logs) {
+            const title = "Close Your Daily Log";
+            const body = `Don't forget to close your daily log "${log.name}" for today to finalize your stats.`;
+            
+            // 1. Send push notification / save to DB
+            await notifRepository.sendNotification(log.user_id, title, body, "INFO", { logId: log.id });
+            
+            // 2. Publish to SSE for real-time frontend updates
+            await sseService.publish(log.user_id, {
+              type: "INFO",
+              title,
+              message: body,
+              timestamp: new Date().toISOString()
+            });
+          }
+          return { success: true, processed: logs.length };
+        } catch (error: any) {
+          logger.error(`[WORKER] Error in notify_close_daily_logs: ${error.message}`);
+          throw error;
+        }
+      }
+
       else if (job.name === "check_inventory_aging") {
         logger.info(`[WORKER] Running check_inventory_aging cron job`);
         try {
