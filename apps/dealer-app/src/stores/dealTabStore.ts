@@ -19,6 +19,7 @@ export interface DealTab {
   bestMatchImageUrl?: string;
   activeListings?: any[];
   myslabsActiveListings?: any[];
+  isExisting?: boolean;
 }
 
 interface DealTabStore {

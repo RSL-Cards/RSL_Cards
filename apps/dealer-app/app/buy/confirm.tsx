@@ -162,7 +162,13 @@ export default function BuyConfirmScreen() {
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.cardThumb}>
-            {activeTab?.bestMatchImageUrl ? (
+            {(activeTab?.isExisting && activeTab?.cardData?.photos?.[0]) ? (
+              <Image
+                source={{ uri: activeTab.cardData.photos[0] }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+                resizeMode="cover"
+              />
+            ) : activeTab?.bestMatchImageUrl ? (
               <Image
                 source={{ uri: activeTab.bestMatchImageUrl }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
@@ -341,7 +347,9 @@ export default function BuyConfirmScreen() {
                 ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,
                 myslabsSalesCompleted: activeTab?.myslabsRecentSales ? JSON.stringify(activeTab.myslabsRecentSales) : undefined,
                 myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
-                photos: activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined,
+                photos: (activeTab?.isExisting && activeTab?.cardData?.photos && activeTab.cardData.photos.length > 0)
+                  ? activeTab.cardData.photos
+                  : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined),
               },
               {
                 onSuccess: async (data: any) => {

@@ -306,7 +306,7 @@ function InventoryScreen() {
         </View>
         <View style={{ flexDirection: "row", gap: SPACING.sm }}>
           <Button label="Trade" onPress={() => router.push("/trade")} size="sm" variant="outline" />
-          <Button label="Add Existing Card" onPress={() => router.push("/buy/scan")} size="sm" />
+          <Button label="Add Existing Card" onPress={() => router.push("/buy/existing")} size="sm" />
         </View>
       </View>
 

@@ -60,4 +60,13 @@ export const ENDPOINTS = {
     portfolioSnapshot: '/v1/web-dashboard/portfolio-snapshot',
     transactionsPassbook: '/v1/web-dashboard/transactions/passbook',
   },
+  dailyLogs: {
+    active: '/v1/daily-logs/active',
+    create: '/v1/daily-logs/',
+    close: (id: string) => `/v1/daily-logs/${id}/close`,
+    transactions: (id: string) => `/v1/daily-logs/${id}/transactions`,
+  },
+  analytics: {
+    expenses: '/v1/analytics/expenses',
+  },
 } as const

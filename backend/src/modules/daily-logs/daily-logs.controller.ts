@@ -31,4 +31,10 @@ export class DailyLogsController {
   closeDailyLog = async ({ request, params }: { request: Request; params: any }) => {
     return await this.service.closeDailyLog(this.getUserId(request), params.id);
   };
+
+  getDailyLogTransactions = async ({ request, params, query }: { request: Request; params: any; query: any }) => {
+    const page = query.page ? parseInt(query.page, 10) : 1;
+    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+    return await this.service.getDailyLogTransactions(this.getUserId(request), params.id, page, limit);
+  };
 }

@@ -246,12 +246,31 @@ export class UserRepository {
     return { success: true };
   }
 
-  async getUsersMeNotificationPreferences(_userId: string) {
-    return { message: `Get notification preference settings` };
+  async getUsersMeNotificationPreferences(userId: string) {
+    const profileRows = await db
+      .select({ notificationPreferences: (dealerProfiles as any).notificationPreferences })
+      .from(dealerProfiles as any)
+      .where(eq((dealerProfiles as any).userId, userId))
+      .limit(1);
+
+    if (profileRows.length === 0) {
+      throw new Error("Profile not found");
+    }
+
+    return { notification_preferences: (profileRows[0] as any).notificationPreferences };
   }
 
-  async patchUsersMeNotificationPreferences(_userId: string, _body: any) {
-    return { message: `Update notification preferences` };
+  async patchUsersMeNotificationPreferences(userId: string, body: any) {
+    if (!body.notification_preferences) {
+      throw new Error("Missing notification_preferences in body");
+    }
+    
+    await db
+      .update(dealerProfiles as any)
+      .set({ notificationPreferences: body.notification_preferences })
+      .where(eq((dealerProfiles as any).userId, userId));
+      
+    return { success: true };
   }
 
   async listDealers() {

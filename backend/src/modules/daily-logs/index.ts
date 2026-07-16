@@ -12,4 +12,5 @@ export const dailyLogsModule = new Elysia({ prefix: "/v1/daily-logs" })
   .use(requireDealer)
   .post("/", controller.createDailyLog)
   .get("/active", controller.getActiveDailyLog)
-  .patch("/:id/close", controller.closeDailyLog);
+  .patch("/:id/close", controller.closeDailyLog)
+  .get("/:id/transactions", controller.getDailyLogTransactions);

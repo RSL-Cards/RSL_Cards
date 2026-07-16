@@ -21,11 +21,12 @@ import {
   useAiInsights,
   usePortfolioSnapshot,
 } from '@/hooks/dashboard/useDashboard'
+import DailyLogPanel from '@/components/dashboard/DailyLogPanel'
 
 export default function DashboardPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  
+
   const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split('T')[0])
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
   const [activePreset, setActivePreset] = useState<'today' | '7d' | '30d' | 'month' | 'custom'>('today')
@@ -65,15 +66,15 @@ export default function DashboardPage() {
     }
   }, [metrics, activePreset])
 
-  const isLoading = 
-    !isHydrated || 
-    isMetricsLoading || 
-    isRevLoading || 
-    isChannelLoading || 
-    isInvLoading || 
-    isMoversLoading || 
-    isTxLoading || 
-    isAiLoading || 
+  const isLoading =
+    !isHydrated ||
+    isMetricsLoading ||
+    isRevLoading ||
+    isChannelLoading ||
+    isInvLoading ||
+    isMoversLoading ||
+    isTxLoading ||
+    isAiLoading ||
     isPortfolioLoading
 
   const error = metricsError ? (metricsError as Error).message : null
@@ -102,7 +103,7 @@ export default function DashboardPage() {
 
   // Generate sparkline data for metric cards (mock function for visual effect)
   const generateSparklineData = (baseValue: number, variance: number) => {
-    return Array.from({ length: 7 }, () => 
+    return Array.from({ length: 7 }, () =>
       baseValue + (Math.random() - 0.5) * variance
     )
   }
@@ -158,7 +159,7 @@ export default function DashboardPage() {
                   )}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {isFilterActive 
+                  {isFilterActive
                     ? `Showing data between ${dateFrom} and ${dateTo}`
                     : 'Filter dashboard revenue, sales, and analytics by custom date range'}
                 </p>
@@ -174,11 +175,10 @@ export default function DashboardPage() {
                     <button
                       key={preset}
                       onClick={() => handleApplyPreset(preset)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        activePreset === preset && isFilterActive
-                          ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold ring-1 ring-black/5 dark:ring-white/10'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activePreset === preset && isFilterActive
+                        ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold ring-1 ring-black/5 dark:ring-white/10'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
                     >
                       {labels[preset]}
                     </button>
@@ -239,8 +239,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Top Metrics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Daily Log Panel */}
+        <DailyLogPanel />
+
+        {/* Metric Cards Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title={displayMetrics.revenueTitle}
             value={displayMetrics.revenue}

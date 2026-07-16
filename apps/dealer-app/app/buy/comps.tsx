@@ -11,11 +11,28 @@ import {
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
-import { useEbaySold, useEbaySearch, useMyslabsSold } from "../../src/hooks/useCardScan";
+import { useEbaySold, useEbaySearch, useMyslabsSold, useInventoryItem } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
 import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
 import { isGraded } from "../../src/utils/gradeHelper";
+
+const safeFormatDate = (dateVal: string | number | undefined | null) => {
+  if (!dateVal) return "—";
+  const date = new Date(dateVal);
+  if (isNaN(date.getTime())) return "—";
+  return format(date, "MMM d, yyyy");
+};
+
+const getListingUrl = (sale: any) => {
+  if (sale.itemWebUrl) return sale.itemWebUrl;
+  if (sale.itemId && sale.platform) {
+    if (sale.platform.toLowerCase() === "ebay") return `https://www.ebay.com/itm/${sale.itemId}`;
+    if (sale.platform.toLowerCase() === "myslabs") return `https://myslabs.com/slab/view/${sale.itemId}`;
+  }
+  return null;
+};
 
 const STEP_PCT = "40%";
 
@@ -119,16 +136,24 @@ const ebayQuery = buildEbayQuery(card);
 
   // const myslabsQuery = buildMyslabsQuery(card);
 
-  const [salesVisibleCount, setSalesVisibleCount] = useState(5);
-  const [activeVisibleCount, setActiveVisibleCount] = useState(5);
+  const [salesVisibleCount, setSalesVisibleCount] = useState(20);
+  const [activeVisibleCount, setActiveVisibleCount] = useState(20);
+
+  const [activeToggle, setActiveToggle] = useState<"Graded" | "Raw">("Graded");
+  const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
 
   const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
 
-    const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
+  const isExisting = Boolean(card?.isExisting);
+  const { data: inventoryItemData } = useInventoryItem(isExisting ? (card?.id ?? "") : "");
+  const activeCard = (isExisting && inventoryItemData) ? { ...card, ...inventoryItemData, isExisting: true } : card;
+
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
     gradeKey: resolvedGradeKey,
     soldQuery: soldQueryKeywords,
+    enabled: !isExisting,
   });
 
   // const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
@@ -140,18 +165,38 @@ const ebayQuery = buildEbayQuery(card);
   const ebayPages = data?.pages ?? [];
   const myslabsPages: any[] = []; // myslabsData?.pages ?? [];
 
-  const ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  const myslabsActive: any[] = []; // myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
+  let ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
+  let myslabsActive: any[] = []; // myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: i.soldPrice?.value ?? (i as any).price?.value }));
+
+  let ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  let myslabsSold30: any[] = []; // myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+
+  let ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
+  let myslabsSold7: any[] = []; // myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+
+  if (isExisting && activeCard) {
+    try {
+      if (typeof activeCard.ebay_active_listings === "string") ebayActive = JSON.parse(activeCard.ebay_active_listings);
+      if (typeof activeCard.myslabs_active_listings === "string") myslabsActive = JSON.parse(activeCard.myslabs_active_listings);
+      
+      if (typeof activeCard.ebay_sales_completed === "string") {
+        ebaySold30 = JSON.parse(activeCard.ebay_sales_completed);
+        ebaySold7 = ebaySold30;
+      }
+      if (typeof activeCard.myslabs_sales_completed === "string") {
+        myslabsSold30 = JSON.parse(activeCard.myslabs_sales_completed);
+        myslabsSold7 = myslabsSold30;
+      }
+    } catch (e) {
+      console.warn("Failed to parse cached DB listings", e);
+    }
+  }
 
   const allActiveItems = [...ebayActive, ...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
   const activeItems = allActiveItems.slice(0, activeVisibleCount);
 
-  const ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold30: any[] = []; // myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
   const sold30 = [...ebaySold30, ...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
 
-  const ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  const myslabsSold7: any[] = []; // myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
   const sold7 = [...ebaySold7, ...myslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
 
   const allRecentSales = sold30;
@@ -161,8 +206,13 @@ const ebayQuery = buildEbayQuery(card);
   const activeGraded = activeItems.filter(item => isGraded(item.title, item.condition));
   const activeRaw = activeItems.filter(item => !isGraded(item.title, item.condition));
 
-  const avg30 = calcAvg(sold30 as any);
-  const avg7 = calcAvg(sold7 as any);
+  let avg30 = calcAvg(sold30 as any);
+  let avg7 = calcAvg(sold7 as any);
+
+  if (isExisting && activeCard?.current_market_value) {
+    avg30 = parseFloat(activeCard.current_market_value);
+    avg7 = avg30;
+  }
   const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
   const sparklineData = sold30
     .slice(0, 8)
@@ -193,10 +243,10 @@ const ebayQuery = buildEbayQuery(card);
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 }}
-      >
+        <ScrollView 
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Card identity */}
         <View
           style={{
@@ -207,9 +257,17 @@ const ebayQuery = buildEbayQuery(card);
           }}
         >
           <View style={styles.cardThumb}>
-            <Text style={{ color: "#555555", fontSize: 18, fontWeight: "700" }}>
-              {initials}
-            </Text>
+            {(activeTab?.isExisting && card?.photos?.[0]) ? (
+              <Image
+                source={{ uri: card.photos[0] }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 8 }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={{ color: "#555555", fontSize: 18, fontWeight: "700" }}>
+                {initials}
+              </Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.cardName}>
@@ -324,390 +382,168 @@ const ebayQuery = buildEbayQuery(card);
             {/* Deal rating */}
             <DealRatingBadge buyPrice={activeTab?.price} avgComp={avg30} />
 
-            {/* Recent eBay sales */}
-
-            <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-                <Text style={styles.sectionLabel}>RECENT SALES - GRADED</Text>
-                {recentSalesGraded.length > 0 ? (
-                <View style={styles.sectionCard}>
-                  {recentSalesGraded.map((sale, i) => (
-                    <TouchableOpacity
-                      key={sale.itemId}
-                      activeOpacity={sale.itemWebUrl ? 0.7 : 1}
-                      onPress={() => {
-                        if (sale.itemWebUrl) {
-                          Linking.openURL(sale.itemWebUrl).catch(err => console.error("Could not open URL", err));
-                        }
-                      }}
-                      style={[
-                        styles.saleRow,
-                        i < recentSalesGraded.length - 1 && styles.rowBorder,
-                      ]}
-                    >
-                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-                        {sale.image?.imageUrl && (
-                          <Image
-                            source={{ uri: sale.image.imageUrl }}
-                            style={{
-                              width: 36,
-                              height: 50,
-                              borderRadius: 4,
-                              marginRight: 10,
-                              backgroundColor: "#222222",
-                            }}
-                            resizeMode="cover"
-                          />
-                        )}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
-                            {sale.title}
-                          </Text>
-                          {sale.condition && (
-                            <Text
-                              style={{
-                                color: "#555555",
-                                fontSize: 10,
-                                marginTop: 2,
-                              }}
-                            >
-                              {sale.condition}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.salePrice}>
-                          ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
-                        </Text>
-                        <Text style={styles.saleDate}>
-                          {sale.endDate
-                            ? format(new Date(sale.endDate), "MMM d, yyyy")
-                            : "—"}
-                        </Text>
-                        {sale.platform && (
-                          <View
-                            style={[
-                              styles.platformBadge,
-                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
-                            >
-                              {sale.platform}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No graded sales found.</Text>
-              )}
-              </View>
-
-            <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
-                <Text style={styles.sectionLabel}>RECENT SALES - RAW</Text>
-                {recentSalesRaw.length > 0 ? (
-                <View style={styles.sectionCard}>
-                  {recentSalesRaw.map((sale, i) => (
-                    <TouchableOpacity
-                      key={sale.itemId}
-                      activeOpacity={sale.itemWebUrl ? 0.7 : 1}
-                      onPress={() => {
-                        if (sale.itemWebUrl) {
-                          Linking.openURL(sale.itemWebUrl).catch(err => console.error("Could not open URL", err));
-                        }
-                      }}
-                      style={[
-                        styles.saleRow,
-                        i < recentSalesRaw.length - 1 && styles.rowBorder,
-                      ]}
-                    >
-                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-                        {sale.image?.imageUrl && (
-                          <Image
-                            source={{ uri: sale.image.imageUrl }}
-                            style={{
-                              width: 36,
-                              height: 50,
-                              borderRadius: 4,
-                              marginRight: 10,
-                              backgroundColor: "#222222",
-                            }}
-                            resizeMode="cover"
-                          />
-                        )}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
-                            {sale.title}
-                          </Text>
-                          {sale.condition && (
-                            <Text
-                              style={{
-                                color: "#555555",
-                                fontSize: 10,
-                                marginTop: 2,
-                              }}
-                            >
-                              {sale.condition}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.salePrice}>
-                          ${parseFloat(sale.soldPrice?.value ?? "0").toFixed(2)}
-                        </Text>
-                        <Text style={styles.saleDate}>
-                          {sale.endDate
-                            ? format(new Date(sale.endDate), "MMM d, yyyy")
-                            : "—"}
-                        </Text>
-                        {sale.platform && (
-                          <View
-                            style={[
-                              styles.platformBadge,
-                              { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
-                            >
-                              {sale.platform}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No raw sales found.</Text>
-              )}
-              </View>
-
-            {(allRecentSales.length > salesVisibleCount || hasNextPage) && (
-              <View style={{ paddingHorizontal: 20 }}>
-                <TouchableOpacity
-                  style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
-                  onPress={() => {
-                    if (salesVisibleCount < allRecentSales.length) {
-                      setSalesVisibleCount(c => c + 10);
-                    } else {
-                      if (hasNextPage) fetchNextPage();
-                      setSalesVisibleCount(c => c + 10);
-                    }
-                  }}
-                  disabled={isFetchingNextPage}
-                >
-                  {isFetchingNextPage ? (
-                    <ActivityIndicator color="#0057FF" />
-                  ) : (
-                    <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Sales</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* No data fallback */}
-            {recentSales.length === 0 && (
-              <View
-                style={{
-                  marginHorizontal: 20,
-                  backgroundColor: "#111111",
-                  borderRadius: 16,
-                  padding: 20,
-                  alignItems: "center",
-                }}
+            {/* Graded vs Raw Toggle */}
+            <View style={{ flexDirection: "row", marginHorizontal: 20, marginTop: 24, backgroundColor: "#1A1A1A", borderRadius: 8, padding: 4 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: activeToggle === "Graded" ? "#333" : "transparent", borderRadius: 6 }}
+                onPress={() => setActiveToggle("Graded")}
               >
-                <Text style={{ color: "#555555", fontSize: 13 }}>
-                  No recent sales found
-                </Text>
-                <Text style={{ color: "#333333", fontSize: 11, marginTop: 4 }}>
-                  Try adjusting the card details
-                </Text>
-              </View>
-            )}
+                <Text style={{ color: activeToggle === "Graded" ? "#FFF" : "#888", fontSize: 13, fontWeight: "600" }}>Graded</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: activeToggle === "Raw" ? "#333" : "transparent", borderRadius: 6 }}
+                onPress={() => setActiveToggle("Raw")}
+              >
+                <Text style={{ color: activeToggle === "Raw" ? "#FFF" : "#888", fontSize: 13, fontWeight: "600" }}>Raw</Text>
+              </TouchableOpacity>
+            </View>
 
-            {/* Current eBay Active Listings */}
-
-            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS - GRADED</Text>
-                {activeGraded.length > 0 ? (
-                <View style={styles.sectionCard}>
-                  {activeGraded.map((item, i) => (
+            {/* Comps Source Tabs */}
+            <View style={{ marginTop: 16, paddingBottom: 10 }}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+              >
+                {[
+                  { id: "ebay_sold", label: "eBay Sold" },
+                  { id: "ebay_active", label: "eBay Active" },
+                  { id: "myslabs_sold", label: "MySlabs Sold" },
+                  { id: "myslabs_active", label: "MySlabs Active" },
+                ].map((tab) => {
+                  const isActive = compsSourceTab === tab.id;
+                  return (
                     <TouchableOpacity
-                      key={item.itemId}
-                      activeOpacity={item.itemWebUrl ? 0.7 : 1}
-                      onPress={() => {
-                        if (item.itemWebUrl) {
-                          Linking.openURL(item.itemWebUrl).catch(err => console.error("Could not open URL", err));
-                        }
+                      key={tab.id}
+                      activeOpacity={0.7}
+                      onPress={() => setCompsSourceTab(tab.id as any)}
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        backgroundColor: isActive ? "#0057FF" : "#1A1A1A",
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: isActive ? "#0057FF" : "#333",
                       }}
-                      style={[
-                        styles.saleRow,
-                        i < activeGraded.length - 1 && styles.rowBorder,
-                      ]}
                     >
-                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-                        {item.image?.imageUrl && (
-                          <Image
-                            source={{ uri: item.image.imageUrl }}
-                            style={{
-                              width: 36,
-                              height: 50,
-                              borderRadius: 4,
-                              marginRight: 10,
-                              backgroundColor: "#222222",
-                            }}
-                            resizeMode="cover"
-                          />
-                        )}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
-                            {item.title}
-                          </Text>
-                          {item.condition && (
-                            <Text
-                              style={{
-                                color: "#555555",
-                                fontSize: 10,
-                                marginTop: 2,
-                              }}
-                            >
-                              {item.condition}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.salePrice}>
-                          ${parseFloat(item.displayPrice ?? "0").toFixed(2)}
-                        </Text>
-                        {item.platform && (
-                          <View
-                            style={[
-                              styles.platformBadge,
-                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
-                            >
-                              {item.platform}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                      <Text style={{
+                        color: isActive ? "#FFF" : "#AAA",
+                        fontSize: 13,
+                        fontWeight: isActive ? "600" : "400"
+                      }}>
+                        {tab.label}
+                      </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No graded active listings found.</Text>
-              )}
-              </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
 
+            {/* Tabular Data View */}
             <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-                <Text style={styles.sectionLabel}>CURRENT ACTIVE LISTINGS - RAW</Text>
-                {activeRaw.length > 0 ? (
-                <View style={styles.sectionCard}>
-                  {activeRaw.map((item, i) => (
-                    <TouchableOpacity
-                      key={item.itemId}
-                      activeOpacity={item.itemWebUrl ? 0.7 : 1}
-                      onPress={() => {
-                        if (item.itemWebUrl) {
-                          Linking.openURL(item.itemWebUrl).catch(err => console.error("Could not open URL", err));
-                        }
-                      }}
-                      style={[
-                        styles.saleRow,
-                        i < activeRaw.length - 1 && styles.rowBorder,
-                      ]}
-                    >
-                      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", marginRight: 8 }}>
-                        {item.image?.imageUrl && (
-                          <Image
-                            source={{ uri: item.image.imageUrl }}
-                            style={{
-                              width: 36,
-                              height: 50,
-                              borderRadius: 4,
-                              marginRight: 10,
-                              backgroundColor: "#222222",
-                            }}
-                            resizeMode="cover"
-                          />
-                        )}
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }} numberOfLines={2}>
-                            {item.title}
-                          </Text>
-                          {item.condition && (
-                            <Text
-                              style={{
-                                color: "#555555",
-                                fontSize: 10,
-                                marginTop: 2,
-                              }}
-                            >
-                              {item.condition}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={styles.salePrice}>
-                          ${parseFloat(item.displayPrice ?? "0").toFixed(2)}
-                        </Text>
-                        {item.platform && (
-                          <View
-                            style={[
-                              styles.platformBadge,
-                              { backgroundColor: item.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                            ]}
-                          >
-                            <Text
-                              style={[styles.platformBadgeText, { color: item.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
-                            >
-                              {item.platform}
-                            </Text>
+              {(() => {
+                let currentData: any[] = [];
+                if (compsSourceTab === "ebay_sold") {
+                  currentData = activeToggle === "Graded" ? ebaySold30.filter(item => isGraded(item.title, item.condition)) : ebaySold30.filter(item => !isGraded(item.title, item.condition));
+                } else if (compsSourceTab === "ebay_active") {
+                  currentData = activeToggle === "Graded" ? ebayActive.filter(item => isGraded(item.title, item.condition)) : ebayActive.filter(item => !isGraded(item.title, item.condition));
+                } else if (compsSourceTab === "myslabs_sold") {
+                  currentData = activeToggle === "Graded" ? myslabsSold30.filter(item => isGraded(item.title, item.condition)) : myslabsSold30.filter(item => !isGraded(item.title, item.condition));
+                } else if (compsSourceTab === "myslabs_active") {
+                  currentData = activeToggle === "Graded" ? myslabsActive.filter(item => isGraded(item.title, item.condition)) : myslabsActive.filter(item => !isGraded(item.title, item.condition));
+                }
+
+                if (currentData.length === 0) {
+                  return (
+                    <Text style={{ color: "#555", fontSize: 13, marginTop: 16, fontStyle: "italic", textAlign: "center" }}>
+                      No {activeToggle.toLowerCase()} data found for this tab.
+                    </Text>
+                  );
+                }
+
+                return (
+                  <View style={styles.sectionCard}>
+                    {/* Table Header */}
+                    <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#333", paddingBottom: 8, marginBottom: 8, paddingHorizontal: 4 }}>
+                      <Text style={{ flex: 0.15, color: "#888", fontSize: 10, fontWeight: "600" }}>IMG</Text>
+                      <Text style={{ flex: 0.55, color: "#888", fontSize: 10, fontWeight: "600", paddingLeft: 8 }}>TITLE & COND.</Text>
+                      <Text style={{ flex: 0.3, color: "#888", fontSize: 10, fontWeight: "600", textAlign: "right" }}>PRICE & DATE</Text>
+                    </View>
+                    
+                    {currentData.slice(0, compsSourceTab.includes("sold") ? salesVisibleCount : activeVisibleCount).map((sale, i) => {
+                      const displayPrice = sale.soldPrice?.value ?? sale.price?.value ?? sale.displayPrice ?? "0";
+                      const linkUrl = getListingUrl(sale);
+                      return (
+                        <TouchableOpacity
+                          key={sale.itemId || i}
+                          activeOpacity={linkUrl ? 0.7 : 1}
+                          onPress={() => {
+                            if (linkUrl) {
+                              Linking.openURL(linkUrl).catch(err => console.error("Could not open URL", err));
+                            }
+                          }}
+                          style={[
+                            styles.saleRow,
+                            i < currentData.length - 1 && styles.rowBorder,
+                          ]}
+                        >
+                          <View style={{ flex: 0.15, alignItems: "flex-start" }}>
+                            {sale.image?.imageUrl ? (
+                              <Image
+                                source={{ uri: sale.image.imageUrl }}
+                                style={{
+                                  width: 36,
+                                  height: 50,
+                                  borderRadius: 4,
+                                  backgroundColor: "#222222",
+                                }}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={{ width: 36, height: 50, backgroundColor: "#222", borderRadius: 4, justifyContent: "center", alignItems: "center" }}>
+                                <Ionicons name="image-outline" size={16} color="#555" />
+                              </View>
+                            )}
                           </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={{ color: "#555", fontSize: 13, marginBottom: 16, fontStyle: "italic" }}>No raw active listings found.</Text>
-              )}
-              </View>
-
-            {(allActiveItems.length > activeVisibleCount || hasNextPage) && (
-              <View style={{ paddingHorizontal: 20 }}>
-                <TouchableOpacity
-                  style={{ padding: 16, alignItems: "center", backgroundColor: "#1A1A1A", borderRadius: 12, marginTop: 10 }}
-                  onPress={() => {
-                    if (activeVisibleCount < allActiveItems.length) {
-                      setActiveVisibleCount(c => c + 10);
-                    } else {
-                      if (hasNextPage) fetchNextPage();
-                      setActiveVisibleCount(c => c + 10);
-                    }
-                  }}
-                  disabled={isFetchingNextPage}
-                >
-                  {isFetchingNextPage ? (
-                    <ActivityIndicator color="#0057FF" />
-                  ) : (
-                    <Text style={{ color: "#0057FF", fontWeight: "600", fontSize: 14 }}>Show More Active</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-
+                          <View style={{ flex: 0.55, paddingHorizontal: 8 }}>
+                            <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }} numberOfLines={2}>
+                              {sale.title}
+                            </Text>
+                            {sale.condition && (
+                              <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
+                                {sale.condition}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={{ flex: 0.3, alignItems: "flex-end" }}>
+                            <Text style={[styles.salePrice, { fontSize: 13 }]}>
+                              ${parseFloat(displayPrice).toFixed(2)}
+                            </Text>
+                            <Text style={[styles.saleDate, { fontSize: 10, marginTop: 4 }]}>
+                              {compsSourceTab.includes("sold") ? safeFormatDate(sale.endDate) : "Active"}
+                            </Text>
+                            {sale.platform && (
+                              <View
+                                style={[
+                                  styles.platformBadge,
+                                  { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+                                ]}
+                              >
+                                <Text
+                                  style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
+                                >
+                                  {sale.platform}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
+            </View>
           </>
         )}
       </ScrollView>

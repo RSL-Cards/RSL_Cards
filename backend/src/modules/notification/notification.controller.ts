@@ -47,12 +47,12 @@ export class NotificationController {
     });
   };
 
-  registerToken = async ({ request }: { request: Request }) => {
+  registerToken = async ({ request, body }: { request: Request; body: any }) => {
     const userId = this.getUserId(request);
     if (userId === "guest") {
       throw new Error("Authentication is required");
     }
-    const { token, platform } = (await request.json()) as { token?: string; platform?: string };
+    const { token, platform } = body as { token?: string; platform?: string };
     if (!token || !platform) {
       throw new Error("Missing token or platform");
     }

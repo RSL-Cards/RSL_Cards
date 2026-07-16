@@ -20,6 +20,10 @@ export class DailyLogsService {
   }
 
   async closeDailyLog(userId: string, logId: string) {
-    return await this.repository.closeDailyLog(userId, logId);
+    return this.repository.closeDailyLog(userId, logId);
+  }
+
+  async getDailyLogTransactions(userId: string, logId: string, page: number, limit: number) {
+    return this.repository.getDailyLogTransactions(userId, logId, page, limit);
   }
 }
