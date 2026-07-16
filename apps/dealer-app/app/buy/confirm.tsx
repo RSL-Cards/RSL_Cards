@@ -168,15 +168,15 @@ export default function BuyConfirmScreen() {
                 style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
                 resizeMode="cover"
               />
-            ) : activeTab?.bestMatchImageUrl ? (
-              <Image
-                source={{ uri: activeTab.bestMatchImageUrl }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
-                resizeMode="cover"
-              />
             ) : capturedPhoto ? (
               <Image
                 source={{ uri: `data:image/jpeg;base64,${capturedPhoto}` }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
+                resizeMode="cover"
+              />
+            ) : activeTab?.bestMatchImageUrl ? (
+              <Image
+                source={{ uri: activeTab.bestMatchImageUrl }}
                 style={[StyleSheet.absoluteFill, { borderRadius: 10 }]}
                 resizeMode="cover"
               />
@@ -349,12 +349,12 @@ export default function BuyConfirmScreen() {
                 myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
                 photos: (activeTab?.isExisting && activeTab?.cardData?.photos && activeTab.cardData.photos.length > 0)
                   ? activeTab.cardData.photos
-                  : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined),
+                  : (capturedPhoto ? undefined : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined)),
               },
               {
                 onSuccess: async (data: any) => {
                   const inventoryId = data?.item?.id ?? null;
-                  if (inventoryId && !activeTab?.bestMatchImageUrl && capturedPhoto) {
+                  if (inventoryId && capturedPhoto) {
                     uploadCardPhoto(inventoryId, capturedPhoto);
                   }
                   try {
