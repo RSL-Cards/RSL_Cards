@@ -251,6 +251,7 @@ ONLY return the JSON object. Do not include any explanations.`;
         FROM card_comp_snapshots
         WHERE variant_id = ${effectiveVariantId}
           AND platform = 'ebay'
+          AND grade_key = ${gradeKey}
           AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
@@ -264,6 +265,7 @@ ONLY return the JSON object. Do not include any explanations.`;
           FROM platform_sold_listings
           WHERE variant_id = ${effectiveVariantId}
             AND platform = 'ebay'
+            AND grade_key = ${gradeKey}
           ORDER BY sold_at DESC
           LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
@@ -285,6 +287,7 @@ ONLY return the JSON object. Do not include any explanations.`;
           FROM platform_active_listings
           WHERE variant_id = ${effectiveVariantId}
             AND platform = 'ebay'
+            AND grade_key = ${gradeKey}
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
           LIMIT ${maxResults} OFFSET ${offsetNum}
@@ -464,7 +467,7 @@ ONLY return the JSON object. Do not include any explanations.`;
       `);
 
       for (const item of soldData.items) {
-        const itemGrade = (item as any).grade_key || "RAW";
+        const itemGrade = (item as any).grade_key || gradeKey;
         const contentHash = createHash("sha256")
           .update(`soldcomps:${effectiveVariantId}:${itemGrade}:${item.url || item.itemId}:${item.endedAt}`)
           .digest("hex")
@@ -480,7 +483,7 @@ ONLY return the JSON object. Do not include any explanations.`;
       }
 
       for (const item of activeData.itemSummaries ?? []) {
-        const itemGrade = (item as any).grade_key || "RAW";
+        const itemGrade = (item as any).grade_key || gradeKey;
         const contentHash = createHash("sha256")
           .update(`ebayactive:${effectiveVariantId}:${itemGrade}:${item.itemId}`)
           .digest("hex")

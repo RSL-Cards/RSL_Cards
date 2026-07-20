@@ -15,7 +15,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
-import { useEbaySold, useEbaySearch, useMyslabsSold, useInventoryItem } from "../../src/hooks/useCardScan";
+import { useInventoryItem } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
 import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
 import { isGraded } from "../../src/utils/gradeHelper";
@@ -68,6 +68,26 @@ function buildMyslabsQuery(card: any): string {
   return buildEbayQuery(card);
 }
 
+function buildGradeQuery(card: any, grade: string): string {
+  if (!card) return "";
+  const base = [
+    card.player_name,
+    card.year,
+    card.set_name,
+    card.variation !== "Base" ? card.variation : "",
+    card.card_number ? `#${card.card_number}` : ""
+  ].filter(Boolean).join(" ");
+
+  const cleanedBase = cleanQueryString(base);
+
+  if (grade === "RAW") {
+    return `${cleanedBase} RAW`;
+  }
+
+  const company = card.grading?.company || "PSA";
+  return `${cleanedBase} ${company} ${grade}`;
+}
+
 function calcAvg(items: EbaySoldItem[]): number {
   if (!items.length) return 0;
   const prices = items
@@ -91,8 +111,55 @@ function calcMedian(items: EbaySoldItem[]): number {
 // Client-side comps filtering by grade_key classification from the ML model
 function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   return items.filter(item => {
-    const itemGrade = item.grade_key || "RAW";
-    return itemGrade === selectedGrade;
+    const title = (item.title || "").toUpperCase();
+    const condition = (item.condition || "").toUpperCase();
+
+    // 1. Explicit condition checks
+    const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
+    const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
+
+    // 2. Check if item has a grade_key field from DB cache
+    const itemGrade = item.grade_key || "";
+    if (itemGrade) {
+      const numMatch = itemGrade.match(/_(\d+(?:\.\d+)?)$/);
+      const parsedGrade = numMatch ? numMatch[1] : "RAW";
+      if (parsedGrade === selectedGrade) {
+        if (selectedGrade !== "RAW" && isUngradedCondition) return false;
+        return true;
+      }
+      return false;
+    }
+
+    // 3. Fallback/API: Filter based on listing title & condition matching the selected grade
+    if (selectedGrade === "RAW") {
+      if (isGradedCondition) return false;
+      return !/\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+    } else {
+      if (isUngradedCondition) return false;
+
+      // Filter out titles indicating it is a raw card trying to sound graded
+      if (/\b(READY|RAW|LOT|NOT\s+(?:PSA|BGS|SGC|CGC|CSG)|PSA\s*\?|\?\s*PSA)\b/i.test(title)) {
+        return false;
+      }
+
+      // Graded card titles must contain a grading company and the exact grade number
+      const hasGradingCompany = /\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+      if (!hasGradingCompany) return false;
+
+      // Ensure the exact grade number is present.
+      if (selectedGrade === "9") {
+        // Avoid matching "9.5" when grade is "9"
+        return /\b9\b/.test(title) && !/\b9\.5\b/.test(title);
+      } else if (selectedGrade === "9.5") {
+        return /\b9\.5\b/.test(title);
+      } else if (selectedGrade === "10") {
+        return /\b10\b/.test(title);
+      } else {
+        const escapedGrade = selectedGrade.replace(".", "\\.");
+        const gradeRegex = new RegExp(`\\b${escapedGrade}\\b`);
+        return gradeRegex.test(title);
+      }
+    }
   });
 }
 
@@ -172,63 +239,11 @@ export default function BuyCompsScreen() {
   const [formGradingCompany, setFormGradingCompany] = useState("");
   const [formGrade, setFormGrade] = useState("");
 
-  useEffect(() => {
-    if (card) {
-      setFormPlayerName(card.player_name || "");
-      setFormYear(card.year ? String(card.year) : "");
-      setFormManufacturer(card.manufacturer || "");
-      setFormSetName(card.set_name || "");
-      setFormVariation(card.variation || "");
-      setFormCardNumber(card.card_number || "");
-      setFormGradingCompany(card.grading?.company || "");
-      setFormGrade(card.grading?.grade || "");
-    }
-  }, [card]);
-
-  const handleSaveDetails = () => {
-    const updatedCard = {
-      ...card,
-      player_name: formPlayerName,
-      year: formYear,
-      manufacturer: formManufacturer,
-      set_name: formSetName,
-      variation: formVariation,
-      card_number: formCardNumber,
-      grading: formGradingCompany || formGrade 
-        ? { company: formGradingCompany, grade: formGrade } 
-        : undefined,
-    };
-
-    if (formGrade) {
-      setSelectedGradeKey(formGrade);
-    } else {
-      setSelectedGradeKey("RAW");
-    }
-
-    updateTab(activeTab.id, { cardData: updatedCard });
-    setShowEditModal(false);
-  };
-
-  const ebayQuery = buildEbayQuery(card);
-  const soldQueryKeywords = ebayQuery;
-  const myslabsQuery = buildMyslabsQuery(card);
-
-  const [salesVisibleCount, setSalesVisibleCount] = useState(20);
-  const [activeVisibleCount, setActiveVisibleCount] = useState(20);
-  const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
-
-  // Default to "RAW" or the card's active grade after scanning
+  const [compsByGrade, setCompsByGrade] = useState<Record<string, { active: any[], sold30d: any[], sold7d: any[] }>>({});
+  const [myslabsCompsByGrade, setMyslabsCompsByGrade] = useState<Record<string, { active: any[], sold30d: any[], sold7d: any[] }>>({});
+  const [primaryLoading, setPrimaryLoading] = useState(false);
   const [selectedGradeKey, setSelectedGradeKey] = useState<string>("RAW");
 
-  useEffect(() => {
-    if (card?.grading?.grade) {
-      setSelectedGradeKey(card.grading.grade);
-    } else {
-      setSelectedGradeKey("RAW");
-    }
-  }, [card?.id]);
-
-  // Generic Grade list: RAW and numeric scores 5 to 10
   const gradesList = [
     "RAW",
     "5",
@@ -244,31 +259,144 @@ export default function BuyCompsScreen() {
   const { data: inventoryItemData } = useInventoryItem(isExisting ? (card?.id ?? "") : "");
   const activeCard = (isExisting && inventoryItemData) ? { ...card, ...inventoryItemData, isExisting: true } : card;
 
-  // React hooks query without grade filters to pull all grades simultaneously
-  const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
-    limit: 50,
-    variantId: activeTab?.variantId,
-    soldQuery: soldQueryKeywords,
-    enabled: !isExisting,
-  });
+  useEffect(() => {
+    if (card) {
+      setFormPlayerName(card.player_name || "");
+      setFormYear(card.year ? String(card.year) : "");
+      setFormManufacturer(card.manufacturer || "");
+      setFormSetName(card.set_name || "");
+      setFormVariation(card.variation || "");
+      setFormCardNumber(card.card_number || "");
+      setFormGradingCompany(card.grading?.company || "");
+      setFormGrade(card.grading?.grade || "");
+    }
+  }, [card]);
 
-  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError } = useMyslabsSold(myslabsQuery, {
-    limit: 50,
-    variantId: activeTab?.variantId,
-    enabled: !isExisting,
-  });
+  // Auto show Edit Details Modal on mount for new cards to extract details
+  useEffect(() => {
+    if (card && !isExisting) {
+      setShowEditModal(true);
+    }
+  }, [card?.id, isExisting]);
 
-  const ebayPages = data?.pages ?? [];
-  const myslabsPages = myslabsData?.pages ?? [];
+  const fetchCompsForAllGrades = async (cardInfo: any) => {
+    if (!cardInfo || cardInfo.isExisting) return;
 
-  let ebayActive = ebayPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
-  let myslabsActive = myslabsPages.flatMap(p => p.activeListings ?? []).map(i => ({ ...i, platform: "MySlabs", displayPrice: (i as any).price?.value ?? i.soldPrice?.value }));
+    const initialGrade = cardInfo.grading?.grade || "RAW";
+    setSelectedGradeKey(initialGrade);
+    setPrimaryLoading(true);
 
-  let ebaySold30 = ebayPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  let myslabsSold30 = myslabsPages.flatMap(p => p.sold30d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+    try {
+      const primaryEbayQuery = buildGradeQuery(cardInfo, initialGrade);
+      const primaryMyslabsQuery = buildGradeQuery(cardInfo, initialGrade);
 
-  let ebaySold7 = ebayPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "eBay" }));
-  let myslabsSold7 = myslabsPages.flatMap(p => p.sold7d?.items ?? []).map(i => ({ ...i, platform: "MySlabs" }));
+      console.log(`[COMPS] Fetching primary grade (${initialGrade}) query: ${primaryEbayQuery}`);
+
+      const { cardService } = await import("../../src/services/cardService");
+      const [ebayRes, myslabsRes] = await Promise.all([
+        cardService.getEbaySold(primaryEbayQuery, 50, activeTab?.variantId),
+        cardService.getMyslabsSold(primaryMyslabsQuery, 50, activeTab?.variantId)
+      ]);
+
+      setCompsByGrade(prev => ({
+        ...prev,
+        [initialGrade]: {
+          active: ebayRes.activeListings || [],
+          sold30d: ebayRes.sold30d?.items || [],
+          sold7d: ebayRes.sold7d?.items || [],
+        }
+      }));
+
+      setMyslabsCompsByGrade(prev => ({
+        ...prev,
+        [initialGrade]: {
+          active: myslabsRes.activeListings || [],
+          sold30d: myslabsRes.sold30d?.items || [],
+          sold7d: myslabsRes.sold7d?.items || [],
+        }
+      }));
+
+      setPrimaryLoading(false);
+
+      // Fetch other grades in the background
+      const otherGrades = gradesList.filter(g => g !== initialGrade);
+      for (const grade of otherGrades) {
+        const ebayQ = buildGradeQuery(cardInfo, grade);
+        const myslabsQ = buildGradeQuery(cardInfo, grade);
+
+        Promise.all([
+          cardService.getEbaySold(ebayQ, 50, activeTab?.variantId),
+          cardService.getMyslabsSold(myslabsQ, 50, activeTab?.variantId)
+        ]).then(([eRes, mRes]) => {
+          setCompsByGrade(prev => ({
+            ...prev,
+            [grade]: {
+              active: eRes.activeListings || [],
+              sold30d: eRes.sold30d?.items || [],
+              sold7d: eRes.sold7d?.items || [],
+            }
+          }));
+
+          setMyslabsCompsByGrade(prev => ({
+            ...prev,
+            [grade]: {
+              active: mRes.activeListings || [],
+              sold30d: mRes.sold30d?.items || [],
+              sold7d: mRes.sold7d?.items || [],
+            }
+          }));
+        }).catch(err => {
+          console.warn(`[COMPS] Background fetch failed for grade ${grade}:`, err);
+        });
+      }
+
+    } catch (err) {
+      console.error("[COMPS] Primary fetch failed:", err);
+      setPrimaryLoading(false);
+    }
+  };
+
+  // Run comps fetch if already confirmed (or when details saved)
+  useEffect(() => {
+    if (card && !isExisting && !showEditModal) {
+      fetchCompsForAllGrades(card);
+    }
+  }, [card?.id, isExisting, showEditModal]);
+
+  const handleSaveDetails = () => {
+    const updatedCard = {
+      ...card,
+      player_name: formPlayerName,
+      year: formYear,
+      manufacturer: formManufacturer,
+      set_name: formSetName,
+      variation: formVariation,
+      card_number: formCardNumber,
+      grading: formGradingCompany || formGrade 
+        ? { company: formGradingCompany, grade: formGrade, cert_number: card?.grading?.cert_number || "" } 
+        : undefined,
+    };
+
+    updateTab(activeTab.id, { cardData: updatedCard });
+    setShowEditModal(false);
+    fetchCompsForAllGrades(updatedCard);
+  };
+
+  const [salesVisibleCount, setSalesVisibleCount] = useState(20);
+  const [activeVisibleCount, setActiveVisibleCount] = useState(20);
+  const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
+
+  const currentComps = compsByGrade[selectedGradeKey] || { active: [], sold30d: [], sold7d: [] };
+  const currentMyslabsComps = myslabsCompsByGrade[selectedGradeKey] || { active: [], sold30d: [], sold7d: [] };
+
+  let ebayActive = currentComps.active.map(i => ({ ...i, platform: "eBay", displayPrice: i.price?.value }));
+  let myslabsActive = currentMyslabsComps.active.map(i => ({ ...i, platform: "MySlabs", displayPrice: i.price?.value ?? i.soldPrice?.value }));
+
+  let ebaySold30 = currentComps.sold30d.map(i => ({ ...i, platform: "eBay" }));
+  let myslabsSold30 = currentMyslabsComps.sold30d.map(i => ({ ...i, platform: "MySlabs" }));
+
+  let ebaySold7 = currentComps.sold7d.map(i => ({ ...i, platform: "eBay" }));
+  let myslabsSold7 = currentMyslabsComps.sold7d.map(i => ({ ...i, platform: "MySlabs" }));
 
   if (isExisting && activeCard) {
     try {
@@ -337,8 +465,8 @@ export default function BuyCompsScreen() {
     ? `${safeFormatDate(Math.min(...dates.map(d => d.getTime())))} - ${safeFormatDate(Math.max(...dates.map(d => d.getTime())))}` 
     : "Last 30 Days";
 
-  const isLoadingAll = isLoading || myslabsLoading;
-  const isErrorAll = isError || myslabsError;
+  const isLoadingAll = !isExisting && primaryLoading;
+  const isErrorAll = false;
 
   const initials =
     card?.player_name
@@ -364,56 +492,14 @@ export default function BuyCompsScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Card identity */}
-        <View style={styles.cardHeaderContainer}>
-          <View style={styles.cardThumb}>
-            {(activeTab?.isExisting && card?.photos?.[0]) ? (
-              <Image
-                source={{ uri: card.photos[0] }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 8 }]}
-                resizeMode="cover"
-              />
-            ) : activeTab?.capturedPhoto ? (
-              <Image
-                source={{ uri: `data:image/jpeg;base64,${activeTab.capturedPhoto}` }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 8 }]}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text style={{ color: "#555555", fontSize: 18, fontWeight: "700" }}>
-                {initials}
-              </Text>
-            )}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardName}>
-              {card?.player_name ?? "Unknown Card"}
-            </Text>
-            <Text style={{ color: "#888888", fontSize: 12, marginTop: 2 }}>
-              {card?.year} · {card?.set_name}
-              {card?.variation ? ` · ${card.variation}` : ""}
-            </Text>
-            {card?.grading && (
-              <View style={styles.gradePill}>
-                <Text style={styles.gradePillText}>
-                  {card.grading.company} {card.grading.grade}
-                </Text>
-              </View>
-            )}
-          </View>
-          <TouchableOpacity 
-            onPress={() => setShowEditModal(true)}
-            style={{ 
-              backgroundColor: "#222222", 
-              borderRadius: 8, 
-              paddingHorizontal: 12, 
-              paddingVertical: 8,
-              borderWidth: 1,
-              borderColor: "#333333"
-            }}
-          >
-            <Text style={{ color: "#0057FF", fontSize: 13, fontWeight: "700" }}>Edit Details</Text>
-          </TouchableOpacity>
+        {/* ── CARD TITLE HEADER ── */}
+        <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 }}>
+          <Text style={{ color: "white", fontSize: 20, fontWeight: "800" }}>
+            {card?.year} {card?.set_name} {card?.player_name}
+          </Text>
+          <Text style={{ color: "#888888", fontSize: 13, marginTop: 4 }}>
+            {card?.variation || "Base"} {card?.grading ? `· ${card.grading.company} ${card.grading.grade}` : "· RAW"}
+          </Text>
         </View>
 
         {/* Grade Selector Pills */}
@@ -466,7 +552,7 @@ export default function BuyCompsScreen() {
             <Text style={{ color: "#E8001C", fontWeight: "700", marginTop: 8, marginBottom: 8 }}>
               Failed to load comps
             </Text>
-            <TouchableOpacity onPress={() => refetch()}>
+            <TouchableOpacity onPress={() => fetchCompsForAllGrades(card)}>
               <Text style={{ color: "#0057FF", fontWeight: "700" }}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -603,13 +689,13 @@ export default function BuyCompsScreen() {
                   {(() => {
                     let currentData: any[] = [];
                     if (compsSourceTab === "ebay_sold") {
-                      currentData = ebaySold30;
+                      currentData = filteredEbaySold30;
                     } else if (compsSourceTab === "ebay_active") {
-                      currentData = ebayActive;
+                      currentData = filteredEbayActive;
                     } else if (compsSourceTab === "myslabs_sold") {
-                      currentData = myslabsSold30;
+                      currentData = filteredMyslabsSold30;
                     } else if (compsSourceTab === "myslabs_active") {
-                      currentData = myslabsActive;
+                      currentData = filteredMyslabsActive;
                     }
 
                     if (currentData.length === 0) {
