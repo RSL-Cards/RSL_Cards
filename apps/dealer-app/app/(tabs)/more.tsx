@@ -49,15 +49,14 @@ function SettingsRow({
   accentColor?: string;
 }) {
   const isEmoji = !icon || icon.length <= 2 || /\p{Emoji}/u.test(icon);
+  const isClickable = !!onPress;
 
   return (
     <TouchableOpacity
       style={[styles.row, !isLast && styles.rowBorder]}
-      onPress={
-        onPress ||
-        (() => Alert.alert("Coming Soon", "This feature is coming soon!"))
-      }
-      activeOpacity={0.7}
+      onPress={onPress}
+      disabled={!isClickable}
+      activeOpacity={isClickable ? 0.7 : 1}
     >
       {isEmoji ? (
         <Typography variant="h3" style={styles.rowIcon}>{icon}</Typography>
@@ -73,7 +72,7 @@ function SettingsRow({
         {label}
       </Typography>
       {value && <Typography variant="caption" color={COLORS.zinc400} style={styles.rowValue}>{value}</Typography>}
-      {!accentColor && <Typography variant="h3" color={COLORS.zinc600}>›</Typography>}
+      {isClickable && !accentColor && <Typography variant="h3" color={COLORS.zinc600}>›</Typography>}
     </TouchableOpacity>
   );
 }
