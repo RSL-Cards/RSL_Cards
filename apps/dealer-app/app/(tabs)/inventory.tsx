@@ -8,25 +8,28 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
+import { useSyncStore } from "../../src/stores/syncStore";
 
 const ALL_SPORTS = [
-  { key: "Football", emoji: "🏈" },
-  { key: "Baseball", emoji: "⚾" },
-  { key: "Basketball", emoji: "🏀" },
-  { key: "Hockey", emoji: "🏒" },
-  { key: "Soccer", emoji: "⚽" },
-  { key: "MMA", emoji: "🥊" },
-  { key: "Other", emoji: "🏅" },
+  { key: "Football", iconName: "american-football-outline" as const },
+  { key: "Baseball", iconName: "baseball-outline" as const },
+  { key: "Basketball", iconName: "basketball-outline" as const },
+  { key: "Hockey", iconName: "trophy-outline" as const },
+  { key: "Soccer", iconName: "football-outline" as const },
+  { key: "MMA", iconName: "fitness-outline" as const },
+  { key: "Other", iconName: "medal-outline" as const },
 ];
 
 const GRADE_CONFIG: Record<
@@ -41,10 +44,11 @@ const GRADE_CONFIG: Record<
 };
 
 function GradeChip({ gradeKey }: { gradeKey: string }) {
+  const formattedLabel = gradeKey ? gradeKey.replace(/_/g, " ") : "RAW";
   const cfg = GRADE_CONFIG[gradeKey] ?? {
     bg: COLORS.zinc800,
     color: COLORS.zinc400,
-    label: gradeKey,
+    label: formattedLabel,
   };
   return (
     <View style={[styles.gradeChip, { backgroundColor: cfg.bg }]}>
@@ -210,14 +214,30 @@ function InventoryCard({ item }: { item: any }) {
 
 function InventoryScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [showSyncModal, setShowSyncModal] = useState(false);
+
+  const pendingTxs = useSyncStore((s) => s.pendingTransactions);
+  const pendingExps = useSyncStore((s) => s.pendingExpenses);
+  const syncedItems = useSyncStore((s) => s.syncedItems);
+  const isSyncing = useSyncStore((s) => s.isSyncing);
+  const syncStatus = useSyncStore((s) => s.syncStatus);
+  const syncNow = useSyncStore((s) => s.syncNow);
+  const retryFailed = useSyncStore((s) => s.retryFailed);
+  const clearFailed = useSyncStore((s) => s.clearFailed);
+
+  const pendingCount = pendingTxs.filter((t) => t.status === "pending").length + pendingExps.filter((e) => e.status === "pending").length;
+  const failedCount = pendingTxs.filter((t) => t.status === "failed").length + pendingExps.filter((e) => e.status === "failed").length;
+
   const userSports = useAuthStore((s) => s.user?.sports ?? []);
   const sportTabs = [
-    { key: "All", emoji: "🏆" },
+    { key: "All", iconName: "apps-outline" as const },
     ...ALL_SPORTS.filter((s) =>
       userSports.some((us) => us.toLowerCase() === s.key.toLowerCase()),
     ),
   ];
   const [selectedSport, setSelectedSport] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<"active" | "sold">("active");
   const sport =
     selectedSport === "All" ? undefined : selectedSport.toLowerCase();
 
@@ -225,13 +245,18 @@ function InventoryScreen() {
   const [allItems, setAllItems] = useState<any[]>([]);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
-  const { data: inventoryData, isLoading, isRefetching, refetch } = useInventory({ sport, page, limit: 5 });
+  const { data: inventoryData, isLoading, isRefetching, refetch } = useInventory({
+    sport,
+    status: selectedStatus === "active" ? undefined : "sold",
+    page,
+    limit: 5,
+  });
   const { data: summary } = useInventorySummary();
 
   useEffect(() => {
     setPage(1);
     setAllItems([]);
-  }, [selectedSport]);
+  }, [selectedSport, selectedStatus]);
 
   useEffect(() => {
     if (inventoryData?.items) {
@@ -300,30 +325,95 @@ function InventoryScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       {/* ── HEADER ── */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Typography variant="h1" weight="800">Inventory</Typography>
-          <Typography variant="caption" color={COLORS.zinc400}>{totalCards} cards</Typography>
+          <Typography variant="caption" color={COLORS.zinc400}>
+            {selectedStatus === "active" ? `${totalCards} active cards` : `${totalFilteredCards} sold/traded`}
+          </Typography>
         </View>
-        <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-          <Button label="Trade" onPress={() => router.push("/trade")} size="sm" variant="outline" />
-          <Button label="Add Existing Card" onPress={() => router.push("/buy/existing")} size="sm" />
-        </View>
+
+        {/* ── SYNC INDICATOR TRIGGER ── */}
+        <TouchableOpacity
+          style={styles.syncIconBtn}
+          onPress={() => setShowSyncModal(true)}
+          activeOpacity={0.7}
+        >
+          {failedCount > 0 ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="cloud-offline" size={22} color={COLORS.destructive} />
+              <View style={[styles.badgeCount, { backgroundColor: COLORS.destructive }]}>
+                <Text style={styles.badgeText}>{failedCount}</Text>
+              </View>
+            </View>
+          ) : pendingCount > 0 ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Ionicons name="sync" size={22} color={COLORS.warning} />
+              <View style={[styles.badgeCount, { backgroundColor: COLORS.warning }]}>
+                <Text style={styles.badgeText}>{pendingCount}</Text>
+              </View>
+            </View>
+          ) : (
+            <Ionicons name="cloud-done-outline" size={22} color={COLORS.zinc500} />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── DEDICATED ACTION ROW ── */}
+      <View style={styles.actionRow}>
+        <Button
+          label="Trade"
+          onPress={() => router.push("/trade")}
+          variant="outline"
+          style={styles.actionButton}
+        />
+        <Button
+          label="Add Existing Card"
+          onPress={() => router.push("/buy/existing")}
+          style={styles.actionButton}
+        />
+      </View>
+
+      {/* ── ACTIVE / HISTORY SWITCHER ── */}
+      <View style={styles.tabBar}>
+        {[
+          { key: "active", label: "Active" },
+          { key: "sold", label: "History" },
+        ].map((t) => {
+          const isActive = selectedStatus === t.key;
+          return (
+            <TouchableOpacity
+              key={t.key}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              onPress={() => setSelectedStatus(t.key as any)}
+            >
+              <Typography
+                variant="body"
+                weight={isActive ? "700" : "600"}
+                color={isActive ? COLORS.white : COLORS.zinc400}
+              >
+                {t.label}
+              </Typography>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* ── SUMMARY STRIP ── */}
-      <Surface variant="glass" padding="none" style={styles.summaryStrip}>
-        {[
-          { label: "COST BASIS", value: `$${totalCost.toLocaleString()}`, color: COLORS.zinc400 },
-          { label: "MARKET VAL", value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—", color: COLORS.white },
-          { label: "UNREALIZED", value: totalMarket > 0 ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}` : "—", color: gainColor },
-          { label: "GAIN %", value: totalMarket > 0 ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%` : "—", color: gainColor },
-        ].map((s, i, arr) => (
-          <View key={s.label} style={[styles.summaryCell, i < arr.length - 1 && styles.summaryCellBorder]}>
-            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{s.label}</Typography>
-            <Typography variant="body" weight="700" color={s.color}>{s.value}</Typography>
-          </View>
-        ))}
-      </Surface>
+      {selectedStatus === "active" && (
+        <Surface variant="glass" padding="none" style={styles.summaryStrip}>
+          {[
+            { label: "COST BASIS", value: `$${totalCost.toLocaleString()}`, color: COLORS.zinc400 },
+            { label: "MARKET VALUE", value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—", color: COLORS.white },
+            { label: "UNREALIZED", value: totalMarket > 0 ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}` : "—", color: gainColor },
+            { label: "GAIN %", value: totalMarket > 0 ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%` : "—", color: gainColor },
+          ].map((s, i, arr) => (
+            <View key={s.label} style={[styles.summaryCell, i < arr.length - 1 && styles.summaryCellBorder]}>
+              <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs, fontSize: 9 }}>{s.label}</Typography>
+              <Typography variant="body" weight="700" color={s.color} style={{ fontSize: 13 }}>{s.value}</Typography>
+            </View>
+          ))}
+        </Surface>
+      )}
 
       {/* ── SPORT FILTERS ── */}
       <ScrollView
@@ -346,7 +436,11 @@ function InventoryScreen() {
               onPress={() => setSelectedSport(s.key)}
               activeOpacity={0.75}
             >
-              <Typography variant="body">{s.emoji}</Typography>
+              <Ionicons
+                name={s.iconName}
+                size={14}
+                color={isActive ? COLORS.white : COLORS.zinc400}
+              />
               <Typography variant="body" weight={isActive ? "700" : "600"} color={isActive ? COLORS.white : COLORS.zinc400}>
                 {s.key}
               </Typography>
@@ -379,6 +473,194 @@ function InventoryScreen() {
           }
         />
       )}
+
+      {/* ── SYNC MODAL ── */}
+      <Modal
+        visible={showSyncModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSyncModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowSyncModal(false)} style={styles.modalCloseBtn}>
+                <Typography variant="body" color={COLORS.zinc400}>Close</Typography>
+              </TouchableOpacity>
+              <Typography variant="h3" weight="800" color={COLORS.white}>Sync Status</Typography>
+              <View style={{ width: 50 }} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+              {/* Sync Dashboard Status Card */}
+              <Surface variant="glass" padding="md" style={styles.statusCard}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: SPACING.md }}>
+                  {isSyncing ? (
+                    <ActivityIndicator size="small" color={COLORS.primaryLight} />
+                  ) : failedCount > 0 ? (
+                    <Ionicons name="alert-circle" size={24} color={COLORS.destructive} />
+                  ) : pendingCount > 0 ? (
+                    <Ionicons name="sync" size={24} color={COLORS.warning} />
+                  ) : (
+                    <Ionicons name="cloud-done" size={24} color={COLORS.success} />
+                  )}
+                  <Typography variant="body" weight="700" color={COLORS.white}>
+                    {isSyncing 
+                      ? "Syncing records..." 
+                      : failedCount > 0 
+                        ? `${failedCount} Sync Error(s) Found` 
+                        : pendingCount > 0 
+                          ? `${pendingCount} Record(s) Pending Sync` 
+                          : "All Records Synchronized"}
+                  </Typography>
+                </View>
+
+                {/* Control Action Buttons */}
+                {!isSyncing && (
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: SPACING.sm }}>
+                    {pendingCount > 0 && (
+                      <Button 
+                        label="Sync Now" 
+                        onPress={() => syncNow(queryClient)} 
+                        style={{ flex: 1 }} 
+                      />
+                    )}
+                    {failedCount > 0 && (
+                      <>
+                        <Button 
+                          label="Retry" 
+                          onPress={() => retryFailed(queryClient)} 
+                          style={{ flex: 1 }} 
+                        />
+                        <Button 
+                          label="Clear" 
+                          variant="outline" 
+                          onPress={clearFailed} 
+                          style={{ flex: 1 }} 
+                        />
+                      </>
+                    )}
+                  </View>
+                )}
+              </Surface>
+
+              {/* 1. Pending Sync Items */}
+              {pendingTxs.filter(t => t.status === "pending").length > 0 && (
+                <View style={{ marginTop: SPACING.lg }}>
+                  <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+                    PENDING TRANSACTIONS
+                  </Typography>
+                  {pendingTxs.filter(t => t.status === "pending").map((t) => (
+                    <Surface key={t.localId} variant="elevated" padding="md" style={styles.syncItemRow}>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="700" color={COLORS.white}>
+                          {t.type.toUpperCase()}: {t.payload.playerName || "Card"}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.zinc500}>
+                          Saved offline: {new Date(t.createdAt).toLocaleTimeString()}
+                        </Typography>
+                      </View>
+                      <View style={styles.pendingBadge}>
+                        <Typography variant="caption" weight="800" color={COLORS.warning}>PENDING</Typography>
+                      </View>
+                    </Surface>
+                  ))}
+                </View>
+              )}
+
+              {pendingExps.filter(e => e.status === "pending").length > 0 && (
+                <View style={{ marginTop: SPACING.lg }}>
+                  <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+                    PENDING EXPENSES
+                  </Typography>
+                  {pendingExps.filter(e => e.status === "pending").map((e) => (
+                    <Surface key={e.localId} variant="elevated" padding="md" style={styles.syncItemRow}>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="700" color={COLORS.white}>
+                          Expense: {e.payload.category} - ${e.payload.amount}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.zinc500}>
+                          Saved offline: {new Date(e.createdAt).toLocaleTimeString()}
+                        </Typography>
+                      </View>
+                      <View style={styles.pendingBadge}>
+                        <Typography variant="caption" weight="800" color={COLORS.warning}>PENDING</Typography>
+                      </View>
+                    </Surface>
+                  ))}
+                </View>
+              )}
+
+              {/* 2. Failed Sync Items */}
+              {(pendingTxs.some(t => t.status === "failed") || pendingExps.some(e => e.status === "failed")) && (
+                <View style={{ marginTop: SPACING.lg }}>
+                  <Typography variant="label" color={COLORS.destructive} style={{ marginBottom: SPACING.sm }}>
+                    FAILED SYNC ENTRIES
+                  </Typography>
+                  {pendingTxs.filter(t => t.status === "failed").map((t) => (
+                    <Surface key={t.localId} variant="elevated" padding="md" style={[styles.syncItemRow, { borderColor: "rgba(224, 0, 28, 0.3)", borderWidth: 1 }]}>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="700" color={COLORS.white}>
+                          {t.type.toUpperCase()}: {t.payload.playerName || "Card"}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.destructive} style={{ marginTop: 4 }}>
+                          Error: {t.error}
+                        </Typography>
+                      </View>
+                    </Surface>
+                  ))}
+                  {pendingExps.filter(e => e.status === "failed").map((e) => (
+                    <Surface key={e.localId} variant="elevated" padding="md" style={[styles.syncItemRow, { borderColor: "rgba(224, 0, 28, 0.3)", borderWidth: 1 }]}>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="700" color={COLORS.white}>
+                          Expense: {e.payload.category} - ${e.payload.amount}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.destructive} style={{ marginTop: 4 }}>
+                          Error: {e.error}
+                        </Typography>
+                      </View>
+                    </Surface>
+                  ))}
+                </View>
+              )}
+
+              {/* 3. Sync History Log */}
+              {syncedItems.length > 0 && (
+                <View style={{ marginTop: SPACING.xl }}>
+                  <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+                    SYNCHRONIZATION HISTORY
+                  </Typography>
+                  {syncedItems.map((item) => (
+                    <Surface key={item.localId} variant="glass" padding="md" style={styles.syncItemRow}>
+                      <View style={{ flex: 1 }}>
+                        <Typography variant="body" weight="600" color={COLORS.white}>
+                          {item.description}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.zinc600}>
+                          Synced: {new Date(item.timestamp).toLocaleString()}
+                        </Typography>
+                      </View>
+                      <View style={styles.successBadge}>
+                        <Typography variant="caption" weight="800" color={COLORS.success}>SYNCED</Typography>
+                      </View>
+                    </Surface>
+                  ))}
+                </View>
+              )}
+
+              {pendingCount === 0 && failedCount === 0 && syncedItems.length === 0 && (
+                <View style={{ alignItems: "center", paddingTop: 80 }}>
+                  <Ionicons name="cloud-done-outline" size={48} color={COLORS.zinc600} />
+                  <Typography variant="body" color={COLORS.zinc500} style={{ marginTop: 12 }}>
+                    No sync records found
+                  </Typography>
+                </View>
+              )}
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -391,6 +673,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    paddingHorizontal: 20,
+    marginBottom: SPACING.md,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.md,
+    padding: 4,
+    marginHorizontal: 20,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: RADIUS.sm,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.zinc800,
   },
   summaryStrip: {
     flexDirection: "row",
@@ -458,6 +768,78 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
     alignItems: "center",
     justifyContent: "center",
+  },
+  syncIconBtn: {
+    padding: 8,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.zinc900,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeCount: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalCloseBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  modalContent: {
+    padding: SPACING.lg,
+  },
+  statusCard: {
+    marginBottom: SPACING.lg,
+    borderRadius: RADIUS.md,
+  },
+  syncItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: SPACING.sm,
+    borderRadius: RADIUS.md,
+  },
+  pendingBadge: {
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+  },
+  successBadge: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
   },
 });
 

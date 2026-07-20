@@ -39,6 +39,7 @@ export const expenses = pgTable('expenses', {
   id:          uuid('id').primaryKey().defaultRandom(),
   userId:      uuid('user_id').references(() => users.id).notNull(),
   dailyLogId:  uuid('daily_log_id').references(() => dailyLogs.id),
+  localId:     varchar('local_id', { length: 255 }).unique(),
   category:    varchar('category', { length: 100 }),  // show_fee|travel|supplies|shipping
   description: varchar('description', { length: 255 }),
   amount:      decimal('amount', { precision: 10, scale: 2 }).notNull(),

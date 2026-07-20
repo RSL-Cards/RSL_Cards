@@ -77,6 +77,47 @@ export class InventoryController {
     return await this.service.presignPhotoUpload(params.id, contentType, fileName, userId);
   };
 
+  uploadPhotoDirect = async ({ request, params, body }: { request: Request; params: any; body: any }) => {
+    const userId = this.getUserId(request);
+    const file = body.photo;
+    if (!file) {
+      throw new Error("photo file is required");
+    }
+
+    const { publicUrl, key } = await this.service.presignPhotoUpload(
+      params.id,
+      file.type || "image/jpeg",
+      file.name || "photo.jpg",
+      userId
+    );
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const { env } = await import("../../config/index.js");
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({
+      region: env.AWS_REGION || "us-east-1",
+      credentials: {
+        accessKeyId: env.AWS_ACCESS_KEY_ID || "",
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
+      },
+    });
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: env.S3_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type || "image/jpeg",
+      })
+    );
+
+    await this.service.confirmPhotoAdded(params.id, publicUrl, userId);
+
+    return { success: true, url: publicUrl };
+  };
+
   confirmPhotos = async ({ request, params, body }: { request: Request; params: any; body: any }) => {
     const userId = this.getUserId(request);
     const { url } = body ?? {};

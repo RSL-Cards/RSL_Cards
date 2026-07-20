@@ -5,6 +5,7 @@ import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
 import { vertexAiClient } from "../../lib/vertex-ai.client.js";
+import { normalizeCompsGradeKey } from "./comps-query.util.js";
 
 const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
@@ -21,7 +22,7 @@ export class ListingRepository {
     
     try {
       const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
-      console.log(`[FILTER] Query: "${query}" | Grade: "${gradeKey || 'RAW'}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
+      console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
 
       let filterInstructions = "";
       if (filterObj) {
@@ -33,53 +34,65 @@ export class ListingRepository {
    If the title fails either of these conditions, REJECT IT IMMEDIATELY.`;
       }
 
-      let gradeInstruction = `4. IMPORTANT: Do NOT filter based on grading company or grade! Accept all matches regardless of whether they are Raw, PSA, BGS, SGC, etc. As long as the card itself is an exact match, accept it.`;
-      
-      if (gradeKey && gradeKey.toUpperCase() !== "RAW") {
-        const gradeNumberMatch = gradeKey.match(/[\d\.]+/);
-        const gradeNumber = gradeNumberMatch ? gradeNumberMatch[0] : null;
-        if (gradeNumber) {
-          gradeInstruction = `4. IMPORTANT: The listing MUST have the exact grade number "${gradeNumber}". Do NOT filter based on grading company (e.g., PSA ${gradeNumber}, BGS ${gradeNumber}, SGC ${gradeNumber} are all acceptable). REJECT any listings that are raw/ungraded or have a different grade number (like 9, 8.5, etc).`;
-        }
-      }
-
       const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
+For each of the search results, determine if it is an exact match for this player, card, set, and variation.
+If it is a match, classify the grade of the card into one of the following grade categories based on its title and condition:
+- "RAW" (if the card is ungraded)
+- "5", "6", "7", "8", "9", "9.5", "10" (representing the numeric grade score if it is graded).
+
 Here are the search results: ${JSON.stringify(minimalItems)}.
 
 CRITICAL FILTERING RULES:
 1. The listing MUST be the exact same player, year, set, and subset.
 2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
 3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
-${gradeInstruction}
+4. Grade Classification:
+   - Check the listing title / name first. If a grade number is explicitly mentioned in the title (e.g., "PSA 10", "PSA 9", "SGC 10", "BGS 9.5", "Grade 10"), classify it as that numeric grade.
+   - If the listing title does NOT explicitly mention a grade number (even if it has company names like "PSA", "SGC" or describes it as "slabbed" or "graded" without a number), you MUST classify it as "RAW" (ungraded). Do not guess or assume a grade.
+   - Watch out for raw card clickbait like "PSA 10 Ready?", "PSA 10 Candidate", "PSA?", "Lky PSA 10" or "PSA 10 Look". These must be classified as "RAW"! Only classify as a numeric grade if the card is ACTUALLY graded and slabbed.
+   - For half-grades, map it to the closest match (e.g., "9.5" or "8.5").
 5. Reject any lots, sealed boxes, packs, or digital cards.
 6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
-7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other descriptive fluff. Do NOT reject a listing just because it has extra words or missing words. 
+7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other fluff. Do NOT reject a listing just because it has extra words or missing words. 
 8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.
-9. Be very lenient with punctuation, capitalization, and slight variations in subset or parallel names (e.g., "Downtown!" vs "Downtown"). If the meaning is clearly the same, accept it.${filterInstructions}
+9. Be very lenient with punctuation, capitalization, and slight variations in subset or parallel names. If the meaning is clearly the same, accept it.${filterInstructions}
 
-Return a JSON array of ONLY the "id"s of the listings that perfectly match.
-If none match, return []. ONLY return a valid JSON array. Do not include any explanations.`;
+Return a JSON object in this exact format with NO markdown, NO extra text:
+{
+  "matches": [
+    { "id": "listing_id_string", "grade": "RAW" },
+    { "id": "listing_id_string", "grade": "10" }
+  ]
+}
+ONLY return the JSON object. Do not include any explanations.`;
 
       const response = await vertexAiClient.generateChat(
-        "You are a strict data filter. Only return valid JSON arrays of strings.",
+        "You are a strict data classifier. Only return valid JSON objects matching the requested schema.",
         [],
         prompt,
         "gemini-3.1-flash-lite"
       );
 
       const jsonStr = response.replace(/```json/gi, "").replace(/```/g, "").trim();
-      const validIds = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr);
+      const matches = parsed.matches || [];
 
-      if (!Array.isArray(validIds)) {
-        throw new Error("Gemini did not return an array");
+      console.log(`[FILTER] Gemini classified matches:`, matches);
+
+      const gradeMap = new Map<string, string>();
+      for (const m of matches) {
+        gradeMap.set(String(m.id), String(m.grade));
       }
 
-      console.log(`[FILTER] Gemini kept IDs:`, validIds);
-
-      return items.filter(i => validIds.includes(String(i[idField])));
+      return items
+        .filter(i => gradeMap.has(String(i[idField])))
+        .map(i => ({
+          ...i,
+          grade_key: gradeMap.get(String(i[idField])) || "RAW"
+        }));
     } catch (e) {
       console.error("[FILTER] Failed to filter items with Gemini", e);
-      return items; // fallback to returning ALL items so the UI doesn't break if Gemini times out
+      return items.map(i => ({ ...i, grade_key: "RAW" }));
     }
   }
 
@@ -195,12 +208,12 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q, forceRefresh } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const queryForSold = sold_q ? sold_q.trim() : query;
-    const gradeKey = grade_key?.trim() || "RAW";
+    const gradeKey = normalizeCompsGradeKey(grade_key) || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
 
@@ -232,14 +245,14 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       }
     }
 
-    if (effectiveVariantId) {
+    if (effectiveVariantId && !forceRefresh) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
         FROM card_comp_snapshots
         WHERE variant_id = ${effectiveVariantId}
-          AND grade_key = ${gradeKey}
           AND platform = 'ebay'
+          AND grade_key = ${gradeKey}
           AND fetched_at >= NOW() - INTERVAL '24 hours'
         ORDER BY fetched_at DESC
         LIMIT 10
@@ -249,11 +262,11 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
         const rows = cached.rows as any[];
         const soldCached = await db.execute(sql`
           SELECT
-            platform_item_id, sold_price, sold_at, title, condition
+            platform_item_id, sold_price, sold_at, title, condition, grade_key
           FROM platform_sold_listings
           WHERE variant_id = ${effectiveVariantId}
-            AND grade_key = ${gradeKey}
             AND platform = 'ebay'
+            AND grade_key = ${gradeKey}
           ORDER BY sold_at DESC
           LIMIT ${maxResults} OFFSET ${offsetNum}
         `);
@@ -266,15 +279,16 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
           shippingCost: "0.00",
           itemWebUrl: `https://www.ebay.com/itm/${item.platform_item_id}`,
+          grade_key: item.grade_key || "RAW",
         }));
 
         const activeCached = await db.execute(sql`
           SELECT
-            platform_item_id, price, title, condition, item_web_url, image_url
+            platform_item_id, price, title, condition, item_web_url, image_url, grade_key
           FROM platform_active_listings
           WHERE variant_id = ${effectiveVariantId}
-            AND grade_key = ${gradeKey}
             AND platform = 'ebay'
+            AND grade_key = ${gradeKey}
             AND last_seen_at >= NOW() - INTERVAL '24 hours'
           ORDER BY price ASC
           LIMIT ${maxResults} OFFSET ${offsetNum}
@@ -287,8 +301,8 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           condition: item.condition || "Used",
           itemWebUrl: item.item_web_url,
           image: { imageUrl: item.image_url },
+          grade_key: item.grade_key || "RAW",
         }));
-
 
         console.log(`[COMPS] ✅ Returning comps from DB CACHE for: ${query}`);
         return {
@@ -377,11 +391,24 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       firstOriginalSoldItem = Object.assign({}, soldData.items[0]);
     }
 
+    let cleanedFilter = filter;
+    if (filter && Array.isArray(filter.must_exclude)) {
+      cleanedFilter = {
+        ...filter,
+        must_exclude: filter.must_exclude.filter((term: string) => {
+          const cleanTerm = term.trim();
+          // Filter out numeric grade numbers or decimals (e.g. 5, 8.5, 9, 9.5, 10) from the excludes
+          const isNumericGrade = /^\d+(\.\d+)?$/.test(cleanTerm);
+          return !isNumericGrade;
+        })
+      };
+    }
+
     if (soldData.items && soldData.items.length > 0) {
-      soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", filter, gradeKey);
+      soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", cleanedFilter, gradeKey);
     }
     if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
-      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", filter, gradeKey);
+      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", cleanedFilter, gradeKey);
     }
 
     const ebaySoldAfter = soldData.items?.length || 0;
@@ -399,10 +426,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
     if (soldData.items && soldData.items.length > 0) {
       console.log(`[COMPS]  🔍 Sample Sold (AFTER): ${JSON.stringify(soldData.items[0])}`);
     } else if (ebaySoldBefore > 0 && firstOriginalSoldItem) {
-      // If Gemini wiped everything, let's at least print what the external API originally sent
       console.log(`[COMPS]  ⚠️ ALL ITEMS FILTERED OUT. First item BEFORE filter was: ${JSON.stringify(firstOriginalSoldItem)}`);
     }
-    console.log(`======================================================\n`);
+    console.log("======================================================\n");
 
     console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
     console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
@@ -442,8 +468,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       `);
 
       for (const item of soldData.items) {
+        const itemGrade = (item as any).grade_key || gradeKey;
         const contentHash = createHash("sha256")
-          .update(`soldcomps:${effectiveVariantId}:${gradeKey}:${item.url}:${item.endedAt}`)
+          .update(`soldcomps:${effectiveVariantId}:${itemGrade}:${item.url || item.itemId}:${item.endedAt}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -451,14 +478,15 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${t500(item.title)}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${t500(item.title)}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
 
       for (const item of activeData.itemSummaries ?? []) {
+        const itemGrade = (item as any).grade_key || gradeKey;
         const contentHash = createHash("sha256")
-          .update(`ebayactive:${effectiveVariantId}:${gradeKey}:${item.itemId}`)
+          .update(`ebayactive:${effectiveVariantId}:${itemGrade}:${item.itemId}`)
           .digest("hex")
           .slice(0, 64);
         
@@ -466,7 +494,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
@@ -480,7 +508,8 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       endDate: item.endedAt,
       shippingCost: item.shippingPrice || "0.00",
       itemWebUrl: item.url,
-      image: { imageUrl: (item as any).thumbnailUrl || (item as any).fullResThumbnailUrl || (item as any).image?.imageUrl }
+      image: { imageUrl: (item as any).thumbnailUrl || (item as any).fullResThumbnailUrl || (item as any).image?.imageUrl },
+      grade_key: (item as any).grade_key || gradeKey
     }));
 
     const snapshot = {
@@ -497,7 +526,15 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       query,
       fromCache: false,
       snapshots: [snapshot],
-      activeListings: activeData.itemSummaries ?? [],
+      activeListings: (activeData.itemSummaries ?? []).map((item) => ({
+        itemId: item.itemId,
+        title: item.title,
+        price: item.price,
+        condition: item.condition || "Used",
+        itemWebUrl: item.itemWebUrl,
+        image: item.image,
+        grade_key: (item as any).grade_key || gradeKey
+      })),
       last7Days: {
         items: mappedSold.slice(0, Math.min(maxResults, 10)),
         totalEntries: mappedSold.length,
@@ -512,12 +549,12 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q, forceRefresh } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const queryForSold = sold_q ? sold_q.trim() : query;
-    const gradeKey = grade_key?.trim() || "RAW";
+    const gradeKey = normalizeCompsGradeKey(grade_key) || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
 
@@ -549,7 +586,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       }
     }
 
-    if (effectiveVariantId && offsetNum === 0) {
+    if (effectiveVariantId && offsetNum === 0 && !forceRefresh) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
@@ -748,8 +785,9 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
 
       for (const item of soldData.items) {
         const endedAtStr = item.sold_date || new Date().toISOString();
+        const itemGrade = item.grade ? String(item.grade) : "RAW";
         const contentHash = createHash("sha256")
-          .update(`myslabssold:${effectiveVariantId}:${gradeKey}:${item.id}:${endedAtStr}`)
+          .update(`myslabssold:${effectiveVariantId}:${itemGrade}:${item.id}:${endedAtStr}`)
           .digest("hex")
           .slice(0, 64);
 
@@ -757,14 +795,15 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           INSERT INTO platform_sold_listings
             (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'myslabs', ${item.price}, ${item.id.toString()}, ${endedAtStr}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${contentHash}, NOW())
           ON CONFLICT (content_hash) DO NOTHING
         `);
       }
 
       for (const item of activeData.items ?? []) {
+        const itemGrade = item.grade ? String(item.grade) : "RAW";
         const contentHash = createHash("sha256")
-          .update(`myslabsactive:${effectiveVariantId}:${gradeKey}:${item.id}`)
+          .update(`myslabsactive:${effectiveVariantId}:${itemGrade}:${item.id}`)
           .digest("hex")
           .slice(0, 64);
         
@@ -772,7 +811,7 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
           INSERT INTO platform_active_listings
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${gradeKey}, 'myslabs', ${item.price}, ${item.id.toString()}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${t500(item.slab_link || `https://myslabs.com/slab/view/${item.id}`)}, ${t500(item.slab_image_1)}, ${contentHash}, NOW(), NOW())
+            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'myslabs', ${item.price}, ${item.id.toString()}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${t500(item.slab_link || `https://myslabs.com/slab/view/${item.id}`)}, ${t500(item.slab_image_1)}, ${contentHash}, NOW(), NOW())
           ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
         `);
       }
@@ -786,7 +825,8 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       endDate: item.sold_date || new Date().toISOString(),
       shippingCost: (item.shipping_cost || 0).toString(),
       itemWebUrl: item.slab_link || `https://myslabs.com/slab/view/${item.id}`,
-      image: { imageUrl: item.slab_image_1 }
+      image: { imageUrl: item.slab_image_1 },
+      grade_key: item.grade ? String(item.grade) : "RAW"
     }));
 
     const mappedActive = activeData.items.map((item) => ({
@@ -795,7 +835,8 @@ If none match, return []. ONLY return a valid JSON array. Do not include any exp
       price: { value: item.price.toString(), currency: "USD" },
       condition: item.grade ? `Grade ${item.grade}` : "Slabbed",
       itemWebUrl: item.slab_link || `https://myslabs.com/slab/view/${item.id}`,
-      image: { imageUrl: item.slab_image_1 }
+      image: { imageUrl: item.slab_image_1 },
+      grade_key: item.grade ? String(item.grade) : "RAW"
     }));
 
     const snapshot = {

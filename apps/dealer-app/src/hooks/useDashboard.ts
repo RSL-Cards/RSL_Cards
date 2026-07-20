@@ -10,7 +10,11 @@ export interface DailyStats {
   cards_sold: number;
   total_spent: string;
   total_revenue: string;
+  cost_of_cards_sold: string;
   net_profit: string;
+  expenses: string;
+  avg_margin: number;
+  current_inventory_cost_basis: string;
 }
 
 export interface TodayActivity {
@@ -81,8 +85,11 @@ export interface ReportData {
   cards_sold: number;
   total_spent: string;
   total_revenue: string;
+  cost_of_cards_sold: string;
   net_profit: string;
+  expenses: string;
   avg_margin: number;
+  current_inventory_cost_basis: string;
   daily_revenue: { day: string; revenue: number }[];
   best_deal: { player: string; profit: string; margin: number } | null;
 }
@@ -97,7 +104,7 @@ export interface ChannelData {
   }[];
 }
 
-export function useReport(period: "week" | "month") {
+export function useReport(period: "week" | "month" | "ytd") {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery<ReportData>({
     queryKey: ["analytics", "report", period, userId],
@@ -110,7 +117,7 @@ export function useReport(period: "week" | "month") {
   });
 }
 
-export function useProfitByChannel(period: "week" | "month") {
+export function useProfitByChannel(period: "week" | "month" | "ytd") {
   const userId = useAuthStore((s) => s.user?.id);
   return useQuery<ChannelData>({
     queryKey: ["analytics", "channel", period, userId],
@@ -172,5 +179,54 @@ export function useAiInsights() {
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
+  });
+}
+
+export interface DailyLogStats {
+  cardsBought: number;
+  cardsSold: number;
+  trades: number;
+  revenue: string;
+  purchases: string;
+  costOfCardsSold: string;
+  expenses: string;
+  profit: string;
+  profitMargin: string;
+  expectedEndingCash: string;
+}
+
+export interface DailyLog {
+  id: string;
+  userId: string;
+  name: string;
+  status: "open" | "closed";
+  startingCash: string;
+  updatedAfterClosing: boolean;
+  createdAt: string;
+  closedAt: string | null;
+  stats: DailyLogStats;
+}
+
+export function useDailyLogs() {
+  const userId = useAuthStore((s) => s.user?.id);
+  return useQuery<DailyLog[]>({
+    queryKey: ["daily-logs", "list", userId],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/v1/daily-logs");
+      return data ?? [];
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useDailyLogTransactions(logId: string | null) {
+  return useQuery<any[]>({
+    queryKey: ["daily-logs", "transactions", logId],
+    queryFn: async () => {
+      if (!logId) return [];
+      const { data } = await apiClient.get(`/v1/daily-logs/${logId}/transactions`);
+      return data ?? [];
+    },
+    enabled: !!logId,
   });
 }

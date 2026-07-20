@@ -18,6 +18,10 @@ import { vertexAiClient } from "./lib/vertex-ai.client.js";
 import { MULTI_CARD_SCAN_PROMPT, TEXT_EXTRACTION_PROMPT } from "./config/prompts.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
+import {
+  buildCompsFetchParams,
+  normalizeCompsGradeKey,
+} from "./modules/listing/comps-query.util.js";
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -44,7 +48,16 @@ export const initWorker = () => {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
           const result = await db.execute(sql`
-            SELECT DISTINCT i.variant_id, i.grade_key, c.year, c.set_name, c.card_number, p.name as player_name, cv.name as variant_name
+            SELECT DISTINCT
+              i.variant_id,
+              i.grade_key,
+              i.grade_company,
+              i.grade_value,
+              c.year,
+              c.set_name,
+              c.card_number,
+              p.name as player_name,
+              cv.name as variant_name
             FROM inventory i
             JOIN card_variants cv ON i.variant_id = cv.id
             JOIN cards c ON cv.card_id = c.id
@@ -70,36 +83,64 @@ export const initWorker = () => {
       
       else if (job.name === "refresh_single_comp") {
         const { item } = job.data;
-        const query = `${item.player_name} ${item.year || ""} ${item.set_name || ""} ${item.variant_name || ""}`.trim();
-        const variant_id = item.variant_id;
-        const grade_key = item.grade_key || "RAW";
+        const fetchParams = {
+          ...buildCompsFetchParams({
+            player_name: item.player_name,
+            year: item.year,
+            set_name: item.set_name,
+            variant_name: item.variant_name,
+            card_number: item.card_number,
+            grade_key: item.grade_key,
+            grade_company: item.grade_company,
+            grade_value: item.grade_value,
+            variant_id: item.variant_id,
+          }, 20),
+          forceRefresh: true
+        };
 
-        logger.info(`[WORKER] Fetching live comps for single item: ${query} (Grade: ${grade_key})`);
-        try { await listingRepo.ebaySold({ q: query, limit: 20, variant_id, grade_key }, ebayService, soldCompsService); } 
-        catch (err: any) { logger.error(`[WORKER] Error fetching eBay comps: ${err.message}`); }
+        logger.info(
+          `[WORKER] Fetching live comps for single item: ${fetchParams.q} (Grade: ${fetchParams.grade_key})`,
+        );
+        try {
+          await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
+        } catch (err: any) {
+          logger.error(`[WORKER] Error fetching eBay comps: ${err.message}`);
+        }
         
         await delay(1500); // Avoid rate limits
-        // try { await listingRepo.myslabsSold({ q: query, limit: 20, variant_id, grade_key }, myslabsService); } 
-        // catch (err: any) { logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); }
+        try { 
+          await listingRepo.myslabsSold(fetchParams, myslabsService); 
+        } catch (err: any) { 
+          logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); 
+        }
 
         await delay(1500); // Avoid rate limits
         
         // Dynamically trigger Price Spikes Check for this variant
         const queue = bullMqAdapter.getQueue();
-        await queue.add("check_price_spikes", { variant_id: variant_id, grade_key: grade_key, item });
+        await queue.add("check_price_spikes", {
+          variant_id: item.variant_id,
+          grade_key: fetchParams.grade_key,
+          item,
+        });
 
-        return { success: true, processed: variant_id };
+        return { success: true, processed: item.variant_id };
       }
 
       else if (job.name === "check_price_spikes") {
         const { variant_id, grade_key, item } = job.data;
-        logger.info(`[WORKER] Running check_price_spikes for variant ${variant_id}`);
+        const normalizedGradeKey = normalizeCompsGradeKey(
+          grade_key,
+          item?.grade_company,
+          item?.grade_value,
+        );
+        logger.info(`[WORKER] Running check_price_spikes for variant ${variant_id} (Grade: ${normalizedGradeKey})`);
 
         try {
           // Fetch the latest comp
           const compsResult = await db.execute(sql`
             SELECT avg_sold_price FROM card_comp_snapshots 
-            WHERE variant_id = ${variant_id} AND grade_key = ${grade_key}
+            WHERE variant_id = ${variant_id} AND grade_key = ${normalizedGradeKey}
             ORDER BY fetched_at DESC LIMIT 1
           `);
           if (compsResult.rows.length === 0) return { success: true, message: "No comp data" };
@@ -112,7 +153,7 @@ export const initWorker = () => {
             JOIN dealer_profiles dp ON dp.user_id = i.user_id
             JOIN users u ON u.id = i.user_id
             WHERE i.variant_id = ${variant_id} 
-              AND i.grade_key = ${grade_key}
+              AND i.grade_key = ${item.grade_key}
               AND i.listing_status IN ('unlisted', 'listed')
               AND i.cost_basis > 0
               AND ${currentMarketValue} > (i.cost_basis * 1.10)
@@ -128,7 +169,7 @@ export const initWorker = () => {
               const prefs = match.notification_preferences?.priceSpikes || { push: true, email: true };
               
               const title = `Price Spike Alert: ${item.player_name}`;
-              const body = `Great news! Your ${item.year} ${item.player_name} ${item.set_name} (${item.variant_name}) ${grade_key} has seen a price spike.\n\nYour Cost Basis: $${Number(match.cost_basis).toFixed(2)}\nCurrent Market Value: $${currentMarketValue.toFixed(2)}`;
+              const body = `Great news! Your ${item.year} ${item.player_name} ${item.set_name} (${item.variant_name}) ${normalizedGradeKey === "RAW" ? "RAW" : item.grade_key || normalizedGradeKey} has seen a price spike.\n\nYour Cost Basis: $${Number(match.cost_basis).toFixed(2)}\nCurrent Market Value: $${currentMarketValue.toFixed(2)}`;
               
               if (prefs.push) {
                 await sseService.publish(match.user_id, {
@@ -516,22 +557,30 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
 
           const enrichedCards = [];
           for (const card of validCards) {
-            const gradeKey = card.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
-            const query = card.search_string || `${card.player_name} ${card.year} ${card.set_name} ${card.variation || ""}`.trim();
+            const fetchParams = buildCompsFetchParams({
+              player_name: card.player_name,
+              year: card.year,
+              set_name: card.set_name,
+              variation: card.variation,
+              card_number: card.card_number,
+              grade_key: card.grading ? `${card.grading.company}_${card.grading.grade}` : "RAW",
+              grade_company: card.grading?.company,
+              grade_value: card.grading?.grade,
+              grading: card.grading,
+              search_string: card.search_string,
+            }, 20);
             
-            // Dummy variant mapping for MVP if needed (normally we'd map to variant_id)
             let compsData = null;
             try {
-              // Pre-fetch eBay comps
-              compsData = await listingRepo.ebaySold({ q: query, limit: 20, grade_key: gradeKey }, ebayService, soldCompsService);
+              compsData = await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
             } catch (err: any) {
-              logger.error(`[WORKER] Error pre-fetching comps for ${query}: ${err.message}`);
+              logger.error(`[WORKER] Error pre-fetching comps for ${fetchParams.q}: ${err.message}`);
             }
 
             enrichedCards.push({
               ...card,
               id: generateCardId(card),
-              gradeKey,
+              gradeKey: fetchParams.grade_key,
               comps: compsData,
               uploadedImageUrl: uploadedImageUrl
             });

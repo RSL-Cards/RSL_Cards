@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +17,8 @@ import { useAuthStore } from "../../src/stores/authStore";
 import { apiClient } from "../../src/lib/apiClient";
 import { ENDPOINTS } from "../../src/config/api";
 import Toast from "react-native-toast-message";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
 
 const STEP_PCT = "100%";
 
@@ -81,20 +84,50 @@ export default function SellConfirmScreen() {
 
   const handleConfirmSale = async () => {
     if (!playerName || !sellPrice) return;
+    
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this sale outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processConfirmSale() }
+        ]
+      );
+    } else {
+      processConfirmSale();
+    }
+  };
+
+  const processConfirmSale = async () => {
     setSubmitting(true);
 
+    const payload = {
+      inventoryId,
+      playerName,
+      price: String(sellPrice),
+      costBasis: String(costBasis),
+      channel,
+      paymentMethod,
+      gradeKey,
+      cardSnapshot: JSON.stringify(card),
+      dailyLogId: activeLog?.id || null,
+    };
+
     try {
-      await apiClient.post(ENDPOINTS.transactions.sell, {
-        inventoryId,
-        playerName,
-        price: String(sellPrice),
-        costBasis: String(costBasis),
-        channel,
-        paymentMethod,
-        gradeKey,
-        cardSnapshot: JSON.stringify(card),
-        dailyLogId: activeLog?.id,
-      });
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingTransaction("sell", payload);
+        Toast.show({
+          type: "info",
+          text1: "Saved Offline",
+          text2: "Pending Sync — transaction will sync when online.",
+        });
+        setConfirmed(true);
+        return;
+      }
+
+      await apiClient.post(ENDPOINTS.transactions.sell, payload);
 
       // Invalidate analytics & inventory caches so home screen updates
       if (userId) {
@@ -202,7 +235,7 @@ export default function SellConfirmScreen() {
           </Text>
           <View style={styles.gradePill}>
             <Text style={styles.gradePillText}>
-              {(gradeKey ?? "RAW").replace("_", " ")}
+              {(gradeKey ?? "RAW").replace(/_/g, " ")}
             </Text>
           </View>
 

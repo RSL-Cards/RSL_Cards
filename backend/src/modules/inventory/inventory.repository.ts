@@ -29,7 +29,7 @@ export class InventoryRepository {
       WHERE i.user_id = ${userId}
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
-      ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${status === 'all' ? sql`` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
       ORDER BY i.${sql.raw(sort)} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
@@ -41,7 +41,7 @@ export class InventoryRepository {
       WHERE i.user_id = ${userId}
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
-      ${status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql``}
+      ${status === 'all' ? sql`` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
     `);
 
@@ -64,6 +64,7 @@ export class InventoryRepository {
         COALESCE(SUM((COALESCE(current_market_value, 0) - cost_basis) * quantity), 0) as total_unrealized_gain
       FROM inventory 
       WHERE user_id = ${userId}
+        AND listing_status IN ('unlisted', 'listed')
     `);
 
     return result.rows[0];
@@ -440,10 +441,13 @@ export class InventoryRepository {
           item: {
             variant_id: resolvedVariantId,
             grade_key: gradeKey,
+            grade_company: cleanGradeCompany,
+            grade_value: cleanGradeValue,
             player_name: cleanPlayerName,
             year: cleanYear,
             set_name: cleanSetName,
-            variant_name: cleanVariation || "Base"
+            variant_name: cleanVariation || "Base",
+            card_number: cleanCardNumber,
           }
         });
       }

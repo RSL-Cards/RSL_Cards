@@ -13,7 +13,11 @@ export class WebDashboardService {
       weekBuys,
       monthTx,
       monthBuys,
-      activeInvStats
+      activeInvStats,
+      todayExpenses,
+      yesterdayExpenses,
+      weekExpenses,
+      monthExpenses
     } = await this.repository.getMetrics(userId, fromDate, toDate);
 
     const t = todayTx;
@@ -25,6 +29,11 @@ export class WebDashboardService {
     const mb = monthBuys;
     const inv = activeInvStats;
 
+    const todayProfit = (t.profit || 0) - todayExpenses;
+    const yesterdayProfit = (yt.profit || 0) - yesterdayExpenses;
+    const weekProfit = (w.profit || 0) - weekExpenses;
+    const monthProfit = (m.profit || 0) - monthExpenses;
+
     const calculatePctChange = (current: number, previous: number) => {
       if (!previous) return current > 0 ? 100 : 0;
       return ((current - previous) / previous) * 100;
@@ -33,29 +42,32 @@ export class WebDashboardService {
     return {
       today: {
         revenue: t.revenue || 0,
-        profit: t.profit || 0,
-        margin: t.revenue ? ((t.profit || 0) / t.revenue) * 100 : 0,
+        profit: todayProfit,
+        margin: t.revenue ? (todayProfit / t.revenue) * 100 : 0,
         revenue_change: calculatePctChange(t.revenue || 0, yt.revenue || 0),
-        profit_change: calculatePctChange(t.profit || 0, yt.profit || 0),
+        profit_change: calculatePctChange(todayProfit, yesterdayProfit),
         cards_bought: tb.cards_bought || 0,
         cards_sold: t.cards_sold || 0,
         total_spent: tb.total_spent || 0,
+        expenses: todayExpenses,
       },
       week: {
         revenue: w.revenue || 0,
-        profit: w.profit || 0,
-        margin: w.revenue ? ((w.profit || 0) / w.revenue) * 100 : 0,
+        profit: weekProfit,
+        margin: w.revenue ? (weekProfit / w.revenue) * 100 : 0,
         cards_bought: wb.cards_bought || 0,
         cards_sold: w.cards_sold || 0,
-        revenue_change: 0, 
+        revenue_change: 0,
+        expenses: weekExpenses,
       },
       month: {
         revenue: m.revenue || 0,
-        profit: m.profit || 0,
-        margin: m.revenue ? ((m.profit || 0) / m.revenue) * 100 : 0,
+        profit: monthProfit,
+        margin: m.revenue ? (monthProfit / m.revenue) * 100 : 0,
         cards_bought: mb.cards_bought || 0,
         cards_sold: m.cards_sold || 0,
         revenue_change: 0,
+        expenses: monthExpenses,
       },
       total_inventory_value: inv.total_market_value || 0,
       total_cost_basis: inv.total_cost_basis || 0,

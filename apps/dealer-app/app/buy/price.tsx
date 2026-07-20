@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Dimensions,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
@@ -55,164 +57,260 @@ export default function BuyPriceScreen() {
   const tabs = useDealTabStore((s) => s.tabs);
   const updateTab = useDealTabStore((s) => s.updateTab);
   const activeTab = tabs[tabs.length - 1];
-  const [priceInput, setPriceInput] = useState<string>("");
-  const selectedPrice = priceInput ? parseInt(priceInput, 10) || null : null;
+
+  // Preserve the entered purchase price if returning to this screen
+  const [priceInput, setPriceInput] = useState<string>(
+    activeTab?.price ? activeTab.price.toString() : ""
+  );
+
   const avgComp = activeTab?.avgComp ?? 0;
+
+  const [targetPriceInput, setTargetPriceInput] = useState<string>(
+    activeTab?.targetPrice ? activeTab.targetPrice.toString() : (avgComp > 0 ? Math.round(avgComp).toString() : "")
+  );
+
+  // Parse as float to support decimal pricing
+  const selectedPrice = priceInput ? parseFloat(priceInput) || null : null;
   const QUICK_PRICES = buildQuickPrices(avgComp);
 
-  const pctOfComp = selectedPrice
+  const pctOfComp = selectedPrice && avgComp > 0
     ? Math.round((selectedPrice / avgComp) * 100)
     : null;
 
+  const isValid = selectedPrice != null && selectedPrice > 0 && !isNaN(selectedPrice);
+
+  const handleConfirm = () => {
+    if (activeTab?.id && selectedPrice && isValid) {
+      updateTab(activeTab.id, { 
+        price: selectedPrice,
+        targetPrice: targetPriceInput ? parseFloat(targetPriceInput) || undefined : undefined
+      });
+      router.push("/buy/payment");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>BUY — Step 3 of 5</Text>
-        <View style={{ width: 40 }} />
-      </View>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: STEP_PCT }]} />
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
-        {/* Comp reference */}
-        <View style={{ alignItems: "center", marginBottom: 20 }}>
-          <View style={styles.compPill}>
-            <Text style={styles.compPillText}>
-              Avg comp: ${avgComp.toFixed(0)}
-            </Text>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backText}>‹</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>BUY — Step 3 of 5</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: STEP_PCT }]} />
         </View>
 
-        {/* Selected / Custom price input */}
-        <View style={{ alignItems: "center", marginBottom: 16 }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={[styles.selectedPriceDisplay, { marginRight: 2, color: priceInput ? "white" : "#555" }]}>$</Text>
-            <TextInput
-              style={[styles.selectedPriceDisplay, { minWidth: 60 }]}
-              placeholder="0"
-              placeholderTextColor="#555555"
-              keyboardType="number-pad"
-              value={priceInput}
-              onChangeText={setPriceInput}
-              maxLength={6}
-              autoFocus
-            />
-          </View>
-          {pctOfComp != null && (
-            <Text style={{ color: "#888888", fontSize: 14, marginTop: 4 }}>
-              {pctOfComp}% of comp
-            </Text>
-          )}
-        </View>
-
-        {/* Quick price grid */}
-        <Text
-          style={[
-            styles.sectionLabel,
-            { paddingHorizontal: 20, marginBottom: 12 },
-          ]}
-        >
-          QUICK SELECT
-        </Text>
-        <View style={styles.priceGrid}>
-          {QUICK_PRICES.map((p) => (
-            <TouchableOpacity
-              key={p}
-              style={[
-                styles.priceChip,
-                selectedPrice === p && styles.priceChipSelected,
-                { width: (SCREEN_WIDTH - 56) / 3 },
-              ]}
-              onPress={() => setPriceInput(selectedPrice === p ? "" : p.toString())}
-              activeOpacity={0.75}
-            >
-              <Text
-                style={[
-                  styles.priceChipText,
-                  selectedPrice === p && styles.priceChipTextSelected,
-                ]}
-              >
-                ${p}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* % of comp */}
-        <Text
-          style={[
-            styles.sectionLabel,
-            { paddingHorizontal: 20, marginTop: 24, marginBottom: 12 },
-          ]}
-        >
-          % OF COMP
-        </Text>
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40, paddingTop: 16 }}
+          keyboardShouldPersistTaps="handled"
         >
-          {PCT_OFFERS.map((pct) => {
-            const price = Math.round((pct / 100) * avgComp);
-            const isSelected = selectedPrice === price;
-            return (
+          {/* Comp reference */}
+          <View style={{ alignItems: "center", marginBottom: 20 }}>
+            <View style={styles.compPill}>
+              <Text style={styles.compPillText}>
+                Avg comp: ${avgComp > 0 ? avgComp.toFixed(2) : "—"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Selected / Custom price input */}
+          <View style={{ alignItems: "center", marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={[styles.selectedPriceDisplay, { marginRight: 4, color: priceInput ? "white" : "#555" }]}>$</Text>
+              <TextInput
+                style={[styles.selectedPriceDisplay, { minWidth: 100 }]}
+                placeholder="0.00"
+                placeholderTextColor="#555555"
+                keyboardType="numeric" // supports decimals
+                returnKeyType="done"
+                onSubmitEditing={handleConfirm}
+                value={priceInput}
+                onChangeText={(text) => {
+                  // Allow digits and at most one decimal point
+                  const cleaned = text.replace(/[^0-9.]/g, "");
+                  const parts = cleaned.split(".");
+                  if (parts.length > 2) return;
+                  if (parts[1] && parts[1].length > 2) return; // limit to 2 decimal places
+                  setPriceInput(cleaned);
+                }}
+                maxLength={9}
+                autoFocus
+              />
+            </View>
+
+            {/* Formatted Currency Preview */}
+            {isValid && (
+              <Text style={styles.currencyPreview}>
+                Formatted: ${selectedPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Text>
+            )}
+
+            {pctOfComp != null && (
+              <Text style={{ color: "#888888", fontSize: 14, marginTop: 4 }}>
+                {pctOfComp}% of comp
+              </Text>
+            )}
+          </View>
+
+          {/* Target selling price input */}
+          <View style={{ paddingHorizontal: 20, marginVertical: 14, alignItems: "center" }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 8, fontSize: 10, letterSpacing: 1.5, color: "#888888" }]}>TARGET SELLING PRICE</Text>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#111111",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#222222",
+              paddingHorizontal: 16,
+              height: 52,
+              width: SCREEN_WIDTH - 40,
+            }}>
+              <Text style={{ color: "#888888", fontSize: 18, fontWeight: "600", marginRight: 6 }}>$</Text>
+              <TextInput
+                style={{
+                  flex: 1,
+                  color: "white",
+                  fontSize: 18,
+                  fontWeight: "700",
+                }}
+                placeholder="Target Price (optional)"
+                placeholderTextColor="#555555"
+                keyboardType="numeric"
+                returnKeyType="done"
+                value={targetPriceInput}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9.]/g, "");
+                  const parts = cleaned.split(".");
+                  if (parts.length > 2) return;
+                  if (parts[1] && parts[1].length > 2) return;
+                  setTargetPriceInput(cleaned);
+                }}
+                maxLength={9}
+              />
+              {avgComp > 0 && (
+                <TouchableOpacity
+                  onPress={() => setTargetPriceInput(Math.round(avgComp).toString())}
+                  style={{
+                    backgroundColor: "#222222",
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: "#333333",
+                  }}
+                >
+                  <Text style={{ color: "#0057FF", fontSize: 12, fontWeight: "700" }}>Use Comp</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Quick price grid */}
+          <Text
+            style={[
+              styles.sectionLabel,
+              { paddingHorizontal: 20, marginBottom: 12 },
+            ]}
+          >
+            QUICK SELECT
+          </Text>
+          <View style={styles.priceGrid}>
+            {QUICK_PRICES.map((p) => (
               <TouchableOpacity
-                key={pct}
-                style={[styles.pctChip, isSelected && styles.pctChipSelected]}
-                onPress={() => setPriceInput(isSelected ? "" : price.toString())}
+                key={p}
+                style={[
+                  styles.priceChip,
+                  selectedPrice === p && styles.priceChipSelected,
+                  { width: (SCREEN_WIDTH - 56) / 3 },
+                ]}
+                onPress={() => setPriceInput(selectedPrice === p ? "" : p.toString())}
                 activeOpacity={0.75}
               >
                 <Text
-                  style={[styles.pctLabel, isSelected && { color: "white" }]}
+                  style={[
+                    styles.priceChipText,
+                    selectedPrice === p && styles.priceChipTextSelected,
+                  ]}
                 >
-                  {pct}%
-                </Text>
-                <Text
-                  style={[styles.pctPrice, isSelected && { color: "white" }]}
-                >
-                  ${price}
+                  ${p}
                 </Text>
               </TouchableOpacity>
-            );
-          })}
+            ))}
+          </View>
+
+          {/* % of comp */}
+          <Text
+            style={[
+              styles.sectionLabel,
+              { paddingHorizontal: 20, marginTop: 24, marginBottom: 12 },
+            ]}
+          >
+            % OF COMP
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+          >
+            {PCT_OFFERS.map((pct) => {
+              const price = Math.round((pct / 100) * avgComp);
+              const isSelected = selectedPrice === price;
+              return (
+                <TouchableOpacity
+                  key={pct}
+                  style={[styles.pctChip, isSelected && styles.pctChipSelected]}
+                  onPress={() => setPriceInput(isSelected ? "" : price.toString())}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[styles.pctLabel, isSelected && { color: "white" }]}
+                  >
+                    {pct}%
+                  </Text>
+                  <Text
+                    style={[styles.pctPrice, isSelected && { color: "white" }]}
+                  >
+                    ${price}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Deal rating */}
+          {pctOfComp != null && (
+            <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+              <DealRatingBadge pct={pctOfComp} />
+            </View>
+          )}
         </ScrollView>
 
-        {/* Deal rating */}
-        {pctOfComp != null && (
-          <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-            <DealRatingBadge pct={pctOfComp} />
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Bottom CTA */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[
-            styles.primaryBtn,
-            !selectedPrice && styles.primaryBtnDisabled,
-          ]}
-          disabled={!selectedPrice}
-          onPress={() => {
-            if (activeTab?.id && selectedPrice)
-              updateTab(activeTab.id, { price: selectedPrice });
-            router.push("/buy/payment");
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>
-            CONFIRM ${selectedPrice || "—"} →
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Bottom CTA (positioned relatively for KeyboardAvoidingView) */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              !isValid && styles.primaryBtnDisabled,
+            ]}
+            disabled={!isValid}
+            onPress={handleConfirm}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>
+              CONFIRM {selectedPrice ? `$${selectedPrice.toFixed(2)}` : "—"} →
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -295,10 +393,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: 20,
     backgroundColor: "#000000",
     borderTopWidth: 1,
@@ -313,4 +407,10 @@ const styles = StyleSheet.create({
   },
   primaryBtnDisabled: { backgroundColor: "#1A1A1A" },
   primaryBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  currencyPreview: {
+    color: "#0057FF",
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 6,
+  },
 });

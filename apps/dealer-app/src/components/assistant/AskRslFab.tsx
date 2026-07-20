@@ -1,14 +1,18 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface AskRslFabProps {
   onPress: () => void;
 }
 
 export const AskRslFab: React.FC<AskRslFabProps> = ({ onPress }) => {
+  const insets = useSafeAreaInsets();
+  const bottomOffset = 60 + insets.bottom + 16;
+
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.fab, { bottom: bottomOffset }]} onPress={onPress} activeOpacity={0.8}>
       <Ionicons name="sparkles" size={20} color="#fff" style={styles.icon} />
       <Text style={styles.text}>Ask RSL</Text>
     </TouchableOpacity>
@@ -18,7 +22,6 @@ export const AskRslFab: React.FC<AskRslFabProps> = ({ onPress }) => {
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    bottom: 90,
     right: 24,
     backgroundColor: "#6366f1", // Indigo 500
     flexDirection: "row",

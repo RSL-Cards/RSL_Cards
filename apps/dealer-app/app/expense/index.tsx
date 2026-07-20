@@ -11,6 +11,11 @@ import { useActiveDailyLog } from "../../src/hooks/useDashboard";
 import { apiClient } from "../../src/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../src/stores/authStore";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
+import Toast from "react-native-toast-message";
+
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 
 export default function ExpenseScreen() {
   const router = useRouter();
@@ -29,14 +34,41 @@ export default function ExpenseScreen() {
       return;
     }
     
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this expense outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processSubmit() }
+        ]
+      );
+    } else {
+      processSubmit();
+    }
+  };
+
+  const processSubmit = async () => {
     setIsSubmitting(true);
+
+    const payload = {
+      category,
+      amount: parseFloat(amount) || 0,
+      description: note,
+      dailyLogId: activeLog?.id || null,
+    };
+
     try {
-      await apiClient.post("/v1/analytics/expenses", {
-        category,
-        amount: parseFloat(amount),
-        description: note,
-        dailyLogId: activeLog?.id,
-      });
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingExpense(payload);
+        Alert.alert("Saved Offline", "Pending Sync — expense transaction will sync when online.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        return;
+      }
+
+      await apiClient.post("/v1/analytics/expenses", payload);
       queryClient.invalidateQueries({ queryKey: ["analytics", "today-activity", userId] });
       queryClient.invalidateQueries({ queryKey: ["daily-logs", "active", userId] });
       setIsSubmitting(false);
@@ -56,6 +88,8 @@ export default function ExpenseScreen() {
         <Typography variant="h2" weight="800">Expense</Typography>
         <View style={{ width: 60 }} />
       </View>
+
+      <ActiveLogIndicator />
 
       <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
         {activeLog && (

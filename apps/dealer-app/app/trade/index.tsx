@@ -7,8 +7,16 @@ import { Button } from "../../src/components/ui/Button";
 import { Surface } from "../../src/components/ui/Surface";
 import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 
+import { useActiveDailyLog } from "../../src/hooks/useDashboard";
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+import { apiClient } from "../../src/lib/apiClient";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
+import Toast from "react-native-toast-message";
+
 export default function TradeScreen() {
   const router = useRouter();
+  const { data: activeLog } = useActiveDailyLog();
   
   // This is a simplified form for Phase 1
   const [cardsGiven, setCardsGiven] = useState("");
@@ -22,14 +30,65 @@ export default function TradeScreen() {
       return;
     }
     
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this trade outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processSubmit() }
+        ]
+      );
+    } else {
+      processSubmit();
+    }
+  };
+
+  const processSubmit = async () => {
     setIsSubmitting(true);
-    // Mock API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    const price = parseFloat(cashDifference) || 0;
+    const payload = {
+      price,
+      paymentMethod: "trade",
+      channel: "card_show",
+      dailyLogId: activeLog?.id || null,
+      cardsGiven: [
+        { playerName: cardsGiven, gradeKey: "RAW", marketValue: 0 }
+      ],
+      cardsReceived: [
+        { 
+          playerName: cardsReceived, 
+          gradeKey: "RAW", 
+          marketValue: 0, 
+          year: new Date().getFullYear(), 
+          setName: "Trade", 
+          variation: "Base", 
+          cardNumber: "N/A",
+          sport: "other"
+        }
+      ]
+    };
+
+    try {
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingTransaction("trade", payload);
+        Alert.alert("Saved Offline", "Pending Sync — trade transaction will sync when online.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        return;
+      }
+
+      await apiClient.post("/v1/transactions/trade", payload);
       Alert.alert("Success", "Trade recorded successfully!", [
         { text: "OK", onPress: () => router.back() }
       ]);
-    }, 1000);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to record trade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -39,6 +98,8 @@ export default function TradeScreen() {
         <Typography variant="h2" weight="800">Trade</Typography>
         <View style={{ width: 60 }} />
       </View>
+
+      <ActiveLogIndicator />
 
       <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
         <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
