@@ -9,10 +9,7 @@
  * Prod: https://api.rslcards.com
  */
 
-// const DEV_HOST = '10.0.2.2' // Android emulator loopback to host
-const DEV_HOST = "192.168.10.3"; // Wi-Fi IP address
-
-export const API_BASE_URL = `http://${DEV_HOST}:8080`;
+export const API_BASE_URL = "https://api.rslcards.com";
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.
