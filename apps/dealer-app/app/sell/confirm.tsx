@@ -17,6 +17,8 @@ import { useAuthStore } from "../../src/stores/authStore";
 import { apiClient } from "../../src/lib/apiClient";
 import { ENDPOINTS } from "../../src/config/api";
 import Toast from "react-native-toast-message";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
 
 const STEP_PCT = "100%";
 
@@ -100,18 +102,32 @@ export default function SellConfirmScreen() {
   const processConfirmSale = async () => {
     setSubmitting(true);
 
+    const payload = {
+      inventoryId,
+      playerName,
+      price: String(sellPrice),
+      costBasis: String(costBasis),
+      channel,
+      paymentMethod,
+      gradeKey,
+      cardSnapshot: JSON.stringify(card),
+      dailyLogId: activeLog?.id || null,
+    };
+
     try {
-      await apiClient.post(ENDPOINTS.transactions.sell, {
-        inventoryId,
-        playerName,
-        price: String(sellPrice),
-        costBasis: String(costBasis),
-        channel,
-        paymentMethod,
-        gradeKey,
-        cardSnapshot: JSON.stringify(card),
-        dailyLogId: activeLog?.id,
-      });
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingTransaction("sell", payload);
+        Toast.show({
+          type: "info",
+          text1: "Saved Offline",
+          text2: "Pending Sync — transaction will sync when online.",
+        });
+        setConfirmed(true);
+        return;
+      }
+
+      await apiClient.post(ENDPOINTS.transactions.sell, payload);
 
       // Invalidate analytics & inventory caches so home screen updates
       if (userId) {

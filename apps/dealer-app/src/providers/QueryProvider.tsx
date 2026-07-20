@@ -27,6 +27,13 @@ function SessionBootstrap({ children }: { children: React.ReactNode }) {
     client.clear();
   }, [userId, client]);
 
+  // Initialize offline sync store on bootstrap
+  useEffect(() => {
+    import("../stores/syncStore").then(({ useSyncStore }) => {
+      useSyncStore.getState().init(client);
+    });
+  }, [client]);
+
   useEffect(() => {
     authService
       .restoreSession()

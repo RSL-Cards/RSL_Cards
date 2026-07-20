@@ -9,6 +9,10 @@ import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 
 import { useActiveDailyLog } from "../../src/hooks/useDashboard";
 import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+import { apiClient } from "../../src/lib/apiClient";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
+import Toast from "react-native-toast-message";
 
 export default function TradeScreen() {
   const router = useRouter();
@@ -40,15 +44,51 @@ export default function TradeScreen() {
     }
   };
 
-  const processSubmit = () => {
+  const processSubmit = async () => {
     setIsSubmitting(true);
-    // Mock API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+    const price = parseFloat(cashDifference) || 0;
+    const payload = {
+      price,
+      paymentMethod: "trade",
+      channel: "card_show",
+      dailyLogId: activeLog?.id || null,
+      cardsGiven: [
+        { playerName: cardsGiven, gradeKey: "RAW", marketValue: 0 }
+      ],
+      cardsReceived: [
+        { 
+          playerName: cardsReceived, 
+          gradeKey: "RAW", 
+          marketValue: 0, 
+          year: new Date().getFullYear(), 
+          setName: "Trade", 
+          variation: "Base", 
+          cardNumber: "N/A",
+          sport: "other"
+        }
+      ]
+    };
+
+    try {
+      const state = await NetInfo.fetch();
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingTransaction("trade", payload);
+        Alert.alert("Saved Offline", "Pending Sync — trade transaction will sync when online.", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
+        return;
+      }
+
+      await apiClient.post("/v1/transactions/trade", payload);
       Alert.alert("Success", "Trade recorded successfully!", [
         { text: "OK", onPress: () => router.back() }
       ]);
-    }, 1000);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to record trade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

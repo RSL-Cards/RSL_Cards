@@ -18,6 +18,9 @@ import { apiClient } from "../../src/lib/apiClient";
 import { ENDPOINTS } from "../../src/config/api";
 import * as FileSystem from "expo-file-system/legacy";
 import { useActiveDailyLog } from "../../src/hooks/useDashboard";
+import NetInfo from "@react-native-community/netinfo";
+import { useSyncStore } from "../../src/stores/syncStore";
+import Toast from "react-native-toast-message";
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: "💵",
@@ -115,75 +118,117 @@ export default function BuyConfirmScreen() {
       ? `${card.grading.company}_${card.grading.grade}`
       : "RAW";
 
-    addToInventory(
-      {
-        cardId: cardId || undefined,
-        variantId: variantId || undefined,
-        playerId: activeTab?.playerId ?? "",
-        playerName: card?.player_name ?? undefined,
-        year: card?.year ? Number(card.year) : undefined,
-        setName: card?.set_name ?? undefined,
-        variation: card?.variation ?? undefined,
-        cardNumber: card?.card_number ?? undefined,
-        sport: card?.sport ?? undefined,
-        gradeCompany: card?.grading?.company ?? undefined,
-        gradeValue: card?.grading?.grade ?? undefined,
-        gradeKey,
-        certNumber: card?.grading?.cert_number ?? undefined,
-        costBasis: price || 0,
-        currentMarketValue: avgComp ?? undefined,
-        notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
-        ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
-        ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,
-        myslabsSalesCompleted: activeTab?.myslabsRecentSales ? JSON.stringify(activeTab.myslabsRecentSales) : undefined,
-        myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
-        photos: (activeTab?.isExisting && activeTab?.cardData?.photos && activeTab.cardData.photos.length > 0)
-          ? activeTab.cardData.photos
-          : (capturedPhoto ? undefined : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined)),
-      },
-      {
-        onSuccess: async (data: any) => {
-          const inventoryId = data?.item?.id ?? null;
-          if (inventoryId && capturedPhoto) {
-            await uploadCardPhoto(inventoryId, capturedPhoto);
-          }
-          try {
-            await apiClient.post(ENDPOINTS.transactions.buy, {
-              inventoryId,
-              playerId: activeTab?.playerId,
-              playerName: card?.player_name ?? "",
-              price: String(price),
-              costBasis: String(price),
-              channel,
-              paymentMethod: paymentMethod ?? null,
-              dealRating,
-              compPriceAtTime: avgComp ? String(avgComp) : null,
-              gradeKey,
-              cardSnapshot: JSON.stringify(card),
-              dailyLogId: activeLog?.id,
-            });
-            // Refresh dashboard and inventory queries
-            if (userId) {
-              queryClient.invalidateQueries({
-                queryKey: ["analytics", "daily", userId],
-              });
-              queryClient.invalidateQueries({
-                queryKey: ["analytics", "today-activity", userId],
-              });
-              queryClient.invalidateQueries({
-                queryKey: ["daily-logs", "active", userId],
-              });
-              queryClient.invalidateQueries({
-                queryKey: ["inventory", userId],
-              });
-            }
-          } catch {
-            // Non-fatal
-          }
-          setConfirmed(true);
+    const payload = {
+      cardId: cardId || undefined,
+      variantId: variantId || undefined,
+      playerId: activeTab?.playerId ?? "",
+      playerName: card?.player_name ?? undefined,
+      year: card?.year ? Number(card.year) : undefined,
+      setName: card?.set_name ?? undefined,
+      variation: card?.variation ?? undefined,
+      cardNumber: card?.card_number ?? undefined,
+      sport: card?.sport ?? undefined,
+      gradeCompany: card?.grading?.company ?? undefined,
+      gradeValue: card?.grading?.grade ?? undefined,
+      gradeKey,
+      certNumber: card?.grading?.cert_number ?? undefined,
+      costBasis: price || 0,
+      currentMarketValue: avgComp ?? undefined,
+      notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
+      ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
+      ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,
+      myslabsSalesCompleted: activeTab?.myslabsRecentSales ? JSON.stringify(activeTab.myslabsRecentSales) : undefined,
+      myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
+      photos: (activeTab?.isExisting && activeTab?.cardData?.photos && activeTab.cardData.photos.length > 0)
+        ? activeTab.cardData.photos
+        : (capturedPhoto ? undefined : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined)),
+      channel,
+      paymentMethod: paymentMethod ?? null,
+      dealRating,
+      dailyLogId: activeLog?.id || null,
+    };
+
+    NetInfo.fetch().then((state) => {
+      if (!state.isConnected) {
+        useSyncStore.getState().addPendingTransaction("buy", payload);
+        Toast.show({
+          type: "info",
+          text1: "Saved Offline",
+          text2: "Pending Sync — transaction will sync when online.",
+        });
+        setConfirmed(true);
+        return;
+      }
+
+      // Online checkout path
+      addToInventory(
+        {
+          cardId: payload.cardId,
+          variantId: payload.variantId,
+          playerId: payload.playerId,
+          playerName: payload.playerName,
+          year: payload.year,
+          setName: payload.setName,
+          variation: payload.variation,
+          cardNumber: payload.cardNumber,
+          sport: payload.sport,
+          gradeCompany: payload.gradeCompany,
+          gradeValue: payload.gradeValue,
+          gradeKey: payload.gradeKey,
+          certNumber: payload.certNumber,
+          costBasis: payload.costBasis,
+          currentMarketValue: payload.currentMarketValue,
+          notes: payload.notes,
+          ebaySalesCompleted: payload.ebaySalesCompleted,
+          ebayActiveListings: payload.ebayActiveListings,
+          myslabsSalesCompleted: payload.myslabsSalesCompleted,
+          myslabsActiveListings: payload.myslabsActiveListings,
+          photos: payload.photos,
         },
-      },
-    );
+        {
+          onSuccess: async (data: any) => {
+            const inventoryId = data?.item?.id ?? null;
+            if (inventoryId && capturedPhoto) {
+              await uploadCardPhoto(inventoryId, capturedPhoto);
+            }
+            try {
+              await apiClient.post(ENDPOINTS.transactions.buy, {
+                inventoryId,
+                playerId: payload.playerId,
+                playerName: payload.playerName ?? "",
+                price: String(price),
+                costBasis: String(price),
+                channel: payload.channel,
+                paymentMethod: payload.paymentMethod,
+                dealRating: payload.dealRating,
+                compPriceAtTime: payload.currentMarketValue ? String(payload.currentMarketValue) : null,
+                gradeKey: payload.gradeKey,
+                cardSnapshot: JSON.stringify(card),
+                dailyLogId: payload.dailyLogId,
+              });
+              // Refresh dashboard and inventory queries
+              if (userId) {
+                queryClient.invalidateQueries({
+                  queryKey: ["analytics", "daily", userId],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["analytics", "today-activity", userId],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["daily-logs", "active", userId],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: ["inventory", userId],
+                });
+              }
+            } catch {
+              // Non-fatal
+            }
+            setConfirmed(true);
+          },
+        },
+      );
+    });
   };
 
   if (confirmed) {
