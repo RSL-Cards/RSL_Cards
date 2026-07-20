@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,10 +38,19 @@ const getListingUrl = (sale: any) => {
 
 const STEP_PCT = "40%";
 
+// Cleaning helper to strip out grading terms from search keywords
+function cleanQueryString(query: string): string {
+  if (!query) return "";
+  return query
+    .replace(/\b(psa|bgs|sgc|cgc)\b\s*\d+(\.\d+)?/gi, "")
+    .replace(/\b(psa|bgs|sgc|cgc|graded|slab|slabbed)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function buildEbayQuery(card: any): string {
   if (!card) return "";
-  // USER REQUEST: dont include grade company for ebay active listings
-  return [
+  const query = [
     card.player_name, 
     card.year, 
     card.set_name, 
@@ -48,6 +59,8 @@ function buildEbayQuery(card: any): string {
     card.is_relic ? "Patch" : "",
     card.card_number ? `#${card.card_number}` : ""
   ].filter(Boolean).join(" ");
+  
+  return cleanQueryString(query);
 }
 
 function buildMyslabsQuery(card: any): string {
@@ -62,6 +75,25 @@ function calcAvg(items: EbaySoldItem[]): number {
     .filter((v) => v > 0);
   if (!prices.length) return 0;
   return prices.reduce((a, b) => a + b, 0) / prices.length;
+}
+
+function calcMedian(items: EbaySoldItem[]): number {
+  if (!items.length) return 0;
+  const prices = items
+    .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
+    .filter((v) => v > 0)
+    .sort((a, b) => a - b);
+  if (!prices.length) return 0;
+  const mid = Math.floor(prices.length / 2);
+  return prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
+}
+
+// Client-side comps filtering by grade_key classification from the ML model
+function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
+  return items.filter(item => {
+    const itemGrade = item.grade_key || "RAW";
+    return itemGrade === selectedGrade;
+  });
 }
 
 function DealRatingBadge({
@@ -117,7 +149,7 @@ function DealRatingBadge({
         </Text>
       </View>
       <Text style={{ color: "#888888", fontSize: 12, marginTop: 6 }}>
-        Buying at {Math.round(ratio * 100)}% of 30d avg comp
+        Buying at {Math.round(ratio * 100)}% of 30d median comp
       </Text>
     </View>
   );
@@ -130,36 +162,99 @@ export default function BuyCompsScreen() {
   const activeTab = tabs[tabs.length - 1];
   const card = activeTab?.cardData;
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formPlayerName, setFormPlayerName] = useState("");
+  const [formYear, setFormYear] = useState("");
+  const [formManufacturer, setFormManufacturer] = useState("");
+  const [formSetName, setFormSetName] = useState("");
+  const [formVariation, setFormVariation] = useState("");
+  const [formCardNumber, setFormCardNumber] = useState("");
+  const [formGradingCompany, setFormGradingCompany] = useState("");
+  const [formGrade, setFormGrade] = useState("");
+
+  useEffect(() => {
+    if (card) {
+      setFormPlayerName(card.player_name || "");
+      setFormYear(card.year ? String(card.year) : "");
+      setFormManufacturer(card.manufacturer || "");
+      setFormSetName(card.set_name || "");
+      setFormVariation(card.variation || "");
+      setFormCardNumber(card.card_number || "");
+      setFormGradingCompany(card.grading?.company || "");
+      setFormGrade(card.grading?.grade || "");
+    }
+  }, [card]);
+
+  const handleSaveDetails = () => {
+    const updatedCard = {
+      ...card,
+      player_name: formPlayerName,
+      year: formYear,
+      manufacturer: formManufacturer,
+      set_name: formSetName,
+      variation: formVariation,
+      card_number: formCardNumber,
+      grading: formGradingCompany || formGrade 
+        ? { company: formGradingCompany, grade: formGrade } 
+        : undefined,
+    };
+
+    if (formGrade) {
+      setSelectedGradeKey(formGrade);
+    } else {
+      setSelectedGradeKey("RAW");
+    }
+
+    updateTab(activeTab.id, { cardData: updatedCard });
+    setShowEditModal(false);
+  };
+
   const ebayQuery = buildEbayQuery(card);
-
   const soldQueryKeywords = ebayQuery;
-
   const myslabsQuery = buildMyslabsQuery(card);
 
   const [salesVisibleCount, setSalesVisibleCount] = useState(20);
   const [activeVisibleCount, setActiveVisibleCount] = useState(20);
-
-  const [activeToggle, setActiveToggle] = useState<"Graded" | "Raw">("Graded");
   const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
 
-  const resolvedGradeKey = card?.grading ? `${card.grading.company} ${card.grading.grade}` : "RAW";
+  // Default to "RAW" or the card's active grade after scanning
+  const [selectedGradeKey, setSelectedGradeKey] = useState<string>("RAW");
+
+  useEffect(() => {
+    if (card?.grading?.grade) {
+      setSelectedGradeKey(card.grading.grade);
+    } else {
+      setSelectedGradeKey("RAW");
+    }
+  }, [card?.id]);
+
+  // Generic Grade list: RAW and numeric scores 5 to 10
+  const gradesList = [
+    "RAW",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "9.5",
+    "10",
+  ];
 
   const isExisting = Boolean(card?.isExisting);
   const { data: inventoryItemData } = useInventoryItem(isExisting ? (card?.id ?? "") : "");
   const activeCard = (isExisting && inventoryItemData) ? { ...card, ...inventoryItemData, isExisting: true } : card;
 
-  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useEbaySold(ebayQuery, {
+  // React hooks query without grade filters to pull all grades simultaneously
+  const { data, isLoading, isError, refetch } = useEbaySold(ebayQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
-    gradeKey: resolvedGradeKey,
     soldQuery: soldQueryKeywords,
     enabled: !isExisting,
   });
 
-  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError, refetch: refetchMyslabs, fetchNextPage: fetchMyslabsNextPage, hasNextPage: hasMyslabsNextPage, isFetchingNextPage: isFetchingMyslabsNextPage } = useMyslabsSold(myslabsQuery, {
+  const { data: myslabsData, isLoading: myslabsLoading, isError: myslabsError } = useMyslabsSold(myslabsQuery, {
     limit: 50,
     variantId: activeTab?.variantId,
-    gradeKey: resolvedGradeKey,
     enabled: !isExisting,
   });
 
@@ -203,33 +298,44 @@ export default function BuyCompsScreen() {
     }
   }
 
-  const allActiveItems = [...ebayActive, ...myslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
+  // Filter comps client-side by exact selected grade score
+  const filteredEbayActive = filterCompsByGrade(ebayActive, selectedGradeKey);
+  const filteredMyslabsActive = filterCompsByGrade(myslabsActive, selectedGradeKey);
+  const filteredEbaySold30 = filterCompsByGrade(ebaySold30, selectedGradeKey);
+  const filteredMyslabsSold30 = filterCompsByGrade(myslabsSold30, selectedGradeKey);
+  const filteredEbaySold7 = filterCompsByGrade(ebaySold7, selectedGradeKey);
+  const filteredMyslabsSold7 = filterCompsByGrade(myslabsSold7, selectedGradeKey);
+
+  const allActiveItems = [...filteredEbayActive, ...filteredMyslabsActive].sort((a, b) => parseFloat(a.displayPrice ?? "0") - parseFloat(b.displayPrice ?? "0"));
   const activeItems = allActiveItems.slice(0, activeVisibleCount);
 
-  const sold30 = [...ebaySold30, ...myslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const sold30 = [...filteredEbaySold30, ...filteredMyslabsSold30].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
+  const sold7 = [...filteredEbaySold7, ...filteredMyslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
 
-  const sold7 = [...ebaySold7, ...myslabsSold7].sort((a, b) => new Date((b as any).endDate ?? 0).getTime() - new Date((a as any).endDate ?? 0).getTime()) as any[];
-
-  const allRecentSales = sold30;
-  const recentSales = allRecentSales.slice(0, salesVisibleCount);
-  const recentSalesGraded = recentSales.filter(item => isGraded(item.title, item.condition));
-  const recentSalesRaw = recentSales.filter(item => !isGraded(item.title, item.condition));
-  const activeGraded = activeItems.filter(item => isGraded(item.title, item.condition));
-  const activeRaw = activeItems.filter(item => !isGraded(item.title, item.condition));
-
-  let avg30 = calcAvg(sold30 as any);
-  let avg7 = calcAvg(sold7 as any);
+  // Analytical stats
+  let median30 = calcMedian(sold30 as any);
+  let median7 = calcMedian(sold7 as any);
 
   if (isExisting && activeCard?.current_market_value) {
-    avg30 = parseFloat(activeCard.current_market_value);
-    avg7 = avg30;
+    median30 = parseFloat(activeCard.current_market_value);
+    median7 = median30;
   }
-  const trend = avg30 > 0 ? ((avg7 - avg30) / avg30) * 100 : 0;
+  const trend = median30 > 0 ? ((median7 - median30) / median30) * 100 : 0;
   const sparklineData = sold30
     .slice(0, 8)
     .map((i) => parseFloat(i.soldPrice?.value ?? "0"))
     .reverse();
   const maxSpark = Math.max(...sparklineData, 1);
+
+  // Min / Max and date calculations for pricing metadata
+  const priceValues = sold30.map(i => parseFloat(i.soldPrice?.value ?? "0")).filter(v => v > 0);
+  const minPrice = priceValues.length ? Math.min(...priceValues) : 0;
+  const maxPrice = priceValues.length ? Math.max(...priceValues) : 0;
+
+  const dates = sold30.map(i => new Date(i.endDate)).filter(d => !isNaN(d.getTime()));
+  const dateRangeStr = dates.length 
+    ? `${safeFormatDate(Math.min(...dates.map(d => d.getTime())))} - ${safeFormatDate(Math.max(...dates.map(d => d.getTime())))}` 
+    : "Last 30 Days";
 
   const isLoadingAll = isLoading || myslabsLoading;
   const isErrorAll = isError || myslabsError;
@@ -254,19 +360,12 @@ export default function BuyCompsScreen() {
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
 
-        <ScrollView 
-          contentContainerStyle={{ paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        >
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Card identity */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            padding: 20,
-            gap: 14,
-          }}
-        >
+        <View style={styles.cardHeaderContainer}>
           <View style={styles.cardThumb}>
             {(activeTab?.isExisting && card?.photos?.[0]) ? (
               <Image
@@ -302,31 +401,69 @@ export default function BuyCompsScreen() {
               </View>
             )}
           </View>
+          <TouchableOpacity 
+            onPress={() => setShowEditModal(true)}
+            style={{ 
+              backgroundColor: "#222222", 
+              borderRadius: 8, 
+              paddingHorizontal: 12, 
+              paddingVertical: 8,
+              borderWidth: 1,
+              borderColor: "#333333"
+            }}
+          >
+            <Text style={{ color: "#0057FF", fontSize: 13, fontWeight: "700" }}>Edit Details</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Loading / Error */}
-        {isLoading && (
-          <View style={{ alignItems: "center", paddingVertical: 40 }}>
+        {/* Grade Selector Pills */}
+        <Text style={[styles.sectionLabel, { paddingHorizontal: 20, marginTop: 12 }]}>
+          COMPARE OTHER GRADES
+        </Text>
+        <View style={{ marginVertical: 8 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+          >
+            {gradesList.map((item) => {
+              const isSelected = selectedGradeKey === item;
+              return (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => setSelectedGradeKey(item)}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 16,
+                    backgroundColor: isSelected ? "#0057FF" : "#1A1A1A",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: isSelected ? "#0057FF" : "#2D2D2D",
+                  }}
+                >
+                  <Text style={{ color: isSelected ? "white" : "#AAAAAA", fontSize: 13, fontWeight: "700" }}>
+                    {item === "RAW" ? "RAW" : `GRADE ${item}`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Loading / Error States */}
+        {isLoadingAll && (
+          <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <ActivityIndicator color="#0057FF" size="large" />
             <Text style={{ color: "#888888", marginTop: 12, fontSize: 13 }}>
-              Fetching eBay comps...
+              Loading verification sales...
             </Text>
           </View>
         )}
 
-        {isError && (
-          <View
-            style={{
-              marginHorizontal: 20,
-              backgroundColor: "#1A1A1A",
-              borderRadius: 16,
-              padding: 20,
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{ color: "#E8001C", fontWeight: "700", marginBottom: 8 }}
-            >
+        {isErrorAll && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle-outline" size={32} color="#E8001C" />
+            <Text style={{ color: "#E8001C", fontWeight: "700", marginTop: 8, marginBottom: 8 }}>
               Failed to load comps
             </Text>
             <TouchableOpacity onPress={() => refetch()}>
@@ -335,236 +472,252 @@ export default function BuyCompsScreen() {
           </View>
         )}
 
-        {!isLoading && !isError && (
+        {!isLoadingAll && !isErrorAll && (
           <>
-            {/* Avg comp hero */}
-            <View style={styles.avgBox}>
-              <Text style={styles.avgLabel}>
-                AVG SOLD — LAST 30 DAYS (eBay & MySlabs)
-              </Text>
-              <Text style={styles.avgValue}>
-                {avg30 > 0 ? `$${avg30.toFixed(2)}` : "—"}
-              </Text>
-              {avg7 > 0 && avg30 > 0 && (
-                <Text
-                  style={{
-                    color: trend >= 0 ? "#00C853" : "#E8001C",
-                    fontSize: 13,
-                    fontWeight: "700",
-                    marginTop: 4,
-                  }}
-                >
-                  {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(1)}% (7d vs
-                  30d avg)
-                </Text>
-              )}
-              <Text style={{ color: "#555555", fontSize: 11, marginTop: 4 }}>
-                {sold30.length} sales · 7d avg:{" "}
-                {avg7 > 0 ? `$${avg7.toFixed(0)}` : "—"}
-              </Text>
-            </View>
-
-            {/* Sparkline */}
-            {sparklineData.length > 0 && (
-              <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
-                <Text style={styles.sectionLabel}>30-DAY PRICE TREND</Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-end",
-                    gap: 4,
-                    height: 56,
-                    marginTop: 10,
-                  }}
-                >
-                  {sparklineData.map((v, i) => (
-                    <View key={i} style={{ flex: 1, alignItems: "center" }}>
-                      <View
-                        style={{
-                          width: "100%",
-                          height: Math.max((v / maxSpark) * 48, 4),
-                          backgroundColor:
-                            i === sparklineData.length - 1
-                              ? "#00C853"
-                              : "#0057FF",
-                          borderRadius: 3,
-                        }}
-                      />
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Deal rating */}
-            <DealRatingBadge buyPrice={activeTab?.price} avgComp={avg30} />
-
-            {/* Graded vs Raw Toggle */}
-            <View style={{ flexDirection: "row", marginHorizontal: 20, marginTop: 24, backgroundColor: "#1A1A1A", borderRadius: 8, padding: 4 }}>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: activeToggle === "Graded" ? "#333" : "transparent", borderRadius: 6 }}
-                onPress={() => setActiveToggle("Graded")}
-              >
-                <Text style={{ color: activeToggle === "Graded" ? "#FFF" : "#888", fontSize: 13, fontWeight: "600" }}>Graded</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 8, alignItems: "center", backgroundColor: activeToggle === "Raw" ? "#333" : "transparent", borderRadius: 6 }}
-                onPress={() => setActiveToggle("Raw")}
-              >
-                <Text style={{ color: activeToggle === "Raw" ? "#FFF" : "#888", fontSize: 13, fontWeight: "600" }}>Raw</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Comps Source Tabs */}
-            <View style={{ marginTop: 16, paddingBottom: 10 }}>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-              >
-                {[
-                  { id: "ebay_sold", label: "eBay Sold" },
-                  { id: "ebay_active", label: "eBay Active" },
-                  { id: "myslabs_sold", label: "MySlabs Sold" },
-                  { id: "myslabs_active", label: "MySlabs Active" },
-                ].map((tab) => {
-                  const isActive = compsSourceTab === tab.id;
-                  return (
-                    <TouchableOpacity
-                      key={tab.id}
-                      activeOpacity={0.7}
-                      onPress={() => setCompsSourceTab(tab.id as any)}
+            {sold30.length > 0 ? (
+              <>
+                {/* Stats Dashboard */}
+                <View style={styles.avgBox}>
+                  <Text style={styles.avgLabel}>
+                    MEDIAN COMP PRICE ({selectedGradeKey === "RAW" ? "RAW" : `GRADE ${selectedGradeKey}`})
+                  </Text>
+                  <Text style={styles.avgValue}>
+                    {median30 > 0 ? `$${median30.toFixed(2)}` : "—"}
+                  </Text>
+                  {median7 > 0 && median30 > 0 && (
+                    <Text
                       style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 16,
-                        backgroundColor: isActive ? "#0057FF" : "#1A1A1A",
-                        borderRadius: 20,
-                        borderWidth: 1,
-                        borderColor: isActive ? "#0057FF" : "#333",
+                        color: trend >= 0 ? "#00C853" : "#E8001C",
+                        fontSize: 13,
+                        fontWeight: "700",
+                        marginTop: 4,
                       }}
                     >
-                      <Text style={{
-                        color: isActive ? "#FFF" : "#AAA",
-                        fontSize: 13,
-                        fontWeight: isActive ? "600" : "400"
-                      }}>
-                        {tab.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {/* Tabular Data View */}
-            <View style={{ paddingHorizontal: 20, marginTop: 16 }}>
-              {(() => {
-                let currentData: any[] = [];
-                if (compsSourceTab === "ebay_sold") {
-                  currentData = activeToggle === "Graded" ? ebaySold30.filter(item => isGraded(item.title, item.condition)) : ebaySold30.filter(item => !isGraded(item.title, item.condition));
-                } else if (compsSourceTab === "ebay_active") {
-                  currentData = activeToggle === "Graded" ? ebayActive.filter(item => isGraded(item.title, item.condition)) : ebayActive.filter(item => !isGraded(item.title, item.condition));
-                } else if (compsSourceTab === "myslabs_sold") {
-                  currentData = activeToggle === "Graded" ? myslabsSold30.filter(item => isGraded(item.title, item.condition)) : myslabsSold30.filter(item => !isGraded(item.title, item.condition));
-                } else if (compsSourceTab === "myslabs_active") {
-                  currentData = activeToggle === "Graded" ? myslabsActive.filter(item => isGraded(item.title, item.condition)) : myslabsActive.filter(item => !isGraded(item.title, item.condition));
-                }
-
-                if (currentData.length === 0) {
-                  return (
-                    <Text style={{ color: "#555", fontSize: 13, marginTop: 16, fontStyle: "italic", textAlign: "center" }}>
-                      No {activeToggle.toLowerCase()} data found for this tab.
+                      {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(1)}% (7d vs 30d median)
                     </Text>
-                  );
-                }
-
-                return (
-                  <View style={styles.sectionCard}>
-                    {/* Table Header */}
-                    <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#333", paddingBottom: 8, marginBottom: 8, paddingHorizontal: 4 }}>
-                      <Text style={{ flex: 0.15, color: "#888", fontSize: 10, fontWeight: "600" }}>IMG</Text>
-                      <Text style={{ flex: 0.55, color: "#888", fontSize: 10, fontWeight: "600", paddingLeft: 8 }}>TITLE & COND.</Text>
-                      <Text style={{ flex: 0.3, color: "#888", fontSize: 10, fontWeight: "600", textAlign: "right" }}>PRICE & DATE</Text>
+                  )}
+                  
+                  {/* Detailed Metadata Breakdown */}
+                  <View style={styles.statsDivider} />
+                  <View style={styles.statsList}>
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statsLabel}>Average Price</Text>
+                      <Text style={styles.statsValue}>
+                        ${(sold30.reduce((acc, curr) => acc + parseFloat(curr.soldPrice?.value || "0"), 0) / sold30.length).toFixed(2)}
+                      </Text>
                     </View>
-                    
-                    {currentData.slice(0, compsSourceTab.includes("sold") ? salesVisibleCount : activeVisibleCount).map((sale, i) => {
-                      const displayPrice = sale.soldPrice?.value ?? sale.price?.value ?? sale.displayPrice ?? "0";
-                      const linkUrl = getListingUrl(sale);
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statsLabel}>Sales Range</Text>
+                      <Text style={styles.statsValue}>
+                        ${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statsLabel}>Verified Sales</Text>
+                      <Text style={styles.statsValue}>
+                        {sold30.length} items
+                      </Text>
+                    </View>
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statsLabel}>Date Range</Text>
+                      <Text style={styles.statsValue}>
+                        {dateRangeStr}
+                      </Text>
+                    </View>
+                    <View style={styles.statsRow}>
+                      <Text style={styles.statsLabel}>Comp Source</Text>
+                      <Text style={[styles.statsValue, { color: "#0057FF" }]}>
+                        eBay & MySlabs
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Sparkline pricing trend */}
+                {sparklineData.length > 0 && (
+                  <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+                    <Text style={styles.sectionLabel}>30-DAY PRICE TREND</Text>
+                    <View style={styles.sparklineContainer}>
+                      {sparklineData.map((v, i) => (
+                        <View key={i} style={{ flex: 1, alignItems: "center" }}>
+                          <View
+                            style={{
+                              width: "100%",
+                              height: Math.max((v / maxSpark) * 48, 4),
+                              backgroundColor: i === sparklineData.length - 1 ? "#00C853" : "#0057FF",
+                              borderRadius: 3,
+                            }}
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Deal Rating Calculator */}
+                <DealRatingBadge buyPrice={activeTab?.price} avgComp={median30} />
+
+                {/* Comps Source Tab Selector */}
+                <View style={{ marginTop: 16, paddingBottom: 10 }}>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+                  >
+                    {[
+                      { id: "ebay_sold", label: "eBay Sold" },
+                      { id: "ebay_active", label: "eBay Active" },
+                      { id: "myslabs_sold", label: "MySlabs Sold" },
+                      { id: "myslabs_active", label: "MySlabs Active" },
+                    ].map((tab) => {
+                      const isActive = compsSourceTab === tab.id;
                       return (
                         <TouchableOpacity
-                          key={sale.itemId || i}
-                          activeOpacity={linkUrl ? 0.7 : 1}
-                          onPress={() => {
-                            if (linkUrl) {
-                              Linking.openURL(linkUrl).catch(err => console.error("Could not open URL", err));
-                            }
+                          key={tab.id}
+                          activeOpacity={0.7}
+                          onPress={() => setCompsSourceTab(tab.id as any)}
+                          style={{
+                            paddingVertical: 8,
+                            paddingHorizontal: 16,
+                            backgroundColor: isActive ? "#0057FF" : "#1A1A1A",
+                            borderRadius: 20,
+                            borderWidth: 1,
+                            borderColor: isActive ? "#0057FF" : "#2A2A2A",
                           }}
-                          style={[
-                            styles.saleRow,
-                            i < currentData.length - 1 && styles.rowBorder,
-                          ]}
                         >
-                          <View style={{ flex: 0.15, alignItems: "flex-start" }}>
-                            {sale.image?.imageUrl ? (
-                              <Image
-                                source={{ uri: sale.image.imageUrl }}
-                                style={{
-                                  width: 36,
-                                  height: 50,
-                                  borderRadius: 4,
-                                  backgroundColor: "#222222",
-                                }}
-                                resizeMode="cover"
-                              />
-                            ) : (
-                              <View style={{ width: 36, height: 50, backgroundColor: "#222", borderRadius: 4, justifyContent: "center", alignItems: "center" }}>
-                                <Ionicons name="image-outline" size={16} color="#555" />
-                              </View>
-                            )}
-                          </View>
-                          <View style={{ flex: 0.55, paddingHorizontal: 8 }}>
-                            <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }} numberOfLines={2}>
-                              {sale.title}
-                            </Text>
-                            {sale.condition && (
-                              <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
-                                {sale.condition}
-                              </Text>
-                            )}
-                          </View>
-                          <View style={{ flex: 0.3, alignItems: "flex-end" }}>
-                            <Text style={[styles.salePrice, { fontSize: 13 }]}>
-                              ${parseFloat(displayPrice).toFixed(2)}
-                            </Text>
-                            <Text style={[styles.saleDate, { fontSize: 10, marginTop: 4 }]}>
-                              {compsSourceTab.includes("sold") ? safeFormatDate(sale.endDate) : "Active"}
-                            </Text>
-                            {sale.platform && (
-                              <View
-                                style={[
-                                  styles.platformBadge,
-                                  { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)", marginRight: 0, marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
-                                ]}
-                              >
-                                <Text
-                                  style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B", fontSize: 9 }]}
-                                >
-                                  {sale.platform}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
+                          <Text style={{
+                            color: isActive ? "#FFF" : "#AAA",
+                            fontSize: 13,
+                            fontWeight: isActive ? "600" : "400"
+                          }}>
+                            {tab.label}
+                          </Text>
                         </TouchableOpacity>
                       );
                     })}
-                  </View>
-                );
-              })()}
-            </View>
+                  </ScrollView>
+                </View>
+
+                {/* Tabular Lists */}
+                <View style={{ paddingHorizontal: 20, marginTop: 8 }}>
+                  {(() => {
+                    let currentData: any[] = [];
+                    if (compsSourceTab === "ebay_sold") {
+                      currentData = ebaySold30;
+                    } else if (compsSourceTab === "ebay_active") {
+                      currentData = ebayActive;
+                    } else if (compsSourceTab === "myslabs_sold") {
+                      currentData = myslabsSold30;
+                    } else if (compsSourceTab === "myslabs_active") {
+                      currentData = myslabsActive;
+                    }
+
+                    if (currentData.length === 0) {
+                      return (
+                        <Text style={styles.noDataListText}>
+                          No comps listing found for this tab.
+                        </Text>
+                      );
+                    }
+
+                    return (
+                      <View style={styles.sectionCard}>
+                        <View style={styles.tableHeader}>
+                          <Text style={{ flex: 0.15, color: "#888", fontSize: 10, fontWeight: "600" }}>IMG</Text>
+                          <Text style={{ flex: 0.55, color: "#888", fontSize: 10, fontWeight: "600", paddingLeft: 8 }}>TITLE & COND.</Text>
+                          <Text style={{ flex: 0.3, color: "#888", fontSize: 10, fontWeight: "600", textAlign: "right" }}>PRICE & DATE</Text>
+                        </View>
+                        
+                        {currentData.slice(0, compsSourceTab.includes("sold") ? salesVisibleCount : activeVisibleCount).map((sale, i) => {
+                          const displayPrice = sale.soldPrice?.value ?? sale.price?.value ?? sale.displayPrice ?? "0";
+                          const linkUrl = getListingUrl(sale);
+                          return (
+                            <TouchableOpacity
+                              key={`comp-${sale.platform || ""}-${sale.itemId || ""}-${i}`}
+                              activeOpacity={linkUrl ? 0.7 : 1}
+                              onPress={() => {
+                                if (linkUrl) {
+                                  Linking.openURL(linkUrl).catch(err => console.error("Could not open URL", err));
+                                }
+                              }}
+                              style={[
+                                styles.saleRow,
+                                i < currentData.length - 1 && styles.rowBorder,
+                              ]}
+                            >
+                              <View style={{ flex: 0.15, alignItems: "flex-start" }}>
+                                {sale.image?.imageUrl ? (
+                                  <Image
+                                    source={{ uri: sale.image.imageUrl }}
+                                    style={styles.compThumbnail}
+                                    resizeMode="cover"
+                                  />
+                                ) : (
+                                  <View style={styles.compThumbnailPlaceholder}>
+                                    <Ionicons name="image-outline" size={16} color="#555" />
+                                  </View>
+                                )}
+                              </View>
+                              <View style={{ flex: 0.55, paddingHorizontal: 8 }}>
+                                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }} numberOfLines={2}>
+                                  {sale.title}
+                                </Text>
+                                {sale.condition && (
+                                  <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
+                                    {sale.condition}
+                                  </Text>
+                                )}
+                              </View>
+                              <View style={{ flex: 0.3, alignItems: "flex-end" }}>
+                                <Text style={styles.salePrice}>
+                                  ${parseFloat(displayPrice).toFixed(2)}
+                                </Text>
+                                <Text style={styles.saleDate}>
+                                  {compsSourceTab.includes("sold") ? safeFormatDate(sale.endDate) : "Active"}
+                                </Text>
+                                {sale.platform && (
+                                  <View
+                                    style={[
+                                      styles.platformBadge,
+                                      { backgroundColor: sale.platform === "eBay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)" },
+                                    ]}
+                                  >
+                                    <Text
+                                      style={[styles.platformBadgeText, { color: sale.platform === "eBay" ? "#0057FF" : "#E01F2B" }]}
+                                    >
+                                      {sale.platform}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()}
+                </View>
+              </>
+            ) : (
+              /* Verified Sales No Data Warning Message */
+              <View style={styles.noDataWarningBox}>
+                <Ionicons name="alert-circle" size={44} color="#FFB300" />
+                <Text style={styles.noDataWarningTitle}>
+                  No Exact Sales Data for {selectedGradeKey === "RAW" ? "RAW" : `GRADE ${selectedGradeKey}`}
+                </Text>
+                <Text style={styles.noDataWarningText}>
+                  We could not find any verified comps transactions for this card matching the {selectedGradeKey === "RAW" ? "RAW" : `GRADE ${selectedGradeKey}`} grade.
+                </Text>
+                <Text style={styles.noDataWarningSubtitle}>
+                  Please choose another grade from the selector above, or continue directly to enter a purchase price manually.
+                </Text>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
 
+      {/* Persistent Action Footer */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.primaryBtn}
@@ -572,8 +725,22 @@ export default function BuyCompsScreen() {
             if (activeTab?.id) {
               const bestMatchItem = activeItems.find((item) => item.image?.imageUrl);
               const bestMatchImageUrl = bestMatchItem?.image?.imageUrl;
+
+              // Propagate the updated grade configuration down to the pricing/confirm workflows
+              let updatedGrading = null;
+              if (selectedGradeKey !== "RAW") {
+                updatedGrading = {
+                  company: card?.grading?.company || "PSA",
+                  grade: selectedGradeKey,
+                };
+              }
+
               updateTab(activeTab.id, {
-                ...(avg30 > 0 ? { avgComp: avg30, recentSales: ebaySold30, myslabsRecentSales: myslabsSold30 } : {}),
+                cardData: {
+                  ...card,
+                  grading: updatedGrading,
+                },
+                ...(median30 > 0 ? { avgComp: median30, recentSales: ebaySold30, myslabsRecentSales: myslabsSold30 } : { avgComp: 0 }),
                 bestMatchImageUrl,
                 activeListings: ebayActive.length > 0 ? ebayActive : undefined,
                 myslabsActiveListings: myslabsActive.length > 0 ? myslabsActive : undefined,
@@ -586,6 +753,109 @@ export default function BuyCompsScreen() {
           <Text style={styles.primaryBtnText}>ENTER PRICE →</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Edit Details Modal */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Card Details</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <Text style={{ color: "#E8001C", fontSize: 16, fontWeight: "600" }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <Text style={styles.inputLabel}>Player Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formPlayerName}
+                onChangeText={setFormPlayerName}
+                placeholder="e.g. Zion Williamson"
+                placeholderTextColor="#555"
+              />
+
+              <Text style={styles.inputLabel}>Year</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formYear}
+                onChangeText={setFormYear}
+                placeholder="e.g. 2019"
+                placeholderTextColor="#555"
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.inputLabel}>Manufacturer</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formManufacturer}
+                onChangeText={setFormManufacturer}
+                placeholder="e.g. Panini"
+                placeholderTextColor="#555"
+              />
+
+              <Text style={styles.inputLabel}>Set Name</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formSetName}
+                onChangeText={setFormSetName}
+                placeholder="e.g. Prizm"
+                placeholderTextColor="#555"
+              />
+
+              <Text style={styles.inputLabel}>Parallel / Variation</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formVariation}
+                onChangeText={setFormVariation}
+                placeholder="e.g. Silver (or Base)"
+                placeholderTextColor="#555"
+              />
+
+              <Text style={styles.inputLabel}>Card Number</Text>
+              <TextInput
+                style={styles.textInput}
+                value={formCardNumber}
+                onChangeText={setFormCardNumber}
+                placeholder="e.g. 248"
+                placeholderTextColor="#555"
+              />
+
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Grading Co.</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formGradingCompany}
+                    onChangeText={setFormGradingCompany}
+                    placeholder="e.g. PSA, BGS, SGC"
+                    placeholderTextColor="#555"
+                    autoCapitalize="characters"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Grade</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={formGrade}
+                    onChangeText={setFormGrade}
+                    placeholder="e.g. 10, 9.5, 9"
+                    placeholderTextColor="#555"
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveDetails}>
+                <Text style={styles.saveBtnText}>Save Details</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -604,6 +874,12 @@ const styles = StyleSheet.create({
   headerTitle: { color: "white", fontSize: 16, fontWeight: "700" },
   progressBar: { height: 3, backgroundColor: "#1A1A1A" },
   progressFill: { height: 3, backgroundColor: "#0057FF" },
+  cardHeaderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    gap: 14,
+  },
   cardThumb: {
     width: 60,
     height: 80,
@@ -654,6 +930,15 @@ const styles = StyleSheet.create({
     borderColor: "#2A2A2A",
     overflow: "hidden",
   },
+  tableHeader: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
+    paddingBottom: 8,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+  },
   saleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -661,16 +946,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: "#2A2A2A" },
-  salePrice: { color: "white", fontWeight: "700", fontSize: 15 },
-  platformChip: {
-    backgroundColor: "rgba(0,87,255,0.15)",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginHorizontal: 10,
+  compThumbnail: {
+    width: 36,
+    height: 50,
+    borderRadius: 4,
+    backgroundColor: "#222222",
   },
-  platformChipText: { fontSize: 11, fontWeight: "700", color: "#0057FF" },
-  saleDate: { color: "#555555", fontSize: 12 },
+  compThumbnailPlaceholder: {
+    width: 36,
+    height: 50,
+    backgroundColor: "#22",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  salePrice: { color: "white", fontWeight: "700", fontSize: 13 },
+  saleDate: { color: "#555555", fontSize: 10, marginTop: 4 },
   bottomBar: {
     position: "absolute",
     bottom: 0,
@@ -698,9 +989,146 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 0,
+    marginTop: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   platformBadgeText: {
     fontWeight: "800",
     textTransform: "uppercase",
+    fontSize: 9,
+  },
+  errorBox: {
+    marginHorizontal: 20,
+    backgroundColor: "#1A1A1A",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+  },
+  statsDivider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#2A2A2A",
+    marginVertical: 16,
+  },
+  statsList: {
+    width: "100%",
+    gap: 10,
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statsLabel: {
+    color: "#888888",
+    fontSize: 12,
+  },
+  statsValue: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  noDataListText: {
+    color: "#555",
+    fontSize: 13,
+    marginTop: 16,
+    fontStyle: "italic",
+    textAlign: "center",
+  },
+  noDataWarningBox: {
+    marginHorizontal: 20,
+    backgroundColor: "#111111",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#332200",
+  },
+  noDataWarningTitle: {
+    color: "#FFB300",
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 10,
+    textAlign: "center",
+  },
+  noDataWarningText: {
+    color: "#AAAAAA",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  noDataWarningSubtitle: {
+    color: "#666666",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 10,
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  sparklineContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    height: 56,
+    marginTop: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#111111",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    maxHeight: "90%",
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  inputLabel: {
+    color: "#888888",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 6,
+    marginTop: 12,
+  },
+  textInput: {
+    backgroundColor: "#1A1A1A",
+    color: "white",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+  saveBtn: {
+    backgroundColor: "#0057FF",
+    height: 50,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 24,
+    marginBottom: 30,
+  },
+  saveBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

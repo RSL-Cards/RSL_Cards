@@ -26,4 +26,14 @@ export class DailyLogsService {
   async getDailyLogTransactions(userId: string, logId: string, page: number, limit: number) {
     return this.repository.getDailyLogTransactions(userId, logId, page, limit);
   }
+
+  async getAllDailyLogs(userId: string) {
+    return this.repository.getAllDailyLogs(userId);
+  }
+
+  async updateDailyLog(userId: string, logId: string, body: any) {
+    if (!body.name) throw new Error("Name is required");
+    const startingCash = body.startingCash != null ? parseFloat(body.startingCash) : 0;
+    return this.repository.updateDailyLog(userId, logId, body.name, startingCash);
+  }
 }

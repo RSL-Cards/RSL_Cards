@@ -7,8 +7,12 @@ import { Button } from "../../src/components/ui/Button";
 import { Surface } from "../../src/components/ui/Surface";
 import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 
+import { useActiveDailyLog } from "../../src/hooks/useDashboard";
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+
 export default function TradeScreen() {
   const router = useRouter();
+  const { data: activeLog } = useActiveDailyLog();
   
   // This is a simplified form for Phase 1
   const [cardsGiven, setCardsGiven] = useState("");
@@ -22,6 +26,21 @@ export default function TradeScreen() {
       return;
     }
     
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this trade outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processSubmit() }
+        ]
+      );
+    } else {
+      processSubmit();
+    }
+  };
+
+  const processSubmit = () => {
     setIsSubmitting(true);
     // Mock API call
     setTimeout(() => {
@@ -39,6 +58,8 @@ export default function TradeScreen() {
         <Typography variant="h2" weight="800">Trade</Typography>
         <View style={{ width: 60 }} />
       </View>
+
+      <ActiveLogIndicator />
 
       <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
         <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>

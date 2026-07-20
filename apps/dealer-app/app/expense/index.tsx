@@ -12,6 +12,8 @@ import { apiClient } from "../../src/lib/apiClient";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../src/stores/authStore";
 
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+
 export default function ExpenseScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -29,6 +31,21 @@ export default function ExpenseScreen() {
       return;
     }
     
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this expense outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processSubmit() }
+        ]
+      );
+    } else {
+      processSubmit();
+    }
+  };
+
+  const processSubmit = async () => {
     setIsSubmitting(true);
     try {
       await apiClient.post("/v1/analytics/expenses", {
@@ -56,6 +73,8 @@ export default function ExpenseScreen() {
         <Typography variant="h2" weight="800">Expense</Typography>
         <View style={{ width: 60 }} />
       </View>
+
+      <ActiveLogIndicator />
 
       <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
         {activeLog && (

@@ -20,6 +20,7 @@ export interface DealTab {
   activeListings?: any[];
   myslabsActiveListings?: any[];
   isExisting?: boolean;
+  comps?: any;
 }
 
 interface DealTabStore {

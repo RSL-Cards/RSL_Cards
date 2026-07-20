@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,6 +82,22 @@ export default function SellConfirmScreen() {
 
   const handleConfirmSale = async () => {
     if (!playerName || !sellPrice) return;
+    
+    if (!activeLog) {
+      Alert.alert(
+        "No Active Daily Log",
+        "You are about to record this sale outside of an active daily log. Would you like to proceed or open a daily log first?",
+        [
+          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
+          { text: "Proceed Anyway", onPress: () => processConfirmSale() }
+        ]
+      );
+    } else {
+      processConfirmSale();
+    }
+  };
+
+  const processConfirmSale = async () => {
     setSubmitting(true);
 
     try {
@@ -202,7 +219,7 @@ export default function SellConfirmScreen() {
           </Text>
           <View style={styles.gradePill}>
             <Text style={styles.gradePillText}>
-              {(gradeKey ?? "RAW").replace("_", " ")}
+              {(gradeKey ?? "RAW").replace(/_/g, " ")}
             </Text>
           </View>
 

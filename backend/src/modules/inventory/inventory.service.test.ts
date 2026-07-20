@@ -27,6 +27,7 @@ describe("InventoryService Integration", () => {
     const payload = {
       cardId: "card-999",
       costBasis: "100.00",
+      playerName: "Test Player",
     };
 
     const result = await service.postInventory(payload, mockUserId) as any;

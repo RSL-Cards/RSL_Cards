@@ -16,6 +16,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useInventory } from "../../src/hooks/useCardScan";
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -90,6 +91,8 @@ export default function SellScanScreen() {
       <View style={styles.progressBar}>
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
+
+      <ActiveLogIndicator />
 
       {/* Tab bar */}
       <View style={styles.tabBar}>

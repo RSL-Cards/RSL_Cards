@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, and, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { expenses } from "../../db/schema/analytics.js";
 
@@ -10,18 +10,42 @@ export class AnalyticsRepository {
         COUNT(*) FILTER (WHERE type = 'sell')                         AS cards_sold,
         COALESCE(SUM(price) FILTER (WHERE type = 'buy'), 0)           AS total_spent,
         COALESCE(SUM(price) FILTER (WHERE type = 'sell'), 0)          AS total_revenue,
+        COALESCE(SUM(cost_basis) FILTER (WHERE type = 'sell'), 0)     AS cost_of_cards_sold,
         COALESCE(SUM(profit) FILTER (WHERE type = 'sell'), 0)         AS net_profit
       FROM transactions
       WHERE user_id = ${userId}
         AND created_at >= NOW() - INTERVAL '24 hours'
     `);
+    const expenseRows = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) as total_expenses
+      FROM expenses
+      WHERE user_id = ${userId}
+        AND expense_date >= NOW() - INTERVAL '24 hours'
+    `);
+    const inventoryValRows = await db.execute(sql`
+      SELECT COALESCE(SUM(cost_basis * quantity), 0) as total_inventory_cost
+      FROM inventory
+      WHERE user_id = ${userId} AND listing_status != 'sold'
+    `);
+    
     const r = (rows.rows[0] as any) ?? {};
+    const totalExpenses = parseFloat(((expenseRows.rows[0] as any)?.total_expenses) || "0");
+    const revenue = parseFloat(r.total_revenue ?? "0");
+    const costOfCardsSold = parseFloat(r.cost_of_cards_sold ?? "0");
+    const netProfit = revenue - costOfCardsSold - totalExpenses;
+    const currentInventoryCostBasis = parseFloat((inventoryValRows.rows[0] as any)?.total_inventory_cost || "0");
+    const avgMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
     return {
       cards_bought: Number(r.cards_bought ?? 0),
       cards_sold: Number(r.cards_sold ?? 0),
       total_spent: parseFloat(r.total_spent ?? "0").toFixed(2),
-      total_revenue: parseFloat(r.total_revenue ?? "0").toFixed(2),
-      net_profit: parseFloat(r.net_profit ?? "0").toFixed(2),
+      total_revenue: revenue.toFixed(2),
+      cost_of_cards_sold: costOfCardsSold.toFixed(2),
+      net_profit: netProfit.toFixed(2),
+      expenses: totalExpenses.toFixed(2),
+      avg_margin: parseFloat(avgMargin.toFixed(1)),
+      current_inventory_cost_basis: currentInventoryCostBasis.toFixed(2),
     };
   }
 
@@ -79,21 +103,31 @@ export class AnalyticsRepository {
   }
 
   async getReport(userId: string, period: string) {
-    const interval = period === "month" ? "30 days" : "7 days";
+    const interval = period === "month" ? "30 days" : period === "ytd" ? "365 days" : "7 days";
     const rows = await db.execute(sql`
       SELECT
         COUNT(*) FILTER (WHERE type = 'buy')                          AS cards_bought,
         COUNT(*) FILTER (WHERE type = 'sell')                         AS cards_sold,
         COALESCE(SUM(price)   FILTER (WHERE type = 'buy'),  0)        AS total_spent,
         COALESCE(SUM(price)   FILTER (WHERE type = 'sell'), 0)        AS total_revenue,
-        COALESCE(SUM(profit)  FILTER (WHERE type = 'sell'), 0)        AS net_profit,
-        CASE WHEN COALESCE(SUM(price) FILTER (WHERE type='sell'),0) > 0
-          THEN ROUND(COALESCE(SUM(profit) FILTER (WHERE type='sell'),0)
-               / COALESCE(SUM(price) FILTER (WHERE type='sell'),1) * 100, 1)
-          ELSE 0 END                                                   AS avg_margin
+        COALESCE(SUM(cost_basis) FILTER (WHERE type = 'sell'), 0)     AS cost_of_cards_sold,
+        COALESCE(SUM(profit)  FILTER (WHERE type = 'sell'), 0)        AS net_profit
       FROM transactions
       WHERE user_id = ${userId}
         AND created_at >= NOW() - CAST(${interval} AS INTERVAL)
+    `);
+
+    const expenseRows = await db.execute(sql`
+      SELECT COALESCE(SUM(amount), 0) as total_expenses
+      FROM expenses
+      WHERE user_id = ${userId}
+        AND expense_date >= NOW() - CAST(${interval} AS INTERVAL)
+    `);
+
+    const inventoryValRows = await db.execute(sql`
+      SELECT COALESCE(SUM(cost_basis * quantity), 0) as total_inventory_cost
+      FROM inventory
+      WHERE user_id = ${userId} AND listing_status != 'sold'
     `);
     
     // Fetch daily revenue for bar chart
@@ -124,6 +158,12 @@ export class AnalyticsRepository {
     `);
 
     const r = (rows.rows[0] as any) ?? {};
+    const totalExpenses = parseFloat(((expenseRows.rows[0] as any)?.total_expenses) || "0");
+    const revenue = parseFloat(r.total_revenue ?? "0");
+    const costOfCardsSold = parseFloat(r.cost_of_cards_sold ?? "0");
+    const netProfit = revenue - costOfCardsSold - totalExpenses;
+    const avgMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+    const currentInventoryCostBasis = parseFloat((inventoryValRows.rows[0] as any)?.total_inventory_cost || "0");
     
     const daily_revenue = (dailyRevenueRows.rows as any[]).map(row => ({
       day: new Date(row.day).toISOString().split('T')[0],
@@ -145,9 +185,12 @@ export class AnalyticsRepository {
       cards_bought: Number(r.cards_bought ?? 0),
       cards_sold: Number(r.cards_sold ?? 0),
       total_spent: parseFloat(r.total_spent ?? "0").toFixed(2),
-      total_revenue: parseFloat(r.total_revenue ?? "0").toFixed(2),
-      net_profit: parseFloat(r.net_profit ?? "0").toFixed(2),
-      avg_margin: parseFloat(r.avg_margin ?? "0"),
+      total_revenue: revenue.toFixed(2),
+      cost_of_cards_sold: costOfCardsSold.toFixed(2),
+      net_profit: netProfit.toFixed(2),
+      expenses: totalExpenses.toFixed(2),
+      avg_margin: parseFloat(avgMargin.toFixed(1)),
+      current_inventory_cost_basis: currentInventoryCostBasis.toFixed(2),
       daily_revenue,
       best_deal
     };
@@ -181,7 +224,16 @@ export class AnalyticsRepository {
   async getInventoryValueTrend(userId: string) { return { message: "Inventory trend" }; }
   async getPlatformPerformance(userId: string) { return { message: "Platform performance" }; }
   async getTaxYear(userId: string, year: string) { return { message: `Tax for ${year}` }; }
-  async getExpenses(userId: string) { return { message: "Expenses" }; }
+  async getExpenses(userId: string) {
+    const result = await db.execute(sql`
+      SELECT id, daily_log_id as "dailyLogId", category, description, amount::numeric, expense_date as "expenseDate", created_at as "createdAt"
+      FROM expenses
+      WHERE user_id = ${userId}
+      ORDER BY expense_date DESC
+    `);
+    return result.rows;
+  }
+
   async postExpense(userId: string, body: any) {
     const inserted = await db.insert(expenses).values({
       userId,
@@ -191,10 +243,61 @@ export class AnalyticsRepository {
       amount: body.amount.toString(),
       expenseDate: new Date(),
     }).returning();
+
+    const dailyLogId = body.dailyLogId;
+    if (dailyLogId) {
+      await db.execute(sql`
+        UPDATE daily_logs 
+        SET updated_after_closing = TRUE, updated_at = NOW() 
+        WHERE id = ${dailyLogId} AND status = 'closed'
+      `);
+    }
+
     return { success: true, expense: inserted[0] };
   }
-  async patchExpense(userId: string, id: string, body: any) { return { success: true }; }
-  async deleteExpense(userId: string, id: string) { return { success: true }; }
+
+  async patchExpense(userId: string, id: string, body: any) {
+    const [existing] = await db.select({ dailyLogId: expenses.dailyLogId }).from(expenses).where(eq(expenses.id, id)).limit(1);
+    
+    const [updated] = await db.update(expenses).set({
+      category: body.category,
+      description: body.description,
+      amount: body.amount?.toString(),
+      dailyLogId: body.dailyLogId,
+    }).where(and(eq(expenses.id, id), eq(expenses.userId, userId))).returning();
+
+    if (!updated) {
+      throw new Error("Expense not found");
+    }
+
+    const prevLogId = existing?.dailyLogId;
+    const newLogId = body.dailyLogId;
+    
+    if (prevLogId) {
+      await db.execute(sql`UPDATE daily_logs SET updated_after_closing = TRUE, updated_at = NOW() WHERE id = ${prevLogId} AND status = 'closed'`);
+    }
+    if (newLogId && newLogId !== prevLogId) {
+      await db.execute(sql`UPDATE daily_logs SET updated_after_closing = TRUE, updated_at = NOW() WHERE id = ${newLogId} AND status = 'closed'`);
+    }
+
+    return { success: true, expense: updated };
+  }
+
+  async deleteExpense(userId: string, id: string) {
+    const [existing] = await db.select({ dailyLogId: expenses.dailyLogId }).from(expenses).where(eq(expenses.id, id)).limit(1);
+    
+    const deleted = await db.delete(expenses).where(and(eq(expenses.id, id), eq(expenses.userId, userId))).returning();
+    if (deleted.length === 0) {
+      throw new Error("Expense not found");
+    }
+
+    const dailyLogId = existing?.dailyLogId;
+    if (dailyLogId) {
+      await db.execute(sql`UPDATE daily_logs SET updated_after_closing = TRUE, updated_at = NOW() WHERE id = ${dailyLogId} AND status = 'closed'`);
+    }
+
+    return { success: true, id };
+  }
   async getCollection(userId: string) { return { message: "Collection" }; }
   async getWeeklyRecap(userId: string) { return { message: "Weekly recap" }; }
 }

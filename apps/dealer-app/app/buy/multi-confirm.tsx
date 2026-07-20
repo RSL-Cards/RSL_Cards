@@ -119,7 +119,7 @@ export default function MultiConfirmScreen() {
                   {card.year} {card.set_name} {card.player_name}
                 </Typography>
                 <Typography variant="caption" color={COLORS.zinc400}>
-                  {card.variation || "Base"} {card.gradeKey !== "RAW" ? `• ${card.gradeKey}` : ""}
+                  {card.variation || "Base"} {card.gradeKey !== "RAW" ? `• ${String(card.gradeKey).replace(/_/g, " ")}` : ""}
                 </Typography>
               </View>
               <View style={{ alignItems: "flex-end" }}>

@@ -53,7 +53,7 @@ KILL ALGORITHM — build the "filter" object using these rules:
 4. GRADING:
    - If a "grading" object exists (card is GRADED):
        add "raw","ungraded"
-       add every whole/half grade that is NOT the card's grade, from ["1","2","3","4","5","6","7","8","9","10","8.5","9.5"] (do NOT add the card's own grade)
+       DO NOT add other grade numbers (like 5, 6, 7, 8, 9, 10, 8.5, 9.5) to must_exclude, because we want to allow all grades from Grade 5 up to 10.
    - If NO "grading" object (card is RAW):
        add "psa","bgs","sgc","cgc","csg","graded","slab","gem mint"
 5. PARALLEL:
@@ -122,7 +122,7 @@ KILL ALGORITHM — build the "filter" object using these rules:
 4. GRADING:
    - If a "grading" object exists (card is GRADED):
        add "raw","ungraded"
-       add every whole/half grade that is NOT the card's grade, from ["1","2","3","4","5","6","7","8","9","10","8.5","9.5"]
+       DO NOT add other grade numbers (like 5, 6, 7, 8, 9, 10, 8.5, 9.5) to must_exclude, because we want to allow all grades from Grade 5 up to 10.
    - If NO "grading" object (card is RAW):
        add "psa","bgs","sgc","cgc","csg","graded","slab","gem mint"
 5. PARALLEL:

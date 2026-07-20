@@ -1,5 +1,5 @@
 import { db } from "../../db/index.js";
-import { inventory, transactions, players, listings } from "../../db/schema/index.js";
+import { inventory, transactions, players, listings, expenses } from "../../db/schema/index.js";
 import { sql, eq, and, gte, desc, sum, count, or, inArray } from "drizzle-orm";
 
 export class WebDashboardRepository {
@@ -95,6 +95,40 @@ export class WebDashboardRepository {
       .from(inventory)
       .where(sql`${inventory.userId} = ${userId} AND ${inventory.listingStatus} IN ('unlisted', 'listed')`);
 
+    const todayExpenses = await db
+      .select({ total: sum(expenses.amount).mapWith(Number) })
+      .from(expenses)
+      .where(
+        endToday
+          ? and(
+              eq(expenses.userId, userId),
+              gte(expenses.expenseDate, today),
+              sql`${expenses.expenseDate} < ${endToday}`
+            )
+          : and(eq(expenses.userId, userId), gte(expenses.expenseDate, today))
+      );
+
+    const yesterdayExpenses = await db
+      .select({ total: sum(expenses.amount).mapWith(Number) })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.userId, userId),
+          gte(expenses.expenseDate, yesterday),
+          sql`${expenses.expenseDate} < ${today}`
+        )
+      );
+
+    const weekExpenses = await db
+      .select({ total: sum(expenses.amount).mapWith(Number) })
+      .from(expenses)
+      .where(and(eq(expenses.userId, userId), gte(expenses.expenseDate, weekAgo)));
+
+    const monthExpenses = await db
+      .select({ total: sum(expenses.amount).mapWith(Number) })
+      .from(expenses)
+      .where(and(eq(expenses.userId, userId), gte(expenses.expenseDate, monthAgo)));
+
     return {
       todayTx: todayTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
       todayBuys: todayBuys[0] || { cards_bought: 0, total_spent: 0 },
@@ -103,7 +137,11 @@ export class WebDashboardRepository {
       weekBuys: weekBuys[0] || { cards_bought: 0 },
       monthTx: monthTx[0] || { revenue: 0, profit: 0, cards_sold: 0 },
       monthBuys: monthBuys[0] || { cards_bought: 0 },
-      activeInvStats: activeInvStats[0] || { total_cost_basis: 0, total_market_value: 0, unrealized_gain: 0 }
+      activeInvStats: activeInvStats[0] || { total_cost_basis: 0, total_market_value: 0, unrealized_gain: 0 },
+      todayExpenses: todayExpenses[0]?.total || 0,
+      yesterdayExpenses: yesterdayExpenses[0]?.total || 0,
+      weekExpenses: weekExpenses[0]?.total || 0,
+      monthExpenses: monthExpenses[0]?.total || 0,
     };
   }
 

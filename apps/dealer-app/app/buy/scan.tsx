@@ -20,6 +20,7 @@ import { MOCK_CARD_SEARCH_RESULTS } from "../../src/constants/mockData";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
 import { useBatchUpload, useBatchScanMulti } from "../../src/hooks/useBatchScan";
+import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 type Tab = "scan" | "barcode" | "search";
@@ -123,6 +124,8 @@ export default function BuyScanScreen() {
       <View style={styles.progressBar}>
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
+
+      <ActiveLogIndicator />
 
       {/* Tab bar */}
       <View style={styles.tabBar}>

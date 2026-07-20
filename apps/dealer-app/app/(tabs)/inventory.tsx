@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
@@ -20,13 +21,13 @@ import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
 
 const ALL_SPORTS = [
-  { key: "Football", emoji: "🏈" },
-  { key: "Baseball", emoji: "⚾" },
-  { key: "Basketball", emoji: "🏀" },
-  { key: "Hockey", emoji: "🏒" },
-  { key: "Soccer", emoji: "⚽" },
-  { key: "MMA", emoji: "🥊" },
-  { key: "Other", emoji: "🏅" },
+  { key: "Football", iconName: "american-football-outline" as const },
+  { key: "Baseball", iconName: "baseball-outline" as const },
+  { key: "Basketball", iconName: "basketball-outline" as const },
+  { key: "Hockey", iconName: "trophy-outline" as const },
+  { key: "Soccer", iconName: "football-outline" as const },
+  { key: "MMA", iconName: "fitness-outline" as const },
+  { key: "Other", iconName: "medal-outline" as const },
 ];
 
 const GRADE_CONFIG: Record<
@@ -41,10 +42,11 @@ const GRADE_CONFIG: Record<
 };
 
 function GradeChip({ gradeKey }: { gradeKey: string }) {
+  const formattedLabel = gradeKey ? gradeKey.replace(/_/g, " ") : "RAW";
   const cfg = GRADE_CONFIG[gradeKey] ?? {
     bg: COLORS.zinc800,
     color: COLORS.zinc400,
-    label: gradeKey,
+    label: formattedLabel,
   };
   return (
     <View style={[styles.gradeChip, { backgroundColor: cfg.bg }]}>
@@ -212,12 +214,13 @@ function InventoryScreen() {
   const router = useRouter();
   const userSports = useAuthStore((s) => s.user?.sports ?? []);
   const sportTabs = [
-    { key: "All", emoji: "🏆" },
+    { key: "All", iconName: "apps-outline" as const },
     ...ALL_SPORTS.filter((s) =>
       userSports.some((us) => us.toLowerCase() === s.key.toLowerCase()),
     ),
   ];
   const [selectedSport, setSelectedSport] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<"active" | "sold">("active");
   const sport =
     selectedSport === "All" ? undefined : selectedSport.toLowerCase();
 
@@ -225,13 +228,18 @@ function InventoryScreen() {
   const [allItems, setAllItems] = useState<any[]>([]);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
 
-  const { data: inventoryData, isLoading, isRefetching, refetch } = useInventory({ sport, page, limit: 5 });
+  const { data: inventoryData, isLoading, isRefetching, refetch } = useInventory({
+    sport,
+    status: selectedStatus === "active" ? undefined : "sold",
+    page,
+    limit: 5,
+  });
   const { data: summary } = useInventorySummary();
 
   useEffect(() => {
     setPage(1);
     setAllItems([]);
-  }, [selectedSport]);
+  }, [selectedSport, selectedStatus]);
 
   useEffect(() => {
     if (inventoryData?.items) {
@@ -302,28 +310,68 @@ function InventoryScreen() {
       <View style={styles.header}>
         <View>
           <Typography variant="h1" weight="800">Inventory</Typography>
-          <Typography variant="caption" color={COLORS.zinc400}>{totalCards} cards</Typography>
-        </View>
-        <View style={{ flexDirection: "row", gap: SPACING.sm }}>
-          <Button label="Trade" onPress={() => router.push("/trade")} size="sm" variant="outline" />
-          <Button label="Add Existing Card" onPress={() => router.push("/buy/existing")} size="sm" />
+          <Typography variant="caption" color={COLORS.zinc400}>
+            {selectedStatus === "active" ? `${totalCards} active cards` : `${totalFilteredCards} sold/traded`}
+          </Typography>
         </View>
       </View>
 
-      {/* ── SUMMARY STRIP ── */}
-      <Surface variant="glass" padding="none" style={styles.summaryStrip}>
+      {/* ── DEDICATED ACTION ROW ── */}
+      <View style={styles.actionRow}>
+        <Button
+          label="Trade"
+          onPress={() => router.push("/trade")}
+          variant="outline"
+          style={styles.actionButton}
+        />
+        <Button
+          label="Add Existing Card"
+          onPress={() => router.push("/buy/existing")}
+          style={styles.actionButton}
+        />
+      </View>
+
+      {/* ── ACTIVE / HISTORY SWITCHER ── */}
+      <View style={styles.tabBar}>
         {[
-          { label: "COST BASIS", value: `$${totalCost.toLocaleString()}`, color: COLORS.zinc400 },
-          { label: "MARKET VAL", value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—", color: COLORS.white },
-          { label: "UNREALIZED", value: totalMarket > 0 ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}` : "—", color: gainColor },
-          { label: "GAIN %", value: totalMarket > 0 ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%` : "—", color: gainColor },
-        ].map((s, i, arr) => (
-          <View key={s.label} style={[styles.summaryCell, i < arr.length - 1 && styles.summaryCellBorder]}>
-            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs }}>{s.label}</Typography>
-            <Typography variant="body" weight="700" color={s.color}>{s.value}</Typography>
-          </View>
-        ))}
-      </Surface>
+          { key: "active", label: "Active" },
+          { key: "sold", label: "History" },
+        ].map((t) => {
+          const isActive = selectedStatus === t.key;
+          return (
+            <TouchableOpacity
+              key={t.key}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              onPress={() => setSelectedStatus(t.key as any)}
+            >
+              <Typography
+                variant="body"
+                weight={isActive ? "700" : "600"}
+                color={isActive ? COLORS.white : COLORS.zinc400}
+              >
+                {t.label}
+              </Typography>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* ── SUMMARY STRIP ── */}
+      {selectedStatus === "active" && (
+        <Surface variant="glass" padding="none" style={styles.summaryStrip}>
+          {[
+            { label: "COST BASIS", value: `$${totalCost.toLocaleString()}`, color: COLORS.zinc400 },
+            { label: "MARKET VALUE", value: totalMarket > 0 ? `$${totalMarket.toLocaleString()}` : "—", color: COLORS.white },
+            { label: "UNREALIZED", value: totalMarket > 0 ? `${totalGain >= 0 ? "+" : ""}$${Math.abs(totalGain).toFixed(0)}` : "—", color: gainColor },
+            { label: "GAIN %", value: totalMarket > 0 ? `${totalGainPct >= 0 ? "+" : ""}${totalGainPct}%` : "—", color: gainColor },
+          ].map((s, i, arr) => (
+            <View key={s.label} style={[styles.summaryCell, i < arr.length - 1 && styles.summaryCellBorder]}>
+              <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.xs, fontSize: 9 }}>{s.label}</Typography>
+              <Typography variant="body" weight="700" color={s.color} style={{ fontSize: 13 }}>{s.value}</Typography>
+            </View>
+          ))}
+        </Surface>
+      )}
 
       {/* ── SPORT FILTERS ── */}
       <ScrollView
@@ -346,7 +394,11 @@ function InventoryScreen() {
               onPress={() => setSelectedSport(s.key)}
               activeOpacity={0.75}
             >
-              <Typography variant="body">{s.emoji}</Typography>
+              <Ionicons
+                name={s.iconName}
+                size={14}
+                color={isActive ? COLORS.white : COLORS.zinc400}
+              />
               <Typography variant="body" weight={isActive ? "700" : "600"} color={isActive ? COLORS.white : COLORS.zinc400}>
                 {s.key}
               </Typography>
@@ -391,6 +443,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    paddingHorizontal: 20,
+    marginBottom: SPACING.md,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.md,
+    padding: 4,
+    marginHorizontal: 20,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: RADIUS.sm,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.zinc800,
   },
   summaryStrip: {
     flexDirection: "row",
