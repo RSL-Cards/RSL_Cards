@@ -21,6 +21,7 @@ export interface DealTab {
   myslabsActiveListings?: any[];
   isExisting?: boolean;
   comps?: any;
+  targetPrice?: number;
 }
 
 interface DealTabStore {

@@ -83,17 +83,20 @@ export const initWorker = () => {
       
       else if (job.name === "refresh_single_comp") {
         const { item } = job.data;
-        const fetchParams = buildCompsFetchParams({
-          player_name: item.player_name,
-          year: item.year,
-          set_name: item.set_name,
-          variant_name: item.variant_name,
-          card_number: item.card_number,
-          grade_key: item.grade_key,
-          grade_company: item.grade_company,
-          grade_value: item.grade_value,
-          variant_id: item.variant_id,
-        }, 20);
+        const fetchParams = {
+          ...buildCompsFetchParams({
+            player_name: item.player_name,
+            year: item.year,
+            set_name: item.set_name,
+            variant_name: item.variant_name,
+            card_number: item.card_number,
+            grade_key: item.grade_key,
+            grade_company: item.grade_company,
+            grade_value: item.grade_value,
+            variant_id: item.variant_id,
+          }, 20),
+          forceRefresh: true
+        };
 
         logger.info(
           `[WORKER] Fetching live comps for single item: ${fetchParams.q} (Grade: ${fetchParams.grade_key})`,
@@ -105,8 +108,11 @@ export const initWorker = () => {
         }
         
         await delay(1500); // Avoid rate limits
-        // try { await listingRepo.myslabsSold(fetchParams, myslabsService); }
-        // catch (err: any) { logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); }
+        try { 
+          await listingRepo.myslabsSold(fetchParams, myslabsService); 
+        } catch (err: any) { 
+          logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); 
+        }
 
         await delay(1500); // Avoid rate limits
         

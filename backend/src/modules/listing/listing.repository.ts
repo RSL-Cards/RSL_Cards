@@ -208,7 +208,7 @@ ONLY return the JSON object. Do not include any explanations.`;
   }
 
   async ebaySold(params: any, ebayService: EbayService, soldCompsService: SoldCompsService) {
-    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q, forceRefresh } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
@@ -245,7 +245,7 @@ ONLY return the JSON object. Do not include any explanations.`;
       }
     }
 
-    if (effectiveVariantId) {
+    if (effectiveVariantId && !forceRefresh) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at
@@ -549,7 +549,7 @@ ONLY return the JSON object. Do not include any explanations.`;
   }
 
   async myslabsSold(params: any, myslabsService: MyslabsService) {
-    const { q, limit, offset, variant_id, grade_key, filter, sold_q } = params;
+    const { q, limit, offset, variant_id, grade_key, filter, sold_q, forceRefresh } = params;
     const maxResults = limit ? Number(limit) : 20;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
@@ -586,7 +586,7 @@ ONLY return the JSON object. Do not include any explanations.`;
       }
     }
 
-    if (effectiveVariantId && offsetNum === 0) {
+    if (effectiveVariantId && offsetNum === 0 && !forceRefresh) {
       const cached = await db.execute(sql`
         SELECT
           id, variant_id, grade_key, platform, avg_sold_price, last_sold_price, lowest_active, sales_count_30d, fetched_at

@@ -63,9 +63,14 @@ export default function BuyPriceScreen() {
     activeTab?.price ? activeTab.price.toString() : ""
   );
 
+  const avgComp = activeTab?.avgComp ?? 0;
+
+  const [targetPriceInput, setTargetPriceInput] = useState<string>(
+    activeTab?.targetPrice ? activeTab.targetPrice.toString() : (avgComp > 0 ? Math.round(avgComp).toString() : "")
+  );
+
   // Parse as float to support decimal pricing
   const selectedPrice = priceInput ? parseFloat(priceInput) || null : null;
-  const avgComp = activeTab?.avgComp ?? 0;
   const QUICK_PRICES = buildQuickPrices(avgComp);
 
   const pctOfComp = selectedPrice && avgComp > 0
@@ -76,7 +81,10 @@ export default function BuyPriceScreen() {
 
   const handleConfirm = () => {
     if (activeTab?.id && selectedPrice && isValid) {
-      updateTab(activeTab.id, { price: selectedPrice });
+      updateTab(activeTab.id, { 
+        price: selectedPrice,
+        targetPrice: targetPriceInput ? parseFloat(targetPriceInput) || undefined : undefined
+      });
       router.push("/buy/payment");
     }
   };
@@ -150,6 +158,60 @@ export default function BuyPriceScreen() {
                 {pctOfComp}% of comp
               </Text>
             )}
+          </View>
+
+          {/* Target selling price input */}
+          <View style={{ paddingHorizontal: 20, marginVertical: 14, alignItems: "center" }}>
+            <Text style={[styles.sectionLabel, { marginBottom: 8, fontSize: 10, letterSpacing: 1.5, color: "#888888" }]}>TARGET SELLING PRICE</Text>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: "#111111",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "#222222",
+              paddingHorizontal: 16,
+              height: 52,
+              width: SCREEN_WIDTH - 40,
+            }}>
+              <Text style={{ color: "#888888", fontSize: 18, fontWeight: "600", marginRight: 6 }}>$</Text>
+              <TextInput
+                style={{
+                  flex: 1,
+                  color: "white",
+                  fontSize: 18,
+                  fontWeight: "700",
+                }}
+                placeholder="Target Price (optional)"
+                placeholderTextColor="#555555"
+                keyboardType="numeric"
+                returnKeyType="done"
+                value={targetPriceInput}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9.]/g, "");
+                  const parts = cleaned.split(".");
+                  if (parts.length > 2) return;
+                  if (parts[1] && parts[1].length > 2) return;
+                  setTargetPriceInput(cleaned);
+                }}
+                maxLength={9}
+              />
+              {avgComp > 0 && (
+                <TouchableOpacity
+                  onPress={() => setTargetPriceInput(Math.round(avgComp).toString())}
+                  style={{
+                    backgroundColor: "#222222",
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderWidth: 1,
+                    borderColor: "#333333",
+                  }}
+                >
+                  <Text style={{ color: "#0057FF", fontSize: 12, fontWeight: "700" }}>Use Comp</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {/* Quick price grid */}
