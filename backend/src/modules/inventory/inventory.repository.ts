@@ -441,10 +441,13 @@ export class InventoryRepository {
           item: {
             variant_id: resolvedVariantId,
             grade_key: gradeKey,
+            grade_company: cleanGradeCompany,
+            grade_value: cleanGradeValue,
             player_name: cleanPlayerName,
             year: cleanYear,
             set_name: cleanSetName,
-            variant_name: cleanVariation || "Base"
+            variant_name: cleanVariation || "Base",
+            card_number: cleanCardNumber,
           }
         });
       }

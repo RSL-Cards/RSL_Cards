@@ -5,6 +5,7 @@ import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
 import { vertexAiClient } from "../../lib/vertex-ai.client.js";
+import { normalizeCompsGradeKey } from "./comps-query.util.js";
 
 const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
@@ -212,7 +213,7 @@ ONLY return the JSON object. Do not include any explanations.`;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const queryForSold = sold_q ? sold_q.trim() : query;
-    const gradeKey = grade_key?.trim() || "RAW";
+    const gradeKey = normalizeCompsGradeKey(grade_key) || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
 
@@ -508,7 +509,7 @@ ONLY return the JSON object. Do not include any explanations.`;
       shippingCost: item.shippingPrice || "0.00",
       itemWebUrl: item.url,
       image: { imageUrl: (item as any).thumbnailUrl || (item as any).fullResThumbnailUrl || (item as any).image?.imageUrl },
-      grade_key: (item as any).grade_key || "RAW"
+      grade_key: (item as any).grade_key || gradeKey
     }));
 
     const snapshot = {
@@ -532,7 +533,7 @@ ONLY return the JSON object. Do not include any explanations.`;
         condition: item.condition || "Used",
         itemWebUrl: item.itemWebUrl,
         image: item.image,
-        grade_key: (item as any).grade_key || "RAW"
+        grade_key: (item as any).grade_key || gradeKey
       })),
       last7Days: {
         items: mappedSold.slice(0, Math.min(maxResults, 10)),
@@ -553,7 +554,7 @@ ONLY return the JSON object. Do not include any explanations.`;
     const offsetNum = offset ? Number(offset) : 0;
     const query = q.trim();
     const queryForSold = sold_q ? sold_q.trim() : query;
-    const gradeKey = grade_key?.trim() || "RAW";
+    const gradeKey = normalizeCompsGradeKey(grade_key) || "RAW";
 
     let effectiveVariantId = variant_id?.trim();
 

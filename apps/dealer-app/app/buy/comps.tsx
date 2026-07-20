@@ -118,11 +118,14 @@ function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
     const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
     const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
 
-    // 2. Check if item has a grade_key field from DB cache
+    // 2. Check if item has a grade_key field from DB cache (PSA_10 or numeric "10")
     const itemGrade = item.grade_key || "";
     if (itemGrade) {
-      const numMatch = itemGrade.match(/_(\d+(?:\.\d+)?)$/);
-      const parsedGrade = numMatch ? numMatch[1] : "RAW";
+      let parsedGrade = "RAW";
+      if (itemGrade !== "RAW") {
+        const numMatch = itemGrade.match(/_(\d+(?:\.\d+)?)$/);
+        parsedGrade = numMatch ? numMatch[1] : (/^\d+(?:\.\d+)?$/.test(itemGrade) ? itemGrade : "RAW");
+      }
       if (parsedGrade === selectedGrade) {
         if (selectedGrade !== "RAW" && isUngradedCondition) return false;
         return true;
@@ -294,8 +297,8 @@ export default function BuyCompsScreen() {
 
       const { cardService } = await import("../../src/services/cardService");
       const [ebayRes, myslabsRes] = await Promise.all([
-        cardService.getEbaySold(primaryEbayQuery, 50, activeTab?.variantId),
-        cardService.getMyslabsSold(primaryMyslabsQuery, 50, activeTab?.variantId)
+        cardService.getEbaySold(primaryEbayQuery, 50, activeTab?.variantId, initialGrade),
+        cardService.getMyslabsSold(primaryMyslabsQuery, 50, activeTab?.variantId, initialGrade)
       ]);
 
       setCompsByGrade(prev => ({
@@ -325,8 +328,8 @@ export default function BuyCompsScreen() {
         const myslabsQ = buildGradeQuery(cardInfo, grade);
 
         Promise.all([
-          cardService.getEbaySold(ebayQ, 50, activeTab?.variantId),
-          cardService.getMyslabsSold(myslabsQ, 50, activeTab?.variantId)
+          cardService.getEbaySold(ebayQ, 50, activeTab?.variantId, grade),
+          cardService.getMyslabsSold(myslabsQ, 50, activeTab?.variantId, grade)
         ]).then(([eRes, mRes]) => {
           setCompsByGrade(prev => ({
             ...prev,
@@ -826,10 +829,10 @@ export default function BuyCompsScreen() {
                   ...card,
                   grading: updatedGrading,
                 },
-                ...(median30 > 0 ? { avgComp: median30, recentSales: ebaySold30, myslabsRecentSales: myslabsSold30 } : { avgComp: 0 }),
+                ...(median30 > 0 ? { avgComp: median30, recentSales: filteredEbaySold30, myslabsRecentSales: filteredMyslabsSold30 } : { avgComp: 0 }),
                 bestMatchImageUrl,
-                activeListings: ebayActive.length > 0 ? ebayActive : undefined,
-                myslabsActiveListings: myslabsActive.length > 0 ? myslabsActive : undefined,
+                activeListings: filteredEbayActive.length > 0 ? filteredEbayActive : undefined,
+                myslabsActiveListings: filteredMyslabsActive.length > 0 ? filteredMyslabsActive : undefined,
               });
             }
             router.push("/buy/price");

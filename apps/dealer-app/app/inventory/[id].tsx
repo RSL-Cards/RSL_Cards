@@ -46,8 +46,58 @@ function calcMedian(items: any[]): number {
 // Client-side comps filtering by grade_key classification from the ML model
 function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   return items.filter(item => {
-    const itemGrade = item.grade_key || "RAW";
-    return itemGrade === selectedGrade;
+    const title = (item.title || "").toUpperCase();
+    const condition = (item.condition || "").toUpperCase();
+
+    // 1. Explicit condition checks
+    const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
+    const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
+
+    // 2. Check if item has a grade_key field from DB cache (PSA_10 or numeric "10")
+    const itemGrade = item.grade_key || "";
+    if (itemGrade) {
+      let parsedGrade = "RAW";
+      if (itemGrade !== "RAW") {
+        const numMatch = itemGrade.match(/_(\d+(?:\.\d+)?)$/);
+        parsedGrade = numMatch ? numMatch[1] : (/^\d+(?:\.\d+)?$/.test(itemGrade) ? itemGrade : "RAW");
+      }
+      if (parsedGrade === selectedGrade) {
+        if (selectedGrade !== "RAW" && isUngradedCondition) return false;
+        return true;
+      }
+      return false;
+    }
+
+    // 3. Fallback/API: Filter based on listing title & condition matching the selected grade
+    if (selectedGrade === "RAW") {
+      if (isGradedCondition) return false;
+      return !/\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+    } else {
+      if (isUngradedCondition) return false;
+
+      // Filter out titles indicating it is a raw card trying to sound graded
+      if (/\b(READY|RAW|LOT|NOT\s+(?:PSA|BGS|SGC|CGC|CSG)|PSA\s*\?|\?\s*PSA)\b/i.test(title)) {
+        return false;
+      }
+
+      // Graded card titles must contain a grading company and the exact grade number
+      const hasGradingCompany = /\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+      if (!hasGradingCompany) return false;
+
+      // Ensure the exact grade number is present.
+      if (selectedGrade === "9") {
+        // Avoid matching "9.5" when grade is "9"
+        return /\b9\b/.test(title) && !/\b9\.5\b/.test(title);
+      } else if (selectedGrade === "9.5") {
+        return /\b9\.5\b/.test(title);
+      } else if (selectedGrade === "10") {
+        return /\b10\b/.test(title);
+      } else {
+        const escapedGrade = selectedGrade.replace(".", "\\.");
+        const gradeRegex = new RegExp(`\\b${escapedGrade}\\b`);
+        return gradeRegex.test(title);
+      }
+    }
   });
 }
 
