@@ -14,7 +14,7 @@ export default function TransactionsMetrics({
   totals,
 }: TransactionsMetricsProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
       <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-sm">
         <div className="text-sm font-medium text-zinc-400">Net Cash Flow</div>
         <div className="mt-2 font-mono text-3xl font-bold text-white">

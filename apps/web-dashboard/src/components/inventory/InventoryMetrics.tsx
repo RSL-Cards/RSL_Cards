@@ -21,7 +21,7 @@ export default function InventoryMetrics({
   const gainPct = totalCostBasis > 0 ? ((unrealizedGain / totalCostBasis) * 100).toFixed(1) : '0'
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
       <div className="metric-card bg-[#0D0D0D] border border-[#252525] rounded-2xl p-5 shadow-sm">
         <div className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Cards</div>
         <div className="mt-2 font-mono text-2xl font-bold text-white">{totalCards}</div>

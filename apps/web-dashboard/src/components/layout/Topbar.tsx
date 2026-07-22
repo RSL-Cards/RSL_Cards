@@ -1,25 +1,23 @@
-'use client'
-
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Search,
   Bell,
-  Wifi,
-  WifiOff,
-  RefreshCw,
+  LogOut,
   ChevronDown,
-  LogOut
+  Menu
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNotificationStore } from '@/stores/useNotificationStore'
 import { apiClient } from '@/lib/axios'
 
-export default function Topbar() {
+interface TopbarProps {
+  onMobileToggle?: () => void
+}
+
+export default function Topbar({ onMobileToggle }: TopbarProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const isOnline = true
-  const lastSync = '2 min ago'
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   
@@ -57,22 +55,30 @@ export default function Topbar() {
   const { title, subtitle } = getPageInfo()
 
   return (
-    <div className="h-16 bg-[#0D0D0D] border-b border-[#252525] flex items-center justify-between px-6 sticky top-0 z-30">
-      {/* Left */}
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-white font-bold text-2xl tracking-tight">
+    <div className="h-16 bg-[#0D0D0D] border-b border-[#252525] flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30">
+      {/* Left (Mobile Menu Button + Title) */}
+      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+        <button
+          type="button"
+          onClick={onMobileToggle}
+          className="lg:hidden p-2 text-zinc-400 hover:text-white rounded-xl bg-[#141414] border border-[#252525] transition-colors"
+          title="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="min-w-0">
+          <h1 className="text-white font-bold text-lg sm:text-2xl tracking-tight truncate">
             {title}
           </h1>
-
-          <div className="text-zinc-400 text-sm">
+          <div className="text-zinc-400 text-xs hidden sm:block truncate">
             {subtitle}
           </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex-1 max-w-md mx-8">
+      {/* Search Bar (Hidden on tiny screens, responsive on tablet/desktop) */}
+      <div className="hidden md:block flex-1 max-w-md mx-4 lg:mx-8">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
 
@@ -83,7 +89,7 @@ export default function Topbar() {
               w-full
               pl-10
               pr-14
-              h-11
+              h-10
               bg-[#141414]
               border
               border-[#252525]
@@ -99,11 +105,12 @@ export default function Topbar() {
             "
           />
 
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs border border-[#252525] bg-[#1E1E1E] rounded-md px-2 py-0.5 shadow-sm">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs border border-[#252525] bg-[#1E1E1E] rounded-md px-1.5 py-0.5 shadow-sm font-mono">
             ⌘K
           </div>
         </div>
       </div>
+
 
       {/* Right */}
       <div className="flex items-center gap-5">

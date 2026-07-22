@@ -13,7 +13,7 @@ export default function ListingsMetrics({ listings, platformStats }: ListingsMet
   const totalOffers = listings.reduce((sum, item) => sum + item.offers, 0)
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
       <div className="metric-card bg-[#0D0D0D] border border-[#252525] rounded-2xl p-6 shadow-sm">
         <div className="text-sm font-medium text-zinc-400">Active Listings</div>
         <div className="mt-2 font-mono text-3xl font-bold text-white">{listings.length}</div>

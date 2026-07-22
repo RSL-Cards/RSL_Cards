@@ -249,19 +249,19 @@ export default function DailyLogPanel() {
       <div className="bg-[#0D0D0D] rounded-2xl border border-[#252525] p-5 shadow-sm overflow-hidden relative">
         <div className="absolute top-0 left-0 w-1 h-full bg-[#E8001C]"></div>
 
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></div>
-            <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse shrink-0"></div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white truncate">
                 {activeLog.name}
               </h3>
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-zinc-400 block">
                 Started {new Date(activeLog.createdAt).toLocaleDateString()}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => {
                 setIsViewingTransactions(!isViewingTransactions);
@@ -305,15 +305,15 @@ export default function DailyLogPanel() {
         {expenseSuccessMsg && (
           <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between text-xs font-semibold text-emerald-400 animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>{expenseSuccessMsg}</span>
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">{expenseSuccessMsg}</span>
             </div>
-            <span className="text-[10px] text-emerald-500 font-bold uppercase">ADDED TO SESSION</span>
+            <span className="text-[10px] text-emerald-500 font-bold uppercase shrink-0">ADDED TO SESSION</span>
           </div>
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-4 pt-4 border-t border-[#252525]">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-4 border-t border-[#252525]">
           <div>
             <span className="text-xs text-zinc-400 block mb-1">Money In</span>
             <span className="text-sm font-bold text-emerald-400">
@@ -342,6 +342,7 @@ export default function DailyLogPanel() {
             </span>
           </div>
         </div>
+
 
         {/* Record Expense Inline Form */}
         {isAddingExpense && (

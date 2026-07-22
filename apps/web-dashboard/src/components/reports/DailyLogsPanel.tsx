@@ -118,7 +118,7 @@ function LogCard({ log, onClick }: { log: DailyLog; onClick: () => void }) {
     >
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-bold text-white truncate max-w-[200px]">{log.name}</span>
+          <span className="text-sm font-bold text-white truncate max-w-[140px] sm:max-w-xs md:max-w-md">{log.name}</span>
           {isOpen ? (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
               OPEN
@@ -135,6 +135,7 @@ function LogCard({ log, onClick }: { log: DailyLog; onClick: () => void }) {
           )}
         </div>
         <span className="text-xs text-zinc-500">{fmtDate(log.createdAt, false)}</span>
+
       </div>
 
       <div className="flex items-center gap-3 shrink-0 ml-3">
