@@ -42,38 +42,38 @@ export default function MarketMovers({
   }
 
   const getTrendColor = (change: number) => {
-    if (change > 0) return 'text-green-600'
-    if (change < 0) return 'text-red-600'
+    if (change > 0) return 'text-emerald-400'
+    if (change < 0) return 'text-red-400'
 
-    return 'text-gray-500'
+    return 'text-zinc-500'
   }
 
   const getGradeColor = (grade: string) => {
     if (grade.includes('PSA')) {
-      return 'bg-amber-50 text-amber-700 border border-amber-100'
+      return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
     }
 
     if (grade.includes('BGS')) {
-      return 'bg-blue-50 text-blue-700 border border-blue-100'
+      return 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
     }
 
-    return 'bg-gray-100 text-gray-600 border border-gray-200'
+    return 'bg-[#141414] text-zinc-300 border border-[#252525]'
   }
 
   const getSportColor = (sport: string) => {
     switch (sport.toLowerCase()) {
 
       case 'football':
-        return 'bg-blue-50 text-blue-700 border border-blue-100'
+        return 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
 
       case 'baseball':
-        return 'bg-red-50 text-red-700 border border-red-100'
+        return 'bg-red-500/15 text-red-400 border border-red-500/30'
 
       case 'basketball':
-        return 'bg-orange-50 text-orange-700 border border-orange-100'
+        return 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
 
       default:
-        return 'bg-gray-100 text-gray-600 border border-gray-200'
+        return 'bg-[#141414] text-zinc-300 border border-[#252525]'
     }
   }
 
@@ -115,16 +115,16 @@ export default function MarketMovers({
   }
 
   return (
-    <div className="dashboard-card bg-white border border-gray-200 rounded-3xl p-7 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="dashboard-card bg-[#0D0D0D] border border-[#252525] rounded-3xl p-7 shadow-sm">
 
       {/* Header */}
       <div className="mb-7">
 
-        <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
+        <h3 className="text-white font-bold text-2xl tracking-tight">
           Market Movers
         </h3>
 
-        <div className="text-gray-500 text-sm mt-1">
+        <div className="text-zinc-400 text-sm mt-1">
           Biggest card price movements today
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function MarketMovers({
 
           const chartColor =
             mover.change > 0
-              ? '#22C55E'
+              ? '#10B981'
               : '#EF4444'
 
           return (
@@ -156,12 +156,10 @@ export default function MarketMovers({
                 p-4
                 transition-all
                 duration-300
-                hover:shadow-sm
-                hover:-translate-y-0.5
                 ${
                   mover.change > 0
-                    ? 'bg-green-50/70 border-green-100'
-                    : 'bg-red-50/70 border-red-100'
+                    ? 'bg-emerald-500/10 border-emerald-500/20'
+                    : 'bg-red-500/10 border-red-500/20'
                 }
               `}
             >
@@ -183,7 +181,7 @@ export default function MarketMovers({
                           stroke={chartColor}
                           strokeWidth={2}
                           fill={chartColor}
-                          fillOpacity={0.08}
+                          fillOpacity={0.12}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -192,7 +190,7 @@ export default function MarketMovers({
                   {/* Player */}
                   <div className="flex-1 min-w-0">
 
-                    <div className="text-gray-900 font-semibold truncate">
+                    <div className="text-white font-semibold truncate">
                       {mover.player}
                     </div>
 
@@ -226,7 +224,7 @@ export default function MarketMovers({
                     </div>
 
                     {/* Reason */}
-                    <div className="text-gray-500 text-sm mt-2 line-clamp-1">
+                    <div className="text-zinc-400 text-sm mt-2 line-clamp-1">
                       {mover.reason}
                     </div>
                   </div>
@@ -235,7 +233,7 @@ export default function MarketMovers({
                 {/* Right */}
                 <div className="text-right flex-shrink-0">
 
-                  <div className="text-gray-900 font-mono font-bold text-lg">
+                  <div className="text-white font-mono font-bold text-lg">
                     ${mover.price}
                   </div>
 
@@ -265,15 +263,15 @@ export default function MarketMovers({
       </div>
 
       {/* Footer */}
-      <div className="mt-6 pt-5 border-t border-gray-100">
+      <div className="mt-6 pt-5 border-t border-[#252525]">
 
         <div className="flex items-center justify-between">
 
-          <div className="text-gray-500 text-sm">
+          <div className="text-zinc-400 text-sm">
             Prices based on last 30 eBay sold listings
           </div>
 
-          <button className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors duration-200">
+          <button className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200">
             View Market Trends →
           </button>
         </div>

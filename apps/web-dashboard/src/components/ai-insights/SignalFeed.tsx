@@ -19,15 +19,15 @@ export default function SignalFeed({
   onSelectInsight,
 }: SignalFeedProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm xl:col-span-2">
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-sm xl:col-span-2">
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Signal Feed</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <h2 className="text-xl font-bold text-white">Signal Feed</h2>
+          <p className="mt-1 text-sm text-zinc-400">
             {insights.length} insights match your filters.
           </p>
         </div>
-        <div className="text-xs text-gray-400">Last updated 2 hours ago</div>
+        <div className="text-xs text-zinc-500">Last updated 2 hours ago</div>
       </div>
 
       <div className="space-y-4">
@@ -42,8 +42,8 @@ export default function SignalFeed({
               key={insight.id}
               type="button"
               onClick={() => onSelectInsight(insight.id)}
-              className={`w-full rounded-xl border p-4 text-left transition-colors hover:border-white/30 ${styles.card} ${
-                isSelected ? 'ring-1 ring-accent-blue' : ''
+              className={`w-full rounded-xl border p-4 text-left transition-colors bg-[#141414] border-[#252525] hover:border-[#E8001C]/50 ${
+                isSelected ? 'ring-1 ring-[#E8001C] border-[#E8001C]' : ''
               }`}
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -56,41 +56,41 @@ export default function SignalFeed({
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSportColor(insight.sport)}`}>
                       {insight.sport}
                     </span>
-                    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${recommendationStyles[insight.recommendation] ?? 'border-gray-200 text-gray-500'}`}>
+                    <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${recommendationStyles[insight.recommendation] ?? 'border-[#252525] text-zinc-400'}`}>
                       {insight.recommendation}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">{insight.headline}</h3>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+                  <h3 className="text-lg font-bold text-white">{insight.headline}</h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
                     {insight.body}
                   </p>
                 </div>
                 <div className="min-w-36 text-left md:text-right">
-                  <div className={`font-mono text-2xl font-bold ${insight.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`font-mono text-2xl font-bold ${insight.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
                     {insight.price_change}
                   </div>
-                  <div className="mt-1 text-sm text-gray-500">{insight.price_range}</div>
-                  <div className="mt-2 text-xs text-gray-400">{insight.published}</div>
+                  <div className="mt-1 text-sm text-zinc-400">{insight.price_range}</div>
+                  <div className="mt-2 text-xs text-zinc-500">{insight.published}</div>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-200 pt-4 md:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[#252525] pt-4 md:grid-cols-3">
                 <div>
-                  <div className="text-xs text-gray-400">Confidence</div>
-                  <div className="mt-1 font-mono text-sm font-semibold text-gray-900">
+                  <div className="text-xs text-zinc-500">Confidence</div>
+                  <div className="mt-1 font-mono text-sm font-semibold text-white">
                     {insightConfidence[insight.id] ?? 80}%
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Affected Cards</div>
-                  <div className="mt-1 font-mono text-sm font-semibold text-gray-900">
+                  <div className="text-xs text-zinc-500">Affected Cards</div>
+                  <div className="mt-1 font-mono text-sm font-semibold text-white">
                     {insight.affected_cards}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Next Action</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">
-                    {insightUrgency[insight.id] ?? 'Monitor'}
+                  <div className="text-xs text-zinc-500">Urgency</div>
+                  <div className="mt-1 font-mono text-sm font-semibold text-white">
+                    {insightUrgency[insight.id] ?? 'Normal'}
                   </div>
                 </div>
               </div>
@@ -99,14 +99,14 @@ export default function SignalFeed({
         })}
 
         {insights.length === 0 && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/60 py-16 text-center my-4">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#252525] bg-[#141414] py-16 text-center my-4">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E8001C]/15 text-[#E8001C]">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 className="text-base font-bold text-gray-900">No signals generated yet</h3>
-            <p className="mt-1 max-w-sm text-xs text-gray-500">
+            <h3 className="text-base font-bold text-white">No signals generated yet</h3>
+            <p className="mt-1 max-w-sm text-xs text-zinc-400">
               We couldn&apos;t find any active RSL market narratives or signals matching your current filter criteria. Try broadening your sport or confidence filters!
             </p>
           </div>

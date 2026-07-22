@@ -11,7 +11,7 @@ export default function AuthFooterLinks({ mode }: AuthFooterLinksProps) {
 
   return (
     <>
-      <div className="mt-6 text-center text-sm text-gray-500">
+      <div className="mt-6 text-center text-sm text-zinc-400">
         {isRegister
           ? 'Already have an account?'
           : isPasswordFlow
@@ -19,18 +19,18 @@ export default function AuthFooterLinks({ mode }: AuthFooterLinksProps) {
             : 'New to RSL Cards?'}{' '}
         <Link
           href={isRegister || isPasswordFlow ? '/login' : '/register'}
-          className="font-semibold text-blue-600 hover:text-blue-700"
+          className="font-semibold text-[#E8001C] hover:text-red-400"
         >
           {isRegister || isPasswordFlow ? 'Sign in' : 'Create account'}
         </Link>
       </div>
 
       {mode === 'forgot-password' && (
-        <div className="mt-3 text-center text-sm text-gray-500">
+        <div className="mt-3 text-center text-sm text-zinc-400">
           Have your OTP?{' '}
           <Link
             href="/reset-password"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="font-semibold text-[#E8001C] hover:text-red-400"
           >
             Reset password
           </Link>

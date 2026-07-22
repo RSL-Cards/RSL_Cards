@@ -186,12 +186,12 @@ export default function AuthCard({ mode }: AuthCardProps) {
   }
 
   return (
-    <main className="min-h-screen bg-white sm:bg-[#F5F7FB] sm:px-6 lg:px-8 flex items-center justify-center">
+    <main className="min-h-screen bg-black sm:bg-black sm:px-6 lg:px-8 flex items-center justify-center">
       {toastError && <AuthToast message={toastError} variant="error" />}
       {toastSuccess && <AuthToast message={toastSuccess} variant="success" />}
 
       <div className="w-full sm:mx-auto sm:max-w-6xl">
-        <div className="grid w-full overflow-hidden sm:rounded-[20px] sm:border sm:border-gray-200 bg-white sm:shadow-lg lg:grid-cols-[1fr_420px]">
+        <div className="grid w-full overflow-hidden sm:rounded-[20px] sm:border sm:border-[#252525] bg-[#0D0D0D] sm:shadow-2xl lg:grid-cols-[1fr_420px]">
           <AuthBrandPanel />
 
           <section className="p-6 sm:p-8">
@@ -219,7 +219,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
               />
 
               {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div className="rounded-xl border border-red-500/30 bg-red-500/15 px-4 py-3 text-sm font-medium text-red-400">
                   {error}
                 </div>
               )}
@@ -227,7 +227,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
               <button
                 type="submit"
                 disabled={isBusy}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#E8001C] px-4 text-sm font-semibold text-white shadow-md transition hover:bg-[#CC0018] disabled:cursor-not-allowed disabled:bg-red-900/50"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

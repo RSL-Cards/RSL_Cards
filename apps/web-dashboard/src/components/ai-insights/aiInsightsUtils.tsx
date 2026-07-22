@@ -4,27 +4,27 @@ export const typeStyles = {
   BREAKOUT: {
     icon: Zap,
     label: 'Breakout',
-    card: 'border-success/30 bg-green-600/5',
-    chip: 'border-success/30 bg-green-600/15 text-green-600',
+    card: 'border-emerald-500/30 bg-emerald-500/10',
+    chip: 'border-emerald-500/30 bg-emerald-500/15 text-emerald-400',
   },
   MOMENTUM: {
     icon: TrendingUp,
     label: 'Momentum',
-    card: 'border-blue-200 bg-blue-600/5',
-    chip: 'border-blue-200 bg-blue-600/15 text-blue-600',
+    card: 'border-blue-500/30 bg-blue-500/10',
+    chip: 'border-blue-500/30 bg-blue-500/15 text-blue-400',
   },
   DECLINE: {
     icon: TrendingDown,
     label: 'Decline',
-    card: 'border-accent-red/30 bg-red-600/5',
-    chip: 'border-accent-red/30 bg-red-600/15 text-red-600',
+    card: 'border-red-500/30 bg-red-500/10',
+    chip: 'border-red-500/30 bg-red-500/15 text-red-400',
   },
 }
 
 export const recommendationStyles: Record<string, string> = {
-  HOLD: 'bg-blue-600/15 text-blue-600 border-blue-200',
-  SELL: 'bg-red-600/15 text-red-600 border-accent-red/30',
-  BUY: 'bg-green-600/15 text-green-600 border-success/30',
+  HOLD: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+  SELL: 'bg-red-500/15 text-red-400 border border-red-500/30',
+  BUY: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
 }
 
 export const insightConfidence: Record<string, number> = {
@@ -51,12 +51,12 @@ export const getSportColor = (sport: string) => {
     case 'basketball':
       return 'bg-orange-500/20 text-orange-400'
     default:
-      return 'bg-gray-500/20 text-gray-400'
+      return 'bg-zinc-800 text-zinc-400'
   }
 }
 
 export const getGradeColor = (grade: string) => {
-  if (grade.includes('PSA')) return 'inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-700'
-  if (grade.includes('BGS')) return 'inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700'
-  return 'bg-gray-500/20 px-2 py-1 rounded-full text-xs font-medium text-gray-400'
+  if (grade.includes('PSA')) return 'inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400'
+  if (grade.includes('BGS')) return 'inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-400'
+  return 'bg-zinc-800 border border-[#252525] px-2 py-1 rounded-full text-xs font-medium text-zinc-400'
 }

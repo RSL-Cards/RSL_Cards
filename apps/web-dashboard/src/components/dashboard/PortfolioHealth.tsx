@@ -52,81 +52,81 @@ export default function PortfolioHealth({
     (totalValue / totalCost) * 100
 
   return (
-    <div className="dashboard-card bg-white border border-gray-200 rounded-3xl p-7 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="dashboard-card bg-[#0D0D0D] border border-[#252525] rounded-3xl p-7 shadow-sm">
 
       {/* Header */}
       <div className="mb-7">
 
-        <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
+        <h3 className="text-white font-bold text-2xl tracking-tight">
           Portfolio Snapshot
         </h3>
 
-        <div className="text-gray-500 text-sm mt-1">
+        <div className="text-zinc-400 text-sm mt-1">
           Overall portfolio performance and health
         </div>
       </div>
 
       {/* Health Metrics */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-7">
+      <div className="bg-[#141414] border border-[#252525] rounded-2xl p-5 mb-7">
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Total Cards
             </span>
 
-            <span className="text-gray-900 font-semibold">
+            <span className="text-white font-semibold">
               {totalCards}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Listed
             </span>
 
-            <span className="text-gray-900 font-semibold">
+            <span className="text-white font-semibold">
               {listedCards}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Unlisted
             </span>
 
-            <span className="text-gray-900 font-semibold">
+            <span className="text-white font-semibold">
               {unlistedCards}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Gaining Value
             </span>
 
-            <span className="text-green-600 font-semibold">
+            <span className="text-emerald-400 font-semibold">
               {gainingValue} ({gainingPct.toFixed(0)}%)
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Losing Value
             </span>
 
-            <span className="text-red-600 font-semibold">
+            <span className="text-red-400 font-semibold">
               {losingValue} ({losingPct.toFixed(0)}%)
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-gray-500 text-sm">
+            <span className="text-zinc-400 text-sm">
               Aging Alerts
             </span>
 
-            <span className="text-amber-600 font-semibold">
+            <span className="text-amber-400 font-semibold">
               {agingAlerts}
             </span>
           </div>
@@ -138,20 +138,20 @@ export default function PortfolioHealth({
 
         <div className="flex items-center justify-between mb-3">
 
-          <span className="text-gray-500 text-sm font-medium">
+          <span className="text-zinc-400 text-sm font-medium">
             Portfolio Value
           </span>
 
-          <span className="text-gray-900 font-mono font-semibold">
+          <span className="text-white font-mono font-semibold">
             ${totalValue.toLocaleString()}
           </span>
         </div>
 
         {/* Progress Bar */}
-        <div className="relative h-10 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+        <div className="relative h-10 bg-[#141414] rounded-full overflow-hidden border border-[#252525]">
 
           <div
-            className="absolute left-0 top-0 h-full bg-gradient-to-r from-blue-600 to-blue-500 rounded-full flex items-center justify-end px-4 shadow-sm"
+            className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#E8001C] to-red-600 rounded-full flex items-center justify-end px-4 shadow-sm"
             style={{
               width: `${Math.min(portfolioGrowth, 100)}%`
             }}
@@ -166,11 +166,11 @@ export default function PortfolioHealth({
         {/* Labels */}
         <div className="flex items-center justify-between mt-3">
 
-          <span className="text-gray-400 text-sm font-mono">
+          <span className="text-zinc-400 text-sm font-mono">
             ${totalCost.toLocaleString()}
           </span>
 
-          <span className="text-gray-900 text-sm font-mono font-semibold">
+          <span className="text-white text-sm font-mono font-semibold">
             ${totalValue.toLocaleString()}
           </span>
         </div>
@@ -178,7 +178,7 @@ export default function PortfolioHealth({
         {/* Growth */}
         <div className="flex items-center justify-center mt-4">
 
-          <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold">
+          <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-full text-sm font-semibold">
             +${totalGain.toLocaleString()} ({totalGainPct.toFixed(1)}%)
           </div>
         </div>
@@ -190,9 +190,9 @@ export default function PortfolioHealth({
 
           <div className="flex items-center gap-2 mb-4">
 
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
 
-            <h4 className="text-gray-900 font-semibold text-lg">
+            <h4 className="text-white font-semibold text-lg">
               Aging Alert Cards
             </h4>
           </div>
@@ -203,9 +203,9 @@ export default function PortfolioHealth({
               <div
                 key={index}
                 className="
-                  bg-amber-50
+                  bg-amber-500/10
                   border
-                  border-amber-100
+                  border-amber-500/20
                   rounded-2xl
                   p-4
                   flex
@@ -213,22 +213,21 @@ export default function PortfolioHealth({
                   justify-between
                   transition-all
                   duration-200
-                  hover:shadow-sm
                 "
               >
 
                 <div>
 
-                  <div className="text-gray-900 font-semibold">
+                  <div className="text-white font-semibold">
                     {card.player}
                   </div>
 
-                  <div className="text-gray-500 text-sm mt-1">
+                  <div className="text-zinc-400 text-sm mt-1">
                     {card.grade} • {card.daysHeld} days held
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-red-600 text-sm font-semibold">
+                <div className="flex items-center gap-1 text-red-400 text-sm font-semibold">
 
                   <TrendingDown className="w-4 h-4" />
 
@@ -243,11 +242,11 @@ export default function PortfolioHealth({
             className="
               w-full
               mt-5
-              bg-blue-50
-              hover:bg-blue-100
-              text-blue-700
+              bg-[#141414]
+              hover:bg-[#1A1A1A]
+              text-white
               border
-              border-blue-100
+              border-[#252525]
               rounded-2xl
               py-3
               text-sm

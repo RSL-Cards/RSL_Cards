@@ -68,12 +68,12 @@ export const getStatusClass = (status: string) => {
   switch (status) {
     case 'Connected':
     case 'Active':
-      return 'chip-success'
+      return 'inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold text-emerald-400'
     case 'Needs Auth':
     case 'Pending':
-      return 'chip-warning'
+      return 'inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-semibold text-amber-400'
     default:
-      return 'rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500'
+      return 'inline-flex items-center rounded-full bg-zinc-800 border border-zinc-700 px-2.5 py-0.5 text-xs font-medium text-zinc-400'
   }
 }
 

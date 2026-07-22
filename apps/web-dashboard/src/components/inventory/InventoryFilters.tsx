@@ -49,14 +49,14 @@ export default function InventoryFilters({
   onStatusFilterChange,
 }: InventoryFiltersProps) {
   const inputClass =
-    'h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20'
-  const selectClass = `${inputClass} appearance-none`
+    'h-11 w-full rounded-xl border border-[#252525] bg-[#141414] px-3 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20'
+  const selectClass = `${inputClass} appearance-none cursor-pointer`
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-5 shadow-sm">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
         <div className="relative lg:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
@@ -65,26 +65,26 @@ export default function InventoryFilters({
           />
         </div>
         <select value={sportFilter} onChange={(event) => onSportFilterChange(event.target.value)} className={selectClass}>
-          <option value="all">All sports</option>
+          <option value="all" className="bg-[#141414] text-white">All sports</option>
           {sports.map((sport) => (
-            <option key={sport} value={sport}>{sport}</option>
+            <option key={sport} value={sport} className="bg-[#141414] text-white">{sport}</option>
           ))}
         </select>
         <select value={statusFilter} onChange={(event) => onStatusFilterChange(event.target.value)} className={selectClass}>
-          <option value="all">All status</option>
-          <option value="listed">Listed</option>
-          <option value="unlisted">Unlisted</option>
+          <option value="all" className="bg-[#141414] text-white">All status</option>
+          <option value="listed" className="bg-[#141414] text-white">Listed</option>
+          <option value="unlisted" className="bg-[#141414] text-white">Unlisted</option>
         </select>
         <select value={ageFilter} onChange={(event) => onAgeFilterChange(event.target.value)} className={selectClass}>
-          <option value="all">All ages</option>
-          <option value="fresh">0-14 days</option>
-          <option value="watch">31-60 days</option>
-          <option value="aging">60+ days</option>
+          <option value="all" className="bg-[#141414] text-white">All ages</option>
+          <option value="fresh" className="bg-[#141414] text-white">0-14 days</option>
+          <option value="watch" className="bg-[#141414] text-white">31-60 days</option>
+          <option value="aging" className="bg-[#141414] text-white">60+ days</option>
         </select>
       </div>
 
       <div className="mt-4 flex flex-wrap items-start gap-3">
-        <div className="inline-flex h-11 items-center gap-2 text-sm font-medium text-gray-500">
+        <div className="inline-flex h-11 items-center gap-2 text-sm font-medium text-zinc-400">
           <Filter className="h-4 w-4" />
           Advanced filters
         </div>
@@ -108,18 +108,18 @@ export default function InventoryFilters({
             onChange={(event) => onProfitFilterChange(event.target.value as ProfitFilter)}
             className={selectClass}
           >
-            <option value="all">All P/L</option>
-            <option value="profit">Profit Only</option>
-            <option value="loss">Loss Only</option>
+            <option value="all" className="bg-[#141414] text-white">All P/L</option>
+            <option value="profit" className="bg-[#141414] text-white">Profit Only</option>
+            <option value="loss" className="bg-[#141414] text-white">Loss Only</option>
           </select>
           <select
             value={platformFilter}
             onChange={(event) => onPlatformFilterChange(event.target.value)}
             className={selectClass}
           >
-            <option value="all">All Platforms</option>
+            <option value="all" className="bg-[#141414] text-white">All Platforms</option>
             {platformOptions.map((platform) => (
-              <option key={platform} value={platform}>{platform}</option>
+              <option key={platform} value={platform} className="bg-[#141414] text-white">{platform}</option>
             ))}
           </select>
           <select
@@ -127,9 +127,9 @@ export default function InventoryFilters({
             onChange={(event) => onGradeFilterChange(event.target.value)}
             className={selectClass}
           >
-            <option value="all">All grades</option>
+            <option value="all" className="bg-[#141414] text-white">All grades</option>
             {grades.map((grade) => (
-              <option key={grade} value={grade}>{formatGrade(grade)}</option>
+              <option key={grade} value={grade} className="bg-[#141414] text-white">{formatGrade(grade)}</option>
             ))}
           </select>
         </div>
@@ -137,7 +137,7 @@ export default function InventoryFilters({
         <button
           type="button"
           onClick={onClearFilters}
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50"
+          className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#252525] bg-[#141414] px-3 text-sm font-semibold text-zinc-300 shadow-sm transition hover:bg-[#1A1A1A] hover:text-white"
         >
           <X className="h-4 w-4" />
           Clear

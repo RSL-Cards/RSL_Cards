@@ -83,7 +83,7 @@ export default function DashboardPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-gray-500">Loading dashboard...</div>
+          <div className="text-sm text-zinc-400">Loading dashboard...</div>
         </div>
       </Shell>
     )
@@ -93,7 +93,7 @@ export default function DashboardPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-red-500">{error}</div>
+          <div className="text-sm text-red-400">{error}</div>
         </div>
       </Shell>
     )
@@ -143,22 +143,22 @@ export default function DashboardPage() {
     <Shell>
       <div className="space-y-6">
         {/* Date Range Filter Bar */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm transition-all">
+        <div className="bg-[#0D0D0D] rounded-2xl border border-[#252525] p-4 shadow-sm transition-all">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/60">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8001C]/15 text-[#E8001C] border border-[#E8001C]/30">
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <h3 className="font-bold text-sm text-white flex items-center gap-2">
                   <span>Date Range Analytics</span>
                   {isFilterActive && (
-                    <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
                       ACTIVE FILTER
                     </span>
                   )}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   {isFilterActive
                     ? `Showing data between ${dateFrom} and ${dateTo}`
                     : 'Filter dashboard revenue, sales, and analytics by custom date range'}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Preset Buttons */}
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl border border-gray-200/60 dark:border-gray-700/60">
+              <div className="flex items-center gap-1 bg-[#141414] p-1 rounded-xl border border-[#252525]">
                 {(['today', '7d', '30d', 'month'] as const).map((preset) => {
                   const labels: Record<string, string> = { today: 'Today', '7d': '7 Days', '30d': '30 Days', month: 'This Month' }
                   return (
@@ -176,8 +176,8 @@ export default function DashboardPage() {
                       key={preset}
                       onClick={() => handleApplyPreset(preset)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activePreset === preset && isFilterActive
-                        ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold ring-1 ring-black/5 dark:ring-white/10'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        ? 'bg-[#1A1A1A] text-white shadow-sm font-bold ring-1 ring-white/10'
+                        : 'text-zinc-400 hover:text-white'
                         }`}
                     >
                       {labels[preset]}
@@ -188,8 +188,8 @@ export default function DashboardPage() {
 
               {/* From / To Inputs */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">From</span>
+                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#252525] rounded-xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-[#E8001C]/30 transition-all">
+                  <span className="text-xs font-semibold text-zinc-400">From</span>
                   <input
                     type="date"
                     value={dateFrom}
@@ -197,14 +197,14 @@ export default function DashboardPage() {
                       setDateFrom(e.target.value)
                       setActivePreset('custom')
                     }}
-                    className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 outline-none cursor-pointer"
+                    className="bg-transparent text-xs font-semibold text-white outline-none cursor-pointer"
                   />
                 </div>
 
-                <ArrowRight className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                <ArrowRight className="h-3.5 w-3.5 text-zinc-500 flex-shrink-0" />
 
-                <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all">
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">To</span>
+                <div className="flex items-center gap-1.5 bg-[#141414] border border-[#252525] rounded-xl px-3 py-1.5 focus-within:ring-1 focus-within:ring-[#E8001C]/30 transition-all">
+                  <span className="text-xs font-semibold text-zinc-400">To</span>
                   <input
                     type="date"
                     value={dateTo}
@@ -212,7 +212,7 @@ export default function DashboardPage() {
                       setDateTo(e.target.value)
                       setActivePreset('custom')
                     }}
-                    className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 outline-none cursor-pointer"
+                    className="bg-transparent text-xs font-semibold text-white outline-none cursor-pointer"
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
               {/* Filter Apply / Clear */}
               <button
                 onClick={handleApplyCustomFilter}
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+                className="flex items-center gap-1.5 bg-[#E8001C] hover:bg-[#CC0018] text-white px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
               >
                 <Filter className="h-3.5 w-3.5" />
                 <span>Apply</span>
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleResetFilter}
                   title="Clear Date Filter"
-                  className="flex items-center justify-center h-8 w-8 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all active:scale-95"
+                  className="flex items-center justify-center h-8 w-8 rounded-xl bg-[#141414] hover:bg-[#1E1E1E] border border-[#252525] text-zinc-400 hover:text-white transition-all active:scale-95"
                 >
                   <X className="h-4 w-4" />
                 </button>

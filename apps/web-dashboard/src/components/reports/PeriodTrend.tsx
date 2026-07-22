@@ -24,8 +24,8 @@ interface PeriodTrendProps {
 
 export default function PeriodTrend({ revenueData, sportPerformanceData }: PeriodTrendProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-5 text-xl font-bold text-gray-900">Period Performance Trend</h2>
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-sm">
+      <h2 className="mb-5 text-xl font-bold text-white">Period Performance Trend</h2>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={revenueData}>
@@ -37,19 +37,19 @@ export default function PeriodTrend({ revenueData, sportPerformanceData }: Perio
               formatter={(value) => formatCurrency(Number(value))}
             />
             <Legend />
-            <Line dataKey="revenue" name="Revenue" stroke="#0057FF" strokeWidth={3} dot={false} />
-            <Line dataKey="profit" name="Profit" stroke="#00C853" strokeWidth={3} dot={false} />
+            <Line dataKey="revenue" name="Revenue" stroke="#E8001C" strokeWidth={3} dot={false} />
+            <Line dataKey="profit" name="Profit" stroke="#10B981" strokeWidth={3} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
         {sportPerformanceData.map((sport) => (
-          <div key={sport.sport} className="rounded-lg bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">{sport.sport}</div>
-            <div className="mt-2 font-mono text-xl font-bold text-green-600">
+          <div key={sport.sport} className="rounded-lg border border-[#252525] bg-[#141414] p-4">
+            <div className="text-sm font-semibold text-white">{sport.sport}</div>
+            <div className="mt-2 font-mono text-xl font-bold text-emerald-400">
               {formatCurrency(sport.profit)}
             </div>
-            <div className="mt-1 text-xs text-gray-400">{sport.percentage}% of sport profit</div>
+            <div className="mt-1 text-xs text-zinc-400">{sport.percentage}% of sport profit</div>
           </div>
         ))}
       </div>

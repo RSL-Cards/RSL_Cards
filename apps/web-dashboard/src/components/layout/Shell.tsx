@@ -39,8 +39,8 @@ export default function Shell({ children }: ShellProps) {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FB] px-4">
-        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-black px-4">
+        <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-5 py-4 text-sm font-medium text-zinc-300 shadow-xl">
           Loading your dashboard...
         </div>
       </div>
@@ -48,7 +48,7 @@ export default function Shell({ children }: ShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB] text-gray-900">
+    <div className="min-h-screen bg-black text-white">
       <Sidebar />
       <div className="ml-64">
         <Topbar />

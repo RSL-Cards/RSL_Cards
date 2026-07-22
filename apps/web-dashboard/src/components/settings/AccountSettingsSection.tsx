@@ -38,15 +38,15 @@ export default function AccountSettingsSection({
   }
 
   const inputClass =
-    'mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+    'mt-2 w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-sm text-white outline-none transition focus:border-[#E8001C] placeholder:text-zinc-500'
 
   return (
-    <section className="dashboard-card border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="dashboard-card border border-[#252525] bg-[#0D0D0D] p-5 shadow-sm rounded-2xl">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Account</h2>
-          <p className="mt-1 text-sm text-gray-500">Dealer profile and account identity.</p>
-          {errorMsg && <p className="mt-2 text-sm font-medium text-red-600">{errorMsg}</p>}
+          <h2 className="text-xl font-bold text-white">Account</h2>
+          <p className="mt-1 text-sm text-zinc-400">Dealer profile and account identity.</p>
+          {errorMsg && <p className="mt-2 text-sm font-medium text-red-400">{errorMsg}</p>}
         </div>
         
         <div className="relative group cursor-pointer" onClick={() => !isUploading && fileInputRef.current?.click()}>
@@ -57,7 +57,7 @@ export default function AccountSettingsSection({
             accept="image/*"
             onChange={handleFileChange}
           />
-          <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-lg font-bold text-white shadow-sm ring-4 ring-white">
+          <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#E8001C] text-lg font-bold text-white shadow-sm ring-4 ring-[#141414]">
             {account.photoUrl ? (
               <img src={account.photoUrl} alt="Avatar" className="h-full w-full object-cover" />
             ) : (
@@ -65,7 +65,7 @@ export default function AccountSettingsSection({
             )}
             
             {/* Upload Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
               {isUploading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
               ) : (
@@ -75,7 +75,7 @@ export default function AccountSettingsSection({
             
             {/* Loading Overlay */}
             {isUploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
               </div>
             )}
@@ -84,7 +84,7 @@ export default function AccountSettingsSection({
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-gray-600">
+        <label className="text-sm font-medium text-zinc-400">
           Display Name
           <input
             value={account.displayName}
@@ -92,16 +92,16 @@ export default function AccountSettingsSection({
             className={inputClass}
           />
         </label>
-        <label className="text-sm font-medium text-gray-600">
+        <label className="text-sm font-medium text-zinc-400">
           Custom URL
           <div className="mt-2 flex flex-col gap-2">
-            <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-              <span className="border-r border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400">rslcards.com/showcase/</span>
+            <div className="flex overflow-hidden rounded-xl border border-[#252525] bg-[#141414] transition focus-within:border-[#E8001C]">
+              <span className="border-r border-[#252525] bg-[#0D0D0D] px-3 py-2 text-sm text-zinc-500">rslcards.com/showcase/</span>
               <input
                 value={account.customUrl}
                 onChange={(event) => onAccountChange({ ...account, customUrl: event.target.value })}
                 placeholder="your-handle"
-                className="w-full bg-transparent px-3 py-2 text-sm text-gray-900 outline-none"
+                className="w-full bg-transparent px-3 py-2 text-sm text-white outline-none"
               />
             </div>
             {profileId && (
@@ -113,16 +113,16 @@ export default function AccountSettingsSection({
                     navigator.clipboard.writeText(`${window.location.origin}/showcase/${linkSlug}`)
                     alert('Link copied to clipboard!')
                   }}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  className="text-xs font-medium text-[#E8001C] hover:text-red-400"
                 >
                   Copy Link
                 </button>
-                <span className="text-gray-300">•</span>
+                <span className="text-zinc-600">•</span>
                 <a
                   href={`/showcase/${account.customUrl || profileId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-medium text-gray-600 hover:text-gray-900"
+                  className="text-xs font-medium text-zinc-400 hover:text-white"
                 >
                   Preview Page
                 </a>
@@ -130,7 +130,7 @@ export default function AccountSettingsSection({
             )}
           </div>
         </label>
-        <label className="text-sm font-medium text-gray-600">
+        <label className="text-sm font-medium text-zinc-400">
           Email
           <input
             value={account.email}
@@ -141,7 +141,7 @@ export default function AccountSettingsSection({
       </div>
 
       <div className="mt-8">
-        <h3 className="text-sm font-bold text-gray-900 mb-3">Games & Sports</h3>
+        <h3 className="text-sm font-bold text-white mb-3">Games & Sports</h3>
         <div className="flex flex-wrap gap-2">
           {['Football', 'Baseball', 'Basketball', 'Hockey', 'Soccer', 'MMA'].map((sport) => (
             <button
@@ -154,8 +154,8 @@ export default function AccountSettingsSection({
               }}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 account.sports.includes(sport)
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-[#E8001C] text-white shadow-sm'
+                  : 'bg-[#141414] border border-[#252525] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white'
               }`}
             >
               {sport}

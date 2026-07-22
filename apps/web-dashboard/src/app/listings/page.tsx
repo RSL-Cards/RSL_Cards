@@ -61,8 +61,8 @@ export default function ListingsPage() {
         <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-6">
             {isLoading ? (
-              <div className="flex h-48 items-center justify-center rounded-2xl border border-gray-200 bg-white">
-                <span className="text-sm text-gray-500 font-medium">Loading listings...</span>
+              <div className="flex h-48 items-center justify-center rounded-2xl border border-[#252525] bg-[#0D0D0D]">
+                <span className="text-sm text-zinc-400 font-medium">Loading listings...</span>
               </div>
             ) : (
               <ActiveListingsTable listings={listings} onStatusChange={updateStatus} />
@@ -72,54 +72,54 @@ export default function ListingsPage() {
           <div className="space-y-6">
             <PlatformPerformance platformStats={platformStats} />
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Listing Health</h2>
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <h2 className="text-xl font-bold text-white">Listing Health</h2>
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
               </div>
 
               <div className="space-y-3">
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="rounded-xl border border-[#252525] bg-[#141414] p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                      <Tag className="h-4 w-4 text-blue-600" />
+                    <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
+                      <Tag className="h-4 w-4 text-[#E8001C]" />
                       Active coverage
                     </div>
-                    <span className="font-mono text-sm font-bold text-gray-900">
+                    <span className="font-mono text-sm font-bold text-white">
                       {activeCount}/{listings.length}
                     </span>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#252525]">
                     <div
-                      className="h-full rounded-full bg-blue-600"
+                      className="h-full rounded-full bg-[#E8001C]"
                       style={{ width: `${listings.length ? Math.round((activeCount / listings.length) * 100) : 0}%` }}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-gray-200 bg-white p-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                      <Clock className="h-3.5 w-3.5 text-amber-500" />
+                  <div className="rounded-xl border border-[#252525] bg-[#141414] p-3">
+                    <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                      <Clock className="h-3.5 w-3.5 text-amber-400" />
                       Scheduled
                     </div>
-                    <div className="mt-2 font-mono text-2xl font-bold text-gray-900">{scheduledCount}</div>
+                    <div className="mt-2 font-mono text-2xl font-bold text-white">{scheduledCount}</div>
                   </div>
-                  <div className="rounded-xl border border-gray-200 bg-white p-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-                      <Eye className="h-3.5 w-3.5 text-blue-600" />
+                  <div className="rounded-xl border border-[#252525] bg-[#141414] p-3">
+                    <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                      <Eye className="h-3.5 w-3.5 text-blue-400" />
                       Watch rate
                     </div>
-                    <div className="mt-2 font-mono text-2xl font-bold text-gray-900">{watcherRate}%</div>
+                    <div className="mt-2 font-mono text-2xl font-bold text-white">{watcherRate}%</div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="flex items-center gap-2 font-semibold text-amber-700">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/15 p-4">
+                  <div className="flex items-center gap-2 font-semibold text-amber-400">
                     <AlertTriangle className="h-4 w-4" />
                     {agingListings.length} listings need review
                   </div>
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-zinc-300">
                     {totalOffers} offers pending, {endedCount} ended listings, and {totalWatchers} total watchers across live marketplaces.
                   </p>
                 </div>

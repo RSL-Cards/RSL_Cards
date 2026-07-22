@@ -32,27 +32,27 @@ export default function PaymentMethodsSection({ paymentMethods, onChange }: Paym
   }
 
   return (
-    <section className="dashboard-card border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="dashboard-card border border-[#252525] bg-[#0D0D0D] p-5 shadow-sm rounded-2xl">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Payment Methods</h2>
-        <p className="mt-1 text-sm text-gray-500">Configure your payment handles so customers know how to pay you.</p>
+        <h2 className="text-xl font-bold text-white">Payment Methods</h2>
+        <p className="mt-1 text-sm text-zinc-400">Configure your payment handles so customers know how to pay you.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {PAYMENT_TYPES.map((pt) => (
-          <div key={pt.key} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50/50 p-4 transition-colors focus-within:border-gray-300 focus-within:bg-white">
+          <div key={pt.key} className="flex flex-col gap-2 rounded-xl border border-[#252525] bg-[#141414] p-4 transition-colors focus-within:border-[#E8001C]">
             <div className="flex items-center gap-2 mb-1">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill={pt.color}>
                 <path d={pt.icon} />
               </svg>
-              <span className="font-semibold text-gray-900">{pt.label}</span>
+              <span className="font-semibold text-white">{pt.label}</span>
             </div>
             <input
               type="text"
               value={getHandle(pt.key)}
               onChange={(e) => handleChange(pt.key, e.target.value)}
               placeholder={pt.placeholder}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-[#252525] bg-[#0D0D0D] px-3 py-2.5 text-sm font-medium text-white placeholder:text-zinc-500 shadow-sm outline-none transition focus:border-[#E8001C]"
             />
           </div>
         ))}

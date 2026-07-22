@@ -57,15 +57,15 @@ export default function Topbar() {
   const { title, subtitle } = getPageInfo()
 
   return (
-    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
+    <div className="h-16 bg-[#0D0D0D] border-b border-[#252525] flex items-center justify-between px-6 sticky top-0 z-30">
       {/* Left */}
       <div className="flex items-center gap-4">
         <div>
-          <h1 className="text-gray-900 font-bold text-2xl tracking-tight">
+          <h1 className="text-white font-bold text-2xl tracking-tight">
             {title}
           </h1>
 
-          <div className="text-gray-500 text-sm">
+          <div className="text-zinc-400 text-sm">
             {subtitle}
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function Topbar() {
       {/* Search */}
       <div className="flex-1 max-w-md mx-8">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
 
           <input
             type="text"
@@ -84,22 +84,22 @@ export default function Topbar() {
               pl-10
               pr-14
               h-11
-              bg-gray-50
+              bg-[#141414]
               border
-              border-gray-200
+              border-[#252525]
               rounded-xl
               text-sm
-              text-gray-900
-              placeholder:text-gray-400
+              text-white
+              placeholder:text-zinc-500
               focus:outline-none
-              focus:ring-2
-              focus:ring-blue-500/20
-              focus:border-blue-500
+              focus:ring-1
+              focus:ring-[#E8001C]/30
+              focus:border-[#E8001C]
               transition-all
             "
           />
 
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs border border-gray-200 bg-white rounded-md px-2 py-0.5 shadow-sm">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs border border-[#252525] bg-[#1E1E1E] rounded-md px-2 py-0.5 shadow-sm">
             ⌘K
           </div>
         </div>
@@ -107,49 +107,33 @@ export default function Topbar() {
 
       {/* Right */}
       <div className="flex items-center gap-5">
-        {/* Online
-        <div className="flex items-center gap-2">
-          {isOnline ? (
-            <Wifi className="w-4 h-4 text-green-600" />
-          ) : (
-            <WifiOff className="w-4 h-4 text-amber-500" />
-          )}
-
-          {!isOnline && (
-            <span className="text-amber-600 text-sm">
-              Offline
-            </span>
-          )}
-        </div>
-        */}
-
         {/* Notifications */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setIsNotificationsOpen((open) => !open)}
-            className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+            className="relative p-2 rounded-xl hover:bg-[#141414] transition-colors duration-200"
           >
-            <Bell className="w-5 h-5 text-gray-600" />
+            <Bell className="w-5 h-5 text-zinc-300" />
 
             {notificationCount > 0 && (
-              <div className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+              <div className="absolute top-1 right-1 w-4 h-4 bg-[#E8001C] rounded-full text-white text-[10px] flex items-center justify-center font-bold">
                 {notificationCount}
               </div>
             )}
           </button>
 
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden flex flex-col max-h-96">
-              <div className="border-b border-gray-100 px-4 py-3 flex justify-between items-center bg-gray-50">
-                <span className="font-semibold text-gray-900 text-sm">Notifications</span>
+            <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[#252525] bg-[#141414] shadow-2xl overflow-hidden flex flex-col max-h-96 z-50">
+              <div className="border-b border-[#252525] px-4 py-3 flex justify-between items-center bg-[#1A1A1A]">
+                <span className="font-semibold text-white text-sm">Notifications</span>
                 {notifications.length > 0 && (
                   <button 
                     onClick={() => {
                       markAllAsRead();
                       apiClient.patch("/v1/notifications/read-all").catch(console.error);
                     }}
-                    className="text-xs text-blue-600 font-medium hover:text-blue-700"
+                    className="text-xs text-blue-400 font-medium hover:text-blue-300"
                   >
                     Mark All as Read
                   </button>
@@ -157,25 +141,25 @@ export default function Topbar() {
               </div>
               <div className="overflow-y-auto flex-1 p-2">
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-gray-500">
+                  <div className="p-4 text-center text-sm text-zinc-400">
                     No new notifications
                   </div>
                 ) : (
                   notifications.map((notif) => (
-                    <div key={notif.id} className="p-3 mb-1 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-100 transition-colors">
+                    <div key={notif.id} className="p-3 mb-1 hover:bg-[#1E1E1E] rounded-lg border border-transparent hover:border-[#252525] transition-colors">
                       <div className="flex justify-between items-start">
-                        <span className="font-semibold text-gray-900 text-sm">{notif.title || 'Update'}</span>
+                        <span className="font-semibold text-white text-sm">{notif.title || 'Update'}</span>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             removeNotification(notif.id);
                           }}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-zinc-500 hover:text-zinc-300"
                         >
                           <LogOut className="w-3 h-3" />
                         </button>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notif.message}</p>
+                      <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{notif.message}</p>
                     </div>
                   ))
                 )}
@@ -184,39 +168,25 @@ export default function Topbar() {
           )}
         </div>
 
-        {/* Sync
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-
-          <span className="text-gray-500 text-sm whitespace-nowrap">
-            Last sync: {lastSync}
-          </span>
-
-          <button className="text-gray-400 hover:text-gray-700 transition-colors duration-200">
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-        */}
-
         {/* User */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setIsUserMenuOpen((open) => !open)}
-            className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+            className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl hover:bg-[#141414] transition-colors duration-200"
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
             {user?.photoUrl && !imgError ? (
               <img src={user.photoUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" onError={() => setImgError(true)} />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-[#E8001C] flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                 {avatarInitial}
               </div>
             )}
 
             <ChevronDown
-              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+              className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
                 isUserMenuOpen ? 'rotate-180' : ''
               }`}
             />
@@ -225,14 +195,14 @@ export default function Topbar() {
           {isUserMenuOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+              className="absolute right-0 mt-2 w-64 rounded-xl border border-[#252525] bg-[#141414] p-2 shadow-2xl z-50"
             >
-              <div className="border-b border-gray-100 px-3 py-2">
-                <div className="truncate text-sm font-semibold text-gray-900">
+              <div className="border-b border-[#252525] px-3 py-2">
+                <div className="truncate text-sm font-semibold text-white">
                   {displayValue}
                 </div>
                 {user?.email && (
-                  <div className="truncate text-xs text-gray-500">
+                  <div className="truncate text-xs text-zinc-400">
                     {user.email}
                   </div>
                 )}
@@ -243,7 +213,7 @@ export default function Topbar() {
                 role="menuitem"
                 onClick={handleLogout}
                 disabled={isLoading}
-                className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <LogOut className="h-4 w-4" />
                 {isLoading ? 'Logging out...' : 'Logout'}

@@ -8,12 +8,12 @@ interface AuthToastProps {
 export default function AuthToast({ message, variant }: AuthToastProps) {
   const styles =
     variant === 'error'
-      ? 'border-red-200 text-red-700'
-      : 'border-green-200 text-green-700'
+      ? 'border-red-500/30 bg-[#141414] text-red-400'
+      : 'border-emerald-500/30 bg-[#141414] text-emerald-400'
 
   return (
     <div
-      className={`fixed right-4 top-4 z-50 flex max-w-sm items-start gap-3 rounded-xl border bg-white px-4 py-3 text-sm font-medium shadow-lg ${styles}`}
+      className={`fixed right-4 top-4 z-50 flex max-w-sm items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-2xl ${styles}`}
     >
       <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
       <span>{message}</span>

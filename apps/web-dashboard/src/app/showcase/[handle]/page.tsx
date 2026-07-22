@@ -42,20 +42,20 @@ export default async function ShowcasePage({ params }: { params: Promise<{ handl
   return (
     <div className="flex flex-col gap-8 pb-12">
       {/* Dealer Profile Header */}
-      <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start md:items-center relative overflow-hidden">
+      <div className="bg-[#0D0D0D] rounded-3xl p-6 sm:p-10 shadow-sm border border-[#252525] flex flex-col md:flex-row gap-8 items-start md:items-center relative overflow-hidden">
         {/* Decorative background blur */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-48 h-48 bg-purple-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-[#E8001C]/10 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
         
         <div className="relative">
           {profile.photoUrl ? (
             <img 
               src={profile.photoUrl} 
               alt={profile.displayName} 
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-md border-4 border-white z-10 relative"
+              className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover shadow-md border-4 border-[#141414] z-10 relative"
             />
           ) : (
-            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-4xl font-bold text-white shadow-md border-4 border-white z-10 relative">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-[#E8001C] flex items-center justify-center text-4xl font-bold text-white shadow-md border-4 border-[#141414] z-10 relative">
               {profile.displayName?.charAt(0)?.toUpperCase()}
             </div>
           )}
@@ -63,33 +63,33 @@ export default async function ShowcasePage({ params }: { params: Promise<{ handl
         
         <div className="flex-1 z-10">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               {profile.displayName}
             </h1>
-            <span className="bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+            <span className="bg-[#E8001C]/15 border border-[#E8001C]/30 text-[#E8001C] text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
               Verified Dealer
             </span>
           </div>
           
           {profile.bio ? (
-            <p className="text-gray-600 text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
+            <p className="text-zinc-300 text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
               {profile.bio}
             </p>
           ) : (
-            <p className="text-gray-500 text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
+            <p className="text-zinc-400 text-base sm:text-lg max-w-2xl leading-relaxed mb-6">
               Welcome to my digital showcase. Browse my available inventory below.
             </p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-sm font-medium text-gray-600">
+          <div className="flex flex-wrap gap-4 text-sm font-medium text-zinc-400">
             {profile.sports && profile.sports.length > 0 && (
               <div className="flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-gray-400" />
+                <Award className="w-4 h-4 text-zinc-500" />
                 <span>{profile.sports.join(', ')}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-gray-400" />
+              <CalendarDays className="w-4 h-4 text-zinc-500" />
               <span>Active on RSL Cards</span>
             </div>
           </div>

@@ -33,7 +33,7 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
       exit={{ opacity: 0, y: -20, scale: 0.95, filter: "blur(4px)" }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       layout
-      className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md shadow-lg ring-1 ring-black/5 dark:ring-white/10"
+      className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-2xl bg-[#141414]/95 backdrop-blur-md shadow-2xl border border-[#252525]"
     >
       <div className="p-4 relative">
         <div className="flex items-start">
@@ -41,17 +41,17 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
             {getIcon(notification.type, notification.status)}
           </div>
           <div className="ml-3 w-0 flex-1">
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <p className="text-sm font-semibold text-white">
               {notification.title}
             </p>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-zinc-400">
               {notification.message}
             </p>
           </div>
           <div className="ml-4 flex flex-shrink-0">
             <button
               type="button"
-              className="inline-flex rounded-md bg-transparent text-zinc-400 hover:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex rounded-md bg-transparent text-zinc-400 hover:text-white focus:outline-none"
               onClick={() => dismissToast(notification.id)}
             >
               <span className="sr-only">Close</span>

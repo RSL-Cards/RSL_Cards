@@ -122,8 +122,8 @@ export default function ReportsPage() {
         />
 
         {isLoading ? (
-          <div className="flex h-96 items-center justify-center rounded-2xl border border-gray-200 bg-white">
-            <span className="text-sm font-medium text-gray-500">Loading reports...</span>
+          <div className="flex h-96 items-center justify-center rounded-2xl border border-[#252525] bg-[#0D0D0D]">
+            <span className="text-sm font-medium text-zinc-400">Loading reports...</span>
           </div>
         ) : (
           <>

@@ -41,12 +41,12 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm transition-all duration-300 z-40 ${
+      className={`fixed left-0 top-0 h-full bg-[#0D0D0D] border-r border-[#252525] shadow-xl transition-all duration-300 z-40 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Logo */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-[#252525]">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
             {!imgError ? (
@@ -54,10 +54,10 @@ export default function Sidebar() {
                 src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
                 alt="RSL Cards Logo" 
                 onError={() => setImgError(true)}
-                className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-sm ring-1 ring-gray-200 transition-transform hover:scale-105"
+                className="h-10 w-10 rounded-xl bg-[#141414] object-contain p-0.5 shadow-sm ring-1 ring-[#252525] transition-transform hover:scale-105"
               />
             ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-800 shadow-md ring-1 ring-indigo-500/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8001C] via-red-700 to-black shadow-md ring-1 ring-[#E8001C]/30">
                 <span className="font-extrabold tracking-tighter text-white text-base">RSL</span>
               </div>
             )}
@@ -65,11 +65,11 @@ export default function Sidebar() {
 
           {!collapsed && (
             <div className="flex-1 overflow-hidden">
-              <div className="text-gray-900 font-extrabold text-base tracking-tight leading-none flex items-center gap-1.5">
+              <div className="text-white font-extrabold text-base tracking-tight leading-none flex items-center gap-1.5">
                 <span>RSL</span>
-                <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 border border-indigo-100">PRO</span>
+                <span className="rounded-md bg-[#E8001C]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#E8001C] border border-[#E8001C]/30">PRO</span>
               </div>
-              <div className="text-gray-400 font-medium text-[11px] tracking-wider uppercase mt-1">
+              <div className="text-zinc-500 font-medium text-[11px] tracking-wider uppercase mt-1">
                 Dealer Portal
               </div>
             </div>
@@ -77,7 +77,7 @@ export default function Sidebar() {
 
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-400 hover:text-gray-700 transition-colors duration-200"
+            className="text-zinc-400 hover:text-white transition-colors duration-200"
           >
             <ChevronRight
               className={`w-4 h-4 transition-transform duration-200 ${
@@ -103,23 +103,23 @@ export default function Sidebar() {
                 title={collapsed ? item.label : undefined}
                 className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-[#1A1A1A] text-white font-semibold shadow-sm'
+                    : 'text-zinc-400 hover:bg-[#141414] hover:text-white'
                 }`}
               >
                 <item.icon
                   className={`w-5 h-5 ${
-                    isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
+                    isActive ? 'text-[#E8001C]' : 'text-zinc-500 group-hover:text-zinc-300'
                   }`}
                 />
                 {!collapsed && (
                   <span className="truncate">{item.label}</span>
                 )}
                 {collapsed && isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#E8001C] rounded-r-full" />
                 )}
                 {!collapsed && isActive && (
-                  <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-600"></div>
+                  <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#E8001C]"></div>
                 )}
               </Link>
             )
@@ -128,18 +128,18 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="p-4 border-t border-gray-100">
+      <div className="p-4 border-t border-[#252525]">
         {!collapsed && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-            <Crown className="w-4 h-4 text-amber-500" />
-            <span className="text-amber-700 font-semibold text-sm">
-              PRO
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <Crown className="w-4 h-4 text-amber-400" />
+            <span className="text-amber-400 font-semibold text-sm">
+              PRO DEALER
             </span>
           </div>
         )}
 
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors duration-200 cursor-pointer">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[#141414] transition-colors duration-200 cursor-pointer">
+          <div className="w-9 h-9 rounded-full bg-[#E8001C] flex items-center justify-center text-white font-semibold text-sm shadow-md overflow-hidden">
             {user?.photoUrl && !imgError ? (
               <img src={user.photoUrl} alt="Avatar" className="w-full h-full object-cover" onError={() => setImgError(true)} />
             ) : (
@@ -149,10 +149,10 @@ export default function Sidebar() {
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="text-gray-900 font-medium text-sm truncate">
+              <div className="text-white font-medium text-sm truncate">
                 {displayName}
               </div>
-              <div className="text-gray-500 text-xs truncate">
+              <div className="text-zinc-400 text-xs truncate">
                 {email}
               </div>
             </div>

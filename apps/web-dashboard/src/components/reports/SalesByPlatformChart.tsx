@@ -20,10 +20,10 @@ interface SalesByPlatformChartProps {
 
 export default function SalesByPlatformChart({ salesByPlatform }: SalesByPlatformChartProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm xl:col-span-2">
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-sm xl:col-span-2">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Sales by Platform</h2>
-        <div className="text-sm text-gray-400">Bar chart by marketplace</div>
+        <h2 className="text-xl font-bold text-white">Sales by Platform</h2>
+        <div className="text-sm text-zinc-400">Bar chart by marketplace</div>
       </div>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">

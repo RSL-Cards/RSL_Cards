@@ -12,7 +12,7 @@ export default function SettingsSidebar({
   onSectionChange,
 }: SettingsSidebarProps) {
   return (
-    <aside className="dashboard-card border border-gray-200 bg-white p-3 shadow-sm xl:col-span-1">
+    <aside className="dashboard-card border border-[#252525] bg-[#0D0D0D] p-3 shadow-sm rounded-2xl xl:col-span-1">
       <div className="space-y-1">
         {sections.map((section) => {
           const Icon = section.icon
@@ -25,15 +25,15 @@ export default function SettingsSidebar({
               onClick={() => onSectionChange(section.id)}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-[#E8001C]/15 border border-[#E8001C]/30 text-[#E8001C]'
+                  : 'text-zinc-400 hover:bg-[#141414] hover:text-white'
               }`}
             >
               <span className="flex items-center gap-2">
                 <Icon className="h-4 w-4" />
                 {section.label}
               </span>
-              <ChevronRight className={`h-4 w-4 transition-transform ${isActive ? 'rotate-90' : ''}`} />
+              <ChevronRight className={`h-4 w-4 transition-transform ${isActive ? 'rotate-90 text-[#E8001C]' : 'text-zinc-500'}`} />
             </button>
           )
         })}
