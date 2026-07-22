@@ -19,7 +19,7 @@ export default function PassbookTable({
       <div className="p-6 border-b border-[#252525]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">Passbook Ledger</h2>
+            <h2 className="text-xl font-bold text-white">Transaction History</h2>
             <p className="mt-1 text-sm text-zinc-400">
               Showing {transactions.length} of {totalCount} transactions.
             </p>
@@ -38,14 +38,14 @@ export default function PassbookTable({
               <th className="px-6 py-4">Date</th>
               <th className="px-6 py-4">Ref</th>
               <th className="px-6 py-4">Type</th>
-              <th className="px-6 py-4">Card / Details</th>
-              <th className="px-6 py-4">Customer</th>
+              <th className="px-6 py-4">Card / Description</th>
+              <th className="px-6 py-4">Event / Party</th>
               <th className="px-6 py-4">Channel</th>
               <th className="px-6 py-4">Payment</th>
-              <th className="px-6 py-4 text-right">Debit</th>
-              <th className="px-6 py-4 text-right">Credit</th>
-              <th className="px-6 py-4 text-right">Profit</th>
-              <th className="px-6 py-4 text-right">Balance</th>
+              <th className="px-6 py-4 text-right">Money Out</th>
+              <th className="px-6 py-4 text-right">Money In</th>
+              <th className="px-6 py-4 text-right">Realized Profit</th>
+              <th className="px-6 py-4 text-right">Net Cash Flow</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#252525] bg-[#0D0D0D]">

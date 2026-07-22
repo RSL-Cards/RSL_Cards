@@ -25,14 +25,14 @@ export default function ListingsMetrics({ listings, platformStats }: ListingsMet
         <div className="mt-1 text-sm text-zinc-500">Synced marketplace analytics</div>
       </div>
       <div className="metric-card bg-[#0D0D0D] border border-[#252525] rounded-2xl p-6 shadow-sm">
-        <div className="text-sm font-medium text-zinc-400">Buyer Signals</div>
-        <div className="mt-2 font-mono text-3xl font-bold text-white">{totalWatchers}</div>
-        <div className="mt-1 text-sm text-zinc-500">{totalOffers} open offers</div>
+        <div className="text-sm font-medium text-zinc-400">Open Offers</div>
+        <div className="mt-2 font-mono text-3xl font-bold text-white">{totalOffers}</div>
+        <div className="mt-1 text-sm text-zinc-500">{totalWatchers} listing watchers</div>
       </div>
       <div className="metric-card bg-[#0D0D0D] border border-[#252525] rounded-2xl p-6 shadow-sm">
-        <div className="text-sm font-medium text-zinc-400">Est. Net Value</div>
+        <div className="text-sm font-medium text-zinc-400">Estimated Net Proceeds</div>
         <div className="mt-2 font-mono text-3xl font-bold text-emerald-400">{formatCurrency(totalNet)}</div>
-        <div className="mt-1 text-sm text-zinc-500">After estimated fees</div>
+        <div className="mt-1 text-sm text-zinc-500">Expected after marketplace fees</div>
       </div>
     </div>
   )

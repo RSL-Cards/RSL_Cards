@@ -68,5 +68,6 @@ export const ENDPOINTS = {
   },
   analytics: {
     expenses: '/v1/analytics/expenses',
+    expense: (id: string) => `/v1/analytics/expenses/${id}`,
   },
 } as const

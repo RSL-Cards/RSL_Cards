@@ -33,11 +33,11 @@ export const platformMeta: Record<string, PlatformMeta> = {
 
 export const sections: SettingsNavItem[] = [
   { id: 'account', label: 'Account', icon: User },
-  { id: 'platforms', label: 'Connected Platforms', icon: Store },
+  { id: 'platforms', label: 'Marketplace Connections', icon: Store },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'listings', label: 'Listing Defaults', icon: PackageCheck },
-  { id: 'team', label: 'Team Access', icon: Users },
+  { id: 'notifications', label: 'Preferences & Notifications', icon: Bell },
+  // { id: 'listings', label: 'Listing Defaults', icon: PackageCheck },
+  // { id: 'team', label: 'Team Access', icon: Users },
 ]
 
 export const notificationDefaults: NotificationPreference[] = [

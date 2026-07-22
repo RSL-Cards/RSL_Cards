@@ -104,28 +104,37 @@ export default function AccountSettingsSection({
                 className="w-full bg-transparent px-3 py-2 text-sm text-white outline-none"
               />
             </div>
+
+            {/* Permanent public link — always uses the unique profile ID */}
             {profileId && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const linkSlug = account.customUrl || profileId;
-                    navigator.clipboard.writeText(`${window.location.origin}/showcase/${linkSlug}`)
-                    alert('Link copied to clipboard!')
-                  }}
-                  className="text-xs font-medium text-[#E8001C] hover:text-red-400"
-                >
-                  Copy Link
-                </button>
-                <span className="text-zinc-600">•</span>
-                <a
-                  href={`/showcase/${account.customUrl || profileId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-medium text-zinc-400 hover:text-white"
-                >
-                  Preview Page
-                </a>
+              <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-3 py-2.5 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-0.5">Your Public Link</p>
+                  <p className="text-xs text-zinc-400 truncate font-mono">
+                    rslcards.com/showcase/<span className="text-white">{profileId}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/showcase/${profileId}`)
+                      alert('Link copied to clipboard!')
+                    }}
+                    className="text-xs font-medium text-[#E8001C] hover:text-red-400 transition-colors"
+                  >
+                    Copy Link
+                  </button>
+                  <span className="text-zinc-700">•</span>
+                  <a
+                    href={`/showcase/${profileId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Preview Page
+                  </a>
+                </div>
               </div>
             )}
           </div>

@@ -39,6 +39,14 @@ export const dailyLogService = {
     await apiClient.post(ENDPOINTS.analytics.expenses, data);
   },
 
+  async updateExpense(id: string, data: { category: string; amount: number; description?: string }): Promise<void> {
+    await apiClient.patch(ENDPOINTS.analytics.expense(id), data);
+  },
+
+  async deleteExpense(id: string): Promise<void> {
+    await apiClient.delete(ENDPOINTS.analytics.expense(id));
+  },
+
   async getLogTransactions(id: string, page: number = 1, limit: number = 20): Promise<any[]> {
     const response = await apiClient.get<any[]>(`${ENDPOINTS.dailyLogs.transactions(id)}?page=${page}&limit=${limit}`);
     return response.data;

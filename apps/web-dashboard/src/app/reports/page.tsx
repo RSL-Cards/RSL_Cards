@@ -10,6 +10,7 @@ import ReportsControls from '@/components/reports/ReportsControls'
 import ReportsHeader from '@/components/reports/ReportsHeader'
 import ReportsMetrics from '@/components/reports/ReportsMetrics'
 import SalesByPlatformChart from '@/components/reports/SalesByPlatformChart'
+import DailyLogsPanel from '@/components/reports/DailyLogsPanel'
 import {
   buildReportCsv,
   exportCsv,
@@ -167,6 +168,8 @@ export default function ReportsPage() {
             percentage: totalProfit ? Math.round((s.profit / totalProfit) * 100) : 0
           })) || []}
         />
+
+        <DailyLogsPanel />
           </>
         )}
       </div>

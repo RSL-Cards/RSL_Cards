@@ -78,7 +78,7 @@ export default function Topbar() {
 
           <input
             type="text"
-            placeholder="Search cards, transactions, customers..."
+            placeholder="Search cards, listings, transactions..."
             className="
               w-full
               pl-10

@@ -24,9 +24,9 @@ const navItems = [
   { icon: ClipboardList, label: 'Listings', href: '/listings' },
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
-  { icon: Zap, label: 'RSL Insights', href: '/ai-insights' },
+  // { icon: Zap, label: 'RSL Insights', href: '/ai-insights' },
   // { icon: Users, label: 'Customers', href: '/customers' },
-  { icon: ListTodo, label: 'Tasks', href: '/tasks' },
+  // { icon: ListTodo, label: 'Tasks', href: '/tasks' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
