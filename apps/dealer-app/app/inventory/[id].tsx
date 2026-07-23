@@ -8,10 +8,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  Modal,
+  TextInput,
+  Alert,
+  Pressable,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useInventoryItem } from "../../src/hooks/useCardScan";
+import * as ImagePicker from "expo-image-picker";
+import { useInventoryItem, QUERY_KEYS } from "../../src/hooks/useCardScan";
+import { inventoryService } from "../../src/services/cardService";
+import { useAuthStore } from "../../src/stores/authStore";
+import { useQueryClient } from "@tanstack/react-query";
 import { isGraded } from "../../src/utils/gradeHelper";
 import { format, isValid } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
@@ -49,11 +57,9 @@ function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
     const title = (item.title || "").toUpperCase();
     const condition = (item.condition || "").toUpperCase();
 
-    // 1. Explicit condition checks
     const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
     const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
 
-    // 2. Check if item has a grade_key field from DB cache (PSA_10 or numeric "10")
     const itemGrade = item.grade_key || "";
     if (itemGrade) {
       let parsedGrade = "RAW";
@@ -68,25 +74,20 @@ function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
       return false;
     }
 
-    // 3. Fallback/API: Filter based on listing title & condition matching the selected grade
     if (selectedGrade === "RAW") {
       if (isGradedCondition) return false;
       return !/\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
     } else {
       if (isUngradedCondition) return false;
 
-      // Filter out titles indicating it is a raw card trying to sound graded
       if (/\b(READY|RAW|LOT|NOT\s+(?:PSA|BGS|SGC|CGC|CSG)|PSA\s*\?|\?\s*PSA)\b/i.test(title)) {
         return false;
       }
 
-      // Graded card titles must contain a grading company and the exact grade number
       const hasGradingCompany = /\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
       if (!hasGradingCompany) return false;
 
-      // Ensure the exact grade number is present.
       if (selectedGrade === "9") {
-        // Avoid matching "9.5" when grade is "9"
         return /\b9\b/.test(title) && !/\b9\.5\b/.test(title);
       } else if (selectedGrade === "9.5") {
         return /\b9\.5\b/.test(title);
@@ -101,23 +102,65 @@ function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   });
 }
 
-function GradeChip({ gradeKey }: { gradeKey?: string }) {
-  if (!gradeKey) return null;
-  const configs: Record<string, { bg: string; color: string; label: string }> =
-    {
-      PSA_10: { bg: "#FFD700", color: "#000000", label: "PSA 10" },
-      PSA_9: { bg: "#1A1A1A", color: "#FFD700", label: "PSA 9" },
-      BGS_9: { bg: "#0057FF", color: "#FFFFFF", label: "BGS 9" },
-      BGS_9_5: { bg: "#0057FF", color: "#FFFFFF", label: "BGS 9.5" },
-      SGC_10: { bg: "#1A1A1A", color: "#00C853", label: "SGC 10" },
-      RAW: { bg: "#2A2A2A", color: "#888888", label: "RAW" },
-    };
-  const formattedLabel = gradeKey.replace(/_/g, " ");
-  const cfg = configs[gradeKey] ?? {
-    bg: "#2A2A2A",
-    color: "#888888",
-    label: formattedLabel,
-  };
+function getGradeConfig(gradeKey?: string, item?: any) {
+  const company = (item?.grade_company || item?.gradeCompany || '').toUpperCase().trim()
+  const value = (item?.grade_value || item?.gradeValue || '').trim()
+
+  if (gradeKey === 'RAW' || company === 'RAW') {
+    return { bg: "#2A2A2A", color: "#888888", label: "RAW" }
+  }
+
+  let finalCompany = company || 'PSA'
+  let finalValue = value
+
+  if (gradeKey) {
+    if (gradeKey.includes('_')) {
+      const parts = gradeKey.split('_')
+      if (!company) finalCompany = parts[0].toUpperCase()
+      if (!value) finalValue = parts.slice(1).join('.')
+    } else if (gradeKey.includes(' ')) {
+      const parts = gradeKey.split(' ')
+      if (!company) finalCompany = parts[0].toUpperCase()
+      if (!value) finalValue = parts.slice(1).join('.')
+    } else if (/^\d+(?:\.\d+)?$/.test(gradeKey.trim())) {
+      if (!company) finalCompany = 'PSA'
+      if (!value) finalValue = gradeKey.trim()
+    }
+  }
+
+  if (!finalValue && gradeKey) {
+    finalValue = gradeKey
+  }
+
+  const label = `${finalCompany} ${finalValue}`.trim()
+
+  let bg = "#1A1A1A"
+  let color = "#FFD700"
+
+  if (finalCompany === 'PSA') {
+    if (finalValue === '10') {
+      bg = "#FFD700"
+      color = "#000000"
+    } else {
+      bg = "#1A1A1A"
+      color = "#FFD700"
+    }
+  } else if (finalCompany === 'BGS') {
+    bg = "#0057FF"
+    color = "#FFFFFF"
+  } else if (finalCompany === 'SGC') {
+    bg = "#1A1A1A"
+    color = "#00C853"
+  } else if (finalCompany === 'CGC') {
+    bg = "#0088FF"
+    color = "#FFFFFF"
+  }
+
+  return { bg, color, label }
+}
+
+function GradeChip({ gradeKey, item }: { gradeKey?: string; item?: any }) {
+  const cfg = getGradeConfig(gradeKey, item)
   return (
     <View
       style={{
@@ -136,6 +179,8 @@ function GradeChip({ gradeKey }: { gradeKey?: string }) {
 
 export default function CardDetailScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id ?? "");
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const { data: card, isLoading, isError } = useInventoryItem(id ?? "");
@@ -144,6 +189,21 @@ export default function CardDetailScreen() {
   const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
   const [salesVisibleCount, setSalesVisibleCount] = useState(20);
   const [activeVisibleCount, setActiveVisibleCount] = useState(20);
+
+  // Modals state
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [isUpdatingImage, setIsUpdatingImage] = useState(false);
+
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [editCompany, setEditCompany] = useState("PSA");
+  const [editValue, setEditValue] = useState("10");
+  const [isUpdatingGrade, setIsUpdatingGrade] = useState(false);
+
+  const [showMetricsModal, setShowMetricsModal] = useState(false);
+  const [editCostBasis, setEditCostBasis] = useState("");
+  const [editTargetPrice, setEditTargetPrice] = useState("");
+  const [isUpdatingMetrics, setIsUpdatingMetrics] = useState(false);
 
   // Initialize selected grade key to card's actual inventory grade on load
   useEffect(() => {
@@ -156,6 +216,119 @@ export default function CardDetailScreen() {
       }
     }
   }, [card]);
+
+  // Image Edit Handlers
+  const handlePickGalleryImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please allow photo library access to upload a card photo.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setIsUpdatingImage(true);
+        const uploaded = await inventoryService.uploadPhotoDirect(id ?? "", result.assets[0].uri);
+        
+        queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
+          if (!old) return old;
+          return { ...old, photos: [uploaded.url] };
+        });
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+        setShowImageModal(false);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to upload photo");
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
+
+  const handleSaveImageUrl = async () => {
+    if (!imageUrlInput.trim()) return;
+    setIsUpdatingImage(true);
+    try {
+      await inventoryService.updateItem(id ?? "", { photos: [imageUrlInput.trim()] });
+      queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
+        if (!old) return old;
+        return { ...old, photos: [imageUrlInput.trim()] };
+      });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+      setShowImageModal(false);
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to update image URL");
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
+
+  // Grade Edit Handler
+  const handleSaveGrade = async () => {
+    setIsUpdatingGrade(true);
+    try {
+      const company = editCompany.toUpperCase().trim();
+      const val = editValue.trim();
+      const key = company === "RAW" || val === "RAW" ? "RAW" : `${company}_${val.replace(".", "")}`;
+
+      await inventoryService.updateItem(id ?? "", {
+        gradeCompany: company,
+        gradeValue: val,
+        gradeKey: key,
+      });
+
+      const numMatch = val.match(/[\d\.]+/);
+      if (numMatch && company !== "RAW") {
+        setSelectedGradeKey(numMatch[0]);
+      } else {
+        setSelectedGradeKey("RAW");
+      }
+
+      queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
+        if (!old) return old;
+        return { ...old, grade_company: company, grade_value: val, grade_key: key };
+      });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+      setShowGradeModal(false);
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to update grade");
+    } finally {
+      setIsUpdatingGrade(false);
+    }
+  };
+
+  // Metrics Edit Handler
+  const handleSaveMetrics = async () => {
+    const cost = parseFloat(editCostBasis);
+    const market = parseFloat(editTargetPrice);
+    if (isNaN(cost) || isNaN(market)) {
+      Alert.alert("Invalid Input", "Please enter valid numbers for cost and target price.");
+      return;
+    }
+
+    setIsUpdatingMetrics(true);
+    try {
+      await inventoryService.updateItem(id ?? "", {
+        costBasis: cost,
+        currentMarketValue: market,
+      });
+
+      queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
+        if (!old) return old;
+        return { ...old, cost_basis: String(cost), current_market_value: String(market) };
+      });
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+      setShowMetricsModal(false);
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to update pricing metrics");
+    } finally {
+      setIsUpdatingMetrics(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -254,32 +427,6 @@ export default function CardDetailScreen() {
     "10",
   ];
 
-  const stats = [
-    {
-      label: "Cost Basis",
-      value: `$${costBasis.toFixed(2)}`,
-      color: "#888888",
-    },
-    {
-      label: "Your Target Price",
-      value: marketValue > 0 ? `$${marketValue.toFixed(2)}` : "—",
-      color: "white",
-    },
-    {
-      label: "Days Held",
-      value: `${daysHeld}d`,
-      color: daysHeld >= 60 ? "#FFB300" : "white",
-    },
-    {
-      label: "Unrealized P&L",
-      value:
-        marketValue > 0
-          ? `${unrealizedGain >= 0 ? "+" : ""}$${unrealizedGain.toFixed(2)} (${unrealizedGainPct >= 0 ? "+" : ""}${unrealizedGainPct}%)`
-          : "—",
-      color: marketValue > 0 ? gainColor : "#555555",
-    },
-  ];
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
       <ScrollView
@@ -298,7 +445,7 @@ export default function CardDetailScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Card image */}
+        {/* Card image with Edit Button */}
         <View style={styles.imageArea}>
           {card.photos?.[0] ? (
             <Image
@@ -309,6 +456,19 @@ export default function CardDetailScreen() {
           ) : (
             <Text style={styles.imageInitials}>{initials}</Text>
           )}
+
+          {/* Edit Image Button Overlay */}
+          <TouchableOpacity
+            onPress={() => {
+              setImageUrlInput(card.photos?.[0] || "");
+              setShowImageModal(true);
+            }}
+            style={styles.editImageBtn}
+          >
+            <Ionicons name="camera-outline" size={13} color="#0057FF" />
+            <Text style={styles.editImageBtnText}>Edit</Text>
+          </TouchableOpacity>
+
           {card.cert_number && (
             <View style={styles.certBadge}>
               <Text style={styles.certText}>Cert #{card.cert_number}</Text>
@@ -340,7 +500,7 @@ export default function CardDetailScreen() {
           )}
         </View>
 
-        {/* Player info */}
+        {/* Player info & Grade Chip with Edit Button */}
         <View
           style={{
             paddingHorizontal: 24,
@@ -366,19 +526,73 @@ export default function CardDetailScreen() {
               #{card.card_number}
             </Text>
           )}
-          <GradeChip gradeKey={card.grade_key} />
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <GradeChip gradeKey={card.grade_key} item={card} />
+            <TouchableOpacity
+              onPress={() => {
+                setEditCompany(card.grade_company || "PSA");
+                setEditValue(card.grade_value || "10");
+                setShowGradeModal(true);
+              }}
+              style={styles.editGradeBtn}
+            >
+              <Ionicons name="pencil-outline" size={13} color="#FFB300" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Stats grid */}
+        {/* Stats grid with Edit Option */}
         <View style={styles.statsGrid}>
-          {stats.map((s) => (
-            <View key={s.label} style={styles.statCell}>
-              <Text style={styles.statLabel}>{s.label}</Text>
-              <Text style={[styles.statValue, { color: s.color }]}>
-                {s.value}
-              </Text>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              setEditCostBasis(String(costBasis));
+              setEditTargetPrice(String(marketValue));
+              setShowMetricsModal(true);
+            }}
+            style={[styles.statCell, { position: "relative" }]}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%" }}>
+              <Text style={styles.statLabel}>Cost Basis</Text>
+              <Ionicons name="pencil-outline" size={12} color="#888888" />
             </View>
-          ))}
+            <Text style={[styles.statValue, { color: "#888888" }]}>${costBasis.toFixed(2)}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => {
+              setEditCostBasis(String(costBasis));
+              setEditTargetPrice(String(marketValue));
+              setShowMetricsModal(true);
+            }}
+            style={[styles.statCell, { position: "relative" }]}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%" }}>
+              <Text style={styles.statLabel}>Your Target Price</Text>
+              <Ionicons name="pencil-outline" size={12} color="#0057FF" />
+            </View>
+            <Text style={[styles.statValue, { color: "white" }]}>
+              {marketValue > 0 ? `$${marketValue.toFixed(2)}` : "—"}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.statCell}>
+            <Text style={styles.statLabel}>Days Held</Text>
+            <Text style={[styles.statValue, { color: daysHeld >= 60 ? "#FFB300" : "white" }]}>
+              {daysHeld}d
+            </Text>
+          </View>
+
+          <View style={styles.statCell}>
+            <Text style={styles.statLabel}>Unrealized P&amp;L</Text>
+            <Text style={[styles.statValue, { color: marketValue > 0 ? gainColor : "#555555" }]}>
+              {marketValue > 0
+                ? `${unrealizedGain >= 0 ? "+" : ""}$${unrealizedGain.toFixed(2)} (${unrealizedGainPct >= 0 ? "+" : ""}${unrealizedGainPct}%)`
+                : "—"}
+            </Text>
+          </View>
         </View>
 
         {/* Card details row */}
@@ -406,7 +620,7 @@ export default function CardDetailScreen() {
         </View>
 
         {/* Comps Compare Dashboard */}
-        {allSales.length > 0 && (
+        {(allSales.length > 0 || allActive.length > 0) && (
           <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
             <Text style={styles.sectionLabel}>COMPARE OTHER GRADES</Text>
             <View style={{ marginVertical: 8, marginHorizontal: -20 }}>
@@ -456,16 +670,16 @@ export default function CardDetailScreen() {
               <View style={styles.noDataWarningBox}>
                 <Ionicons name="alert-circle-outline" size={32} color="#FFB300" />
                 <Text style={styles.noDataWarningTitle}>
-                  No exact comps for {selectedGradeKey === "RAW" ? "RAW" : `GRADE ${selectedGradeKey}`}
+                  No exact sales comps for {selectedGradeKey === "RAW" ? "RAW" : `GRADE ${selectedGradeKey}`}
                 </Text>
                 <Text style={styles.noDataWarningText}>
-                  We do not have any cached verified comps for this grade.
+                  We do not have any cached verified sales comps for this grade.
                 </Text>
               </View>
             )}
 
-            {/* Comps Source Tabs (only shown when data exists for the chosen grade) */}
-            {soldCompsForSelectedGrade.length > 0 && (
+            {/* Comps Source Tabs (shown when sales or active listings exist) */}
+            {(soldCompsForSelectedGrade.length > 0 || sortedEbayActive.length > 0 || sortedMyslabsActive.length > 0) && (
               <>
                 <View style={{ paddingBottom: 10, marginHorizontal: -20, marginTop: 16 }}>
                   <ScrollView 
@@ -507,123 +721,228 @@ export default function CardDetailScreen() {
                   </ScrollView>
                 </View>
 
-                {/* Tabular List */}
-                <View style={{ marginTop: 8 }}>
-                  {(() => {
-                    let currentData: any[] = [];
-                    if (compsSourceTab === "ebay_sold") {
-                      currentData = sortedEbaySales;
-                    } else if (compsSourceTab === "ebay_active") {
-                      currentData = sortedEbayActive;
-                    } else if (compsSourceTab === "myslabs_sold") {
-                      currentData = sortedMyslabsSales;
-                    } else if (compsSourceTab === "myslabs_active") {
-                      currentData = sortedMyslabsActive;
-                    }
+                {/* Comps Listings Output */}
+                <View style={styles.sectionCard}>
+                  {compsSourceTab === "ebay_sold" && (
+                    sortedEbaySales.length > 0 ? (
+                      sortedEbaySales.slice(0, salesVisibleCount).map((sale: any, i: number, arr: any[]) => {
+                        const price = parseFloat(sale.soldPrice?.value ?? "0");
+                        const dateStr = safeFormatDate(sale.endDate);
+                        const url = getListingUrl(sale);
 
-                    if (currentData.length === 0) {
-                      return (
-                        <Text style={{ color: "#555", fontSize: 13, marginTop: 16, fontStyle: "italic", textAlign: "center" }}>
-                          No data found for this tab.
-                        </Text>
-                      );
-                    }
+                        return (
+                          <TouchableOpacity
+                            key={sale.itemId ?? i}
+                            activeOpacity={0.7}
+                            onPress={() => url && WebBrowser.openBrowserAsync(url)}
+                            style={[
+                              styles.saleRow,
+                              i < arr.length - 1 && styles.saleRowBorder,
+                            ]}
+                          >
+                            {sale.image?.imageUrl ? (
+                              <Image
+                                source={{ uri: sale.image.imageUrl }}
+                                style={styles.compThumbnail}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={styles.compThumbnailPlaceholder}>
+                                <Text style={{ color: "#444", fontSize: 16 }}>📷</Text>
+                              </View>
+                            )}
 
-                    return (
-                      <View style={styles.sectionCard}>
-                        <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#333", paddingBottom: 8, marginBottom: 8, paddingHorizontal: 14, paddingTop: 14 }}>
-                          <Text style={{ flex: 0.15, color: "#888", fontSize: 10, fontWeight: "600" }}>IMG</Text>
-                          <Text style={{ flex: 0.55, color: "#888", fontSize: 10, fontWeight: "600", paddingLeft: 8 }}>TITLE & COND.</Text>
-                          <Text style={{ flex: 0.3, color: "#888", fontSize: 10, fontWeight: "600", textAlign: "right" }}>PRICE & DATE</Text>
-                        </View>
-                        
-                        {currentData.slice(0, compsSourceTab.includes("sold") ? salesVisibleCount : activeVisibleCount).map((sale, i) => {
-                          const displayPrice = sale.soldPrice?.value ?? sale.price?.value ?? sale.displayPrice ?? "0";
-                          const linkUrl = getListingUrl(sale);
-                          return (
-                            <TouchableOpacity
-                              key={`comp-${sale.platform || ""}-${sale.itemId || ""}-${i}`}
-                              activeOpacity={linkUrl ? 0.7 : 1}
-                              onPress={() => {
-                                if (linkUrl) {
-                                  WebBrowser.openBrowserAsync(linkUrl);
-                                }
-                              }}
-                              style={[
-                                styles.saleRow,
-                                i < currentData.length - 1 && styles.saleRowBorder,
-                              ]}
-                            >
-                              <View style={{ flex: 0.15, alignItems: "flex-start" }}>
-                                {sale.image?.imageUrl ? (
-                                  <Image
-                                    source={{ uri: sale.image.imageUrl }}
-                                    style={styles.compThumbnail}
-                                    resizeMode="cover"
-                                  />
-                                ) : (
-                                  <View style={styles.compThumbnailPlaceholder}>
-                                    <Ionicons name="image-outline" size={16} color="#555" />
-                                  </View>
-                                )}
+                            <View style={{ flex: 1, marginLeft: 12, paddingRight: 8 }}>
+                              <Text
+                                numberOfLines={2}
+                                style={{ color: "#DDD", fontSize: 12, fontWeight: "500" }}
+                              >
+                                {sale.title}
+                              </Text>
+                              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                <View style={[styles.platformBadge, { backgroundColor: "#E53238" }]}>
+                                  <Text style={[styles.platformBadgeText, { color: "#FFF" }]}>eBay</Text>
+                                </View>
+                                <Text style={[styles.saleDate, { marginLeft: 8 }]}>{dateStr}</Text>
                               </View>
-                              <View style={{ flex: 0.55, paddingHorizontal: 8 }}>
-                                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }} numberOfLines={2}>
-                                  {sale.title}
-                                </Text>
-                                {sale.condition && (
-                                  <Text style={{ color: "#555555", fontSize: 10, marginTop: 4 }}>
-                                    {sale.condition}
-                                  </Text>
-                                )}
-                              </View>
-                              <View style={{ flex: 0.3, alignItems: "flex-end" }}>
-                                <Text style={styles.salePrice}>
-                                  ${parseFloat(displayPrice).toFixed(2)}
-                                </Text>
-                                <Text style={styles.saleDate}>
-                                  {compsSourceTab.includes("sold") ? safeFormatDate(sale.endDate) : "Active"}
-                                </Text>
-                                {sale.platform && (
-                                  <View
-                                    style={[
-                                      styles.platformBadge,
-                                      { backgroundColor: sale.platform?.toLowerCase() === "ebay" ? "rgba(0,87,255,0.15)" : "rgba(224,31,43,0.15)" },
-                                    ]}
-                                  >
-                                    <Text
-                                      style={[styles.platformBadgeText, { color: sale.platform?.toLowerCase() === "ebay" ? "#0057FF" : "#E01F2B" }]}
-                                    >
-                                      {sale.platform}
-                                    </Text>
-                                  </View>
-                                )}
-                              </View>
-                            </TouchableOpacity>
-                          );
-                        })}
+                            </View>
+
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={{ padding: 20, alignItems: "center" }}>
+                        <Text style={{ color: "#666", fontSize: 13 }}>No eBay sold comps found for this grade.</Text>
                       </View>
-                    );
-                  })()}
+                    )
+                  )}
+
+                  {compsSourceTab === "ebay_active" && (
+                    sortedEbayActive.length > 0 ? (
+                      sortedEbayActive.slice(0, activeVisibleCount).map((item: any, i: number, arr: any[]) => {
+                        const price = parseFloat(item.price?.value ?? "0");
+                        const url = getListingUrl(item);
+
+                        return (
+                          <TouchableOpacity
+                            key={item.itemId ?? i}
+                            activeOpacity={0.7}
+                            onPress={() => url && WebBrowser.openBrowserAsync(url)}
+                            style={[
+                              styles.saleRow,
+                              i < arr.length - 1 && styles.saleRowBorder,
+                            ]}
+                          >
+                            {item.image?.imageUrl ? (
+                              <Image
+                                source={{ uri: item.image.imageUrl }}
+                                style={styles.compThumbnail}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={styles.compThumbnailPlaceholder}>
+                                <Text style={{ color: "#444", fontSize: 16 }}>📷</Text>
+                              </View>
+                            )}
+
+                            <View style={{ flex: 1, marginLeft: 12, paddingRight: 8 }}>
+                              <Text
+                                numberOfLines={2}
+                                style={{ color: "#DDD", fontSize: 12, fontWeight: "500" }}
+                              >
+                                {item.title}
+                              </Text>
+                              <View style={styles.platformBadge}>
+                                <Text style={styles.platformBadgeText}>eBay Active</Text>
+                              </View>
+                            </View>
+
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={{ padding: 20, alignItems: "center" }}>
+                        <Text style={{ color: "#666", fontSize: 13 }}>No eBay active listings found for this grade.</Text>
+                      </View>
+                    )
+                  )}
+
+                  {compsSourceTab === "myslabs_sold" && (
+                    sortedMyslabsSales.length > 0 ? (
+                      sortedMyslabsSales.slice(0, salesVisibleCount).map((sale: any, i: number, arr: any[]) => {
+                        const price = parseFloat(sale.soldPrice?.value ?? sale.price ?? "0");
+                        const dateStr = safeFormatDate(sale.endDate);
+                        const url = getListingUrl(sale);
+
+                        return (
+                          <TouchableOpacity
+                            key={sale.itemId ?? i}
+                            activeOpacity={0.7}
+                            onPress={() => url && WebBrowser.openBrowserAsync(url)}
+                            style={[
+                              styles.saleRow,
+                              i < arr.length - 1 && styles.saleRowBorder,
+                            ]}
+                          >
+                            {sale.image?.imageUrl ? (
+                              <Image
+                                source={{ uri: sale.image.imageUrl }}
+                                style={styles.compThumbnail}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={styles.compThumbnailPlaceholder}>
+                                <Text style={{ color: "#444", fontSize: 16 }}>📷</Text>
+                              </View>
+                            )}
+
+                            <View style={{ flex: 1, marginLeft: 12, paddingRight: 8 }}>
+                              <Text
+                                numberOfLines={2}
+                                style={{ color: "#DDD", fontSize: 12, fontWeight: "500" }}
+                              >
+                                {sale.title}
+                              </Text>
+                              <View style={[styles.platformBadge, { backgroundColor: "#0057FF" }]}>
+                                <Text style={[styles.platformBadgeText, { color: "#FFF" }]}>MySlabs</Text>
+                              </View>
+                              <Text style={styles.saleDate}>{dateStr}</Text>
+                            </View>
+
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={{ padding: 20, alignItems: "center" }}>
+                        <Text style={{ color: "#666", fontSize: 13 }}>No MySlabs sold comps found for this grade.</Text>
+                      </View>
+                    )
+                  )}
+
+                  {compsSourceTab === "myslabs_active" && (
+                    sortedMyslabsActive.length > 0 ? (
+                      sortedMyslabsActive.slice(0, activeVisibleCount).map((item: any, i: number, arr: any[]) => {
+                        const price = parseFloat(item.price?.value ?? item.soldPrice?.value ?? item.price ?? "0");
+                        const url = getListingUrl(item);
+
+                        return (
+                          <TouchableOpacity
+                            key={item.itemId ?? i}
+                            activeOpacity={0.7}
+                            onPress={() => url && WebBrowser.openBrowserAsync(url)}
+                            style={[
+                              styles.saleRow,
+                              i < arr.length - 1 && styles.saleRowBorder,
+                            ]}
+                          >
+                            {item.image?.imageUrl ? (
+                              <Image
+                                source={{ uri: item.image.imageUrl }}
+                                style={styles.compThumbnail}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={styles.compThumbnailPlaceholder}>
+                                <Text style={{ color: "#444", fontSize: 16 }}>📷</Text>
+                              </View>
+                            )}
+
+                            <View style={{ flex: 1, marginLeft: 12, paddingRight: 8 }}>
+                              <Text
+                                numberOfLines={2}
+                                style={{ color: "#DDD", fontSize: 12, fontWeight: "500" }}
+                              >
+                                {item.title}
+                              </Text>
+                              <View style={[styles.platformBadge, { backgroundColor: "#0057FF" }]}>
+                                <Text style={[styles.platformBadgeText, { color: "#FFF" }]}>MySlabs Active</Text>
+                              </View>
+                            </View>
+
+                            <View style={{ alignItems: "flex-end" }}>
+                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={{ padding: 20, alignItems: "center" }}>
+                        <Text style={{ color: "#666", fontSize: 13 }}>No MySlabs active listings found for this grade.</Text>
+                      </View>
+                    )
+                  )}
                 </View>
               </>
             )}
-          </View>
-        )}
-
-        {allSales.length === 0 && sortedEbayActive.length === 0 && sortedMyslabsActive.length === 0 && !!card.player_name && (
-          <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>COMPS DATA</Text>
-            <View
-              style={[
-                styles.sectionCard,
-                { padding: 20, alignItems: "center" },
-              ]}
-            >
-              <Text style={{ color: "#555555", fontSize: 13 }}>
-                No comps data stored for this card
-              </Text>
-            </View>
           </View>
         )}
       </ScrollView>
@@ -633,108 +952,458 @@ export default function CardDetailScreen() {
         <TouchableOpacity
           style={[
             styles.listBtn,
-            card?.listing_status === "listed" && { borderColor: "#555555", opacity: 0.6 }
+            card.listing_status === "listed" && { opacity: 0.5 },
           ]}
+          disabled={card.listing_status === "listed"}
           onPress={() => {
-            if (card?.listing_status !== "listed") {
-              router.push({
-                pathname: "/listings/create",
-                params: { inventoryId: card?.id },
-              });
-            }
+            router.push({
+              pathname: "/listings/create",
+              params: { cardId: card.id },
+            });
           }}
-          activeOpacity={card?.listing_status === "listed" ? 1 : 0.85}
-          disabled={card?.listing_status === "listed"}
         >
-          <Text 
-            style={[
-              styles.listBtnText, 
-              card?.listing_status === "listed" && { color: "#555555" }
-            ]}
-          >
-            {card?.listing_status === "listed" ? "Listed" : "List for Sale"}
+          <Text style={styles.listBtnText}>
+            {card.listing_status === "listed" ? "Listed" : "Put Listing"}
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.sellBtn}
-          onPress={() => router.push("/sell/scan")}
-          activeOpacity={0.85}
+          onPress={() =>
+            router.push({
+              pathname: "/sell/scan",
+              params: { prefillId: card.id },
+            })
+          }
         >
-          <Text style={styles.sellBtnText}>Quick Sell</Text>
+          <Text style={styles.sellBtnText}>Quick Sale</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Image Edit Modal */}
+      <Modal
+        visible={showImageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImageModal(false)}
+      >
+        <Pressable
+          style={modalStyles.overlay}
+          onPress={() => setShowImageModal(false)}
+        >
+          <Pressable style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Update Card Photo</Text>
+              <TouchableOpacity onPress={() => setShowImageModal(false)}>
+                <Ionicons name="close" size={22} color="#AAA" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={handlePickGalleryImage}
+              disabled={isUpdatingImage}
+              style={modalStyles.actionBtn}
+            >
+              <Ionicons name="images-outline" size={18} color="#FFF" />
+              <Text style={modalStyles.actionBtnText}>Pick Photo from Device Gallery</Text>
+            </TouchableOpacity>
+
+            <Text style={modalStyles.orText}>OR PASTE DIRECT WEB URL</Text>
+
+            <TextInput
+              style={modalStyles.input}
+              placeholder="https://example.com/photo.jpg"
+              placeholderTextColor="#555"
+              value={imageUrlInput}
+              onChangeText={setImageUrlInput}
+              autoCapitalize="none"
+            />
+
+            <View style={modalStyles.btnRow}>
+              <TouchableOpacity
+                onPress={() => setShowImageModal(false)}
+                style={modalStyles.cancelBtn}
+              >
+                <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveImageUrl}
+                disabled={isUpdatingImage || !imageUrlInput.trim()}
+                style={[modalStyles.saveBtn, { opacity: isUpdatingImage || !imageUrlInput.trim() ? 0.5 : 1 }]}
+              >
+                <Text style={modalStyles.saveBtnText}>
+                  {isUpdatingImage ? "Saving..." : "Save Image"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Grade Edit Modal */}
+      <Modal
+        visible={showGradeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGradeModal(false)}
+      >
+        <Pressable
+          style={modalStyles.overlay}
+          onPress={() => setShowGradeModal(false)}
+        >
+          <Pressable style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Edit Grade &amp; Company</Text>
+              <TouchableOpacity onPress={() => setShowGradeModal(false)}>
+                <Ionicons name="close" size={22} color="#AAA" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={modalStyles.label}>GRADING COMPANY</Text>
+            <View style={modalStyles.chipContainer}>
+              {["PSA", "BGS", "SGC", "CGC", "RAW"].map((co) => (
+                <TouchableOpacity
+                  key={co}
+                  onPress={() => setEditCompany(co)}
+                  style={[
+                    modalStyles.chip,
+                    editCompany === co && modalStyles.chipSelected,
+                  ]}
+                >
+                  <Text style={[modalStyles.chipText, editCompany === co && modalStyles.chipTextSelected]}>
+                    {co}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {editCompany !== "RAW" && (
+              <>
+                <Text style={[modalStyles.label, { marginTop: 16 }]}>GRADE VALUE</Text>
+                <View style={modalStyles.chipContainer}>
+                  {["10", "9.5", "9", "8.5", "8", "7", "6", "5"].map((gv) => (
+                    <TouchableOpacity
+                      key={gv}
+                      onPress={() => setEditValue(gv)}
+                      style={[
+                        modalStyles.chip,
+                        editValue === gv && modalStyles.chipSelected,
+                      ]}
+                    >
+                      <Text style={[modalStyles.chipText, editValue === gv && modalStyles.chipTextSelected]}>
+                        {gv}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <View style={[modalStyles.btnRow, { marginTop: 24 }]}>
+              <TouchableOpacity
+                onPress={() => setShowGradeModal(false)}
+                style={modalStyles.cancelBtn}
+              >
+                <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveGrade}
+                disabled={isUpdatingGrade}
+                style={[modalStyles.saveBtn, { backgroundColor: "#FFB300" }]}
+              >
+                <Text style={[modalStyles.saveBtnText, { color: "#000" }]}>
+                  {isUpdatingGrade ? "Saving..." : "Save Grade"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Metrics (Cost Basis & Target Price) Edit Modal */}
+      <Modal
+        visible={showMetricsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMetricsModal(false)}
+      >
+        <Pressable
+          style={modalStyles.overlay}
+          onPress={() => setShowMetricsModal(false)}
+        >
+          <Pressable style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Edit Cost &amp; Target Price</Text>
+              <TouchableOpacity onPress={() => setShowMetricsModal(false)}>
+                <Ionicons name="close" size={22} color="#AAA" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={modalStyles.label}>COST BASIS ($)</Text>
+            <TextInput
+              style={modalStyles.input}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor="#555"
+              value={editCostBasis}
+              onChangeText={setEditCostBasis}
+            />
+
+            <Text style={[modalStyles.label, { marginTop: 14 }]}>YOUR TARGET PRICE ($)</Text>
+            <TextInput
+              style={modalStyles.input}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor="#555"
+              value={editTargetPrice}
+              onChangeText={setEditTargetPrice}
+            />
+
+            <View style={[modalStyles.btnRow, { marginTop: 24 }]}>
+              <TouchableOpacity
+                onPress={() => setShowMetricsModal(false)}
+                style={modalStyles.cancelBtn}
+              >
+                <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveMetrics}
+                disabled={isUpdatingMetrics}
+                style={modalStyles.saveBtn}
+              >
+                <Text style={modalStyles.saveBtnText}>
+                  {isUpdatingMetrics ? "Updating..." : "Save Prices"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  content: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#111111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2D2D2D",
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  title: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  label: {
+    color: "#888888",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333333",
+    color: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  actionBtn: {
+    backgroundColor: "#0057FF",
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  actionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  orText: {
+    color: "#555555",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textAlign: "center",
+    marginVertical: 16,
+  },
+  chipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  chipSelected: {
+    backgroundColor: "#0057FF",
+    borderColor: "#0057FF",
+  },
+  chipText: {
+    color: "#AAA",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  chipTextSelected: {
+    color: "#FFF",
+  },
+  btnRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  cancelBtnText: {
+    color: "#888",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  saveBtn: {
+    backgroundColor: "#0057FF",
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  saveBtnText: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+});
 
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    height: 54,
   },
-  backBtn: { width: 40, height: 40, justifyContent: "center" },
-  backText: { color: "white", fontSize: 28 },
-  headerTitle: { color: "white", fontSize: 17, fontWeight: "600" },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#111111",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backText: { color: "#FFFFFF", fontSize: 24, lineHeight: 28 },
+  headerTitle: { color: "#FFFFFF", fontSize: 17, fontWeight: "700" },
+
   imageArea: {
     height: 280,
     marginHorizontal: 20,
     backgroundColor: "#111111",
     borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 1,
     borderColor: "#2A2A2A",
-    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
-  imageInitials: { color: "#2A2A2A", fontSize: 64, fontWeight: "900" },
+  imageInitials: { color: "#333333", fontSize: 64, fontWeight: "900" },
   certBadge: {
     position: "absolute",
     bottom: 12,
-    right: 12,
-    backgroundColor: "#1A1A1A",
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    left: 12,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 6,
   },
-  certText: { color: "#555555", fontSize: 11 },
+  certText: { color: "#AAAAAA", fontSize: 11, fontWeight: "600" },
   statusBadge: {
     position: "absolute",
     top: 12,
-    left: 12,
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    right: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
+    borderRadius: 6,
   },
-  detailRow: {
+  editImageBtn: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    zIndex: 10,
   },
-  detailLabel: { color: "#555555", fontSize: 13 },
-  detailValue: { color: "white", fontSize: 13, fontWeight: "600" },
-  playerName: {
-    fontSize: 26,
+  editImageBtnText: {
+    color: "#FFFFFF",
+    fontSize: 11,
     fontWeight: "700",
-    color: "white",
-    marginBottom: 6,
+  },
+  editGradeBtn: {
+    padding: 6,
+    backgroundColor: "#111111",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#2A2A2A",
+  },
+
+  playerName: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "800",
     textAlign: "center",
   },
-  cardSubtitle: { color: "#888888", fontSize: 14, marginBottom: 12 },
+  cardSubtitle: { color: "#AAAAAA", fontSize: 14, textAlign: "center" },
+
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
     paddingHorizontal: 20,
-    marginTop: 24,
+    marginTop: 20,
+    gap: 12,
   },
   statCell: {
-    width: "47%",
-    backgroundColor: "#1A1A1A",
-    borderRadius: 12,
+    width: "48%",
+    backgroundColor: "#111111",
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: "#2A2A2A",
@@ -742,11 +1411,12 @@ const styles = StyleSheet.create({
   statLabel: {
     color: "#555555",
     fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    marginBottom: 6,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 4,
   },
-  statValue: { fontSize: 16, fontWeight: "700" },
+  statValue: { fontSize: 18, fontWeight: "800" },
+
   sectionLabel: {
     color: "#888888",
     fontSize: 11,
@@ -761,6 +1431,15 @@ const styles = StyleSheet.create({
     borderColor: "#2A2A2A",
     overflow: "hidden",
   },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 14,
+  },
+  detailLabel: { color: "#888888", fontSize: 13 },
+  detailValue: { color: "#FFFFFF", fontSize: 13, fontWeight: "600" },
+
   saleRow: {
     flexDirection: "row",
     alignItems: "center",
