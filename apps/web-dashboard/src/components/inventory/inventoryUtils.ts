@@ -91,10 +91,76 @@ export const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value)
 
-export const formatGrade = (gradeKey: string | null | undefined) => {
+export const formatGrade = (
+  gradeKey: string | null | undefined,
+  card?: { grade_company?: string | null; grade_value?: string | null } | null
+): string => {
+  if (card?.grade_company && card?.grade_value) {
+    if (card.grade_company === 'RAW') return 'RAW'
+    return `${card.grade_company} ${card.grade_value}`
+  }
+
   if (!gradeKey) return 'RAW'
   if (GRADE_CONFIG[gradeKey]) return GRADE_CONFIG[gradeKey].label
-  return gradeKey.replace(/_/g, ' ')
+
+  const formatted = gradeKey.replace(/_/g, ' ')
+
+  // If gradeKey is just a number like "10" or "9" or "9.5"
+  if (/^\d+(?:\.\d+)?$/.test(formatted.trim())) {
+    const company = card?.grade_company || 'PSA'
+    return `${company} ${formatted.trim()}`
+  }
+
+  return formatted
+}
+
+export const getGradeConfig = (
+  gradeKey: string | null | undefined,
+  card?: { grade_company?: string | null; grade_value?: string | null } | null
+) => {
+  const formattedLabel = formatGrade(gradeKey, card)
+
+  if (gradeKey && GRADE_CONFIG[gradeKey]) {
+    return GRADE_CONFIG[gradeKey]
+  }
+
+  const keyWithUnderscores = formattedLabel.replace(/\s+/g, '_')
+  if (GRADE_CONFIG[keyWithUnderscores]) {
+    return {
+      ...GRADE_CONFIG[keyWithUnderscores],
+      label: formattedLabel,
+    }
+  }
+
+  if (formattedLabel.startsWith('PSA')) {
+    return {
+      badgeStyle: 'bg-amber-400 text-black border-amber-300 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('BGS')) {
+    return {
+      badgeStyle: 'bg-blue-600 text-white border-blue-400 font-bold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('SGC')) {
+    return {
+      badgeStyle: 'bg-zinc-950 text-white border-zinc-500 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('CGC')) {
+    return {
+      badgeStyle: 'bg-cyan-500 text-black border-cyan-300 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+
+  return {
+    badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
+    label: formattedLabel,
+  }
 }
 
 export const toDisplaySport = (sport: string | null | undefined) => {

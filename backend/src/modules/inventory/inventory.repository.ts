@@ -182,11 +182,32 @@ export class InventoryRepository {
     const cleanVariation = variation && variation !== "" ? variation : null;
     const cleanCardNumber = cardNumber && cardNumber !== "" ? cardNumber : null;
     const cleanSport = sport && sport !== "" ? sport : null;
-    const cleanGradeCompany = gradeCompany && gradeCompany !== "" ? gradeCompany : null;
-    const cleanGradeValue = gradeValue && gradeValue !== "" ? Number(gradeValue) : null;
+    let cleanGradeCompany = gradeCompany && gradeCompany !== "" ? String(gradeCompany).toUpperCase() : null;
+    let cleanGradeValue = gradeValue !== null && gradeValue !== undefined && gradeValue !== "" ? String(gradeValue) : null;
 
-    if (gradeKey === "RAW" && cleanGradeCompany && cleanGradeValue) {
-      gradeKey = `${cleanGradeCompany} ${cleanGradeValue}`;
+    if (gradeKey && gradeKey !== "RAW") {
+      if (gradeKey.includes('_')) {
+        const parts = gradeKey.split('_');
+        if (!cleanGradeCompany) cleanGradeCompany = parts[0];
+        if (!cleanGradeValue) cleanGradeValue = parts.slice(1).join('.');
+      } else if (gradeKey.includes(' ')) {
+        const parts = gradeKey.split(' ');
+        if (!cleanGradeCompany) cleanGradeCompany = parts[0];
+        if (!cleanGradeValue) cleanGradeValue = parts.slice(1).join('.');
+      } else if (/^\d+(?:\.\d+)?$/.test(gradeKey.trim())) {
+        if (!cleanGradeCompany) cleanGradeCompany = 'PSA';
+        if (!cleanGradeValue) cleanGradeValue = gradeKey.trim();
+      }
+    }
+
+    if (cleanGradeValue && (!cleanGradeCompany || cleanGradeCompany === 'RAW')) {
+      cleanGradeCompany = 'PSA';
+    }
+
+    if (cleanGradeCompany && cleanGradeValue && cleanGradeCompany !== 'RAW') {
+      gradeKey = `${cleanGradeCompany}_${cleanGradeValue.replace('.', '')}`;
+    } else if (!gradeKey) {
+      gradeKey = 'RAW';
     }
 
     const cleanCertNumber = certNumber && certNumber !== "" ? certNumber : null;

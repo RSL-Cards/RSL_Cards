@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Clock3, TrendingDown, TrendingUp } from 'lucide-react'
-import { GRADE_CONFIG, InventoryCard, formatCurrency, formatGrade } from './inventoryUtils'
+import { GRADE_CONFIG, InventoryCard, formatCurrency, formatGrade, getGradeConfig } from './inventoryUtils'
 
 type Props = {
   cards: InventoryCard[]
@@ -21,10 +21,7 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
   return (
     <div className="space-y-4">
       {cards.map((card) => {
-        const gradeCfg = GRADE_CONFIG[card.grade_key] ?? {
-          badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
-          label: formatGrade(card.grade_key),
-        }
+        const gradeCfg = getGradeConfig(card.grade_key, card)
         const cost = card.cost_basis || 0
         const market = card.market_value || 0
         const unrealizedGain = card.unrealized_gain ?? (market - cost)

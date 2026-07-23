@@ -9,6 +9,7 @@ import {
   ClipboardList,
   DollarSign,
   BarChart3,
+  CheckSquare,
   Settings,
   ChevronRight,
   Crown,
@@ -22,6 +23,7 @@ const navItems = [
   { icon: ClipboardList, label: 'Listings', href: '/listings' },
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
+  { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 

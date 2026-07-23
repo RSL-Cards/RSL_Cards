@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import Shell from '@/components/layout/Shell'
-import AISummary from '@/components/reports/AISummary'
 import InventoryAgingReport from '@/components/reports/InventoryAgingReport'
 import PeriodTrend from '@/components/reports/PeriodTrend'
 import ProfitMarginAnalysis from '@/components/reports/ProfitMarginAnalysis'
@@ -138,17 +137,8 @@ export default function ReportsPage() {
               totalRevenue={totalRevenue}
             />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="w-full">
           <SalesByPlatformChart salesByPlatform={salesByPlatform} />
-          <AISummary
-            agingAlerts={agingAlerts}
-            bestMarginGroup={bestMarginGroup}
-            bestPlatform={bestPlatform}
-            insights={aiInsights}
-            period={period}
-            totalProfit={totalProfit}
-            totalRevenue={totalRevenue}
-          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

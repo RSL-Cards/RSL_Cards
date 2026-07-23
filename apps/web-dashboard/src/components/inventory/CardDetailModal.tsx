@@ -14,6 +14,7 @@ import {
 import {
   formatCurrency,
   formatGrade,
+  getGradeConfig,
   GRADE_CONFIG,
   InventoryCard,
 } from './inventoryUtils'
@@ -232,10 +233,7 @@ export default function CardDetailModal({
 
   const gradeLabel = selectedGradeKey === 'RAW' ? 'RAW' : `GRADE ${selectedGradeKey}`
 
-  const gradeCfg = GRADE_CONFIG[detailedCard.grade_key] ?? {
-    badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
-    label: formatGrade(detailedCard.grade_key),
-  }
+  const gradeCfg = getGradeConfig(detailedCard.grade_key, detailedCard)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-5 backdrop-blur-md animate-in fade-in duration-200">

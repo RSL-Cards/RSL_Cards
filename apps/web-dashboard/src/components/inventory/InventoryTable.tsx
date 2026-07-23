@@ -13,6 +13,7 @@ import {
   cardImageStyle,
   formatCurrency,
   formatGrade,
+  getGradeConfig,
   GRADE_CONFIG,
   InventoryCard,
   SortDirection,
@@ -131,10 +132,7 @@ export default function InventoryTable({
                   ? 'border-l-2 border-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
                   : 'hover:bg-[#141414]/70'
 
-              const gradeCfg = GRADE_CONFIG[card.grade_key] ?? {
-                badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
-                label: formatGrade(card.grade_key),
-              }
+              const gradeCfg = getGradeConfig(card.grade_key, card)
 
               return (
                 <tr
