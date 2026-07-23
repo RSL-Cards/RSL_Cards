@@ -13,6 +13,7 @@ import {
   cardImageStyle,
   formatCurrency,
   formatGrade,
+  GRADE_CONFIG,
   InventoryCard,
   SortDirection,
   SortKey,
@@ -130,6 +131,11 @@ export default function InventoryTable({
                   ? 'border-l-2 border-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
                   : 'hover:bg-[#141414]/70'
 
+              const gradeCfg = GRADE_CONFIG[card.grade_key] ?? {
+                badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
+                label: formatGrade(card.grade_key),
+              }
+
               return (
                 <tr
                   key={card.id}
@@ -153,11 +159,16 @@ export default function InventoryTable({
                     />
                   </td>
                   <td className="py-3">
-                    <div className={`h-14 w-10 rounded-md border border-[#252525] bg-gradient-to-br ${cardImageStyle(card)} p-1 shadow-lg`}>
+                    <div className={`h-14 w-10 rounded-md border border-[#252525] bg-gradient-to-br ${cardImageStyle(card)} p-1 shadow-lg relative`}>
                       <div className="flex h-full flex-col justify-between rounded border border-white/20 bg-black/40 px-1 py-0.5">
                         <span className="truncate text-[8px] font-bold text-white">{card.year}</span>
                         <span className="text-[9px] font-black text-white">{card.player_name.slice(0, 2).toUpperCase()}</span>
                       </div>
+                      {card.quantity && card.quantity > 1 ? (
+                        <span className="absolute -top-1.5 -right-1.5 rounded bg-black border border-white/30 px-1 py-0.2 font-mono text-[9px] font-bold text-white">
+                          &times;{card.quantity}
+                        </span>
+                      ) : null}
                     </div>
                   </td>
                   <td className="py-3">
@@ -174,13 +185,20 @@ export default function InventoryTable({
                     </div>
                   </td>
                   <td className="py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium border ${card.grade_key.includes('PSA') ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : card.grade_key.includes('BGS') ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' : 'bg-[#141414] text-zinc-400 border-[#252525]'}`}>
-                      {formatGrade(card.grade_key)}
+                    <span className={`inline-flex rounded-lg px-2.5 py-0.5 text-xs tracking-wide uppercase border ${gradeCfg.badgeStyle}`}>
+                      {gradeCfg.label}
                     </span>
                   </td>
                   <td className="py-3 text-sm text-zinc-400">{card.sport}</td>
                   <td className="py-3 font-mono text-sm text-white">{card.year}</td>
-                  <td className="py-3 text-sm text-zinc-400">{card.set_name}</td>
+                  <td className="py-3 text-sm text-zinc-400">
+                    <div>{card.set_name}</div>
+                    {card.variation || card.card_number ? (
+                      <div className="text-xs text-zinc-500">
+                        {card.variation ? card.variation : ''}{card.variation && card.card_number ? ' · ' : ''}{card.card_number ? `#${card.card_number}` : ''}
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="py-3 text-right font-mono text-sm text-white">{formatCurrency(card.cost_basis)}</td>
                   <td className="py-3 text-right font-mono text-sm text-white">{formatCurrency(card.market_value)}</td>
                   <td className="py-3 text-right">

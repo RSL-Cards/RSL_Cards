@@ -248,7 +248,7 @@ export class AnalyticsRepository {
     if (dailyLogId) {
       await db.execute(sql`
         UPDATE daily_logs 
-        SET updated_after_closing = TRUE
+        SET updated_after_closing = TRUE, updated_at = NOW()
         WHERE id = ${dailyLogId} AND status = 'closed'
       `);
     }
