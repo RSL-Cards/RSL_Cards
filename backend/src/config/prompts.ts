@@ -20,6 +20,7 @@ Return ONLY this JSON:
   "grading": {
     "company": "PSA",
     "grade": "10",
+    "auto_grade": "10",
     "cert_number": "12345678"
   },
   "confidence": 0.95
@@ -28,13 +29,13 @@ Rules:
 - "year" must be a number
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
-- "variation": the parallel/refractor name exactly as on the card or as known on eBay (e.g. "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave","Red /299"). **CRITICAL: If the card is in a graded slab, READ the grading label text to determine the exact variation. Do NOT confuse the slab color (e.g. black Beckett Pristine) with the card's parallel.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
+- "variation": the parallel/refractor/insert name exactly as on the card or slab label (e.g. "Downtown!", "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave"). **CRITICAL: If the card is in a graded slab, READ the slab label text to determine the exact variation, subset (e.g. Downtown!), card number, cert number, and grade.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
 - "search_string": Include all core descriptive text visible on the card itself (Player, Year, Set, Variation, Subsets like "Performers", "Auto", etc.). DO NOT include grading company, grade, or the card number (e.g. no "PSA 10", no "#100").
-- "card_number": number printed on the card (omit #). null if not visible.
-- "set_name": brand+product as on eBay (e.g. "Panini Prizm","Topps Chrome"). No year.
+- "card_number": number printed on the card or slab (omit #, e.g. "DTPM" or "269"). null if not visible.
+- "set_name": brand+product as on eBay (e.g. "Panini Donruss", "Panini Prizm", "Topps Chrome"). No year.
 - "manufacturer": card company.
 - "is_rookie"/"is_autograph"/"is_relic": booleans per visible markers.
-- If no grading label visible, omit "grading" entirely.
+- "grading": If card is in a slab, extract company, grade, auto_grade (if autographed, e.g. "AUTO 10" or "10"), and cert_number (e.g. "93463931"). If no grading label visible, omit "grading" entirely.
 - If a field isn't determinable, use null.
 
 KILL ALGORITHM — build the "filter" object using these rules:
@@ -92,6 +93,7 @@ Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are
     "grading": {
       "company": "PSA",
       "grade": "10",
+      "auto_grade": "10",
       "cert_number": "12345678"
     },
     "confidence": 0.95
@@ -101,13 +103,13 @@ Rules (apply to EACH card):
 - "year" must be a number
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
-- "variation": the parallel/refractor name exactly as on the card or as known on eBay (e.g. "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave","Red /299"). **CRITICAL: If the card is in a graded slab, READ the grading label text to determine the exact variation. Do NOT confuse the slab color (e.g. black Beckett Pristine) with the card's parallel.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
+- "variation": the parallel/refractor/insert name exactly as on the card or slab label (e.g. "Downtown!", "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave"). **CRITICAL: If the card is in a graded slab, READ the slab label text to determine the exact variation, subset (e.g. Downtown!), card number, cert number, and grade.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
 - "search_string": Include all core descriptive text visible on the card itself (Player, Year, Set, Variation, Subsets like "Performers", "Auto", etc.). DO NOT include grading company, grade, or the card number (e.g. no "PSA 10", no "#100").
-- "card_number": number printed on the card (omit #). null if not visible.
-- "set_name": brand+product as on eBay (e.g. "Panini Prizm","Topps Chrome"). No year.
+- "card_number": number printed on the card or slab (omit #, e.g. "DTPM" or "269"). null if not visible.
+- "set_name": brand+product as on eBay (e.g. "Panini Donruss", "Panini Prizm", "Topps Chrome"). No year.
 - "manufacturer": card company.
 - "is_rookie"/"is_autograph"/"is_relic": booleans per visible markers.
-- If no grading label visible, omit "grading" entirely.
+- "grading": If card is in a slab, extract company, grade, auto_grade (if autographed, e.g. "AUTO 10" or "10"), and cert_number (e.g. "93463931"). If no grading label visible, omit "grading" entirely.
 - If a field isn't determinable, use null.
 
 KILL ALGORITHM — build the "filter" object using these rules:

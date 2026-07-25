@@ -111,6 +111,14 @@ export class BullMqAdapter {
         jobId: "notify_close_daily_logs_cron"
       });
       logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM daily");
+
+      await this.queue.add("send_weekly_performance_report", {}, {
+        repeat: {
+          pattern: "0 9 * * 0" // 9:00 AM every Sunday
+        },
+        jobId: "send_weekly_performance_report_cron"
+      });
+      logger.info("🕒 Scheduled 'send_weekly_performance_report' cron job to run every Sunday at 9:00 AM");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

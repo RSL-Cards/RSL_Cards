@@ -495,29 +495,73 @@ function DailyLogsTab() {
                   logTransactions.map((tx: any) => {
                     const isExpense = tx.type === "expense";
                     const isSell = tx.type === "sell";
-                    const amtColor = isSell ? COLORS.success : COLORS.white;
-                    const sign = isSell ? "+" : "-";
+                    const isTrade = tx.type === "trade";
+                    const isBuy = tx.type === "buy";
+
+                    const amtColor = isExpense
+                      ? COLORS.destructive
+                      : isSell
+                      ? COLORS.success
+                      : isTrade
+                      ? "#00C853"
+                      : COLORS.primaryLight;
+
+                    const sign = isExpense ? "-" : isSell ? "+" : isBuy ? "-" : "";
+
+                    let formattedAmountStr = `${sign}${fmt$(tx.amount)}`;
+                    if (isTrade) {
+                      const num = parseFloat(String(tx.amount || 0));
+                      if (num > 0) formattedAmountStr = `+${fmt$(num)}`;
+                      else if (num < 0) formattedAmountStr = `-${fmt$(Math.abs(num))}`;
+                      else formattedAmountStr = "Straight Trade";
+                    }
 
                     return (
                       <Surface key={tx.id} variant="glass" padding="md" style={styles.txRow}>
                         <View style={{ flex: 1, gap: 2 }}>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <View style={[styles.txBadge, { backgroundColor: isExpense ? "rgba(224, 0, 28, 0.15)" : isSell ? "rgba(0, 200, 83, 0.15)" : "rgba(33, 150, 243, 0.15)" }]}>
-                              <Typography variant="caption" weight="800" style={{ fontSize: 9, color: isExpense ? COLORS.destructive : isSell ? COLORS.success : COLORS.primaryLight }}>
-                                {tx.type.toUpperCase()}
+                            <View
+                              style={[
+                                styles.txBadge,
+                                {
+                                  backgroundColor: isExpense
+                                    ? "rgba(224, 0, 28, 0.15)"
+                                    : isSell
+                                    ? "rgba(0, 200, 83, 0.15)"
+                                    : isTrade
+                                    ? "rgba(0, 200, 83, 0.15)"
+                                    : "rgba(33, 150, 243, 0.15)",
+                                },
+                              ]}
+                            >
+                              <Typography
+                                variant="caption"
+                                weight="800"
+                                style={{
+                                  fontSize: 9,
+                                  color: isExpense
+                                    ? COLORS.destructive
+                                    : isSell
+                                    ? COLORS.success
+                                    : isTrade
+                                    ? "#00C853"
+                                    : COLORS.primaryLight,
+                                }}
+                              >
+                                {isTrade ? "TRADE" : tx.type.toUpperCase()}
                               </Typography>
                             </View>
                             <Typography variant="caption" color={COLORS.zinc400}>
                               {fmtTime(tx.time)}
                             </Typography>
                           </View>
-                          <Typography variant="body" weight="600" color={COLORS.white}>
-                            {tx.description}
+                          <Typography variant="body" weight="600" color={COLORS.white} numberOfLines={1}>
+                            {tx.description || (isTrade ? "Trade Transaction" : "Transaction")}
                           </Typography>
                         </View>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
                           <Typography variant="body" weight="800" color={amtColor}>
-                            {sign}{fmt$(tx.amount)}
+                            {formattedAmountStr}
                           </Typography>
                           <TouchableOpacity onPress={() => handleDeleteItem(tx.id, tx.type)}>
                             <Ionicons name="trash-outline" size={18} color={COLORS.destructive} />

@@ -81,7 +81,7 @@ export class DailyLogsRepository {
         id::text, 
         type::text, 
         price::numeric as amount, 
-        player_name::text as description, 
+        COALESCE(player_name, CASE WHEN type = 'trade' THEN 'Trade Transaction' ELSE 'Transaction' END)::text as description, 
         created_at as time
       FROM transactions 
       WHERE daily_log_id = ${logId}

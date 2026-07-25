@@ -471,18 +471,25 @@ export default function DailyLogPanel() {
                               <span className={clsx(
                                 "text-xs font-semibold px-2 py-0.5 rounded-full border",
                                 tx.type === 'sell' ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
-                                  tx.type === 'buy' ? "bg-red-500/15 text-red-400 border-red-500/30" :
-                                    "bg-orange-500/15 text-orange-400 border-orange-500/30"
+                                  tx.type === 'trade' ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
+                                    tx.type === 'buy' ? "bg-red-500/15 text-red-400 border-red-500/30" :
+                                      "bg-orange-500/15 text-orange-400 border-orange-500/30"
                               )}>
                                 {tx.type.toUpperCase()}
                               </span>
                               <span className={clsx(
-                                "text-sm font-bold w-20 text-right",
-                                tx.type === 'sell' ? "text-emerald-400" :
+                                "text-sm font-bold text-right min-w-[80px]",
+                                tx.type === 'sell' || tx.type === 'trade' ? "text-emerald-400" :
                                   tx.type === 'buy' ? "text-red-400" :
                                     "text-orange-400"
                               )}>
-                                {tx.type === 'sell' ? '+' : '-'}${parseFloat(tx.amount || 0).toFixed(2)}
+                                {tx.type === 'trade'
+                                  ? parseFloat(tx.amount || 0) > 0
+                                    ? `+$${parseFloat(tx.amount).toFixed(2)}`
+                                    : parseFloat(tx.amount || 0) < 0
+                                    ? `-$${Math.abs(parseFloat(tx.amount)).toFixed(2)}`
+                                    : 'Straight Trade'
+                                  : `${tx.type === 'sell' ? '+' : '-'}$${parseFloat(tx.amount || 0).toFixed(2)}`}
                               </span>
 
                               {/* Edit/Delete — only for expense type */}

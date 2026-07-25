@@ -73,21 +73,32 @@ export class ListingService {
         throw new Error(publishResult.error || "Failed to publish listing to eBay.");
       }
     } catch (publishError: any) {
-      // Send failed sync notification
+      // Send failed sync notification (respecting user push & email preferences)
       try {
         const prefResult = await db.execute(sql`
-          SELECT notification_preferences FROM dealer_profiles
-          WHERE user_id = ${userId}
+          SELECT dp.notification_preferences, u.email as user_email
+          FROM dealer_profiles dp
+          JOIN users u ON u.id = dp.user_id
+          WHERE dp.user_id = ${userId}
           LIMIT 1
         `);
         
         let sendPush = true;
+        let sendEmail = false;
+        let userEmail = null;
+
         if (prefResult.rows.length > 0) {
-          const prefs = prefResult.rows[0].notification_preferences as any;
+          const rowData = prefResult.rows[0] as any;
+          userEmail = rowData.user_email;
+          const prefs = rowData.notification_preferences as any;
           if (prefs && prefs.failedSync) {
-            sendPush = !!prefs.failedSync.push;
+            sendPush = prefs.failedSync.push !== false;
+            sendEmail = prefs.failedSync.email === true;
           }
         }
+
+        const alertTitle = "Marketplace Sync Failed";
+        const alertBody = `Failed to list "${cardName}" to eBay: ${publishError.message}`;
 
         if (sendPush) {
           const { NotificationRepository } = await import("../notification/notification.repository.js");
@@ -96,11 +107,21 @@ export class ListingService {
           const notifService = new NotificationService(notifRepository);
           await notifService.sendNotification(
             userId,
-            "Marketplace Sync Failed",
-            `Failed to list "${cardName}" to eBay: ${publishError.message}`,
+            alertTitle,
+            alertBody,
             "failed_sync",
             { inventoryId, error: publishError.message }
           );
+        }
+
+        if (sendEmail && userEmail) {
+          const { emailService } = await import("../email/index.js");
+          await emailService.sendNotificationAlert(userEmail, {
+            alertTitle: alertTitle,
+            alertBody: alertBody,
+            actionUrl: `https://app.rslcards.com/inventory?id=${inventoryId}`,
+            actionText: "Manage Inventory Listing",
+          });
         }
       } catch (err: any) {
         console.error(`[LISTING] Failed to send sync failure notification: ${err.message}`);

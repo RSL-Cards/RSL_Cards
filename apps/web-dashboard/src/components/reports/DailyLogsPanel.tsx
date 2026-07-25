@@ -297,7 +297,19 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
                 {transactions.map((tx: any) => {
                   const isExpense = tx.type === 'expense';
                   const isSell    = tx.type === 'sell';
-                  const sign      = isSell ? '+' : '-';
+                  const isTrade   = tx.type === 'trade';
+                  const isBuy     = tx.type === 'buy';
+
+                  const sign = isExpense ? '-' : isSell ? '+' : isBuy ? '-' : '';
+                  const numAmt = parseFloat(tx.amount || 0);
+
+                  let formattedAmountStr = `${sign}${fmt$(tx.amount)}`;
+                  if (isTrade) {
+                    if (numAmt > 0) formattedAmountStr = `+${fmt$(numAmt)}`;
+                    else if (numAmt < 0) formattedAmountStr = `-${fmt$(Math.abs(numAmt))}`;
+                    else formattedAmountStr = 'Straight Trade';
+                  }
+
                   return (
                     <div
                       key={tx.id}
@@ -309,20 +321,21 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
                             'text-[10px] font-bold px-1.5 py-0.5 rounded-full border',
                             isExpense ? 'bg-red-500/15 text-red-400 border-red-500/30' :
                             isSell    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                            isTrade   ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
                                         'bg-blue-500/15 text-blue-400 border-blue-500/30'
                           )}>
-                            {tx.type.toUpperCase()}
+                            {isTrade ? 'TRADE' : tx.type.toUpperCase()}
                           </span>
                           <span className="text-[10px] text-zinc-500">{fmtTime(tx.time)}</span>
                         </div>
-                        <span className="text-sm font-medium text-white truncate">{tx.description || '—'}</span>
+                        <span className="text-sm font-medium text-white truncate">{tx.description || (isTrade ? 'Trade Transaction' : '—')}</span>
                       </div>
                       <span className={clsx(
                         'text-sm font-bold ml-3 shrink-0',
-                        isSell ? 'text-emerald-400' :
+                        isSell || isTrade ? 'text-emerald-400' :
                         isExpense ? 'text-red-400' : 'text-zinc-300'
                       )}>
-                        {sign}{fmt$(tx.amount)}
+                        {formattedAmountStr}
                       </span>
                     </div>
                   );

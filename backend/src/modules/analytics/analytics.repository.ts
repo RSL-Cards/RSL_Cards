@@ -87,12 +87,24 @@ export class AnalyticsRepository {
         } catch (e) {}
       }
 
+      let formattedPrice = parseFloat(r.price ?? "0").toFixed(2);
+      if (r.type === "trade") {
+        const numPrice = parseFloat(r.price ?? "0");
+        if (numPrice > 0) {
+          formattedPrice = `+$${numPrice.toFixed(2)}`;
+        } else if (numPrice < 0) {
+          formattedPrice = `-$${Math.abs(numPrice).toFixed(2)}`;
+        } else {
+          formattedPrice = "Straight Trade";
+        }
+      }
+
       return {
         id: r.id,
         type: r.type,
-        price: parseFloat(r.price ?? "0").toFixed(2),
+        price: formattedPrice,
         profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
-        playerName: r.player_name ?? "",
+        playerName: r.player_name || (r.type === "trade" ? "Trade Transaction" : "Item"),
         imageUrl,
         time: new Date(r.created_at).toLocaleTimeString("en-US", {
           hour: "numeric",

@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Typography } from "../../src/components/ui/Typography";
 import { Button } from "../../src/components/ui/Button";
 import { Surface } from "../../src/components/ui/Surface";
@@ -19,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useActiveDailyLog } from "../../src/hooks/useDashboard";
 import { useInventory, QUERY_KEYS } from "../../src/hooks/useCardScan";
-import { cardService, type EbaySoldItem } from "../../src/services/cardService";
+import { cardService } from "../../src/services/cardService";
 import { getGradeConfig } from "../(tabs)/inventory";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -27,6 +31,7 @@ import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 import { apiClient } from "../../src/lib/apiClient";
 import NetInfo from "@react-native-community/netinfo";
 import { useSyncStore } from "../../src/stores/syncStore";
+import Toast from "react-native-toast-message";
 
 function calcMedian(items: any[]): number {
   if (!items.length) return 0;
@@ -43,6 +48,7 @@ interface ReceivedCardConfig {
   id: string;
   query: string;
   playerName: string;
+  photoUri?: string;
   costBasis: string;
   targetPrice: string;
   medianComp: number;
@@ -53,6 +59,15 @@ interface ReceivedCardConfig {
   gradeCompany: string;
   gradeValue: string;
   gradeKey: string;
+  year?: number;
+  setName?: string;
+  variation?: string;
+  cardNumber?: string;
+  certNumber?: string;
+  autoGrade?: string;
+  sport?: string;
+  cardId?: string;
+  variantId?: string;
 }
 
 const PAYMENT_METHODS = [
@@ -72,6 +87,8 @@ const CHANNELS = [
   { id: "other", label: "Other" },
 ];
 
+const GRADE_COMPANIES = ["PSA", "BGS", "SGC", "CGC", "RAW"];
+
 export default function TradeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -90,10 +107,29 @@ export default function TradeScreen() {
   const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Step 2 State: Cards Received External API Search
-  const [receivedInputQuery, setReceivedInputQuery] = useState("");
+  // Step 2 State: Cards Received External API Search & AI Camera Scan
   const [receivedCards, setReceivedCards] = useState<ReceivedCardConfig[]>([]);
-  const [isFetchingComps, setIsFetchingComps] = useState(false);
+  const [isScanningPhoto, setIsScanningPhoto] = useState(false);
+
+  // Scanned Card Review Modal State
+  const [scannedModalData, setScannedModalData] = useState<{
+    photoUri: string;
+    base64Data?: string;
+    playerName: string;
+    year: string;
+    setName: string;
+    variation: string;
+    cardNumber: string;
+    certNumber: string;
+    autoGrade: string;
+    gradeCompany: string;
+    gradeValue: string;
+    sport: string;
+    cardId?: string;
+    variantId?: string;
+  } | null>(null);
+
+  const [isConfirmingScannedCard, setIsConfirmingScannedCard] = useState(false);
 
   // Step 3 State: Payment & Channel
   const [cashDifference, setCashDifference] = useState("");
@@ -133,101 +169,218 @@ export default function TradeScreen() {
     );
   };
 
-  // Fetch Comps via eBay & MySlabs external APIs for entered queries
-  const handleFetchCompsForReceived = async () => {
-    const rawQueries = receivedInputQuery
-      .split(",")
-      .map((q) => q.trim())
-      .filter(Boolean);
-
-    if (!rawQueries.length) {
-      Alert.alert("Input Search Query", "Please enter card names separated by commas (e.g. 2024 Topps Chrome Lamine Yamal PSA 10).");
-      return;
-    }
-
-    setIsFetchingComps(true);
-
+  const processCapturedPhoto = async (rawPhotoUri: string) => {
+    setIsScanningPhoto(true);
     try {
-      const results: ReceivedCardConfig[] = await Promise.all(
-        rawQueries.map(async (queryStr, index) => {
-          let median = 0;
-          let ebaySalesCount = 0;
-          let myslabsSalesCount = 0;
-          let activeCount = 0;
-          let player = queryStr;
-
-          // Detect grade from query if present
-          let company = "PSA";
-          let value = "10";
-          let key = "PSA_10";
-
-          if (/\braw\b/i.test(queryStr)) {
-            company = "RAW";
-            value = "RAW";
-            key = "RAW";
-          } else {
-            const gradeMatch = queryStr.match(/\b(PSA|BGS|SGC|CGC)\b\s*(\d+(?:\.\d+)?)/i);
-            if (gradeMatch) {
-              company = gradeMatch[1].toUpperCase();
-              value = gradeMatch[2];
-              key = `${company}_${value.replace(".", "")}`;
-            }
-          }
-
-          try {
-            const [ebayRes, myslabsRes] = await Promise.allSettled([
-              cardService.getEbaySold(queryStr, 10),
-              cardService.getMyslabsSold(queryStr, 10),
-            ]);
-
-            const ebayData = ebayRes.status === "fulfilled" ? ebayRes.value : null;
-            const myslabsData = myslabsRes.status === "fulfilled" ? myslabsRes.value : null;
-
-            const ebaySold = ebayData?.sold30d?.items || [];
-            const myslabsSold = myslabsData?.sold30d?.items || [];
-            const ebayActive = ebayData?.activeListings || [];
-            const myslabsActive = myslabsData?.activeListings || [];
-
-            const allSold = [...ebaySold, ...myslabsSold];
-            median = calcMedian(allSold);
-
-            ebaySalesCount = ebaySold.length;
-            myslabsSalesCount = myslabsSold.length;
-            activeCount = ebayActive.length + myslabsActive.length;
-          } catch (e) {
-            console.warn("Comps lookup error for query:", queryStr, e);
-          }
-
-          return {
-            id: `rcv-${index}-${Date.now()}`,
-            query: queryStr,
-            playerName: player,
-            costBasis: "0",
-            targetPrice: median > 0 ? String(median.toFixed(2)) : "0",
-            medianComp: median,
-            ebaySalesCount,
-            myslabsSalesCount,
-            activeCount,
-            isFetching: false,
-            gradeCompany: company,
-            gradeValue: value,
-            gradeKey: key,
-          };
-        })
+      // Compress and resize image using ImageManipulator for fast AI scanning & low memory
+      const manipResult = await ImageManipulator.manipulateAsync(
+        rawPhotoUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
-      setReceivedCards(results);
+      const photoUri = manipResult.uri;
+      let base64Data = manipResult.base64;
+
+      if (!base64Data) {
+        base64Data = await FileSystem.readAsStringAsync(photoUri, {
+          encoding: "base64",
+        });
+      }
+
+      // Run RSL Vision AI Scan
+      const scanRes = await cardService.scanImage(base64Data);
+      const scanned = scanRes.card;
+
+      setScannedModalData({
+        photoUri,
+        base64Data,
+        playerName: scanned.player_name || "",
+        year: String(scanned.year || new Date().getFullYear()),
+        setName: scanned.set_name || "",
+        variation: scanned.variation || (scanned as any).subset || "",
+        cardNumber: scanned.card_number || "",
+        certNumber: scanned.grading?.cert_number || "",
+        autoGrade: (scanned.grading as any)?.auto_grade || "",
+        gradeCompany: scanned.grading?.company || "PSA",
+        gradeValue: scanned.grading?.grade || "10",
+        sport: scanned.sport || "football",
+        cardId: scanRes.cardId,
+        variantId: scanRes.variantId,
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Card Extracted by RSL Vision!",
+        text2: "Review & edit card details before fetching comps.",
+      });
     } catch (err: any) {
-      Alert.alert("Comps Error", err.message || "Failed to fetch external comps.");
+      Alert.alert("Scan Failed", err.message || "Could not identify card. Try again.");
     } finally {
-      setIsFetchingComps(false);
+      setIsScanningPhoto(false);
     }
+  };
+
+  // Check pending picker results if Android Activity was destroyed during camera/gallery capture
+  useEffect(() => {
+    ImagePicker.getPendingResultAsync()
+      .then((res: any) => {
+        if (!res) return;
+        const list = Array.isArray(res) ? res : [res];
+        for (const item of list) {
+          if (!item.canceled && item.assets?.[0]?.uri) {
+            processCapturedPhoto(item.assets[0].uri);
+            break;
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // AI Vision Camera Scan & Gallery Upload for Cards Received
+  const handleScanCardReceived = async (useCamera: boolean) => {
+    try {
+      const permission = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert("Permission Required", `Please allow ${useCamera ? "camera" : "photo library"} access to scan cards.`);
+        return;
+      }
+
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({
+            quality: 0.4,
+            mediaTypes: "images",
+            allowsEditing: false,
+            exif: false,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            quality: 0.4,
+            mediaTypes: "images",
+            allowsEditing: false,
+            exif: false,
+          });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        await processCapturedPhoto(result.assets[0].uri);
+      }
+    } catch (err: any) {
+      Alert.alert("Scan Failed", err.message || "Could not launch camera/gallery.");
+    }
+  };
+
+  // Submit Scanned Card Review Modal & Fetch Comps
+  const handleConfirmScannedModal = async () => {
+    if (!scannedModalData) return;
+    setIsConfirmingScannedCard(true);
+
+    const {
+      photoUri,
+      playerName,
+      year,
+      setName,
+      variation,
+      cardNumber,
+      certNumber,
+      autoGrade,
+      gradeCompany,
+      gradeValue,
+      sport,
+      cardId,
+      variantId,
+    } = scannedModalData;
+
+    const company = (gradeCompany || "PSA").toUpperCase().trim();
+    const val = (gradeValue || "10").trim();
+    const gradeKey = company === "RAW" || val === "RAW" ? "RAW" : `${company}_${val.replace(".", "")}`;
+
+    const parsedYear = parseInt(year, 10) || new Date().getFullYear();
+    const buildQuery = [
+      playerName,
+      parsedYear,
+      setName,
+      variation && variation !== "Base" ? variation : null,
+      cardNumber ? `#${cardNumber}` : null,
+      company !== "RAW" ? `${company} ${val}` : "RAW",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    let median = 0;
+    let ebaySalesCount = 0;
+    let myslabsSalesCount = 0;
+    let activeCount = 0;
+
+    try {
+      const [ebayRes, myslabsRes] = await Promise.allSettled([
+        cardService.getEbaySold(buildQuery, 10, variantId, gradeKey),
+        cardService.getMyslabsSold(buildQuery, 10),
+      ]);
+
+      const ebayData = ebayRes.status === "fulfilled" ? ebayRes.value : null;
+      const myslabsData = myslabsRes.status === "fulfilled" ? myslabsRes.value : null;
+
+      const ebaySold = ebayData?.sold30d?.items || [];
+      const myslabsSold = myslabsData?.sold30d?.items || [];
+      const ebayActive = ebayData?.activeListings || [];
+      const myslabsActive = myslabsData?.activeListings || [];
+
+      const allSold = [...ebaySold, ...myslabsSold];
+      median = calcMedian(allSold);
+
+      ebaySalesCount = ebaySold.length;
+      myslabsSalesCount = myslabsSold.length;
+      activeCount = ebayActive.length + myslabsActive.length;
+    } catch (e) {
+      console.warn("Comps lookup error for confirmed card", e);
+    }
+
+    const newCard: ReceivedCardConfig = {
+      id: `rcv-${Date.now()}`,
+      query: buildQuery,
+      playerName: playerName || "Card",
+      photoUri,
+      costBasis: "0",
+      targetPrice: median > 0 ? String(median.toFixed(2)) : "0",
+      medianComp: median,
+      ebaySalesCount,
+      myslabsSalesCount,
+      activeCount,
+      isFetching: false,
+      gradeCompany: company,
+      gradeValue: val,
+      gradeKey,
+      year: parsedYear,
+      setName,
+      variation,
+      cardNumber,
+      certNumber,
+      autoGrade,
+      sport,
+      cardId,
+      variantId,
+    };
+
+    setReceivedCards((prev) => [...prev, newCard]);
+    setScannedModalData(null);
+    setIsConfirmingScannedCard(false);
+    Toast.show({
+      type: "success",
+      text1: "Card Added to Received List!",
+      text2: `${playerName} (${gradeKey.replace("_", " ")}) — Median $${median.toFixed(2)}`,
+    });
   };
 
   const updateReceivedCard = (id: string, field: keyof ReceivedCardConfig, value: any) => {
     setReceivedCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );
+  };
+
+  const removeReceivedCard = (id: string) => {
+    setReceivedCards((prev) => prev.filter((c) => c.id !== id));
   };
 
   const handleSubmit = () => {
@@ -237,7 +390,7 @@ export default function TradeScreen() {
     }
 
     if (receivedCards.length === 0) {
-      Alert.alert("Cards Received Required", "Please enter cards received and tap 'Fetch External Comps' to load card details.");
+      Alert.alert("Cards Received Required", "Please scan a card photo to add cards received.");
       return;
     }
 
@@ -276,11 +429,16 @@ export default function TradeScreen() {
       gradeValue: card.gradeValue || "10",
       costBasis: parseFloat(card.costBasis) || 0,
       marketValue: parseFloat(card.targetPrice) || card.medianComp || 0,
-      year: new Date().getFullYear(),
-      setName: "Trade",
-      variation: "Base",
-      cardNumber: "N/A",
-      sport: "other",
+      year: card.year || new Date().getFullYear(),
+      setName: card.setName || "Trade",
+      variation: card.variation || "Base",
+      cardNumber: card.cardNumber || "N/A",
+      certNumber: card.certNumber || null,
+      autoGrade: card.autoGrade || null,
+      sport: card.sport || "football",
+      cardId: card.cardId,
+      variantId: card.variantId,
+      photos: card.photoUri ? [card.photoUri] : undefined,
     }));
 
     const payload = {
@@ -305,7 +463,7 @@ export default function TradeScreen() {
       await apiClient.post("/v1/transactions/trade", payload);
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
 
-      Alert.alert("Trade Recorded", `Trade recorded successfully! ${selectedItems.length} card(s) given, ${receivedCards.length} card(s) received.`, [
+      Alert.alert("Trade Recorded", `Trade recorded successfully! ${selectedItems.length} card(s) given, ${receivedCards.length} card(s) received and stored in Inventory.`, [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (e: any) {
@@ -443,54 +601,83 @@ export default function TradeScreen() {
           )}
         </Surface>
 
-        {/* SECTION 2: CARDS RECEIVED (EXTERNAL API COMPS) */}
+        {/* SECTION 2: CARDS RECEIVED (SCAN PHOTO OR UPLOAD) */}
         <Typography variant="label" color={COLORS.zinc400} style={{ marginTop: SPACING.xl, marginBottom: SPACING.xs, letterSpacing: 1 }}>
-          2. CARDS RECEIVED (EXTERNAL COMPS SEARCH)
+          2. CARDS RECEIVED (SCAN PHOTO OR UPLOAD)
         </Typography>
 
-        <Surface variant="elevated" padding="none">
-          <View style={{ padding: SPACING.sm }}>
-            <TextInput
-              style={[styles.input, { minHeight: 64, textAlignVertical: "top" }]}
-              multiline
-              placeholder="e.g. 2024 Topps Chrome Lamine Yamal PSA 10, 2020 Donruss Patrick Mahomes PSA 10"
-              placeholderTextColor={COLORS.zinc500}
-              value={receivedInputQuery}
-              onChangeText={setReceivedInputQuery}
-            />
+        {/* Scan / Upload Action Bar */}
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
+          <TouchableOpacity
+            onPress={() => handleScanCardReceived(true)}
+            disabled={isScanningPhoto}
+            style={[styles.scanActionBtn, { backgroundColor: "#1A1A1A", borderColor: "#FFD700" }]}
+          >
+            <Ionicons name="camera-outline" size={18} color="#FFD700" />
+            <Typography variant="caption" weight="700" color="#FFFFFF" style={{ fontSize: 12 }}>
+              Scan Card (Camera)
+            </Typography>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleFetchCompsForReceived}
-              disabled={isFetchingComps || !receivedInputQuery.trim()}
-              style={[styles.fetchCompsBtn, { opacity: isFetchingComps || !receivedInputQuery.trim() ? 0.5 : 1 }]}
-            >
-              {isFetchingComps ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="search" size={16} color="#FFF" />
-                  <Typography variant="caption" weight="700" color="#FFF" style={{ fontSize: 13 }}>
-                    Fetch External Comps (eBay &amp; MySlabs)
-                  </Typography>
-                </>
-              )}
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleScanCardReceived(false)}
+            disabled={isScanningPhoto}
+            style={[styles.scanActionBtn, { backgroundColor: "#1A1A1A", borderColor: "#0057FF" }]}
+          >
+            <Ionicons name="images-outline" size={18} color="#0057FF" />
+            <Typography variant="caption" weight="700" color="#FFFFFF" style={{ fontSize: 12 }}>
+              Upload Photo
+            </Typography>
+          </TouchableOpacity>
+        </View>
+
+        {isScanningPhoto && (
+          <View style={styles.scanningBanner}>
+            <ActivityIndicator size="small" color="#0057FF" />
+            <Typography variant="caption" weight="700" color="#0057FF">
+              RSL AI Vision scanning card image...
+            </Typography>
           </View>
-        </Surface>
+        )}
 
-        {/* Parsed Received Cards Data Cards */}
+        {/* Parsed / Scanned Received Cards Cards */}
         {receivedCards.length > 0 && (
           <View style={{ marginTop: SPACING.md, gap: 12 }}>
             {receivedCards.map((card, idx) => (
               <Surface key={card.id} variant="elevated" padding="md" style={styles.receivedCardBox}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <Typography variant="body" weight="800" color="#FFF" style={{ flex: 1 }}>
-                    Card #{idx + 1}: {card.query}
-                  </Typography>
-                  <View style={styles.gradeBadge}>
-                    <Typography variant="caption" weight="800" color="#FFD700">
-                      {card.gradeKey.replace("_", " ")}
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                  {card.photoUri ? (
+                    <Image source={{ uri: card.photoUri }} style={styles.receivedThumb} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.receivedThumbPlaceholder}>
+                      <Ionicons name="card-outline" size={18} color={COLORS.zinc500} />
+                    </View>
+                  )}
+
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Typography variant="body" weight="800" color="#FFF" numberOfLines={1}>
+                      {card.playerName}
                     </Typography>
+                    <Typography variant="caption" color={COLORS.zinc500} numberOfLines={1}>
+                      {[card.year, card.setName, card.variation && card.variation !== "Base" ? card.variation : null, card.cardNumber ? `#${card.cardNumber}` : null].filter(Boolean).join(" · ")}
+                    </Typography>
+                    {card.certNumber ? (
+                      <Typography variant="caption" color={COLORS.zinc400} style={{ fontSize: 10, marginTop: 1 }}>
+                        Cert: {card.certNumber} {card.autoGrade ? `· Auto ${card.autoGrade}` : ""}
+                      </Typography>
+                    ) : null}
+                  </View>
+
+                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                    <View style={styles.gradeBadge}>
+                      <Typography variant="caption" weight="800" color="#FFD700">
+                        {card.gradeKey.replace("_", " ")}
+                      </Typography>
+                    </View>
+
+                    <TouchableOpacity onPress={() => removeReceivedCard(card.id)} style={{ padding: 2 }}>
+                      <Ionicons name="trash-outline" size={16} color="#E8001C" />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -609,6 +796,218 @@ export default function TradeScreen() {
           disabled={isSubmitting}
         />
       </ScrollView>
+
+      {/* EDIT / REVIEW SCANNED CARD MODAL */}
+      <Modal
+        visible={!!scannedModalData}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setScannedModalData(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Surface variant="elevated" padding="lg" style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.sm }}>
+              <Typography variant="h3" weight="800" color="#FFF">
+                Review Scanned Card
+              </Typography>
+
+              <TouchableOpacity onPress={() => setScannedModalData(null)} style={{ padding: 4 }}>
+                <Ionicons name="close" size={20} color={COLORS.zinc400} />
+              </TouchableOpacity>
+            </View>
+
+            <Typography variant="caption" color={COLORS.zinc500} style={{ marginBottom: SPACING.md }}>
+              Verify or edit card & slab details extracted by RSL Vision before fetching sales comps.
+            </Typography>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+              {/* Photo Preview Thumbnail */}
+              {scannedModalData?.photoUri && (
+                <View style={{ alignItems: "center", marginBottom: 4 }}>
+                  <Image source={{ uri: scannedModalData.photoUri }} style={styles.modalThumb} resizeMode="contain" />
+                </View>
+              )}
+
+              {/* Player Name */}
+              <View>
+                <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                  PLAYER NAME
+                </Typography>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="e.g. Patrick Mahomes II"
+                  placeholderTextColor="#555"
+                  value={scannedModalData?.playerName || ""}
+                  onChangeText={(val) =>
+                    setScannedModalData((prev) => (prev ? { ...prev, playerName: val } : prev))
+                  }
+                />
+              </View>
+
+              {/* Year & Card Number */}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                    YEAR
+                  </Typography>
+                  <TextInput
+                    style={styles.modalInput}
+                    keyboardType="number-pad"
+                    placeholder="2022"
+                    placeholderTextColor="#555"
+                    value={scannedModalData?.year || ""}
+                    onChangeText={(val) =>
+                      setScannedModalData((prev) => (prev ? { ...prev, year: val } : prev))
+                    }
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                    CARD #
+                  </Typography>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="DTPM"
+                    placeholderTextColor="#555"
+                    value={scannedModalData?.cardNumber || ""}
+                    onChangeText={(val) =>
+                      setScannedModalData((prev) => (prev ? { ...prev, cardNumber: val } : prev))
+                    }
+                  />
+                </View>
+              </View>
+
+              {/* Set Name & Variation / Subset */}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                    SET NAME
+                  </Typography>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Panini Donruss"
+                    placeholderTextColor="#555"
+                    value={scannedModalData?.setName || ""}
+                    onChangeText={(val) =>
+                      setScannedModalData((prev) => (prev ? { ...prev, setName: val } : prev))
+                    }
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                    VARIATION / SUBSET
+                  </Typography>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Downtown!"
+                    placeholderTextColor="#555"
+                    value={scannedModalData?.variation || ""}
+                    onChangeText={(val) =>
+                      setScannedModalData((prev) => (prev ? { ...prev, variation: val } : prev))
+                    }
+                  />
+                </View>
+              </View>
+
+              {/* Grading Company Selectable Buttons */}
+              <View>
+                <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 6 }}>
+                  GRADING COMPANY
+                </Typography>
+                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                  {GRADE_COMPANIES.map((company) => {
+                    const isSelected = scannedModalData?.gradeCompany === company;
+                    return (
+                      <TouchableOpacity
+                        key={company}
+                        onPress={() =>
+                          setScannedModalData((prev) => (prev ? { ...prev, gradeCompany: company } : prev))
+                        }
+                        style={[styles.gradeChip, isSelected && styles.gradeChipSelected]}
+                      >
+                        <Typography variant="caption" weight="800" color={isSelected ? "#FFF" : COLORS.zinc400}>
+                          {company}
+                        </Typography>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Card Grade, Auto Grade & Slab Cert Number */}
+              {scannedModalData?.gradeCompany !== "RAW" && (
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                      CARD GRADE
+                    </Typography>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="10, 9.5, 9"
+                      placeholderTextColor="#555"
+                      value={scannedModalData?.gradeValue || "10"}
+                      onChangeText={(val) =>
+                        setScannedModalData((prev) => (prev ? { ...prev, gradeValue: val } : prev))
+                      }
+                    />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                      AUTO GRADE (OPTIONAL)
+                    </Typography>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="10"
+                      placeholderTextColor="#555"
+                      value={scannedModalData?.autoGrade || ""}
+                      onChangeText={(val) =>
+                        setScannedModalData((prev) => (prev ? { ...prev, autoGrade: val } : prev))
+                      }
+                    />
+                  </View>
+
+                  <View style={{ flex: 1.5 }}>
+                    <Typography variant="label" color={COLORS.zinc400} style={{ fontSize: 10, marginBottom: 4 }}>
+                      SLAB CERT #
+                    </Typography>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="93463931"
+                      placeholderTextColor="#555"
+                      value={scannedModalData?.certNumber || ""}
+                      onChangeText={(val) =>
+                        setScannedModalData((prev) => (prev ? { ...prev, certNumber: val } : prev))
+                      }
+                    />
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Submit & Fetch Comps Action Buttons */}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: SPACING.lg }}>
+              <Button
+                label="Cancel"
+                variant="outline"
+                onPress={() => setScannedModalData(null)}
+                style={{ flex: 1 }}
+                disabled={isConfirmingScannedCard}
+              />
+              <Button
+                label={isConfirmingScannedCard ? "Fetching Comps..." : "Confirm & Fetch Comps"}
+                variant="primary"
+                onPress={handleConfirmScannedModal}
+                style={{ flex: 2 }}
+                disabled={isConfirmingScannedCard}
+              />
+            </View>
+          </Surface>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -703,26 +1102,48 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     backgroundColor: "#1A1A1A",
   },
-  fetchCompsBtn: {
-    backgroundColor: "#0057FF",
-    borderRadius: 10,
+  scanActionBtn: {
+    flex: 1,
     paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  scanningBanner: {
+    padding: 12,
+    backgroundColor: "rgba(0,87,255,0.12)",
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 12,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
     gap: 8,
-    marginTop: 8,
-  },
-  fetchCompsBtnText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
+    borderWidth: 1,
+    borderColor: "rgba(0,87,255,0.3)",
   },
   receivedCardBox: {
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#2D2D2D",
     backgroundColor: "#111111",
+  },
+  receivedThumb: {
+    width: 38,
+    height: 52,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  receivedThumbPlaceholder: {
+    width: 38,
+    height: 52,
+    borderRadius: 6,
+    backgroundColor: "#222222",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
   compsSummaryRow: {
     flexDirection: "row",
@@ -753,6 +1174,52 @@ const styles = StyleSheet.create({
     borderColor: "#333",
   },
   chipSelected: {
+    backgroundColor: "#0057FF",
+    borderColor: "#0057FF",
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 30,
+  },
+  modalContent: {
+    backgroundColor: "#111111",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2B2B2B",
+    maxHeight: "92%",
+  },
+  modalThumb: {
+    width: 100,
+    height: 140,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  modalInput: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#333",
+    color: "#FFF",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  gradeChip: {
+    backgroundColor: "#1A1A1A",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  gradeChipSelected: {
     backgroundColor: "#0057FF",
     borderColor: "#0057FF",
   },

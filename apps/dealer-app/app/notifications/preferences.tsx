@@ -2,7 +2,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Switch,
@@ -16,8 +15,8 @@ import { apiClient } from "../../src/lib/apiClient";
 import Toast from "react-native-toast-message";
 import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
+import { Surface } from "../../src/components/ui/Surface";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface ChannelPrefs {
   push: boolean;
   email: boolean;
@@ -31,60 +30,62 @@ interface NotificationPreferences {
   weeklyReport: ChannelPrefs;
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 const DEFAULT_PREFS: NotificationPreferences = {
-  priceSpikes:    { push: true,  email: true  },
-  inventoryAging: { push: false, email: true  },
-  failedSync:     { push: true,  email: false },
-  newSales:       { push: true,  email: true  },
-  weeklyReport:   { push: false, email: true  },
+  priceSpikes: { push: true, email: true },
+  inventoryAging: { push: false, email: true },
+  failedSync: { push: true, email: false },
+  newSales: { push: true, email: true },
+  weeklyReport: { push: false, email: true },
 };
 
-const PREF_CONFIG: {
-  key: keyof NotificationPreferences;
-  icon: string;
-  iconColor: string;
-  label: string;
-  description: string;
-}[] = [
+const SECTIONS = [
   {
-    key: "priceSpikes",
-    icon: "trending-up",
-    iconColor: "#E8001C",
-    label: "Price Spikes Above 10%",
-    description: "Alert when a card you own spikes more than 10% in market value.",
+    title: "OPERATIONAL ALERTS",
+    items: [
+      {
+        key: "priceSpikes" as keyof NotificationPreferences,
+        icon: "trending-up-outline" as const,
+        iconColor: "#FFD700",
+        label: "Price Spikes (>10%)",
+        description: "Instant alert when a card in your inventory spikes 10%+ in market value.",
+      },
+      {
+        key: "inventoryAging" as keyof NotificationPreferences,
+        icon: "time-outline" as const,
+        iconColor: "#FFB300",
+        label: "Inventory Aging (>60 Days)",
+        description: "Alerts for cards sitting in inventory for over 60 days.",
+      },
+      {
+        key: "failedSync" as keyof NotificationPreferences,
+        icon: "cloud-offline-outline" as const,
+        iconColor: "#E8001C",
+        label: "Failed Marketplace Sync",
+        description: "Notified when a listing fails to sync to eBay.",
+      },
+    ],
   },
   {
-    key: "inventoryAging",
-    icon: "time-outline",
-    iconColor: "#FFB300",
-    label: "Inventory Aging Over 60 Days",
-    description: "Cards sitting unsold for more than 60 days need attention.",
-  },
-  {
-    key: "failedSync",
-    icon: "cloud-offline-outline",
-    iconColor: "#FF5C5C",
-    label: "Failed Marketplace Sync",
-    description: "Notified when a listing fails to sync to eBay, Whatnot, or other platforms.",
-  },
-  {
-    key: "newSales",
-    icon: "cash-outline",
-    iconColor: "#00C853",
-    label: "New Sales & Payouts",
-    description: "Instant alert when a sale is recorded or a payout is received.",
-  },
-  {
-    key: "weeklyReport",
-    icon: "bar-chart-outline",
-    iconColor: "#0057FF",
-    label: "Weekly Performance Report",
-    description: "Summary of weekly sales, margins, and top performers delivered every Monday.",
+    title: "SALES & PERFORMANCE REPORTS",
+    items: [
+      {
+        key: "newSales" as keyof NotificationPreferences,
+        icon: "cash-outline" as const,
+        iconColor: "#00C853",
+        label: "New Sales & Payouts",
+        description: "Instant notification when a card is sold or a payout is received.",
+      },
+      {
+        key: "weeklyReport" as keyof NotificationPreferences,
+        icon: "bar-chart-outline" as const,
+        iconColor: "#0057FF",
+        label: "Weekly Performance Report",
+        description: "Automated report delivered every Sunday at 9:00 AM with sales & margin breakdown.",
+      },
+    ],
   },
 ];
 
-// ─── API calls ────────────────────────────────────────────────────────────────
 async function fetchPreferences(): Promise<NotificationPreferences> {
   const { data } = await apiClient.get<{ notification_preferences?: NotificationPreferences }>(
     "/v1/users/me/notification-preferences"
@@ -98,18 +99,6 @@ async function savePreferences(prefs: NotificationPreferences): Promise<void> {
   });
 }
 
-// ─── Sub-component: channel badges ────────────────────────────────────────────
-function ChannelBadge({ active, label }: { active: boolean; label: string }) {
-  return (
-    <View style={[styles.badge, active ? styles.badgeActive : styles.badgeInactive]}>
-      <Text style={[styles.badgeText, active ? styles.badgeTextActive : styles.badgeTextInactive]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function NotificationPreferencesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -129,10 +118,10 @@ export default function NotificationPreferencesScreen() {
     mutationFn: savePreferences,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification-preferences"] });
-      Toast.show({ type: "success", text1: "Preferences saved" });
+      Toast.show({ type: "success", text1: "Preferences updated" });
     },
     onError: () => {
-      Toast.show({ type: "error", text1: "Failed to save", text2: "Please try again." });
+      Toast.show({ type: "error", text1: "Failed to update preferences" });
     },
   });
 
@@ -149,7 +138,7 @@ export default function NotificationPreferencesScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={COLORS.primary} size="large" />
+          <ActivityIndicator color="#0057FF" size="large" />
         </View>
       </SafeAreaView>
     );
@@ -160,87 +149,95 @@ export default function NotificationPreferencesScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          <Ionicons name="chevron-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Notification Preferences</Text>
-          <Text style={styles.headerSub}>Control operational alerts and report delivery.</Text>
+        <View style={{ flex: 1, alignItems: "center" }}>
+          <Typography variant="h3" weight="800">
+            Notification Preferences
+          </Typography>
         </View>
-        {isSaving && <ActivityIndicator size="small" color={COLORS.primary} />}
+        <View style={{ width: 40, alignItems: "flex-end" }}>
+          {isSaving && <ActivityIndicator size="small" color="#0057FF" />}
+        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+        <Typography variant="caption" color={COLORS.zinc500} style={{ marginBottom: SPACING.lg, textAlign: "center" }}>
+          Manage your real-time push notifications and automated email reports.
+        </Typography>
 
-        {/* Channel legend */}
-        <View style={styles.legendWrap}>
-          <View style={styles.legendRow}>
-            <Ionicons name="phone-portrait-outline" size={14} color={COLORS.zinc400} />
-            <Text style={styles.legendText}>Push = In-app notification on your device</Text>
-          </View>
-          <View style={styles.legendRow}>
-            <Ionicons name="mail-outline" size={14} color={COLORS.zinc400} />
-            <Text style={styles.legendText}>Email = Sent to your registered email address</Text>
-          </View>
-        </View>
+        {SECTIONS.map((section) => (
+          <View key={section.title} style={{ marginBottom: SPACING.xl }}>
+            <Typography variant="label" color={COLORS.zinc500} style={styles.sectionTitle}>
+              {section.title}
+            </Typography>
 
-        {/* Preference cards */}
-        {PREF_CONFIG.map((cfg) => {
-          const pref = prefs[cfg.key];
-          return (
-            <View key={cfg.key} style={styles.prefCard}>
-              {/* Top row */}
-              <View style={styles.prefHeader}>
-                <View style={[styles.prefIconWrap, { backgroundColor: `${cfg.iconColor}18` }]}>
-                  <Ionicons name={cfg.icon as any} size={18} color={cfg.iconColor} />
-                </View>
-                <View style={styles.prefInfo}>
-                  <Text style={styles.prefLabel}>{cfg.label}</Text>
-                  <Text style={styles.prefDesc}>{cfg.description}</Text>
-                </View>
-              </View>
+            <View style={{ gap: 12 }}>
+              {section.items.map((item) => {
+                const channelPref = prefs[item.key] ?? { push: false, email: false };
 
-              {/* Active channel badges summary */}
-              <View style={styles.badgesRow}>
-                <ChannelBadge active={pref.push} label="📱 Push" />
-                <ChannelBadge active={pref.email} label="✉️ Email" />
-              </View>
+                return (
+                  <Surface key={item.key} variant="elevated" padding="none" style={styles.prefCard}>
+                    {/* Top Row: Icon + Title + Description */}
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.iconWrap, { backgroundColor: `${item.iconColor}18` }]}>
+                        <Ionicons name={item.icon} size={18} color={item.iconColor} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                        <Typography variant="body" weight="700">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2, lineHeight: 16 }}>
+                          {item.description}
+                        </Typography>
+                      </View>
+                    </View>
 
-              {/* Toggles */}
-              <View style={styles.togglesRow}>
-                <View style={styles.toggleItem}>
-                  <Ionicons name="phone-portrait-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={styles.toggleLabel}>Push</Text>
-                  <Switch
-                    value={pref.push}
-                    onValueChange={() => toggle(cfg.key, "push")}
-                    trackColor={{ false: COLORS.border, true: cfg.iconColor }}
-                    thumbColor="white"
-                    ios_backgroundColor={COLORS.border}
-                  />
-                </View>
-                <View style={styles.toggleDivider} />
-                <View style={styles.toggleItem}>
-                  <Ionicons name="mail-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={styles.toggleLabel}>Email</Text>
-                  <Switch
-                    value={pref.email}
-                    onValueChange={() => toggle(cfg.key, "email")}
-                    trackColor={{ false: COLORS.border, true: cfg.iconColor }}
-                    thumbColor="white"
-                    ios_backgroundColor={COLORS.border}
-                  />
-                </View>
-              </View>
+                    {/* Bottom Row: Channel Switches */}
+                    <View style={styles.togglesRow}>
+                      <View style={styles.toggleCell}>
+                        <Ionicons name="phone-portrait-outline" size={14} color={channelPref.push ? "#FFF" : COLORS.zinc500} />
+                        <Typography variant="caption" weight="600" color={channelPref.push ? COLORS.white : COLORS.zinc500} style={{ flex: 1 }}>
+                          Push
+                        </Typography>
+                        <Switch
+                          value={channelPref.push}
+                          onValueChange={() => toggle(item.key, "push")}
+                          trackColor={{ false: "#222222", true: item.iconColor }}
+                          thumbColor="#FFFFFF"
+                          ios_backgroundColor="#222222"
+                        />
+                      </View>
+
+                      <View style={styles.divider} />
+
+                      <View style={styles.toggleCell}>
+                        <Ionicons name="mail-outline" size={14} color={channelPref.email ? "#FFF" : COLORS.zinc500} />
+                        <Typography variant="caption" weight="600" color={channelPref.email ? COLORS.white : COLORS.zinc500} style={{ flex: 1 }}>
+                          Email
+                        </Typography>
+                        <Switch
+                          value={channelPref.email}
+                          onValueChange={() => toggle(item.key, "email")}
+                          trackColor={{ false: "#222222", true: item.iconColor }}
+                          thumbColor="#FFFFFF"
+                          ios_backgroundColor="#222222"
+                        />
+                      </View>
+                    </View>
+                  </Surface>
+                );
+              })}
             </View>
-          );
-        })}
+          </View>
+        ))}
 
-        {/* Info footer */}
+        {/* Footer info note */}
         <View style={styles.footerNote}>
           <Ionicons name="information-circle-outline" size={14} color={COLORS.zinc600} />
-          <Text style={styles.footerNoteText}>
-            Changes are saved automatically. Push notifications require the app to be installed with notification permission granted.
-          </Text>
+          <Typography variant="caption" color={COLORS.zinc600} style={{ flex: 1, fontSize: 11, lineHeight: 16 }}>
+            Preferences auto-save when toggled. Ensure notification permissions are enabled on your device to receive push alerts.
+          </Typography>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -248,101 +245,77 @@ export default function NotificationPreferencesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000000" },
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-
+  container: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    gap: 12,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    height: 54,
   },
-  backBtn: { padding: 4, marginTop: 2 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text },
-  headerSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
-
-  legendWrap: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    gap: 4,
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#111111",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  legendText: { fontSize: 12, color: COLORS.zinc500 },
-
+  sectionTitle: {
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 10,
+  },
   prefCard: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    backgroundColor: "#111111",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#222222",
     overflow: "hidden",
   },
-  prefHeader: {
+  cardHeader: {
     flexDirection: "row",
-    gap: 12,
-    padding: SPACING.md,
+    padding: 16,
     alignItems: "flex-start",
   },
-  prefIconWrap: {
+  iconWrap: {
     width: 36,
     height: 36,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
-  prefInfo: { flex: 1 },
-  prefLabel: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: 3 },
-  prefDesc: { fontSize: 12, color: COLORS.zinc500, lineHeight: 17 },
-
-  badgesRow: {
-    flexDirection: "row",
-    gap: 6,
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  badgeActive: {
-    backgroundColor: "rgba(0,87,255,0.12)",
-    borderColor: "rgba(0,87,255,0.3)",
-  },
-  badgeInactive: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderColor: COLORS.border,
-  },
-  badgeText: { fontSize: 11, fontWeight: "600" },
-  badgeTextActive: { color: "#4488FF" },
-  badgeTextInactive: { color: COLORS.zinc600 },
-
   togglesRow: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: "#1D1D1D",
+    backgroundColor: "#0A0A0A",
   },
-  toggleItem: {
+  toggleCell: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 6,
+    gap: 8,
   },
-  toggleDivider: { width: 1, backgroundColor: COLORS.border },
-  toggleLabel: { flex: 1, fontSize: 13, color: COLORS.zinc400, fontWeight: "500" },
-
+  divider: {
+    width: 1,
+    backgroundColor: "#1D1D1D",
+  },
   footerNote: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 6,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
-  footerNoteText: { flex: 1, fontSize: 11, color: COLORS.zinc600, lineHeight: 16 },
 });

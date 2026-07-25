@@ -13,7 +13,7 @@ import {
 interface RecentTransactionsProps {
   transactions: Array<{
     id: string
-    type: 'buy' | 'sell'
+    type: 'buy' | 'sell' | 'trade' | 'expense'
     player: string
     grade: string
     price: number
@@ -125,7 +125,7 @@ export default function RecentTransactions({
                   </div>
                   <div className="flex flex-col items-end">
                     <div className="font-mono font-bold text-white">${transaction.price}</div>
-                    <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${transaction.type === 'buy' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+                    <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${transaction.type === 'buy' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' : transaction.type === 'trade' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
                       {transaction.type.toUpperCase()}
                     </div>
                   </div>
@@ -242,6 +242,8 @@ export default function RecentTransactions({
                         ${
                           transaction.type === 'buy'
                             ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                            : transaction.type === 'trade'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                             : 'bg-red-500/15 text-red-400 border-red-500/30'
                         }
                       `}
@@ -282,7 +284,13 @@ export default function RecentTransactions({
                   <td className="px-5 py-4 text-right">
 
                     <div className="text-white font-mono font-semibold whitespace-nowrap">
-                      ${transaction.price}
+                      {transaction.type === 'trade'
+                        ? transaction.price > 0
+                          ? `+$${transaction.price}`
+                          : transaction.price < 0
+                          ? `-$${Math.abs(transaction.price)}`
+                          : 'Straight Trade'
+                        : `$${transaction.price}`}
                     </div>
                   </td>
 
