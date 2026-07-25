@@ -464,7 +464,21 @@ export default function DailyLogPanel() {
                                 {tx.description || 'Unknown'}
                               </span>
                               <span className="text-xs text-zinc-500">
-                                {new Date(tx.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {(() => {
+                                  try {
+                                    let cleaned = String(tx.time).trim();
+                                    if (cleaned.includes(' ') && !cleaned.includes('T')) {
+                                      cleaned = cleaned.replace(' ', 'T');
+                                    }
+                                    cleaned = cleaned.replace(/([+-]\d{2})$/, '$1:00');
+                                    const d = new Date(cleaned);
+                                    if (!isNaN(d.getTime())) {
+                                      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                      return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                                    }
+                                  } catch (e) {}
+                                  return String(tx.time);
+                                })()}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">

@@ -46,36 +46,43 @@ function fmt$(val: string | number | undefined) {
   return n < 0 ? `-${formatted}` : formatted;
 }
 
-function fmtDate(val: any, includeTime = true) {
-  if (!val) return '—';
+function parsePgDate(val: any): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return val;
   try {
-    // Handle "2026-07-22 06:04:11.277946+00" style Postgres timestamps
     let cleaned = String(val).trim();
-    // Replace space separator with T for ISO compatibility
     if (cleaned.includes(' ') && !cleaned.includes('T')) {
       cleaned = cleaned.replace(' ', 'T');
     }
-    // Trim microseconds: ".277946" → ".277"
-    cleaned = cleaned.replace(/(\.\d{3})\d+/, '$1');
-    // Normalise "+00" → "+00:00"
     cleaned = cleaned.replace(/([+-]\d{2})$/, '$1:00');
-    const d = new Date(cleaned);
-    if (isNaN(d.getTime())) return String(val);
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const date = `${d.getDate()} ${months[d.getMonth()]}, ${d.getFullYear()}`;
-    if (!includeTime) return date;
-    return `${date} · ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  } catch { return String(val); }
+    let d = new Date(cleaned);
+    if (!isNaN(d.getTime())) return d;
+
+    const parts = cleaned.split(/[\sT]/);
+    if (parts[0]) {
+      d = new Date(parts[0]);
+      if (!isNaN(d.getTime())) return d;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function fmtDate(val: any, includeTime = true) {
+  const d = parsePgDate(val);
+  if (!d) return '—';
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const date = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  if (!includeTime) return date;
+  return `${date} · ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 function fmtTime(val: any) {
-  if (!val) return '—';
-  try {
-    const cleaned = String(val).includes(' ') && !String(val).includes('T')
-      ? String(val).replace(' ', 'T') : String(val);
-    const d = new Date(cleaned);
-    return isNaN(d.getTime()) ? String(val) : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch { return String(val); }
+  const d = parsePgDate(val);
+  if (!d) return '—';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthName = months[d.getMonth()];
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${monthName} ${d.getDate()}, ${d.getFullYear()} · ${timeStr}`;
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
