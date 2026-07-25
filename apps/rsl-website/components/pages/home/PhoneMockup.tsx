@@ -24,28 +24,28 @@ export default function PhoneMockup() {
     }
 
     if (step === 0) {
-      // Home -> Click BUY on the tab bar footer (bottom center)
-      triggerClick('91%', '50%', 1, 3000)
+      // Home -> Click BUY (+) center floating button
+      triggerClick('94%', '50%', 1, 3000)
     } else if (step === 1) {
-      // Scan -> Click Capture (bottom center)
-      triggerClick('83%', '50%', 2, 2500)
+      // Scan -> Click Capture shutter button
+      triggerClick('84%', '50%', 2, 2500)
     } else if (step === 2) {
-      // Comps -> Click Confirm Deal (bottom center)
+      // Comps -> Click Confirm Deal button
       triggerClick('92%', '50%', 3, 3000)
     } else if (step === 3) {
-      // Confirm -> Click Add to Inventory (bottom center)
+      // Confirm -> Click Add to Inventory button
       triggerClick('92%', '50%', 4, 2500)
     } else if (step === 4) {
-      // Inventory -> Click the new card at the top (top center)
-      triggerClick('20%', '50%', 5, 2500)
+      // Inventory -> Click the Lionel Messi card item to open [id].tsx card details
+      triggerClick('28%', '50%', 5, 2500)
     } else if (step === 5) {
-      // Details -> Click Reports tab in footer (bottom right-ish)
+      // Details -> Click Reports tab in footer
       triggerClick('95%', '72.5%', 6, 3500)
     } else if (step === 6) {
-      // Reports -> Click More tab in footer (bottom far right)
+      // Reports -> Click More tab in footer
       triggerClick('95%', '90%', 7, 3000)
     } else if (step === 7) {
-      // More -> Click Home tab to restart (bottom far left)
+      // More -> Click Home tab to restart
       triggerClick('95%', '10%', 0, 3000)
     }
 
@@ -70,41 +70,46 @@ export default function PhoneMockup() {
 
           {/* STEP 0: HOME SCREEN */}
           <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-            <div className="flex items-center justify-between px-5 pt-10 pb-4">
-              <div className="flex items-center gap-3">
-                <img src="/rslicon.jpeg" alt="RSL Logo" className="w-11 h-11 rounded-md object-contain" />
-                <span className="text-zinc-400 italic font-semibold text-sm">PRO</span>
+            <div className="flex items-center justify-between px-5 pt-10 pb-4 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <img src="/rslicon.jpeg" alt="RSL Logo" className="w-9 h-9 rounded-md object-contain" />
+                <span className="bg-[#0057FF]/15 border border-[#0057FF]/30 text-[#0057FF] font-black text-[10px] px-2 py-0.5 rounded-full">PRO</span>
               </div>
-              <div className="flex items-center gap-4">
-                <Bell className="w-6 h-6 text-zinc-100" />
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700 bg-zinc-800">
-                  <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" className="w-full h-full object-cover" />
+              <div className="flex items-center gap-3">
+                <div className="relative p-1">
+                  <Bell className="w-5 h-5 text-zinc-300" />
+                  <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#E8001C] rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                    2
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700 bg-zinc-800 flex items-center justify-center font-bold text-xs text-white">
+                  VK
                 </div>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto pb-20 no-scrollbar">
               {/* ── ACTIVE DAILY LOG ── */}
-              <div className="px-5 py-2">
+              <div className="px-5 py-2 mt-1">
                 <div className="rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-[#00C853]" />
                       <span className="text-xs font-bold text-zinc-100">Dallas Card Show</span>
                     </div>
-                    <span className="text-xs font-bold text-red-500">Close</span>
+                    <span className="text-xs font-bold text-[#E8001C] cursor-pointer">Close</span>
                   </div>
                   <div className="flex justify-between mt-1">
                     <div>
                       <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Money In</div>
-                      <div className="text-sm font-black text-[#00C853]">$2,450</div>
+                      <div className="text-sm font-black text-[#00C853]">$2,450.00</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Money Out</div>
-                      <div className="text-sm font-black text-red-500">$1,850</div>
+                      <div className="text-sm font-black text-[#E8001C]">$1,850.00</div>
                     </div>
                     <div>
                       <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-0.5">Profit</div>
-                      <div className="text-sm font-black text-zinc-50">$600</div>
+                      <div className="text-sm font-black text-zinc-50">$600.00</div>
                     </div>
                   </div>
                 </div>
@@ -113,33 +118,33 @@ export default function PhoneMockup() {
               {/* ── WORKFLOW BUTTONS (HERO) ── */}
               <div className="px-5 mt-3">
                 <div className="flex gap-3 mb-3">
-                  <div className="flex-1 bg-[#0057FF] rounded-[16px] h-[52px] flex items-center justify-center font-bold text-white text-[15px]">
+                  <div className="flex-1 bg-[#0057FF] hover:bg-blue-600 rounded-[14px] h-[54px] flex items-center justify-center font-bold text-white text-[15px] shadow-lg shadow-blue-600/20">
                     Buy
                   </div>
-                  <div className="flex-1 bg-[#E8001C] rounded-[16px] h-[52px] flex items-center justify-center font-bold text-white text-[15px]">
+                  <div className="flex-1 bg-[#E8001C] hover:bg-red-600 rounded-[14px] h-[54px] flex items-center justify-center font-bold text-white text-[15px] shadow-lg shadow-red-600/20">
                     Sell
                   </div>
                 </div>
-                <div className="w-full rounded-[16px] h-[48px] flex items-center justify-center font-bold text-white border border-white/20 text-[14px]">
+                <div className="w-full rounded-[14px] h-[46px] flex items-center justify-center font-bold text-zinc-200 border border-zinc-700 bg-zinc-900/50 text-[14px]">
                   Add Expense
                 </div>
               </div>
 
               {/* ── ACTIVE DEALS ── */}
-              <div className="mt-7">
-                <div className="px-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Active Deals</div>
+              <div className="mt-6">
+                <div className="px-5 text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2.5">Active Deals</div>
                 <div className="flex gap-3 px-5 overflow-x-auto no-scrollbar pb-2">
-                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md relative">
-                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Mahomes Prizm Base</div>
+                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-3.5 backdrop-blur-md relative">
+                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Messi Prizm World Cup</div>
                     <div className="text-[10px] text-zinc-400 font-semibold">Step 2/5 · BUY</div>
-                    <div className="absolute top-4 right-3 text-zinc-500">
+                    <div className="absolute top-3.5 right-3 text-zinc-500">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </div>
                   </div>
-                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-4 backdrop-blur-md relative">
-                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Ohtani Bowman Auto</div>
+                  <div className="min-w-[160px] rounded-2xl bg-white/5 border border-white/10 p-3.5 backdrop-blur-md relative">
+                    <div className="font-bold text-sm truncate mb-1 text-white pr-4">Haaland Chrome Auto</div>
                     <div className="text-[10px] text-zinc-400 font-semibold">Step 1/5 · SELL</div>
-                    <div className="absolute top-4 right-3 text-zinc-500">
+                    <div className="absolute top-3.5 right-3 text-zinc-500">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </div>
                   </div>
@@ -147,32 +152,46 @@ export default function PhoneMockup() {
               </div>
 
               {/* ── TODAY'S ACTIVITY ── */}
-              <div className="mt-7 px-5 pb-6">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Today's Activity</div>
-                <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-                  <div className="flex items-center p-4 border-b border-white/10">
-                    <div className="w-10 h-10 rounded-lg bg-[#0057FF]/15 flex items-center justify-center mr-3 shrink-0">
-                      <span className="text-[#0057FF] font-black text-sm">B</span>
+              <div className="mt-6 px-5 pb-6">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2.5">Today's Activity</div>
+                <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden divide-y divide-white/10">
+                  <div className="flex items-center p-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-[#0057FF]/15 border border-[#0057FF]/30 flex items-center justify-center mr-3 shrink-0">
+                      <span className="text-[#0057FF] font-black text-xs">B</span>
                     </div>
                     <div className="flex-1 min-w-0 mr-3">
-                      <div className="font-bold text-sm text-white truncate">LeBron Topps Chrome</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">10:42 AM</div>
+                      <div className="font-semibold text-sm text-white truncate">Lionel Messi Prizm WC</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">10:42 AM</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-bold text-sm text-white">$450</div>
+                      <div className="font-bold text-sm text-white">$1,150.00</div>
                     </div>
                   </div>
-                  <div className="flex items-center p-4">
-                    <div className="w-10 h-10 rounded-lg bg-red-500/15 flex items-center justify-center mr-3 shrink-0">
-                      <span className="text-red-500 font-black text-sm">S</span>
+
+                  <div className="flex items-center p-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-[#E8001C]/15 border border-[#E8001C]/30 flex items-center justify-center mr-3 shrink-0">
+                      <span className="text-[#E8001C] font-black text-xs">S</span>
                     </div>
                     <div className="flex-1 min-w-0 mr-3">
-                      <div className="font-bold text-sm text-white truncate">Curry NT Patch Auto</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">09:15 AM</div>
+                      <div className="font-semibold text-sm text-white truncate">Haaland Topps Chrome RC</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">09:15 AM</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-bold text-sm text-white">$1,200</div>
-                      <div className="text-[10px] font-bold text-[#00C853] mt-0.5">+$350</div>
+                      <div className="font-bold text-sm text-white">$850.00</div>
+                      <div className="text-[10px] font-bold text-[#00C853] mt-0.5">+$200.00</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center p-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-[#00C853]/15 border border-[#00C853]/30 flex items-center justify-center mr-3 shrink-0">
+                      <span className="text-[#00C853] font-black text-xs">TR</span>
+                    </div>
+                    <div className="flex-1 min-w-0 mr-3">
+                      <div className="font-semibold text-sm text-white truncate">Traded Patrick Mahomes → C.J. Stroud</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">08:30 AM · Trade</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-sm text-[#00C853]">Straight Trade</div>
                     </div>
                   </div>
                 </div>
@@ -182,103 +201,110 @@ export default function PhoneMockup() {
 
           {/* STEP 1: SCANNER SCREEN */}
           <div className={`absolute inset-0 flex flex-col bg-black transition-opacity duration-500 ${step === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-            <div className="absolute top-12 inset-x-0 z-20 flex justify-center">
-              <div className="bg-black/60 backdrop-blur-md flex rounded-full border border-white/10 p-1">
-                <div className="px-4 py-1.5 bg-zinc-800 rounded-full text-xs font-bold">Scan</div>
-                <div className="px-4 py-1.5 text-zinc-400 text-xs font-bold">Barcode</div>
-                <div className="px-4 py-1.5 text-zinc-400 text-xs font-bold">Search</div>
+            <div className="flex items-center justify-between px-5 pt-12 pb-3 bg-black/90 backdrop-blur-md z-20 border-b border-white/10">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="font-bold text-sm text-white">Scan Card</span>
+              </div>
+              <div className="flex bg-zinc-900 border border-white/10 rounded-full p-0.5">
+                <span className="px-3 py-1 bg-[#0057FF] text-white text-[11px] font-bold rounded-full">Single</span>
+                <span className="px-3 py-1 text-zinc-400 text-[11px] font-bold">Batch</span>
               </div>
             </div>
-            <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
-              <div className="w-full h-full opacity-60 bg-[url('https://images.unsplash.com/photo-1611931960487-4932667079f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80')] bg-cover bg-center" />
-              <div className="absolute inset-0 bg-black/40" />
-              <div className="absolute w-[280px] h-[400px] border-2 border-white/20 rounded-xl flex items-center justify-center overflow-hidden">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#0057FF] rounded-tl-xl" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#0057FF] rounded-tr-xl" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#0057FF] rounded-bl-xl" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#0057FF] rounded-br-xl" />
+
+            <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center">
+              <div className="w-full h-full opacity-30 bg-cover bg-center" style={{ backgroundImage: "url('/s-l400.png')" }} />
+              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute w-[270px] h-[380px] border-2 border-white/20 rounded-2xl flex items-center justify-center overflow-hidden shadow-2xl bg-zinc-900/40 backdrop-blur-xs">
+                <img src="/s-l400.png" alt="Scanned Card" className="w-[85%] h-[85%] object-contain rounded-xl drop-shadow-2xl" />
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#0057FF] rounded-tl-2xl z-10" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#0057FF] rounded-tr-2xl z-10" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#0057FF] rounded-bl-2xl z-10" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#0057FF] rounded-br-2xl z-10" />
                 
                 {/* Scanning line animation */}
-                <div className="absolute top-0 w-full h-[3px] bg-[#0057FF] shadow-[0_0_20px_#0057FF] animate-[scan_2s_ease-in-out_infinite]" />
+                <div className="absolute top-0 w-full h-[3px] bg-[#0057FF] shadow-[0_0_20px_#0057FF] animate-[scan_2s_ease-in-out_infinite] z-20" />
               </div>
             </div>
-            <div className="absolute bottom-0 inset-x-0 h-32 bg-black/80 backdrop-blur-lg flex items-center justify-center gap-8 pb-4">
-              <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10"><ImageIcon className="w-5 h-5" /></div>
-              <div className={`w-20 h-20 rounded-full border-4 border-[#0057FF]/40 flex items-center justify-center transition-transform ${isClicking && step === 1 ? 'scale-90 bg-white/20' : ''}`}>
-                <div className="w-16 h-16 rounded-full bg-white" />
+            <div className="absolute bottom-0 inset-x-0 h-32 bg-black/90 backdrop-blur-lg flex items-center justify-center gap-8 pb-4 border-t border-white/10 z-20">
+              <div className="w-11 h-11 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10 text-zinc-300">
+                <ImageIcon className="w-5 h-5" />
               </div>
-              <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10"><span className="font-bold text-xs">A/a</span></div>
+              <div className={`w-20 h-20 rounded-full border-4 border-[#0057FF]/40 flex items-center justify-center transition-transform cursor-pointer ${isClicking && step === 1 ? 'scale-90 bg-white/20' : ''}`}>
+                <div className="w-16 h-16 rounded-full bg-white shadow-lg" />
+              </div>
+              <div className="w-11 h-11 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10 text-zinc-300">
+                <Zap className="w-5 h-5" />
+              </div>
             </div>
           </div>
 
           {/* STEP 2: COMPS / DATA SCREEN */}
           <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-            <div className="flex items-center justify-between px-5 pt-12 pb-2">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <ChevronLeft className="w-6 h-6" />
-                <span className="font-bold">Step 2/4 · BUY</span>
+            <div className="flex items-center justify-between px-5 pt-12 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="font-bold text-sm text-white">Step 2/5 · BUY</span>
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar pb-28">
-              <div className="flex gap-4">
-                <div className="w-16 h-20 bg-[#222222] rounded-lg">
-                  <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-bold text-[15px] leading-tight mb-2">2017 Panini Prizm Patrick Mahomes II Base</div>
-                  <div className="bg-[#FFD700] rounded-md px-2 py-0.5 self-start inline-block">
-                    <span className="text-black font-bold text-[11px]">PSA 10</span>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar pb-28">
+              <div className="flex gap-3.5 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                <img src="/s-l400.png" alt="Card Comps" className="w-14 h-18 rounded-lg object-contain bg-zinc-900 border border-white/10 shrink-0 p-0.5 shadow-md" />
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <div className="font-bold text-sm leading-tight text-white truncate">2022 Panini Prizm World Cup Lionel Messi #7</div>
+                  <div className="mt-1.5 self-start">
+                    <span className="bg-[#FFD700] text-zinc-950 font-black text-[10px] px-2 py-0.5 rounded">PSA 10</span>
                   </div>
                 </div>
               </div>
 
               {/* Deal Rating Badge */}
-              <div className="bg-[#00C853] rounded-full py-2.5 px-6 flex items-center justify-center gap-2 self-center mx-auto">
-                <span className="text-white font-bold text-base">🔥</span>
-                <span className="text-white font-black text-[15px] tracking-[1px]">GREAT DEAL</span>
+              <div className="bg-[#00C853]/15 border border-[#00C853]/40 rounded-full py-2 px-5 flex items-center justify-center gap-2 self-center mx-auto">
+                <span className="text-white font-bold text-xs">🔥</span>
+                <span className="text-[#00C853] font-black text-xs tracking-[1px]">GREAT DEAL</span>
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-[#2A2A2A] mt-2">
-                <div className="pb-3 border-b-2 border-white px-2 flex-1 text-center font-bold text-sm">eBay Sold</div>
-                <div className="pb-3 px-2 flex-1 text-center font-bold text-sm text-[#555555]">eBay Active</div>
-                <div className="pb-3 px-2 flex-1 text-center font-bold text-sm text-[#555555]">MySlabs</div>
+              <div className="flex border-b border-white/10 mt-1">
+                <div className="pb-2.5 border-b-2 border-[#0057FF] px-2 flex-1 text-center font-bold text-xs text-[#0057FF]">eBay Sold</div>
+                <div className="pb-2.5 px-2 flex-1 text-center font-bold text-xs text-zinc-500">eBay Active</div>
+                <div className="pb-2.5 px-2 flex-1 text-center font-bold text-xs text-zinc-500">MySlabs</div>
               </div>
 
               {/* Price Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#111111] p-4 rounded-2xl border border-[#2A2A2A] items-center flex flex-col">
-                  <div className="text-[10px] text-[#555555] font-bold uppercase tracking-[1.5px] mb-1">Market Avg</div>
-                  <div className="text-[36px] font-black text-white">$2,145</div>
+                <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 items-center flex flex-col">
+                  <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Market Avg</div>
+                  <div className="text-2xl font-black text-white">$1,450.00</div>
                 </div>
-                <div className="bg-[#111111] p-4 rounded-2xl border border-[#2A2A2A] items-center flex flex-col">
-                  <div className="text-[10px] text-[#555555] font-bold uppercase tracking-[1.5px] mb-1">Cost Basis</div>
-                  <div className="text-[36px] font-black text-[#00C853]">$1,850</div>
+                <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10 items-center flex flex-col">
+                  <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Target Price</div>
+                  <div className="text-2xl font-black text-[#00C853]">$1,150.00</div>
                 </div>
               </div>
 
               {/* Sales List */}
-              <div className="space-y-0 border border-[#2A2A2A] rounded-2xl bg-[#111111] overflow-hidden">
+              <div className="space-y-0 border border-white/10 rounded-2xl bg-white/5 overflow-hidden divide-y divide-white/10">
                 {[
-                  { price: '$2,150.00', date: 'Oct 24', type: 'Auction' },
-                  { price: '$2,135.50', date: 'Oct 23', type: 'Buy It Now' },
+                  { price: '$1,460.00', date: 'Oct 24', type: 'Auction' },
+                  { price: '$1,440.00', date: 'Oct 23', type: 'Buy It Now' },
                 ].map((sale, i) => (
-                  <div key={i} className={`flex justify-between items-center p-4 ${i !== 1 ? 'border-b border-[#2A2A2A]' : ''}`}>
+                  <div key={i} className="flex justify-between items-center p-3.5">
                     <div className="flex items-center">
-                      <div className="font-bold text-[15px]">{sale.price}</div>
-                      <div className="bg-[#0057FF]/15 px-2 py-0.5 rounded-md ml-3">
-                        <span className="text-[#0057FF] text-[11px] font-bold">{sale.type}</span>
+                      <div className="font-bold text-sm text-white">{sale.price}</div>
+                      <div className="bg-[#0057FF]/15 border border-[#0057FF]/30 px-2 py-0.5 rounded-md ml-3">
+                        <span className="text-[#0057FF] text-[10px] font-bold">{sale.type}</span>
                       </div>
                     </div>
-                    <div className="text-xs font-semibold text-[#555555]">{sale.date}</div>
+                    <div className="text-xs font-semibold text-zinc-400">{sale.date}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-5 border-t border-[#2A2A2A] bg-black">
-              <div className={`h-14 rounded-2xl bg-[#0057FF] text-white flex items-center justify-center font-bold text-lg transition-transform ${isClicking && step === 2 ? 'scale-95' : ''}`}>
+            <div className="p-4 border-t border-white/10 bg-[#09090b]">
+              <div className={`h-13 rounded-xl bg-[#0057FF] text-white flex items-center justify-center font-bold text-base shadow-lg shadow-blue-600/20 cursor-pointer transition-transform ${isClicking && step === 2 ? 'scale-95' : ''}`}>
                 Confirm Deal
               </div>
             </div>
@@ -286,38 +312,46 @@ export default function PhoneMockup() {
 
           {/* STEP 3: CONFIRM SCREEN */}
           <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 3 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-            <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-white/10">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <ChevronLeft className="w-6 h-6" />
-                <span className="font-bold">Step 4/4 · CONFIRM</span>
+            <div className="flex items-center justify-between px-5 pt-12 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="font-bold text-sm text-white">Step 4/5 · CONFIRM</span>
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar pb-28">
-              <div className="text-center mt-4">
-                <div className="text-[11px] font-bold text-[#888888] mb-2 uppercase tracking-widest">Purchase Price</div>
-                <div className="text-6xl font-black text-white">$1,850</div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar pb-28">
+              <div className="text-center mt-2">
+                <div className="text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-widest">Purchase Price</div>
+                <div className="text-5xl font-black text-white">$1,150.00</div>
               </div>
 
-              <div className="mt-8">
-                <div className="text-[11px] font-bold text-[#888888] uppercase tracking-[1.5px] mb-3">Payment Method</div>
+              <div className="mt-6">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2.5">Payment Method</div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-[#0057FF] text-white py-4 rounded-xl text-center font-bold text-sm">💵 Cash</div>
-                  <div className="bg-[#111111] border border-[#2A2A2A] py-4 rounded-xl text-center font-bold text-sm text-[#555555]">💙 Zelle</div>
-                  <div className="bg-[#111111] border border-[#2A2A2A] py-4 rounded-xl text-center font-bold text-sm text-[#555555]">🅿️ PayPal</div>
+                  <div className="bg-[#0057FF] text-white py-3 rounded-xl text-center font-bold text-xs shadow-md">💵 Cash</div>
+                  <div className="bg-white/5 border border-white/10 py-3 rounded-xl text-center font-bold text-xs text-zinc-400">💙 Zelle</div>
+                  <div className="bg-white/5 border border-white/10 py-3 rounded-xl text-center font-bold text-xs text-zinc-400">🅿️ PayPal</div>
                 </div>
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#888888] uppercase tracking-[1.5px] mb-3">Notes</div>
-                <div className="bg-[#111111] border border-[#2A2A2A] h-24 rounded-xl p-4 text-sm text-[#555555]">
-                  Add notes about condition or dealer...
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2.5">Purchase Location / Channel</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-[#0057FF] text-white py-3 rounded-xl text-center font-bold text-xs">Dallas Card Show</div>
+                  <div className="bg-white/5 border border-white/10 py-3 rounded-xl text-center font-bold text-xs text-zinc-400">Local Deal</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2.5">Deal Notes</div>
+                <div className="bg-white/5 border border-white/10 h-20 rounded-xl p-3 text-xs text-zinc-400">
+                  Bought from Table 42 · Clean PSA 10 slab...
                 </div>
               </div>
             </div>
 
-            <div className="p-5 border-t border-[#2A2A2A] bg-black">
-              <div className={`h-14 rounded-2xl bg-[#0057FF] flex items-center justify-center font-bold text-lg transition-transform ${isClicking && step === 3 ? 'scale-95 brightness-110' : ''}`}>
+            <div className="p-4 border-t border-white/10 bg-[#09090b]">
+              <div className={`h-13 rounded-xl bg-[#0057FF] text-white flex items-center justify-center font-bold text-base shadow-lg shadow-blue-600/20 cursor-pointer transition-transform ${isClicking && step === 3 ? 'scale-95 brightness-110' : ''}`}>
                 Add to Inventory
               </div>
             </div>
@@ -325,48 +359,98 @@ export default function PhoneMockup() {
 
           {/* STEP 4: INVENTORY LIST */}
           <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 4 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-             <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-white/10">
-              <div className="font-bold text-xl">Inventory</div>
-              <div className="flex gap-4 text-zinc-400">
-                <Search className="w-5 h-5" />
-                <Activity className="w-5 h-5" />
+            <div className="px-5 pt-12 pb-3 border-b border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-extrabold text-2xl text-white">Inventory</div>
+                  <div className="text-xs text-zinc-400 font-medium">3 active cards</div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                  <Activity className="w-4 h-4" />
+                </div>
+              </div>
+              
+              {/* Dedicated Action Row */}
+              <div className="flex gap-2">
+                <div className="flex-1 bg-white/5 border border-white/10 text-white font-bold text-xs py-2.5 rounded-xl text-center">
+                  Trade
+                </div>
+                <div className="flex-1 bg-[#0057FF] text-white font-bold text-xs py-2.5 rounded-xl text-center shadow-md">
+                  Add Existing Card
+                </div>
+              </div>
+
+              {/* Active / History Switcher */}
+              <div className="flex bg-zinc-900/80 border border-white/10 rounded-xl p-1">
+                <div className="flex-1 bg-white/10 py-1.5 text-center font-bold text-xs text-white rounded-lg">Active</div>
+                <div className="flex-1 py-1.5 text-center font-bold text-xs text-zinc-500">History</div>
+              </div>
+
+              {/* Category Chips Bar */}
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pt-0.5">
+                <span className="px-3 py-1 bg-[#0057FF] text-white text-[11px] font-bold rounded-full shrink-0">All</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-bold rounded-full shrink-0">Soccer</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-bold rounded-full shrink-0">Football</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-bold rounded-full shrink-0">Basketball</span>
               </div>
             </div>
 
             {/* Success Toast Overlay */}
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-green-500/20 border border-green-500/50 text-green-400 font-bold px-4 py-2 rounded-full text-sm flex items-center gap-2 shadow-lg shadow-green-500/10 z-20 animate-[slideDown_0.5s_ease-out]">
-              <Check className="w-4 h-4" /> Card Added
+            <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-[#18181b] border border-[#00C853]/50 text-white font-bold px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2.5 shadow-2xl shadow-green-500/20 z-40 animate-[slideDown_0.5s_ease-out]">
+              <div className="w-5 h-5 rounded-full bg-[#00C853]/20 border border-[#00C853] flex items-center justify-center text-[#00C853] shrink-0">
+                <Check className="w-3 h-3 stroke-[3]" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-white text-xs leading-none">Added to Inventory</div>
+                <div className="text-[10px] text-zinc-400 font-normal truncate mt-0.5">2022 Panini Prizm Lionel Messi #7</div>
+              </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar mt-4 pb-28">
-              <div className={`flex gap-4 p-4 rounded-2xl bg-[#111111] border border-[#0057FF] shadow-[0_0_15px_rgba(0,87,255,0.15)] relative overflow-hidden transition-colors ${isClicking && step === 4 ? 'bg-[#1a1a1a]' : ''}`}>
-                <div className="w-14 h-20 bg-[#222222] rounded-lg">
-                  <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=100&q=80" className="w-full h-full object-cover rounded-lg" />
-                </div>
-                <div className="flex-1 flex flex-col justify-center">
-                  <div className="font-bold leading-tight line-clamp-1 text-sm">2017 Panini Prizm Patrick Mahomes II Base</div>
-                  <div className="text-[11px] text-[#888888] mt-1 font-semibold">PSA 10 • Cost: $1,850</div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[15px] font-black text-white">$2,145</span>
-                    <span className="text-[10px] font-bold text-[#00C853] bg-[#00C853]/15 px-1.5 py-0.5 rounded">+$295</span>
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar pb-28">
+              <div className={`flex gap-3.5 p-3.5 rounded-2xl bg-white/5 border border-[#0057FF] shadow-[0_0_15px_rgba(0,87,255,0.15)] relative overflow-hidden transition-colors ${isClicking && step === 4 ? 'bg-[#1a1a1a]' : ''}`}>
+                <img src="/s-l400.png" alt="Lionel Messi Card" className="w-14 h-20 bg-zinc-900 rounded-lg object-contain border border-white/10 shrink-0 p-0.5 shadow-md" />
+                <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-bold leading-tight truncate text-sm text-white">Lionel Messi</div>
+                    <span className="bg-[#FFD700] text-zinc-950 font-black text-[9px] px-1.5 py-0.5 rounded shrink-0">PSA 10</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-400 mt-1 font-medium truncate">2022 Panini Prizm World Cup #7</div>
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
+                    <div className="text-[11px] text-zinc-400">
+                      Cost: <span className="font-bold text-white">$1,150.00</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-white">$1,450.00</span>
+                      <span className="text-[10px] font-bold text-[#00C853] bg-[#00C853]/15 border border-[#00C853]/30 px-1.5 py-0.5 rounded">+$300.00</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {[
-                { name: '2020 Bowman Chrome Jasson Dominguez', psa: 'BGS 9.5', cost: '$450', value: '$600', profit: '+$150' },
-                { name: '2003 Topps Chrome Lebron James', psa: 'PSA 9', cost: '$3200', value: '$3100', profit: '-$100', negative: true },
+                { name: 'Erling Haaland', set: '2019 Topps Chrome UEFA #74', psa: 'PSA 10', cost: '$650.00', value: '$850.00', profit: '+$200.00' },
+                { name: 'Kylian Mbappé', set: '2018 Panini Prizm World Cup #80', psa: 'PSA 9', cost: '$400.00', value: '$380.00', profit: '-$20.00', negative: true },
               ].map((item, i) => (
-                <div key={i} className="flex gap-4 p-4 rounded-2xl bg-[#111111] border border-[#2A2A2A]">
-                  <div className="w-14 h-20 bg-[#222222] rounded-lg" />
-                  <div className="flex-1 flex flex-col justify-center">
-                    <div className="font-bold leading-tight line-clamp-1 text-sm">{item.name}</div>
-                    <div className="text-[11px] text-[#888888] mt-1 font-semibold">{item.psa} • Cost: {item.cost}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[15px] font-black text-white">{item.value}</span>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.negative ? 'text-[#E8001C] bg-[#E8001C]/15' : 'text-[#00C853] bg-[#00C853]/15'}`}>
-                        {item.profit}
-                      </span>
+                <div key={i} className="flex gap-3.5 p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="w-14 h-20 bg-zinc-800 rounded-lg flex items-center justify-center text-[10px] font-black text-zinc-400 shrink-0">
+                    SOCCER
+                  </div>
+                  <div className="flex-1 flex flex-col justify-center min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-bold leading-tight truncate text-sm text-white">{item.name}</div>
+                      <span className="bg-[#1A1A1A] border border-amber-500/40 text-amber-400 font-bold text-[9px] px-1.5 py-0.5 rounded shrink-0">{item.psa}</span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-1 font-medium truncate">{item.set}</div>
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
+                      <div className="text-[11px] text-zinc-400">
+                        Cost: <span className="font-bold text-white">{item.cost}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-white">{item.value}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.negative ? 'text-[#E8001C] bg-[#E8001C]/15 border border-[#E8001C]/30' : 'text-[#00C853] bg-[#00C853]/15 border border-[#00C853]/30'}`}>
+                          {item.profit}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -376,158 +460,159 @@ export default function PhoneMockup() {
 
           {/* STEP 5: CARD DETAILS */}
           <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 5 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
-            <div className="flex items-center justify-between px-5 pt-12 pb-2">
-              <ChevronLeft className="w-6 h-6 text-white" />
-              <div className="flex gap-4">
-                <Tag className="w-5 h-5 text-zinc-400" />
-                <MoreHorizontal className="w-5 h-5 text-zinc-400" />
+            <div className="flex items-center justify-between px-5 pt-12 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="font-bold text-sm text-white">Card Details</span>
+              </div>
+              <div className="flex gap-3 text-zinc-400">
+                <Tag className="w-4 h-4" />
+                <MoreHorizontal className="w-4 h-4" />
               </div>
             </div>
             
             <div className="flex-1 overflow-y-auto no-scrollbar pb-28">
-              <div className="w-full h-[300px] bg-[#111] p-4 flex items-center justify-center">
-                <img src="https://images.unsplash.com/photo-1611931960487-4932667079f1?auto=format&fit=crop&w=400&q=80" className="max-h-full max-w-full object-contain" />
+              <div className="w-full h-[250px] bg-[#111] p-4 flex items-center justify-center bg-gradient-to-b from-blue-950/30 to-[#09090b]">
+                <img src="/s-l400.png" alt="Lionel Messi Slab Card" className="h-48 object-contain rounded-xl drop-shadow-2xl" />
               </div>
               
               <div className="p-5">
-                <div className="inline-block bg-white text-black font-black text-xs px-2 py-1 uppercase tracking-wider mb-3">PSA 10</div>
-                <h2 className="text-xl font-black leading-tight mb-2">2017 Panini Prizm Patrick Mahomes II Base #269</h2>
-                <div className="text-zinc-400 text-sm mb-6">Football • Panini Prizm</div>
+                <div className="inline-block bg-[#FFD700] text-zinc-950 font-black text-[11px] px-2.5 py-0.5 rounded-md mb-2">PSA 10</div>
+                <h2 className="text-lg font-extrabold text-white leading-tight mb-1">2022 Panini Prizm World Cup Lionel Messi #7</h2>
+                <div className="text-zinc-400 text-xs mb-5">Soccer • Panini Prizm World Cup</div>
 
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  <div className="bg-[#18181b] p-4 rounded-xl border border-white/5">
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10">
                     <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Est. Value</div>
-                    <div className="text-2xl font-black text-white">$2,145.00</div>
+                    <div className="text-xl font-black text-white">$1,450.00</div>
                   </div>
-                  <div className="bg-[#18181b] p-4 rounded-xl border border-white/5">
+                  <div className="bg-white/5 p-3.5 rounded-2xl border border-white/10">
                     <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Total Gain</div>
-                    <div className="text-2xl font-black text-green-500">+$295.00</div>
+                    <div className="text-xl font-black text-[#00C853]">+$300.00</div>
                   </div>
                 </div>
 
-                <div className="bg-[#18181b] rounded-xl border border-white/5 p-4 h-40 flex items-end gap-2">
-                  {/* Fake Chart */}
+                <div className="bg-white/5 rounded-2xl border border-white/10 p-4 h-36 flex items-end gap-2">
+                  {/* Price History Line Graph Visual */}
                   {[40, 45, 42, 50, 60, 55, 65, 75, 80, 85].map((h, i) => (
-                    <div key={i} className="flex-1 bg-[#5252ff]/80 rounded-t-sm" style={{ height: `${h}%` }} />
+                    <div key={i} className="flex-1 bg-[#0057FF] rounded-t-sm opacity-80" style={{ height: `${h}%` }} />
                   ))}
+                </div>
+
+                <div className="flex gap-3 mt-5">
+                  <div className="flex-1 bg-[#E8001C] text-white py-3 rounded-xl text-center font-bold text-xs shadow-md">
+                    Sell Card
+                  </div>
+                  <div className="flex-1 bg-[#0057FF] text-white py-3 rounded-xl text-center font-bold text-xs shadow-md">
+                    List on eBay
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* STEP 6: REPORTS */}
-          <div className={`absolute inset-0 bg-[#000000] flex flex-col transition-transform duration-500 ${step === 6 ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="flex justify-between items-center px-5 pt-14 pb-2">
-              <div className="text-3xl font-black tracking-tight">Reports</div>
-              <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                <Menu className="w-5 h-5 text-white" />
+          <div className={`absolute inset-0 bg-[#09090b] flex flex-col transition-transform duration-500 ${step === 6 ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="flex justify-between items-center px-5 pt-12 pb-3 border-b border-white/10">
+              <div className="font-extrabold text-xl text-white">Reports</div>
+              <div className="flex bg-zinc-900 border border-white/10 rounded-lg p-0.5">
+                <span className="px-2.5 py-1 bg-zinc-800 text-white text-[11px] font-bold rounded-md">Performance</span>
+                <span className="px-2.5 py-1 text-zinc-400 text-[11px] font-bold">Daily Logs</span>
               </div>
             </div>
             
-            <div className="flex px-5 mb-4 gap-2">
-              <div className="bg-[#111111] border border-[#2A2A2A] px-4 py-1.5 rounded-full"><span className="text-white font-bold text-sm">Today</span></div>
-              <div className="px-4 py-1.5"><span className="text-[#888888] font-bold text-sm">Week</span></div>
-              <div className="px-4 py-1.5"><span className="text-[#888888] font-bold text-sm">Month</span></div>
+            <div className="flex px-5 my-3 gap-2 border-b border-white/10 pb-2">
+              <div className="border-b-2 border-[#0057FF] pb-2 px-2"><span className="text-[#0057FF] font-bold text-xs">Today</span></div>
+              <div className="pb-2 px-2"><span className="text-zinc-500 font-bold text-xs">7 Days</span></div>
+              <div className="pb-2 px-2"><span className="text-zinc-500 font-bold text-xs">30 Days</span></div>
+              <div className="pb-2 px-2"><span className="text-zinc-500 font-bold text-xs">YTD</span></div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 pb-28 no-scrollbar">
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[
-                  { label: "Bought", value: "2", unit: "cards", color: "text-[#0057FF]" },
-                  { label: "Sold", value: "0", unit: "cards", color: "text-[#E8001C]" },
-                  { label: "Spent", value: "$1,850", color: "text-zinc-400" },
-                  { label: "Revenue", value: "$0", color: "text-white" },
-                  { label: "Profit", value: "$0", color: "text-[#00C853]" },
-                  { label: "Margin", value: "0%", color: "text-[#0057FF]" },
-                ].map((m, i) => (
-                  <div key={i} className="bg-[#111111] p-4 rounded-xl border border-[#2A2A2A]">
-                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">{m.label}</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className={`text-2xl font-black ${m.color}`}>{m.value}</span>
-                      {m.unit && <span className="text-[10px] text-zinc-500 font-bold">{m.unit}</span>}
-                    </div>
-                  </div>
-                ))}
+            <div className="flex-1 overflow-y-auto px-5 pb-28 no-scrollbar space-y-4">
+              {/* Hero Card */}
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-center">
+                <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Net Profit</div>
+                <div className="text-4xl font-black text-[#00C853]">$600.00</div>
               </div>
 
-              <div className="text-[10px] text-[#888888] font-bold uppercase tracking-widest mb-3">Last 24H Transactions</div>
-              <div className="bg-[#111111] rounded-2xl border border-[#2A2A2A] overflow-hidden mb-6">
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/15 flex items-center justify-center">
-                      <span className="text-[#0057FF] font-black text-lg">B</span>
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm">2017 Panini Prizm...</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">10:42 AM</div>
-                    </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: "Cards Bought", value: "2", color: "text-[#0057FF]" },
+                  { label: "Cards Sold", value: "1", color: "text-[#00C853]" },
+                  { label: "Total Spent", value: "$1,150.00", color: "text-zinc-300" },
+                  { label: "Total Revenue", value: "$850.00", color: "text-white" },
+                  { label: "Net Profit", value: "$600.00", color: "text-[#00C853]" },
+                  { label: "Avg Margin", value: "32.4%", color: "text-[#0057FF]" },
+                ].map((m, i) => (
+                  <div key={i} className="bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                    <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">{m.label}</div>
+                    <span className={`text-xl font-black ${m.color}`}>{m.value}</span>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-sm">$1850</div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
 
           {/* STEP 7: MORE */}
-          <div className={`absolute inset-0 bg-[#000000] flex flex-col transition-transform duration-500 ${step === 7 ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="px-5 pt-14 pb-4">
-              <div className="text-3xl font-black tracking-tight">More</div>
+          <div className={`absolute inset-0 bg-[#09090b] flex flex-col transition-transform duration-500 ${step === 7 ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="px-5 pt-12 pb-3 border-b border-white/10">
+              <div className="font-extrabold text-xl text-white">More</div>
             </div>
             
-            <div className="flex-1 overflow-y-auto pb-28 no-scrollbar">
-              <div className="flex items-center gap-4 px-5 mb-8">
-                <div className="w-14 h-14 rounded-full bg-[#E8001C] flex items-center justify-center">
-                  <span className="text-white font-black text-xl">RSL</span>
+            <div className="flex-1 overflow-y-auto pb-28 no-scrollbar p-5 space-y-5">
+              {/* Profile Card */}
+              <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                <div className="w-12 h-12 rounded-full bg-[#E8001C] flex items-center justify-center font-bold text-white text-base shadow-md">
+                  VK
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="font-black text-lg">RSL Cards</div>
-                    <div className="bg-[#4F46E5]/15 border border-[#4F46E5]/30 px-1.5 py-0.5 rounded">
-                      <span className="text-[9px] font-black text-[#0057FF]">PRO</span>
-                    </div>
+                    <div className="font-bold text-sm text-white truncate">Vinay K</div>
+                    <span className="bg-[#0057FF]/15 border border-[#0057FF]/30 text-[#0057FF] font-black text-[9px] px-2 py-0.5 rounded-full">PRO</span>
                   </div>
-                  <div className="text-xs text-zinc-500 mt-0.5">dealer@rslcards.com</div>
+                  <div className="text-xs text-zinc-400 truncate mt-0.5">dealer@rslcards.com</div>
                 </div>
-                <div className="text-[#0057FF] font-bold text-sm">Edit</div>
+                <span className="text-[#0057FF] font-bold text-xs">Edit</span>
               </div>
 
-              <div className="px-5 mb-2">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Business</div>
-                <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-                    <div className="flex items-center gap-3"><span className="text-lg">👥</span><span className="font-bold text-sm">Customers</span></div>
-                    <span className="text-zinc-600 text-lg">›</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-                    <div className="flex items-center gap-3"><span className="text-lg">📅</span><span className="font-bold text-sm">Card Shows</span></div>
-                    <span className="text-zinc-600 text-lg">›</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3"><span className="text-lg">📋</span><span className="font-bold text-sm">My Listings</span></div>
-                    <span className="text-zinc-600 text-lg">›</span>
+              <div>
+                <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-2.5">MARKETPLACE CONNECTIONS</div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                  <div className="flex items-center justify-between p-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-zinc-400">🛒</span>
+                      <span className="font-semibold text-sm text-white">eBay</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#00C853] bg-[#00C853]/15 border border-[#00C853]/30 px-2 py-0.5 rounded">🟢 Connected</span>
                   </div>
                 </div>
               </div>
-              
-              <div className="px-5 mt-6">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2">Platforms</div>
-                <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl overflow-hidden">
-                  <div className="flex items-center justify-between p-4 border-b border-[#2A2A2A]">
-                    <div className="flex items-center gap-3"><span className="text-lg">🛒</span><span className="font-bold text-sm">eBay</span></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">⚫ Connect</span>
-                      <span className="text-zinc-600 text-lg">›</span>
-                    </div>
+
+              <div>
+                <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-2.5">SUPPORT & SETTINGS</div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/10">
+                  <div className="flex items-center justify-between p-3.5">
+                    <span className="font-semibold text-sm text-white">Notification Preferences</span>
+                    <span className="text-zinc-500 text-xs">›</span>
                   </div>
-                  <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3"><span className="text-lg">🗂️</span><span className="font-bold text-sm">MySlabs</span></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">⚫ Connect</span>
-                      <span className="text-zinc-600 text-lg">›</span>
-                    </div>
+                  <div className="flex items-center justify-between p-3.5">
+                    <span className="font-semibold text-sm text-white">Help & Support</span>
+                    <span className="text-zinc-500 text-xs">›</span>
                   </div>
+                  <div className="flex items-center justify-between p-3.5">
+                    <span className="font-semibold text-sm text-white">Privacy & Terms</span>
+                    <span className="text-zinc-500 text-xs">›</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3.5">
+                    <span className="font-semibold text-sm text-white">Version</span>
+                    <span className="text-xs text-zinc-400 font-medium">1.0.0</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="w-full bg-[#E8001C]/15 border border-[#E8001C]/30 text-[#E8001C] py-3 rounded-xl text-center font-bold text-xs">
+                  Sign Out
                 </div>
               </div>
             </div>
