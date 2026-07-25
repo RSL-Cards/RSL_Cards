@@ -32,31 +32,72 @@ const ALL_SPORTS = [
   { key: "Other", iconName: "medal-outline" as const },
 ];
 
-const GRADE_CONFIG: Record<
-  string,
-  { bg: string; color: string; label: string }
-> = {
-  PSA_10: { bg: "#FFD700", color: COLORS.zinc950, label: "PSA 10" },
-  PSA_9: { bg: COLORS.zinc800, color: "#FFD700", label: "PSA 9" },
-  BGS_9: { bg: COLORS.primaryLight, color: COLORS.white, label: "BGS 9" },
-  BGS_95: { bg: COLORS.primaryLight, color: COLORS.white, label: "BGS 9.5" },
-  RAW: { bg: COLORS.zinc800, color: COLORS.zinc400, label: "RAW" },
-};
+export function getGradeConfig(gradeKey?: string, item?: any) {
+  const company = (item?.grade_company || item?.gradeCompany || '').toUpperCase().trim()
+  const value = (item?.grade_value || item?.gradeValue || '').trim()
 
-function GradeChip({ gradeKey }: { gradeKey: string }) {
-  const formattedLabel = gradeKey ? gradeKey.replace(/_/g, " ") : "RAW";
-  const cfg = GRADE_CONFIG[gradeKey] ?? {
-    bg: COLORS.zinc800,
-    color: COLORS.zinc400,
-    label: formattedLabel,
-  };
+  if (gradeKey === 'RAW' || company === 'RAW') {
+    return { bg: COLORS.zinc800, color: COLORS.zinc400, label: 'RAW' }
+  }
+
+  let finalCompany = company || 'PSA'
+  let finalValue = value
+
+  if (gradeKey) {
+    if (gradeKey.includes('_')) {
+      const parts = gradeKey.split('_')
+      if (!company) finalCompany = parts[0].toUpperCase()
+      if (!value) finalValue = parts.slice(1).join('.')
+    } else if (gradeKey.includes(' ')) {
+      const parts = gradeKey.split(' ')
+      if (!company) finalCompany = parts[0].toUpperCase()
+      if (!value) finalValue = parts.slice(1).join('.')
+    } else if (/^\d+(?:\.\d+)?$/.test(gradeKey.trim())) {
+      if (!company) finalCompany = 'PSA'
+      if (!value) finalValue = gradeKey.trim()
+    }
+  }
+
+  if (!finalValue && gradeKey) {
+    finalValue = gradeKey
+  }
+
+  const label = `${finalCompany} ${finalValue}`.trim()
+
+  let bg = COLORS.zinc800
+  let color = '#FFD700'
+
+  if (finalCompany === 'PSA') {
+    if (finalValue === '10') {
+      bg = '#FFD700'
+      color = COLORS.zinc950
+    } else {
+      bg = COLORS.zinc800
+      color = '#FFD700'
+    }
+  } else if (finalCompany === 'BGS') {
+    bg = COLORS.primaryLight
+    color = COLORS.white
+  } else if (finalCompany === 'SGC') {
+    bg = COLORS.zinc800
+    color = '#00C853'
+  } else if (finalCompany === 'CGC') {
+    bg = '#0088FF'
+    color = COLORS.white
+  }
+
+  return { bg, color, label }
+}
+
+function GradeChip({ gradeKey, item }: { gradeKey: string; item?: any }) {
+  const cfg = getGradeConfig(gradeKey, item)
   return (
     <View style={[styles.gradeChip, { backgroundColor: cfg.bg }]}>
       <Typography variant="label" color={cfg.color} style={{ fontWeight: '800' }}>
         {cfg.label}
       </Typography>
     </View>
-  );
+  )
 }
 
 function StatusDot({ status }: { status: string }) {
@@ -150,7 +191,7 @@ function InventoryCard({ item }: { item: any }) {
               <Typography variant="body" weight="700" numberOfLines={1} style={{ flex: 1, marginRight: SPACING.sm }}>
                 {item.player_name}
               </Typography>
-              <GradeChip gradeKey={item.grade_key} />
+              <GradeChip gradeKey={item.grade_key} item={item} />
             </View>
 
             {/* Row 2 — set info */}

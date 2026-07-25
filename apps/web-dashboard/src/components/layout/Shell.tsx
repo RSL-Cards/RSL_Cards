@@ -1,7 +1,7 @@
 'use client'
 
-import { ReactNode, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { ReactNode, useEffect, useRef, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import ChatbotWidget from '../assistant/ChatbotWidget'
@@ -13,12 +13,19 @@ interface ShellProps {
 
 export default function Shell({ children }: ShellProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const hasCheckedRefresh = useRef(false)
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const refreshAuth = useAuthStore((state) => state.refreshAuth)
-
   const user = useAuthStore((state) => state.user)
+
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Auto-close mobile sidebar drawer on page navigation
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     if (isHydrated) {
@@ -39,8 +46,8 @@ export default function Shell({ children }: ShellProps) {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F7FB] px-4">
-        <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-black px-4">
+        <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-5 py-4 text-sm font-medium text-zinc-300 shadow-xl">
           Loading your dashboard...
         </div>
       </div>
@@ -48,11 +55,11 @@ export default function Shell({ children }: ShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F7FB] text-gray-900">
-      <Sidebar />
-      <div className="ml-64">
-        <Topbar />
-        <main className="p-6">
+    <div className="min-h-screen bg-black text-white selection:bg-[#E8001C] selection:text-white">
+      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <div className="transition-all duration-300 min-h-screen flex flex-col lg:ml-64 ml-0">
+        <Topbar onMobileToggle={() => setMobileOpen(true)} />
+        <main className="flex-1 p-3 sm:p-6 max-w-[100vw] overflow-x-hidden">
           {children}
         </main>
       </div>
@@ -60,3 +67,4 @@ export default function Shell({ children }: ShellProps) {
     </div>
   )
 }
+

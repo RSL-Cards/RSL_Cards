@@ -134,21 +134,32 @@ export class TransactionRepository {
       `);
     }
 
-    // Send push/SSE notification for new sale
+    // Send push/SSE/email notification for new sale (only if enabled in preferences)
     try {
       const prefResult = await db.execute(sql`
-        SELECT notification_preferences FROM dealer_profiles
-        WHERE user_id = ${userId}
+        SELECT dp.notification_preferences, u.email as user_email
+        FROM dealer_profiles dp
+        JOIN users u ON u.id = dp.user_id
+        WHERE dp.user_id = ${userId}
         LIMIT 1
       `);
       
       let sendPush = true;
+      let sendEmail = false;
+      let userEmail = null;
+
       if (prefResult.rows.length > 0) {
-        const prefs = prefResult.rows[0].notification_preferences as any;
+        const rowData = prefResult.rows[0] as any;
+        userEmail = rowData.user_email;
+        const prefs = rowData.notification_preferences as any;
         if (prefs && prefs.newSales) {
-          sendPush = !!prefs.newSales.push;
+          sendPush = prefs.newSales.push !== false;
+          sendEmail = prefs.newSales.email === true;
         }
       }
+
+      const saleTitle = "New Sale Recorded";
+      const saleBody = `Sold ${playerName}${gradeKey ? ` (${gradeKey})` : ""} for $${sellPrice.toFixed(2)}. Profit: $${profit.toFixed(2)}${profitPct !== null ? ` (${profitPct}%)` : ""}.`;
 
       if (sendPush) {
         const { NotificationRepository } = await import("../notification/notification.repository.js");
@@ -157,11 +168,21 @@ export class TransactionRepository {
         const notifService = new NotificationService(notifRepository);
         await notifService.sendNotification(
           userId,
-          "New Sale Recorded",
-          `Sold ${playerName}${gradeKey ? ` (${gradeKey})` : ""} for $${sellPrice.toFixed(2)}. Profit: $${profit.toFixed(2)}${profitPct !== null ? ` (${profitPct}%)` : ""}.`,
+          saleTitle,
+          saleBody,
           "sale",
           { transactionId: row.id }
         );
+      }
+
+      if (sendEmail && userEmail) {
+        const { emailService } = await import("../email/index.js");
+        await emailService.sendNotificationAlert(userEmail, {
+          alertTitle: saleTitle,
+          alertBody: saleBody,
+          actionUrl: `https://app.rslcards.com/transactions`,
+          actionText: "View Transaction History",
+        });
       }
     } catch (err: any) {
       console.error(`[TRANSACTION] Failed to send new sale notification: ${err.message}`);
@@ -207,7 +228,6 @@ export class TransactionRepository {
       const existingPlayer = await tx.execute(sql`
         SELECT id FROM players
         WHERE LOWER(name) = LOWER(${cleanPlayerName})
-          AND sport = ${cleanSport}
         LIMIT 1
       `);
 
@@ -217,6 +237,7 @@ export class TransactionRepository {
         const insertPlayer = await tx.execute(sql`
           INSERT INTO players (id, name, sport, created_at, updated_at)
           VALUES (gen_random_uuid(), ${cleanPlayerName}, ${cleanSport}, NOW(), NOW())
+          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
           RETURNING id
         `);
         resolvedPlayerId = (insertPlayer.rows[0] as any).id;
@@ -369,12 +390,20 @@ export class TransactionRepository {
       createdAt,
     } = body;
 
+    // Build trade summary title for transaction history
+    let tradeSummaryTitle = "Trade Transaction";
+    if (cardsGiven.length === 1 && cardsReceived.length === 1) {
+      tradeSummaryTitle = `Traded ${cardsGiven[0].playerName || 'Card'} → ${cardsReceived[0].playerName || 'Card'}`;
+    } else if (cardsGiven.length > 0 || cardsReceived.length > 0) {
+      tradeSummaryTitle = `Trade (${cardsGiven.length} Given, ${cardsReceived.length} Received)`;
+    }
+
     // Use a DB transaction to ensure consistency
     return await db.transaction(async (tx) => {
       // 1. Insert trade transaction
       const newTxRes = await tx.execute(sql`
         INSERT INTO transactions (
-          id, user_id, type, channel, price, payment_method, daily_log_id, local_id, created_at
+          id, user_id, type, channel, price, payment_method, player_name, daily_log_id, local_id, created_at
         ) VALUES (
           gen_random_uuid(),
           ${userId},
@@ -382,6 +411,7 @@ export class TransactionRepository {
           ${channel},
           ${price || 0},
           ${paymentMethod || null},
+          ${tradeSummaryTitle},
           ${dailyLogId || null},
           ${localId || null},
           ${createdAt ? new Date(createdAt) : new Date()}
@@ -417,8 +447,10 @@ export class TransactionRepository {
           gradeCompany: card.gradeCompany,
           gradeValue: card.gradeValue,
           gradeKey: card.gradeKey,
-          costBasis: 0,
+          certNumber: card.certNumber || null,
+          costBasis: card.costBasis || 0,
           currentMarketValue: card.marketValue,
+          photos: card.photos,
         });
 
         await tx.execute(sql`

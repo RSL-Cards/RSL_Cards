@@ -47,7 +47,7 @@ export default function TransactionsFilters({
   onTypeFilterChange,
 }: TransactionsFiltersProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-4 shadow-sm sm:p-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-2">
           {periodOptions.map(([value, label]) => (
@@ -57,8 +57,8 @@ export default function TransactionsFilters({
               onClick={() => onPeriodChange(value)}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 period === value
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-[#E8001C] text-white shadow-sm'
+                  : 'bg-[#141414] border border-[#252525] text-zinc-400 hover:bg-[#1A1A1A] hover:text-white'
               }`}
             >
               {label}
@@ -67,11 +67,11 @@ export default function TransactionsFilters({
         </div>
 
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-gray-500">
+          <label className="flex items-center gap-2 text-zinc-400">
             From
             <input
               type="date"
-              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm placeholder:text-zinc-500 focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
               value={fromDate}
               onChange={(event) => {
                 onFromDateChange(event.target.value)
@@ -79,11 +79,11 @@ export default function TransactionsFilters({
               }}
             />
           </label>
-          <label className="flex items-center gap-2 text-gray-500">
+          <label className="flex items-center gap-2 text-zinc-400">
             To
             <input
               type="date"
-              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm placeholder:text-zinc-500 focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
               value={toDate}
               onChange={(event) => {
                 onToDateChange(event.target.value)
@@ -96,43 +96,43 @@ export default function TransactionsFilters({
 
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
         <div className="relative md:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            className="block w-full rounded-lg border-0 py-2 pl-9 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+            className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 pl-9 pr-3 text-white shadow-sm placeholder:text-zinc-500 focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
             placeholder="Search card, customer, ref, payment"
           />
         </div>
         <select
           value={typeFilter}
           onChange={(event) => onTypeFilterChange(event.target.value)}
-          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+          className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
         >
-          <option value="all">All Types</option>
-          <option value="buy">Debit / Buy</option>
-          <option value="sell">Credit / Sell</option>
-          <option value="offer">Offers</option>
-          <option value="inquiry">Inquiries</option>
+          <option value="all" className="bg-[#141414] text-white">All Types</option>
+          <option value="buy" className="bg-[#141414] text-white">Debit / Buy</option>
+          <option value="sell" className="bg-[#141414] text-white">Credit / Sell</option>
+          <option value="offer" className="bg-[#141414] text-white">Offers</option>
+          <option value="inquiry" className="bg-[#141414] text-white">Inquiries</option>
         </select>
         <select
           value={channelFilter}
           onChange={(event) => onChannelFilterChange(event.target.value)}
-          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+          className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
         >
-          <option value="all">All Channels</option>
+          <option value="all" className="bg-[#141414] text-white">All Channels</option>
           {channelOptions.map((channel) => (
-            <option key={channel} value={channel}>{channel}</option>
+            <option key={channel} value={channel} className="bg-[#141414] text-white">{channel}</option>
           ))}
         </select>
         <select
           value={paymentFilter}
           onChange={(event) => onPaymentFilterChange(event.target.value)}
-          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+          className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm focus:border-[#E8001C] focus:outline-none sm:text-sm sm:leading-6"
         >
-          <option value="all">All Payments</option>
+          <option value="all" className="bg-[#141414] text-white">All Payments</option>
           {paymentOptions.map((payment) => (
-            <option key={payment} value={payment}>{payment}</option>
+            <option key={payment} value={payment} className="bg-[#141414] text-white">{payment}</option>
           ))}
         </select>
       </div>

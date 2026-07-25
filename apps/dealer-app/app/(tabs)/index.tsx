@@ -292,27 +292,50 @@ export default function HomeScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: RADIUS.sm,
-                      backgroundColor: tx.type === "buy" ? 'rgba(79,70,229,0.15)' : tx.type === "expense" ? 'rgba(245,158,11,0.15)' : 'rgba(225,29,72,0.15)',
+                      backgroundColor:
+                        tx.type === "buy"
+                          ? 'rgba(79,70,229,0.15)'
+                          : tx.type === "expense"
+                          ? 'rgba(245,158,11,0.15)'
+                          : tx.type === "trade"
+                          ? 'rgba(0,200,83,0.15)'
+                          : 'rgba(225,29,72,0.15)',
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: SPACING.md,
                     }}
                   >
-                    <Typography variant="body" weight="800" color={tx.type === "buy" ? COLORS.primaryLight : tx.type === "expense" ? COLORS.warning : COLORS.destructive}>
-                      {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : tx.type === "expense" ? "E" : "T"}
+                    <Typography
+                      variant="body"
+                      weight="800"
+                      color={
+                        tx.type === "buy"
+                          ? COLORS.primaryLight
+                          : tx.type === "expense"
+                          ? COLORS.warning
+                          : tx.type === "trade"
+                          ? "#00C853"
+                          : COLORS.destructive
+                      }
+                    >
+                      {tx.type === "buy" ? "B" : tx.type === "sell" ? "S" : tx.type === "expense" ? "E" : "TR"}
                     </Typography>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
                     <Typography variant="body" weight="600" numberOfLines={1}>
-                      {tx.playerName}
+                      {tx.playerName || (tx.type === "trade" ? "Trade Transaction" : "Activity")}
                     </Typography>
                     <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>
-                      {tx.time}
+                      {tx.time} {tx.type === "trade" ? "· Trade" : ""}
                     </Typography>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Typography variant="body" weight="700">
-                      ${tx.price}
+                    <Typography variant="body" weight="700" color={tx.type === "trade" ? "#00C853" : COLORS.text}>
+                      {tx.type === "trade"
+                        ? tx.price.startsWith("+") || tx.price.startsWith("-") || tx.price === "Straight Trade"
+                          ? tx.price
+                          : `$${tx.price}`
+                        : `$${tx.price}`}
                     </Typography>
                     {tx.profit && (
                       <Typography variant="caption" weight="600" color={parseFloat(tx.profit) >= 0 ? COLORS.success : COLORS.destructive} style={{ marginTop: 2 }}>

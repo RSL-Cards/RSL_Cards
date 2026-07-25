@@ -98,40 +98,73 @@ export class InventoryRepository {
 
     const item = result.rows[0];
 
-    if (item.variant_id && item.grade_key) {
+    if (item.variant_id) {
       const soldListings = await db.execute(sql`
         SELECT * FROM platform_sold_listings 
-        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
-        ORDER BY sold_at DESC LIMIT 20
+        WHERE variant_id = ${item.variant_id}
+        ORDER BY sold_at DESC LIMIT 100
       `);
 
       const activeListings = await db.execute(sql`
         SELECT * FROM platform_active_listings 
-        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
-        ORDER BY price ASC LIMIT 20
+        WHERE variant_id = ${item.variant_id}
+        ORDER BY price ASC LIMIT 100
       `);
 
-      const mappedSold = soldListings.rows.map(row => ({
-        itemId: row.platform_item_id,
-        title: row.title,
-        condition: row.condition,
-        soldPrice: { value: row.sold_price },
-        endDate: row.sold_at,
-        platform: row.platform
-      }));
+      const mappedEbaySold = soldListings.rows
+        .filter(r => !r.platform || String(r.platform).toLowerCase() === 'ebay')
+        .map(row => ({
+          itemId: row.platform_item_id,
+          title: row.title,
+          condition: row.condition,
+          grade_key: row.grade_key,
+          soldPrice: { value: row.sold_price },
+          endDate: row.sold_at,
+          platform: 'eBay'
+        }));
 
-      const mappedActive = activeListings.rows.map(row => ({
-        itemId: row.platform_item_id,
-        title: row.title,
-        condition: row.condition,
-        price: { value: row.price },
-        itemWebUrl: row.item_web_url,
-        image: { imageUrl: row.image_url },
-        platform: row.platform
-      }));
+      const mappedMyslabsSold = soldListings.rows
+        .filter(r => r.platform && String(r.platform).toLowerCase() === 'myslabs')
+        .map(row => ({
+          itemId: row.platform_item_id,
+          title: row.title,
+          condition: row.condition,
+          grade_key: row.grade_key,
+          soldPrice: { value: row.sold_price },
+          endDate: row.sold_at,
+          platform: 'MySlabs'
+        }));
 
-      item.ebay_sales_completed = JSON.stringify(mappedSold);
-      item.ebay_active_listings = JSON.stringify(mappedActive);
+      const mappedEbayActive = activeListings.rows
+        .filter(r => !r.platform || String(r.platform).toLowerCase() === 'ebay')
+        .map(row => ({
+          itemId: row.platform_item_id,
+          title: row.title,
+          condition: row.condition,
+          grade_key: row.grade_key,
+          price: { value: row.price },
+          itemWebUrl: row.item_web_url,
+          image: { imageUrl: row.image_url },
+          platform: 'eBay'
+        }));
+
+      const mappedMyslabsActive = activeListings.rows
+        .filter(r => r.platform && String(r.platform).toLowerCase() === 'myslabs')
+        .map(row => ({
+          itemId: row.platform_item_id,
+          title: row.title,
+          condition: row.condition,
+          grade_key: row.grade_key,
+          price: { value: row.price },
+          itemWebUrl: row.item_web_url,
+          image: { imageUrl: row.image_url },
+          platform: 'MySlabs'
+        }));
+
+      item.ebay_sales_completed = JSON.stringify(mappedEbaySold);
+      item.myslabs_sales_completed = JSON.stringify(mappedMyslabsSold);
+      item.ebay_active_listings = JSON.stringify(mappedEbayActive);
+      item.myslabs_active_listings = JSON.stringify(mappedMyslabsActive);
     }
     
     // Calculate days_held on backend to guarantee sync with web-dashboard
@@ -182,11 +215,32 @@ export class InventoryRepository {
     const cleanVariation = variation && variation !== "" ? variation : null;
     const cleanCardNumber = cardNumber && cardNumber !== "" ? cardNumber : null;
     const cleanSport = sport && sport !== "" ? sport : null;
-    const cleanGradeCompany = gradeCompany && gradeCompany !== "" ? gradeCompany : null;
-    const cleanGradeValue = gradeValue && gradeValue !== "" ? Number(gradeValue) : null;
+    let cleanGradeCompany = gradeCompany && gradeCompany !== "" ? String(gradeCompany).toUpperCase() : null;
+    let cleanGradeValue = gradeValue !== null && gradeValue !== undefined && gradeValue !== "" ? String(gradeValue) : null;
 
-    if (gradeKey === "RAW" && cleanGradeCompany && cleanGradeValue) {
-      gradeKey = `${cleanGradeCompany} ${cleanGradeValue}`;
+    if (gradeKey && gradeKey !== "RAW") {
+      if (gradeKey.includes('_')) {
+        const parts = gradeKey.split('_');
+        if (!cleanGradeCompany) cleanGradeCompany = parts[0];
+        if (!cleanGradeValue) cleanGradeValue = parts.slice(1).join('.');
+      } else if (gradeKey.includes(' ')) {
+        const parts = gradeKey.split(' ');
+        if (!cleanGradeCompany) cleanGradeCompany = parts[0];
+        if (!cleanGradeValue) cleanGradeValue = parts.slice(1).join('.');
+      } else if (/^\d+(?:\.\d+)?$/.test(gradeKey.trim())) {
+        if (!cleanGradeCompany) cleanGradeCompany = 'PSA';
+        if (!cleanGradeValue) cleanGradeValue = gradeKey.trim();
+      }
+    }
+
+    if (cleanGradeValue && (!cleanGradeCompany || cleanGradeCompany === 'RAW')) {
+      cleanGradeCompany = 'PSA';
+    }
+
+    if (cleanGradeCompany && cleanGradeValue && cleanGradeCompany !== 'RAW') {
+      gradeKey = `${cleanGradeCompany}_${cleanGradeValue.replace('.', '')}`;
+    } else if (!gradeKey) {
+      gradeKey = 'RAW';
     }
 
     const cleanCertNumber = certNumber && certNumber !== "" ? certNumber : null;
@@ -468,8 +522,92 @@ export class InventoryRepository {
   }
 
   async patchInventoryId(id: string, body: any, userId: string) {
-    // Basic implementation, can be expanded to dynamic updates
-    return { message: `Update card details for ${id}` };
+    const fields: any = {};
+
+    if (body.gradeCompany !== undefined || body.gradeValue !== undefined || body.gradeKey !== undefined) {
+      let company = body.gradeCompany !== undefined ? (body.gradeCompany ? String(body.gradeCompany).toUpperCase() : null) : undefined;
+      let val = body.gradeValue !== undefined ? (body.gradeValue ? String(body.gradeValue) : null) : undefined;
+      let key = body.gradeKey;
+
+      if (key && key !== "RAW") {
+        if (key.includes('_')) {
+          const parts = key.split('_');
+          if (company === undefined) company = parts[0];
+          if (val === undefined) val = parts.slice(1).join('.');
+        } else if (key.includes(' ')) {
+          const parts = key.split(' ');
+          if (company === undefined) company = parts[0];
+          if (val === undefined) val = parts.slice(1).join('.');
+        } else if (/^\d+(?:\.\d+)?$/.test(String(key).trim())) {
+          if (company === undefined) company = 'PSA';
+          if (val === undefined) val = String(key).trim();
+        }
+      }
+
+      if (val && (!company || company === 'RAW')) {
+        company = 'PSA';
+      }
+
+      if (company && val && company !== 'RAW') {
+        key = `${company}_${val.replace('.', '')}`;
+      } else if (key === undefined && company === 'RAW') {
+        key = 'RAW';
+      }
+
+      if (company !== undefined) fields.grade_company = company;
+      if (val !== undefined) fields.grade_value = val;
+      if (key !== undefined) fields.grade_key = key;
+    }
+
+    if (body.photos !== undefined) {
+      const photoList = Array.isArray(body.photos) ? body.photos : (body.photos ? [body.photos] : []);
+      fields.photos = photoList.length > 0 ? photoList : null;
+    } else if (body.imageUrl !== undefined || body.image_url !== undefined) {
+      const url = body.imageUrl || body.image_url;
+      fields.photos = url ? [url] : null;
+    }
+
+    if (body.costBasis !== undefined) fields.cost_basis = Number(body.costBasis);
+    if (body.currentMarketValue !== undefined) fields.current_market_value = Number(body.currentMarketValue);
+    if (body.notes !== undefined) fields.notes = body.notes;
+    if (body.certNumber !== undefined) fields.cert_number = body.certNumber;
+
+    fields.updated_at = new Date();
+
+    const setEntries = Object.entries(fields);
+    if (setEntries.length === 0) {
+      return { message: "No fields to update" };
+    }
+
+    const setSql = setEntries.map(([col, val]) => {
+      if (col === 'photos') {
+        const photosArr = val as string[] | null;
+        const cleanArr = photosArr && photosArr.length > 0 ? `{${photosArr.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}` : null;
+        return sql.raw(`${col} = ${cleanArr ? `'${cleanArr}'::text[]` : 'NULL'}`);
+      }
+      if (typeof val === 'string') return sql.raw(`${col} = '${val.replace(/'/g, "''")}'`);
+      if (val === null) return sql.raw(`${col} = NULL`);
+      if (val instanceof Date) return sql.raw(`${col} = '${val.toISOString()}'`);
+      return sql.raw(`${col} = ${val}`);
+    });
+
+    await db.execute(sql`
+      UPDATE inventory
+      SET ${sql.join(setSql, sql`, `)}
+      WHERE id = ${id} AND user_id = ${userId}
+    `);
+
+    const updatedItem = await db.execute(sql`
+      SELECT i.*, p.name as player_name 
+      FROM inventory i
+      LEFT JOIN players p ON i.player_id = p.id
+      WHERE i.id = ${id} AND i.user_id = ${userId}
+    `);
+
+    return {
+      message: "Card updated successfully",
+      item: updatedItem.rows[0]
+    };
   }
 
   async deleteInventoryId(id: string, userId: string) {
@@ -568,11 +706,11 @@ export class InventoryRepository {
   async confirmPhotoAdded(inventoryId: string, url: string, userId: string) {
     await db.execute(sql`
       UPDATE inventory
-      SET photos = array_append(COALESCE(photos, ARRAY[]::text[]), ${url}),
+      SET photos = ARRAY[${url}]::text[],
           updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
     `);
-    return { success: true };
+    return { success: true, url };
   }
 
   async deletePhoto(inventoryId: string, photoIndex: number, userId: string) {

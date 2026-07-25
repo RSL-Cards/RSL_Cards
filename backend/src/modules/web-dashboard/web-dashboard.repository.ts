@@ -214,7 +214,14 @@ export class WebDashboardRepository {
         i.id,
         i.year,
         i.set_name,
+        i.variation,
+        i.card_number,
         i.grade_key,
+        i.grade_company,
+        i.grade_value,
+        i.cert_number,
+        i.quantity,
+        i.notes,
         i.sport,
         i.cost_basis,
         i.current_market_value as market_value,
@@ -269,7 +276,13 @@ export class WebDashboardRepository {
         i.id,
         i.year,
         i.set_name,
+        i.variation,
+        i.card_number,
         i.grade_key,
+        i.grade_company,
+        i.grade_value,
+        i.cert_number,
+        i.quantity,
         i.sport,
         i.cost_basis,
         i.current_market_value as market_value,
@@ -303,7 +316,14 @@ export class WebDashboardRepository {
         i.id,
         i.year,
         i.set_name,
+        i.variation,
+        i.card_number,
         i.grade_key,
+        i.grade_company,
+        i.grade_value,
+        i.cert_number,
+        i.quantity,
+        i.notes,
         i.sport,
         i.cost_basis,
         i.current_market_value as market_value,
@@ -341,22 +361,22 @@ export class WebDashboardRepository {
 
     let activeComps: any[] = [];
     let comps: any[] = [];
-    if (item.variant_id && item.grade_key) {
+    if (item.variant_id) {
       const activeResult = await db.execute(sql`
-        SELECT platform, platform_item_id as platform_listing_id, 'active' as status, price as list_price, created_at, title, image_url, item_web_url
+        SELECT platform, platform_item_id as platform_listing_id, 'active' as status, price as list_price, created_at, title, image_url, item_web_url, grade_key
         FROM platform_active_listings
-        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        WHERE variant_id = ${item.variant_id}
         ORDER BY created_at DESC
-        LIMIT 5
+        LIMIT 50
       `);
       activeComps = activeResult.rows;
 
       const compsResult = await db.execute(sql`
-        SELECT platform, platform_item_id as platform_listing_id, sold_price, sold_at, title
+        SELECT platform, platform_item_id as platform_listing_id, sold_price, sold_at, title, grade_key
         FROM platform_sold_listings
-        WHERE variant_id = ${item.variant_id} AND grade_key = ${item.grade_key}
+        WHERE variant_id = ${item.variant_id}
         ORDER BY sold_at DESC
-        LIMIT 5
+        LIMIT 50
       `);
       comps = compsResult.rows;
     }

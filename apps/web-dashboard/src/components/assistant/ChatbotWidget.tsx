@@ -156,12 +156,12 @@ export default function ChatbotWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className={`mb-4 flex flex-col overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-2xl transition-all duration-300 dark:border-gray-800 dark:bg-gray-900 ${
+            className={`mb-4 flex flex-col overflow-hidden rounded-3xl border border-[#252525] bg-[#0D0D0D] shadow-2xl transition-all duration-300 ${
               isExpanded ? 'h-[740px] w-[520px]' : 'h-[620px] w-[400px]'
             } max-h-[calc(100vh-100px)] max-w-[calc(100vw-32px)]`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-5 py-4 text-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#252525] bg-gradient-to-r from-red-800 via-[#E8001C] to-black px-5 py-4 text-white shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-md border border-white/20">
                   <Bot className="h-5 w-5 text-white" />
@@ -197,10 +197,10 @@ export default function ChatbotWidget() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-gray-100/30 p-5 dark:from-gray-950 dark:to-gray-900">
+            <div className="flex-1 overflow-y-auto bg-[#09090B] p-5">
               {messages.length <= 2 && (
                 <div className="mb-6">
-                  <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                     Recommended Questions & Tools
                   </p>
                   <div className="flex flex-col gap-2">
@@ -210,18 +210,18 @@ export default function ChatbotWidget() {
                         <button
                           key={i}
                           onClick={() => handleSend(sug.text)}
-                          className="group flex items-center justify-between rounded-2xl border border-gray-200/80 bg-white/80 p-3 text-left transition-all hover:border-indigo-400 hover:bg-indigo-50/50 hover:shadow-sm dark:border-gray-800 dark:bg-gray-800/80 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-950/20"
+                          className="group flex items-center justify-between rounded-2xl border border-[#252525] bg-[#141414] p-3 text-left transition-all hover:border-[#E8001C]/60 hover:bg-[#1A1A1A] hover:shadow-sm"
                         >
                           <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors dark:bg-indigo-950 dark:text-indigo-400">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E8001C]/15 text-[#E8001C] group-hover:bg-[#E8001C] group-hover:text-white transition-colors">
                               <IconComponent className="h-4 w-4" />
                             </div>
                             <div>
-                              <span className="block text-xs font-semibold text-gray-800 dark:text-gray-200">{sug.label}</span>
-                              <span className="line-clamp-1 text-[11px] text-gray-500 dark:text-gray-400">{sug.text}</span>
+                              <span className="block text-xs font-semibold text-white">{sug.label}</span>
+                              <span className="line-clamp-1 text-[11px] text-zinc-400">{sug.text}</span>
                             </div>
                           </div>
-                          <span className="text-gray-300 group-hover:text-indigo-500 transition-colors">→</span>
+                          <span className="text-zinc-500 group-hover:text-[#E8001C] transition-colors">→</span>
                         </button>
                       )
                     })}
@@ -240,8 +240,8 @@ export default function ChatbotWidget() {
                     <div
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl shadow-sm ${
                         item.role === 'user'
-                          ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white'
-                          : 'bg-white border border-gray-200 text-indigo-600 dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400'
+                          ? 'bg-gradient-to-br from-[#E8001C] to-red-700 text-white'
+                          : 'bg-[#141414] border border-[#252525] text-[#E8001C]'
                       }`}
                     >
                       {item.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -250,14 +250,14 @@ export default function ChatbotWidget() {
                       <div
                         className={`rounded-3xl px-4 py-3 text-sm shadow-sm transition-all ${
                           item.role === 'user'
-                            ? 'rounded-tr-xs bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-medium'
-                            : 'rounded-tl-xs bg-white text-gray-800 border border-gray-200/80 dark:bg-gray-800 dark:border-gray-700/80 dark:text-gray-200'
+                            ? 'rounded-tr-xs bg-gradient-to-br from-[#E8001C] to-red-700 text-white font-medium'
+                            : 'rounded-tl-xs bg-[#141414] text-white border border-[#252525]'
                         }`}
                       >
                         {formatText(item.text)}
                       </div>
                       <span
-                        className={`text-[10px] text-gray-400 px-1 ${
+                        className={`text-[10px] text-zinc-500 px-1 ${
                           item.role === 'user' ? 'text-right' : 'text-left'
                         }`}
                       >
@@ -269,18 +269,18 @@ export default function ChatbotWidget() {
 
                 {isLoading && (
                   <div className="mr-auto flex w-full max-w-[88%] flex-row gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-white border border-gray-200 text-indigo-600 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-indigo-400">
-                      <Bot className="h-4 w-4 animate-spin text-indigo-600" />
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-[#141414] border border-[#252525] text-[#E8001C] shadow-sm">
+                      <Bot className="h-4 w-4 animate-spin text-[#E8001C]" />
                     </div>
-                    <div className="flex flex-col gap-1.5 rounded-3xl rounded-tl-xs border border-gray-300 bg-gray-100 px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex flex-col gap-1.5 rounded-3xl rounded-tl-xs border border-[#252525] bg-[#141414] px-4 py-3 shadow-sm">
                       <div className="flex items-center gap-2">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600 dark:text-indigo-400" />
-                        <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{statusMessage}</span>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E8001C]" />
+                        <span className="text-xs font-bold text-white">{statusMessage}</span>
                       </div>
                       <div className="flex items-center gap-1.5 pl-5">
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-600 dark:bg-indigo-400 [animation-delay:-0.3s]" />
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-600 dark:bg-indigo-400 [animation-delay:-0.15s]" />
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-600 dark:bg-indigo-400" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#E8001C] [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#E8001C] [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#E8001C]" />
                       </div>
                     </div>
                   </div>
@@ -290,25 +290,25 @@ export default function ChatbotWidget() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-gray-200/80 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/80 py-1.5 pl-4 pr-1.5 focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all dark:border-gray-700 dark:bg-gray-800/80 dark:focus-within:bg-gray-800">
+            <div className="border-t border-[#252525] bg-[#0D0D0D] p-4">
+              <div className="flex items-center gap-2 rounded-2xl border border-[#252525] bg-[#141414] py-1.5 pl-4 pr-1.5 focus-within:border-[#E8001C] focus-within:ring-1 focus-within:ring-[#E8001C]/30 transition-all">
                 <input
                   type="text"
                   placeholder="Ask about cards, stock, transactions, profits..."
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
                 />
                 <button
                   onClick={() => handleSend()}
                   disabled={!inputText.trim() || isLoading}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transition-all hover:scale-105 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:hover:scale-100"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#E8001C] to-red-700 text-white shadow-md transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-gray-400 dark:text-gray-500">
+              <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-zinc-500">
                 <span>Powered by RSL Intelligence + Dealer DB</span>
                 <span>Press Enter ↵</span>
               </div>
@@ -323,10 +323,10 @@ export default function ChatbotWidget() {
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(true)}
-          className="group relative flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl transition-all duration-300 hover:shadow-indigo-500/30 focus:outline-none focus:ring-4 focus:ring-indigo-500/30"
+          className="group relative flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-tr from-[#E8001C] via-red-600 to-black text-white shadow-2xl transition-all duration-300 ring-1 ring-[#E8001C]/50 focus:outline-none"
         >
           <MessageSquare className="h-7 w-7 transition-transform group-hover:-translate-y-0.5 group-hover:scale-110" />
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-white dark:ring-gray-950">
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-black">
             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
           </span>
         </motion.button>

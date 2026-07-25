@@ -33,16 +33,16 @@ export default function AIInsightsPreview({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'BREAKOUT':
-        return 'bg-green-50 text-green-700 border-green-200'
+        return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
 
       case 'MOMENTUM':
-        return 'bg-blue-50 text-blue-700 border-blue-200'
+        return 'bg-blue-500/15 text-blue-400 border-blue-500/30'
 
       case 'DECLINE':
-        return 'bg-red-50 text-red-700 border-red-200'
+        return 'bg-red-500/15 text-red-400 border-red-500/30'
 
       default:
-        return 'bg-gray-100 text-gray-600 border-gray-200'
+        return 'bg-[#141414] text-zinc-300 border-[#252525]'
     }
   }
 
@@ -65,41 +65,41 @@ export default function AIInsightsPreview({
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation) {
       case 'BUY':
-        return 'text-green-600'
+        return 'text-emerald-400'
 
       case 'SELL':
-        return 'text-red-600'
+        return 'text-red-400'
 
       case 'HOLD':
-        return 'text-blue-600'
+        return 'text-blue-400'
 
       default:
-        return 'text-gray-500'
+        return 'text-zinc-400'
     }
   }
 
   return (
-    <div className="dashboard-card bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="dashboard-card bg-[#0D0D0D] border border-[#252525] rounded-2xl p-6 shadow-sm">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
+          <h3 className="text-white font-bold text-2xl tracking-tight">
             RSL Insights
           </h3>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className="mt-0.5 text-xs text-zinc-400">
             Smart market intelligence powered by RSL
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-gray-400 text-sm">
+          <div className="text-zinc-400 text-sm">
             Last updated: 2 hours ago
           </div>
 
           <Link
             href="/ai-insights"
-            className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors duration-200"
+            className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200"
           >
             See All →
           </Link>
@@ -114,12 +114,12 @@ export default function AIInsightsPreview({
           return (
             <div
               key={insight.id}
-              className={`border rounded-2xl p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${
+              className={`border rounded-2xl p-5 transition-all duration-300 ${
                 insight.type === 'BREAKOUT'
-                  ? 'bg-green-50/60 border-green-100'
+                  ? 'bg-emerald-500/10 border-emerald-500/20'
                   : insight.type === 'DECLINE'
-                  ? 'bg-red-50/60 border-red-100'
-                  : 'bg-blue-50/60 border-blue-100'
+                  ? 'bg-red-500/10 border-red-500/20'
+                  : 'bg-blue-500/10 border-blue-500/20'
               }`}
             >
 
@@ -135,31 +135,31 @@ export default function AIInsightsPreview({
                     {insight.type}
                   </div>
 
-                  <div className="text-gray-500 text-sm">
+                  <div className="text-zinc-400 text-sm">
                     {insight.sport}
                   </div>
                 </div>
 
                 {insight.affected_cards > 0 && (
-                  <div className="bg-white border border-gray-200 px-3 py-1.5 rounded-full text-xs font-medium text-gray-700 shadow-sm">
+                  <div className="bg-[#141414] border border-[#252525] px-3 py-1.5 rounded-full text-xs font-medium text-zinc-300 shadow-sm">
                     {insight.affected_cards} in inventory
                   </div>
                 )}
               </div>
 
               {/* Headline */}
-              <h4 className="text-gray-900 font-semibold text-lg leading-snug mb-4">
+              <h4 className="text-white font-semibold text-lg leading-snug mb-4">
                 {insight.headline}
               </h4>
 
               {/* Stats */}
-              <div className="flex flex-wrap items-center gap-5 text-sm text-gray-500 mb-5">
+              <div className="flex flex-wrap items-center gap-5 text-sm text-zinc-400 mb-5">
 
                 <span className="flex items-center gap-1.5">
                   {insight.trend === 'up' ? (
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
                   ) : (
-                    <TrendingDown className="w-4 h-4 text-red-600" />
+                    <TrendingDown className="w-4 h-4 text-red-400" />
                   )}
 
                   <span className="font-medium">
@@ -172,7 +172,7 @@ export default function AIInsightsPreview({
                 </span>
 
                 <span className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4 text-zinc-400" />
 
                   {insight.published}
                 </span>
@@ -191,7 +191,7 @@ export default function AIInsightsPreview({
 
                 <Link
                   href={`/ai-insights/${insight.id}`}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors duration-200"
+                  className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200"
                 >
                   View Details →
                 </Link>
@@ -202,14 +202,14 @@ export default function AIInsightsPreview({
       </div>
 
       {/* Footer */}
-      <div className="mt-6 pt-5 border-t border-gray-100">
+      <div className="mt-6 pt-5 border-t border-[#252525]">
         <div className="flex items-center justify-between">
 
-          <div className="text-gray-500 text-sm">
+          <div className="text-zinc-400 text-sm">
             Price movement alerts enabled
           </div>
 
-          <button className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors duration-200">
+          <button className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200">
             Configure →
           </button>
         </div>

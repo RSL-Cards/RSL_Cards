@@ -160,6 +160,35 @@ export const inventoryService = {
     const { data } = await apiClient.get(ENDPOINTS.inventory.detail(id));
     return data;
   },
+
+  async updateItem(id: string, payload: Partial<AddInventoryItem>): Promise<any> {
+    const { data } = await apiClient.patch(ENDPOINTS.inventory.update(id), payload);
+    return data;
+  },
+
+  async uploadPhotoDirect(id: string, uri: string): Promise<{ success: boolean; url: string }> {
+    const formData = new FormData();
+    const filename = uri.split("/").pop() || "photo.jpg";
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : "image/jpeg";
+
+    formData.append("photo", {
+      uri,
+      name: filename,
+      type,
+    } as any);
+
+    const { data } = await apiClient.post<{ success: boolean; url: string }>(
+      `${ENDPOINTS.inventory.list}/${id}/photo`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return data;
+  },
 };
 
 export const cardService = {

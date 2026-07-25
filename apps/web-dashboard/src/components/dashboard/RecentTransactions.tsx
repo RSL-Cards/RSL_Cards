@@ -13,7 +13,7 @@ import {
 interface RecentTransactionsProps {
   transactions: Array<{
     id: string
-    type: 'buy' | 'sell'
+    type: 'buy' | 'sell' | 'trade' | 'expense'
     player: string
     grade: string
     price: number
@@ -51,31 +51,30 @@ export default function RecentTransactions({
   }
 
   const getGradeColor = (grade: string) => {
-
     if (grade.includes('PSA')) {
-      return 'bg-amber-50 text-amber-700 border border-amber-100'
+      return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
     }
 
     if (grade.includes('BGS')) {
-      return 'bg-blue-50 text-blue-700 border border-blue-100'
+      return 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
     }
 
-    return 'bg-gray-100 text-gray-600 border border-gray-200'
+    return 'bg-[#141414] text-zinc-300 border border-[#252525]'
   }
 
   return (
-    <div className="dashboard-card bg-white border border-gray-200 rounded-3xl p-7 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="dashboard-card bg-[#0D0D0D] border border-[#252525] rounded-3xl p-7 shadow-sm">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-7">
 
         <div>
 
-          <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
+          <h3 className="text-white font-bold text-2xl tracking-tight">
             Recent Transactions
           </h3>
 
-          <div className="text-gray-500 text-sm mt-1">
+          <div className="text-zinc-400 text-sm mt-1">
             Latest buying and selling activity
           </div>
         </div>
@@ -89,13 +88,13 @@ export default function RecentTransactions({
             px-4
             py-2
             rounded-xl
-            bg-blue-50
-            hover:bg-blue-100
-            text-blue-700
+            bg-[#E8001C]/15
+            hover:bg-[#E8001C]/25
+            text-[#E8001C]
             text-sm
             font-semibold
             border
-            border-blue-100
+            border-[#E8001C]/30
             transition-all
             duration-200
           "
@@ -107,43 +106,43 @@ export default function RecentTransactions({
       {/* Mobile Card View (Hidden on md and up) */}
       <div className="md:hidden space-y-4">
         {transactions.length === 0 ? (
-          <div className="py-12 text-center flex flex-col items-center justify-center space-y-2 bg-gray-50/50 rounded-2xl border border-gray-100">
-            <div className="rounded-full bg-gray-100 p-3">
-              <CreditCard className="h-6 w-6 text-gray-400" />
+          <div className="py-12 text-center flex flex-col items-center justify-center space-y-2 bg-[#141414] rounded-2xl border border-[#252525]">
+            <div className="rounded-full bg-[#1E1E1E] p-3">
+              <CreditCard className="h-6 w-6 text-zinc-400" />
             </div>
-            <p className="font-medium text-gray-900">No recent transactions</p>
-            <p className="text-sm text-gray-500 px-4">When you buy or sell cards, they will appear here.</p>
+            <p className="font-medium text-white">No recent transactions</p>
+            <p className="text-sm text-zinc-400 px-4">When you buy or sell cards, they will appear here.</p>
           </div>
         ) : (
           transactions.map((transaction) => {
             const PaymentIcon = getPaymentIcon(transaction.payment)
             return (
-              <div key={transaction.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+              <div key={transaction.id} className="bg-[#141414] border border-[#252525] rounded-2xl p-4 shadow-sm flex flex-col gap-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-semibold text-gray-900">{transaction.player}</div>
-                    <div className="text-xs text-gray-500 mt-1">{transaction.channel} • {transaction.time}</div>
+                    <div className="font-semibold text-white">{transaction.player}</div>
+                    <div className="text-xs text-zinc-400 mt-1">{transaction.channel} • {transaction.time}</div>
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="font-mono font-bold text-gray-900">${transaction.price}</div>
-                    <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${transaction.type === 'buy' ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-700'}`}>
+                    <div className="font-mono font-bold text-white">${transaction.price}</div>
+                    <div className={`mt-1.5 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${transaction.type === 'buy' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30' : transaction.type === 'trade' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
                       {transaction.type.toUpperCase()}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                <div className="flex items-center justify-between pt-3 border-t border-[#252525]">
                   <div className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold tracking-wide ${getGradeColor(transaction.grade)}`}>
                     {transaction.grade}
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded-md">
-                      <PaymentIcon className="w-3.5 h-3.5 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 bg-[#1E1E1E] px-2 py-1 rounded-md">
+                      <PaymentIcon className="w-3.5 h-3.5 text-zinc-400" />
                       <span>{transaction.payment}</span>
                     </div>
                     {transaction.profit !== null && (
-                      <div className={`flex items-center gap-1 text-sm font-semibold ${transaction.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`flex items-center gap-1 text-sm font-semibold ${transaction.profit > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {transaction.profit > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                         {transaction.profit > 0 ? '+' : '-'}${Math.abs(transaction.profit)}
                       </div>
@@ -157,12 +156,12 @@ export default function RecentTransactions({
       </div>
 
       {/* Desktop Table View (Hidden on mobile) */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-100">
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#252525]">
 
         <table className="w-full min-w-[900px]">
 
           {/* Head */}
-          <thead className="bg-gray-50">
+          <thead className="bg-[#141414]">
 
             <tr>
 
@@ -185,7 +184,7 @@ export default function RecentTransactions({
                     text-left
                     text-xs
                     font-semibold
-                    text-gray-500
+                    text-zinc-400
                     uppercase
                     tracking-wider
                     whitespace-nowrap
@@ -198,15 +197,15 @@ export default function RecentTransactions({
           </thead>
 
           {/* Body */}
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody className="divide-y divide-[#252525] bg-[#0D0D0D]">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-5 py-12 text-center text-gray-500 text-sm">
+                <td colSpan={9} className="px-5 py-12 text-center text-zinc-400 text-sm">
                   <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="rounded-full bg-gray-50 p-3">
-                      <CreditCard className="h-6 w-6 text-gray-400" />
+                    <div className="rounded-full bg-[#141414] p-3">
+                      <CreditCard className="h-6 w-6 text-zinc-500" />
                     </div>
-                    <p className="font-medium text-gray-900">No recent transactions</p>
+                    <p className="font-medium text-white">No recent transactions</p>
                     <p>When you buy or sell cards, they will appear here.</p>
                   </div>
                 </td>
@@ -221,7 +220,7 @@ export default function RecentTransactions({
                 <tr
                   key={transaction.id}
                   className="
-                    hover:bg-gray-50/80
+                    hover:bg-[#141414]/70
                     transition-all
                     duration-200
                   "
@@ -242,8 +241,10 @@ export default function RecentTransactions({
                         border
                         ${
                           transaction.type === 'buy'
-                            ? 'bg-blue-50 text-blue-700 border-blue-100'
-                            : 'bg-red-50 text-red-700 border-red-100'
+                            ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                            : transaction.type === 'trade'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : 'bg-red-500/15 text-red-400 border-red-500/30'
                         }
                       `}
                     >
@@ -254,7 +255,7 @@ export default function RecentTransactions({
                   {/* Card */}
                   <td className="px-5 py-4">
 
-                    <div className="text-gray-900 font-semibold whitespace-nowrap">
+                    <div className="text-white font-semibold whitespace-nowrap">
                       {transaction.player}
                     </div>
                   </td>
@@ -282,8 +283,14 @@ export default function RecentTransactions({
                   {/* Price */}
                   <td className="px-5 py-4 text-right">
 
-                    <div className="text-gray-900 font-mono font-semibold whitespace-nowrap">
-                      ${transaction.price}
+                    <div className="text-white font-mono font-semibold whitespace-nowrap">
+                      {transaction.type === 'trade'
+                        ? transaction.price > 0
+                          ? `+$${transaction.price}`
+                          : transaction.price < 0
+                          ? `-$${Math.abs(transaction.price)}`
+                          : 'Straight Trade'
+                        : `$${transaction.price}`}
                     </div>
                   </td>
 
@@ -303,8 +310,8 @@ export default function RecentTransactions({
                           whitespace-nowrap
                           ${
                             transaction.profit > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
+                              ? 'text-emerald-400'
+                              : 'text-red-400'
                           }
                         `}
                       >
@@ -321,7 +328,7 @@ export default function RecentTransactions({
 
                     ) : (
 
-                      <span className="text-gray-400">
+                      <span className="text-zinc-500">
                         —
                       </span>
                     )}
@@ -340,8 +347,8 @@ export default function RecentTransactions({
                           whitespace-nowrap
                           ${
                             transaction.margin > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
+                              ? 'text-emerald-400'
+                              : 'text-red-400'
                           }
                         `}
                       >
@@ -350,7 +357,7 @@ export default function RecentTransactions({
 
                     ) : (
 
-                      <span className="text-gray-400">
+                      <span className="text-zinc-500">
                         —
                       </span>
                     )}
@@ -359,7 +366,7 @@ export default function RecentTransactions({
                   {/* Channel */}
                   <td className="px-5 py-4">
 
-                    <div className="text-gray-600 text-sm whitespace-nowrap">
+                    <div className="text-zinc-400 text-sm whitespace-nowrap">
                       {transaction.channel}
                     </div>
                   </td>
@@ -369,12 +376,12 @@ export default function RecentTransactions({
 
                     <div className="flex items-center gap-2 whitespace-nowrap">
 
-                      <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-[#1E1E1E] flex items-center justify-center">
 
-                        <PaymentIcon className="w-4 h-4 text-gray-500" />
+                        <PaymentIcon className="w-4 h-4 text-zinc-400" />
                       </div>
 
-                      <span className="text-gray-600 text-sm">
+                      <span className="text-zinc-300 text-sm">
                         {transaction.payment}
                       </span>
                     </div>
@@ -383,7 +390,7 @@ export default function RecentTransactions({
                   {/* Time */}
                   <td className="px-5 py-4 text-right">
 
-                    <div className="text-gray-500 text-sm whitespace-nowrap">
+                    <div className="text-zinc-400 text-sm whitespace-nowrap">
                       {transaction.time}
                     </div>
                   </td>
@@ -396,13 +403,13 @@ export default function RecentTransactions({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-5 pt-5 border-t border-gray-100">
+      <div className="flex items-center justify-between mt-5 pt-5 border-t border-[#252525]">
 
-        <div className="text-gray-500 text-sm">
+        <div className="text-zinc-400 text-sm">
           Showing latest {transactions.length} transactions
         </div>
 
-        <button className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors duration-200">
+        <button className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200">
           Export Transactions →
         </button>
       </div>

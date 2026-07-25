@@ -158,7 +158,7 @@ export default function InventoryPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-gray-500">Loading inventory...</div>
+          <div className="text-sm text-zinc-400">Loading inventory...</div>
         </div>
       </Shell>
     )
@@ -189,28 +189,28 @@ export default function InventoryPage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between border border-[#252525] bg-[#0D0D0D] px-4 py-3 sm:px-6 rounded-2xl shadow-sm">
               <div className="flex flex-1 justify-between sm:hidden">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center rounded-md border border-[#252525] bg-[#141414] px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-[#1A1A1A] disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative ml-3 inline-flex items-center rounded-md border border-[#252525] bg-[#141414] px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-[#1A1A1A] disabled:opacity-50"
                 >
                   Next
                 </button>
               </div>
               <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to <span className="font-medium">{Math.min(page * limit, total)}</span> of{' '}
-                    <span className="font-medium">{total}</span> results
+                  <p className="text-sm text-zinc-400">
+                    Showing <span className="font-medium text-white">{(page - 1) * limit + 1}</span> to <span className="font-medium text-white">{Math.min(page * limit, total)}</span> of{' '}
+                    <span className="font-medium text-white">{total}</span> results
                   </p>
                 </div>
                 <div>
@@ -218,7 +218,7 @@ export default function InventoryPage() {
                     <button
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                      className="relative inline-flex items-center rounded-l-md px-2 py-2 text-zinc-400 border border-[#252525] bg-[#141414] hover:bg-[#1A1A1A] hover:text-white disabled:opacity-50"
                     >
                       <span className="sr-only">Previous</span>
                       &larr;
@@ -228,10 +228,10 @@ export default function InventoryPage() {
                         key={p}
                         onClick={() => setPage(p)}
                         aria-current={page === p ? 'page' : undefined}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus:outline-offset-0 ${
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold border ${
                           page === p 
-                            ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
-                            : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50'
+                            ? 'z-10 bg-[#E8001C] border-[#E8001C] text-white'
+                            : 'bg-[#141414] border-[#252525] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white'
                         }`}
                       >
                         {p}
@@ -240,7 +240,7 @@ export default function InventoryPage() {
                     <button
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
-                      className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+                      className="relative inline-flex items-center rounded-r-md px-2 py-2 text-zinc-400 border border-[#252525] bg-[#141414] hover:bg-[#1A1A1A] hover:text-white disabled:opacity-50"
                     >
                       <span className="sr-only">Next</span>
                       &rarr;

@@ -4,241 +4,222 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
-/* body {
-  background-color: #000000;
-  color: #FFFFFF;
-  font-family: 'Inter', system-ui, sans-serif;
+:root {
+  --background: #000000;
+  --surface: #0D0D0D;
+  --surface-secondary: #141414;
+  --surface-tertiary: #1A1A1A;
+
+  --border: #252525;
+  --border-muted: #1E1E1E;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+
+  --primary: #E8001C;
+  --primary-hover: #CC0018;
+  --accent-blue: #0057FF;
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.9);
 }
 
 html {
+  color-scheme: dark;
   scroll-behavior: smooth;
+  background-color: var(--background);
 }
 
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #09090B;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272A;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
+}
+
+/* Card utilities */
 .dashboard-card {
-  background-color: #0D0D0D;
-  border: 1px solid #252525;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-card-hover {
-  background-color: #0D0D0D;
-  border: 1px solid #252525;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
   transition: all 0.2s ease;
 }
 
 .dashboard-card-hover:hover {
-  background-color: #141414;
+  background-color: var(--surface-secondary);
+  border-color: #333333;
 }
 
 .metric-card {
-  background-color: #0D0D0D;
-  border: 1px solid #252525;
-  border-radius: 1rem;
+  background: linear-gradient(180deg, #121212 0%, #0D0D0D 100%);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
   padding: 1.5rem;
+  transition: all 0.25s ease;
 }
 
-.btn-primary {
-  background-color: #0057FF;
-  color: white;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  transition: colors 0.2s ease;
+.metric-card:hover {
+  border-color: #383838;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
-.btn-primary:hover {
-  background-color: #1e40af;
-}
-
-.btn-danger {
-  background-color: #E8001C;
-  color: white;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  transition: colors 0.2s ease;
-}
-
-.btn-danger:hover {
-  background-color: #dc2626;
-}
-
-.btn-outline {
-  border: 1px solid #252525;
-  color: #888888;
-  transition: colors 0.2s ease;
-}
-
-.btn-outline:hover {
-  color: #FFFFFF;
-  border-color: #FFFFFF;
-}
-
+/* Form Input Utilities */
 .dashboard-input {
-  background-color: #1A1A1A;
-  border: 1px solid #252525;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  color: #FFFFFF;
-  transition: colors 0.2s ease;
+  background-color: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-input:focus {
   outline: none;
-  border-color: #0057FF;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(232, 0, 28, 0.2);
 }
 
 .dashboard-input::placeholder {
-  color: #555555;
+  color: var(--text-muted);
 }
 
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-danger {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: #DC2626;
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  background-color: var(--surface-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  color: var(--text-primary);
+  border-color: #404040;
+  background-color: var(--surface-tertiary);
+}
+
+/* Status Chips */
 .chip-success {
-  background-color: rgba(0, 200, 83, 0.2);
-  color: #00C853;
-  padding: 0.25rem 0.5rem;
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .chip-warning {
-  background-color: rgba(255, 179, 0, 0.2);
-  color: #FFB300;
-  padding: 0.25rem 0.5rem;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .chip-danger {
-  background-color: rgba(232, 0, 28, 0.2);
-  color: #E8001C;
-  padding: 0.25rem 0.5rem;
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #FCA5A5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .chip-blue {
-  background-color: rgba(0, 87, 255, 0.2);
-  color: #0057FF;
-  padding: 0.25rem 0.5rem;
+  background-color: rgba(0, 87, 255, 0.15);
+  color: #60A5FA;
+  border: 1px solid rgba(0, 87, 255, 0.25);
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
+/* Sidebar utilities */
 .sidebar-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  color: #888888;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
 }
 
 .sidebar-item:hover {
-  color: #FFFFFF;
-  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background-color: var(--surface-secondary);
 }
 
 .sidebar-item-active {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
   color: #FFFFFF;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-left: 2px solid #E8001C;
-} */
-
-:root {
-  --background: #f5f7fb;
-  --surface: #ffffff;
-  --surface-secondary: #f8fafc;
-
-  --border: #e5e7eb;
-
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-
-  --primary: #2563eb;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --warning: #d97706;
-
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.08);
-}
-body {
-  background: var(--background);
-  color: var(--text-primary);
-}
-.dashboard-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.25s ease;
-}
-
-.dashboard-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.metric-card {
-  background: linear-gradient(to bottom, #ffffff, #f9fafb);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.25s ease;
-}
-
-.metric-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.chip-success {
-  background-color: #dcfce7;
-  color: #15803d;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.chip-warning {
-  background-color: #fef3c7;
-  color: #b45309;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.chip-danger {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.chip-blue {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  background-color: var(--surface-tertiary);
+  border-left: 3px solid var(--primary);
 }

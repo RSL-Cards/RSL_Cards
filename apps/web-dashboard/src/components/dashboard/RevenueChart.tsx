@@ -70,22 +70,22 @@ export default function RevenueChart({
 
   const isTrendPositive = trendPct >= 0;
   const trendCardBg = !hasTrend
-    ? 'bg-gray-50 border-gray-200'
+    ? 'bg-[#141414] border-[#252525]'
     : isTrendPositive
-      ? 'bg-green-50 border-green-100'
-      : 'bg-red-50 border-red-100';
+      ? 'bg-emerald-500/10 border-emerald-500/20'
+      : 'bg-red-500/10 border-red-500/20';
 
   const trendLabelColor = !hasTrend
-    ? 'text-gray-500'
+    ? 'text-zinc-500'
     : isTrendPositive
-      ? 'text-green-600'
-      : 'text-red-600';
+      ? 'text-emerald-400'
+      : 'text-red-400';
 
   const trendValueColor = !hasTrend
-    ? 'text-gray-900'
+    ? 'text-white'
     : isTrendPositive
-      ? 'text-green-700'
-      : 'text-red-700';
+      ? 'text-emerald-400'
+      : 'text-red-400';
 
   const CustomTooltip = ({
     active,
@@ -109,40 +109,40 @@ export default function RevenueChart({
           : '0'
 
       return (
-        <div className="bg-white border border-gray-200 shadow-xl rounded-2xl px-4 py-3 min-w-[180px]">
+        <div className="bg-[#141414] border border-[#252525] shadow-2xl rounded-2xl px-4 py-3 min-w-[180px]">
 
-          <div className="text-gray-900 font-semibold mb-3">
+          <div className="text-white font-semibold mb-3">
             {label}
           </div>
 
           <div className="space-y-2 text-sm">
 
             <div className="flex justify-between gap-6">
-              <span className="text-gray-500">
+              <span className="text-zinc-400">
                 Revenue
               </span>
 
-              <span className="text-gray-900 font-mono font-medium">
+              <span className="text-white font-mono font-medium">
                 ${revenue?.value}
               </span>
             </div>
 
             <div className="flex justify-between gap-6">
-              <span className="text-gray-500">
+              <span className="text-zinc-400">
                 Profit
               </span>
 
-              <span className="text-green-600 font-mono font-medium">
+              <span className="text-emerald-400 font-mono font-medium">
                 ${profit?.value}
               </span>
             </div>
 
             <div className="flex justify-between gap-6">
-              <span className="text-gray-500">
+              <span className="text-zinc-400">
                 Margin
               </span>
 
-              <span className="text-gray-900 font-mono font-medium">
+              <span className="text-white font-mono font-medium">
                 {margin}%
               </span>
             </div>
@@ -155,17 +155,17 @@ export default function RevenueChart({
   }
 
   return (
-    <div className="dashboard-card bg-white border border-gray-200 rounded-3xl p-7 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="dashboard-card bg-[#0D0D0D] border border-[#252525] rounded-3xl p-7 shadow-sm">
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
         <div>
-          <h3 className="text-gray-900 font-bold text-2xl tracking-tight">
+          <h3 className="text-white font-bold text-2xl tracking-tight">
             Revenue & Profit
           </h3>
 
-          <div className="text-gray-500 text-sm mt-1">
+          <div className="text-zinc-400 text-sm mt-1">
             Financial performance overview
           </div>
         </div>
@@ -188,8 +188,8 @@ export default function RevenueChart({
                 border
                 ${
                   period === p
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-[#E8001C] text-white border-[#E8001C] shadow-sm'
+                    : 'bg-[#141414] text-zinc-400 border-[#252525] hover:bg-[#1A1A1A] hover:text-white'
                 }
               `}
             >
@@ -200,7 +200,7 @@ export default function RevenueChart({
       </div>
 
       {/* Chart */}
-      <div className="h-[340px] w-full rounded-2xl bg-gray-50/50 border border-gray-100 p-4">
+      <div className="h-[340px] w-full rounded-2xl bg-[#09090B] border border-[#252525] p-4">
 
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
@@ -224,13 +224,13 @@ export default function RevenueChart({
               >
                 <stop
                   offset="5%"
-                  stopColor="#3B82F6"
-                  stopOpacity={0.18}
+                  stopColor="#0057FF"
+                  stopOpacity={0.25}
                 />
 
                 <stop
                   offset="95%"
-                  stopColor="#3B82F6"
+                  stopColor="#0057FF"
                   stopOpacity={0}
                 />
               </linearGradient>
@@ -244,13 +244,13 @@ export default function RevenueChart({
               >
                 <stop
                   offset="5%"
-                  stopColor="#22C55E"
-                  stopOpacity={0.18}
+                  stopColor="#10B981"
+                  stopOpacity={0.25}
                 />
 
                 <stop
                   offset="95%"
-                  stopColor="#22C55E"
+                  stopColor="#10B981"
                   stopOpacity={0}
                 />
               </linearGradient>
@@ -259,14 +259,14 @@ export default function RevenueChart({
 
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#E5E7EB"
+              stroke="#252525"
               vertical={false}
             />
 
             <XAxis
               dataKey="date"
               tick={{
-                fill: '#6B7280',
+                fill: '#A1A1AA',
                 fontSize: 12
               }}
               axisLine={false}
@@ -275,7 +275,7 @@ export default function RevenueChart({
 
             <YAxis
               tick={{
-                fill: '#6B7280',
+                fill: '#A1A1AA',
                 fontSize: 12
               }}
               axisLine={false}
@@ -284,7 +284,7 @@ export default function RevenueChart({
 
             <Tooltip
               cursor={{
-                fill: 'rgba(59,130,246,0.05)'
+                fill: 'rgba(255,255,255,0.03)'
               }}
               content={<CustomTooltip />}
             />
@@ -293,7 +293,7 @@ export default function RevenueChart({
             <Bar
               dataKey="revenue"
               fill="url(#revenueGradient)"
-              stroke="#3B82F6"
+              stroke="#0057FF"
               strokeWidth={1}
               radius={[8, 8, 0, 0]}
               barSize={28}
@@ -303,7 +303,7 @@ export default function RevenueChart({
             <Line
               type="monotone"
               dataKey="profit"
-              stroke="#22C55E"
+              stroke="#10B981"
               strokeWidth={3}
               dot={false}
               activeDot={{
@@ -319,24 +319,24 @@ export default function RevenueChart({
       {/* Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-7">
 
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-center">
+        <div className="bg-[#141414] border border-[#252525] rounded-2xl px-5 py-4 text-center">
 
-          <div className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+          <div className="text-zinc-400 text-xs uppercase tracking-wide mb-2">
             Best Day
           </div>
 
-          <div className="text-gray-900 font-semibold text-sm">
+          <div className="text-white font-semibold text-sm">
             {bestDayText}
           </div>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-center">
+        <div className="bg-[#141414] border border-[#252525] rounded-2xl px-5 py-4 text-center">
 
-          <div className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+          <div className="text-zinc-400 text-xs uppercase tracking-wide mb-2">
             Best Margin
           </div>
 
-          <div className="text-gray-900 font-semibold text-sm">
+          <div className="text-white font-semibold text-sm">
             {bestMarginText}
           </div>
         </div>

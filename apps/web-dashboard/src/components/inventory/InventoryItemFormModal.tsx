@@ -103,25 +103,25 @@ export default function InventoryItemFormModal({
   }
 
   const inputClass =
-    'h-11 w-full rounded-lg border border-border bg-white/5 px-3 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20'
-  const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-secondary'
+    'h-11 w-full rounded-lg border border-[#252525] bg-[#141414] px-3 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-[#E8001C]'
+  const labelClass = 'mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-400'
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-2xl">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-white">
               {mode === 'add' ? 'Add Inventory Card' : 'Update Inventory Card'}
             </h2>
-            <p className="mt-1 text-sm text-text-secondary">
+            <p className="mt-1 text-sm text-zinc-400">
               {mode === 'add' ? 'Create a new card record.' : 'Edit card details and valuation.'}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text-secondary transition hover:border-white hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#252525] text-zinc-400 transition hover:border-white hover:text-white"
             aria-label="Close form"
           >
             <X className="h-4 w-4" />
@@ -157,7 +157,7 @@ export default function InventoryItemFormModal({
                 className={inputClass}
               >
                 {sports.map((sport) => (
-                  <option key={sport} value={sport}>{sport}</option>
+                  <option key={sport} value={sport} className="bg-[#141414] text-white">{sport}</option>
                 ))}
               </select>
             </label>
@@ -196,7 +196,7 @@ export default function InventoryItemFormModal({
                 className={inputClass}
               >
                 {gradeOptions.map((grade) => (
-                  <option key={grade} value={grade}>{grade.replace('_', ' ')}</option>
+                  <option key={grade} value={grade} className="bg-[#141414] text-white">{grade.replace('_', ' ')}</option>
                 ))}
               </select>
             </label>
@@ -251,7 +251,7 @@ export default function InventoryItemFormModal({
                     key={platform}
                     type="button"
                     onClick={() => togglePlatform(platform)}
-                    className={checked ? 'chip-success' : 'rounded-full border border-border bg-white/5 px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-white/30'}
+                    className={checked ? 'rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400' : 'rounded-full border border-[#252525] bg-[#141414] px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-[#E8001C]/50 hover:text-white'}
                   >
                     {platform}
                   </button>
@@ -265,29 +265,29 @@ export default function InventoryItemFormModal({
             <textarea
               value={form.notes}
               onChange={(event) => updateField('notes', event.target.value)}
-              className="min-h-24 w-full rounded-lg border border-border bg-white/5 px-3 py-2 text-sm text-white outline-none transition placeholder:text-text-muted focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20"
+              className="min-h-24 w-full rounded-lg border border-[#252525] bg-[#141414] px-3 py-2 text-sm text-white outline-none transition placeholder:text-zinc-500 focus:border-[#E8001C]"
               placeholder="Purchase notes, condition notes, or provenance"
             />
           </label>
 
           {localError && (
-            <div className="rounded-lg border border-accent-red/20 bg-accent-red/10 px-4 py-3 text-sm font-medium text-accent-red">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/15 px-4 py-3 text-sm font-medium text-red-400">
               {localError}
             </div>
           )}
 
-          <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-[#252525] pt-5 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-text-secondary transition hover:border-white hover:text-white"
+              className="inline-flex h-11 items-center justify-center rounded-lg border border-[#252525] bg-[#141414] px-4 text-sm font-semibold text-zinc-300 transition hover:bg-[#1A1A1A] hover:text-white"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="btn-primary inline-flex h-11 items-center justify-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#E8001C] hover:bg-[#CC0018] px-5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Check className="h-4 w-4" />
               {isSaving ? 'Saving...' : mode === 'add' ? 'Add Card' : 'Save Changes'}

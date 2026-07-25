@@ -83,23 +83,23 @@ export default function OnboardingPage() {
     <div className="mx-auto max-w-2xl px-6 py-12">
       {/* Progress Bar */}
       <div className="mb-8">
-        <div className="flex justify-between text-sm font-medium text-gray-500 mb-2">
+        <div className="flex justify-between text-sm font-medium text-zinc-400 mb-2">
           <span>Step {step} of 3</span>
           <span>{Math.round((step / 3) * 100)}% Completed</span>
         </div>
-        <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+        <div className="h-2 w-full rounded-full bg-[#141414] border border-[#252525] overflow-hidden">
           <div 
-            className="h-full bg-blue-600 transition-all duration-300 ease-in-out" 
+            className="h-full bg-[#E8001C] transition-all duration-300 ease-in-out" 
             style={{ width: `${(step / 3) * 100}%` }} 
           />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-8 shadow-2xl">
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">What do you deal in?</h1>
-            <p className="text-gray-500 mb-8">Select all the games and sports you buy and sell.</p>
+            <h1 className="text-2xl font-bold text-white mb-2">What do you deal in?</h1>
+            <p className="text-zinc-400 mb-8">Select all the games and sports you buy and sell.</p>
             
             <div className="flex flex-wrap gap-3">
               {SPORTS.map(sport => (
@@ -108,8 +108,8 @@ export default function OnboardingPage() {
                   onClick={() => toggleSport(sport)}
                   className={`flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-colors border ${
                     selectedSports.includes(sport)
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-[#E8001C] bg-[#E8001C]/15 text-[#E8001C]'
+                      : 'border-[#252525] bg-[#141414] text-zinc-300 hover:border-zinc-700 hover:bg-[#1A1A1A] hover:text-white'
                   }`}
                 >
                   {sport}
@@ -122,7 +122,7 @@ export default function OnboardingPage() {
               <button
                 disabled={selectedSports.length === 0}
                 onClick={() => setStep(2)}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#E8001C] px-6 py-3 font-semibold text-white transition hover:bg-[#CC0018] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue <ChevronRight className="h-4 w-4" />
               </button>
@@ -132,8 +132,8 @@ export default function OnboardingPage() {
 
         {step === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">How do you sell?</h1>
-            <p className="text-gray-500 mb-8">Select all channels you currently use for your business.</p>
+            <h1 className="text-2xl font-bold text-white mb-2">How do you sell?</h1>
+            <p className="text-zinc-400 mb-8">Select all channels you currently use for your business.</p>
             
             <div className="flex flex-wrap gap-3">
               {SELL_CHANNELS.map(channel => (
@@ -142,8 +142,8 @@ export default function OnboardingPage() {
                   onClick={() => toggleChannel(channel)}
                   className={`flex items-center gap-2 rounded-xl px-5 py-3 font-medium transition-colors border ${
                     selectedChannels.includes(channel)
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-[#E8001C] bg-[#E8001C]/15 text-[#E8001C]'
+                      : 'border-[#252525] bg-[#141414] text-zinc-300 hover:border-zinc-700 hover:bg-[#1A1A1A] hover:text-white'
                   }`}
                 >
                   {channel}
@@ -155,14 +155,14 @@ export default function OnboardingPage() {
             <div className="mt-10 flex justify-between">
               <button
                 onClick={() => setStep(1)}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#252525] bg-[#141414] px-6 py-3 font-semibold text-zinc-300 transition hover:bg-[#1A1A1A] hover:text-white"
               >
                 Back
               </button>
               <button
                 disabled={selectedChannels.length === 0}
                 onClick={() => setStep(3)}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#E8001C] px-6 py-3 font-semibold text-white transition hover:bg-[#CC0018] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue <ChevronRight className="h-4 w-4" />
               </button>
@@ -172,31 +172,31 @@ export default function OnboardingPage() {
 
         {step === 3 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">How do you get paid?</h1>
-            <p className="text-gray-500 mb-8">Configure your payment handles so customers know how to pay you.</p>
+            <h1 className="text-2xl font-bold text-white mb-2">How do you get paid?</h1>
+            <p className="text-zinc-400 mb-8">Configure your payment handles so customers know how to pay you.</p>
             
             <div className="space-y-4">
               {PAYMENT_TYPES.map((pt) => (
-                <div key={pt.key} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-gray-50/50 p-4 transition-colors focus-within:border-gray-300 focus-within:bg-white">
+                <div key={pt.key} className="flex flex-col gap-2 rounded-xl border border-[#252525] bg-[#141414] p-4 transition-colors focus-within:border-[#E8001C]">
                   <div className="flex items-center gap-2 mb-1">
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill={pt.color}>
                       <path d={pt.icon} />
                     </svg>
-                    <span className="font-semibold text-gray-900">{pt.label}</span>
+                    <span className="font-semibold text-white">{pt.label}</span>
                   </div>
                   <input
                     type="text"
                     value={paymentMethods.find(p => p.type === pt.key)?.handle || ''}
                     onChange={(e) => handlePaymentMethodChange(pt.key, e.target.value)}
                     placeholder={pt.placeholder}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-lg border border-[#252525] bg-[#0D0D0D] px-3 py-2.5 text-sm font-medium text-white placeholder:text-zinc-500 shadow-sm outline-none transition focus:border-[#E8001C]"
                   />
                 </div>
               ))}
             </div>
 
             {error && (
-              <div className="mt-6 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-600">
+              <div className="mt-6 rounded-lg bg-red-500/15 border border-red-500/30 p-3 text-sm font-medium text-red-400">
                 {error}
               </div>
             )}
@@ -205,7 +205,7 @@ export default function OnboardingPage() {
               <button
                 disabled={isSubmitting}
                 onClick={() => setStep(2)}
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#252525] bg-[#141414] px-6 py-3 font-semibold text-zinc-300 transition hover:bg-[#1A1A1A] hover:text-white disabled:opacity-50"
               >
                 Back
               </button>
@@ -214,14 +214,14 @@ export default function OnboardingPage() {
                 <button
                   disabled={isSubmitting}
                   onClick={handleSubmit}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#252525] bg-[#141414] px-6 py-3 font-semibold text-zinc-300 transition hover:bg-[#1A1A1A] hover:text-white disabled:opacity-50"
                 >
                   Skip
                 </button>
                 <button
                   disabled={isSubmitting || paymentMethods.every(pm => !pm.handle.trim())}
                   onClick={handleSubmit}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#E8001C] px-6 py-3 font-semibold text-white transition hover:bg-[#CC0018] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>

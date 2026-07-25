@@ -291,6 +291,97 @@ export const initWorker = () => {
         }
       }
 
+      else if (job.name === "send_weekly_performance_report") {
+        logger.info(`[WORKER] Running send_weekly_performance_report cron job`);
+        try {
+          const dealers = await db.execute(sql`
+            SELECT u.id as user_id, u.email as user_email, u.name as user_name, dp.notification_preferences
+            FROM users u
+            JOIN dealer_profiles dp ON dp.user_id = u.id
+          `);
+
+          const rows = dealers.rows as any[];
+          logger.info(`[WORKER] Found ${rows.length} total dealer accounts to check for weekly performance report.`);
+
+          const { emailService } = await import("./modules/email/index.js");
+          const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
+          const notifRepository = new NotificationRepository();
+
+          let sentCount = 0;
+
+          for (const dealer of rows) {
+            const prefs = dealer.notification_preferences?.weeklyPerformanceReport ?? { push: true, email: true };
+            const isEmailEnabled = prefs.email !== false;
+            const isPushEnabled = prefs.push !== false;
+
+            if (!isEmailEnabled && !isPushEnabled) continue;
+
+            // Fetch 7-day sales metrics
+            const salesResult = await db.execute(sql`
+              SELECT 
+                COALESCE(SUM(price), 0) as total_revenue,
+                COALESCE(SUM(profit), 0) as total_profit,
+                COUNT(*) as cards_sold
+              FROM transactions
+              WHERE user_id = ${dealer.user_id}
+                AND type = 'sell'
+                AND created_at >= NOW() - INTERVAL '7 days'
+            `);
+
+            // Fetch 7-day new inventory added count
+            const inventoryResult = await db.execute(sql`
+              SELECT COUNT(*) as new_cards_added
+              FROM inventory
+              WHERE user_id = ${dealer.user_id}
+                AND added_at >= NOW() - INTERVAL '7 days'
+            `);
+
+            const salesRow = salesResult.rows[0] as any;
+            const invRow = inventoryResult.rows[0] as any;
+
+            const totalRevenue = parseFloat(salesRow?.total_revenue || "0");
+            const totalProfit = parseFloat(salesRow?.total_profit || "0");
+            const cardsSold = parseInt(salesRow?.cards_sold || "0", 10);
+            const newCardsAdded = parseInt(invRow?.new_cards_added || "0", 10);
+
+            const title = "Your Weekly Performance Report";
+            const body =
+              `Here is your 7-day performance breakdown:\n\n` +
+              `• 7-Day Revenue: $${totalRevenue.toFixed(2)}\n` +
+              `• Net Profit: $${totalProfit.toFixed(2)}\n` +
+              `• Cards Sold: ${cardsSold}\n` +
+              `• New Cards Added: ${newCardsAdded}\n\n` +
+              `View detailed analytics on your RSL Dashboard.`;
+
+            if (isPushEnabled) {
+              await notifRepository.sendNotification(dealer.user_id, title, body, "system", {});
+              await sseService.publish(dealer.user_id, {
+                type: "INFO",
+                title,
+                message: body,
+                timestamp: new Date().toISOString(),
+              });
+            }
+
+            if (isEmailEnabled && dealer.user_email) {
+              await emailService.sendNotificationAlert(dealer.user_email, {
+                alertTitle: title,
+                alertBody: body,
+                actionUrl: "https://app.rslcards.com/reports",
+                actionText: "View Performance Analytics",
+              });
+            }
+
+            sentCount++;
+          }
+
+          return { success: true, processed: sentCount };
+        } catch (error: any) {
+          logger.error(`[WORKER] Error in send_weekly_performance_report: ${error.message}`);
+          throw error;
+        }
+      }
+
       else if (job.name === "generate_ai_insights") {
         const { userId } = job.data || {};
         logger.info(`[WORKER] Running generate_ai_insights job (ID: ${job.id}) ${userId ? `for User: ${userId}` : "Globally"}`);

@@ -28,16 +28,16 @@ export default function AuthFormFields({
   return (
     <>
       <label className="block">
-        <span className="mb-2 block text-sm font-medium text-gray-700">
+        <span className="mb-2 block text-sm font-medium text-zinc-300">
           Email
         </span>
         <span className="relative block">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
           <input
             type="email"
             value={email}
             onChange={(event) => onEmailChange(event.target.value)}
-            className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+            className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
             placeholder="dealer@rslcards.com"
             autoComplete="email"
           />
@@ -46,16 +46,16 @@ export default function AuthFormFields({
 
       {isResetPassword && (
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-gray-700">
+          <span className="mb-2 block text-sm font-medium text-zinc-300">
             OTP
           </span>
           <span className="relative block">
-            <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="text"
               value={otp}
               onChange={(event) => onOtpChange(event.target.value)}
-              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
               placeholder="6 digit OTP"
               inputMode="numeric"
               maxLength={6}
@@ -67,16 +67,16 @@ export default function AuthFormFields({
 
       {!isForgotPassword && (
         <label className="block">
-          <span className="mb-2 block text-sm font-medium text-gray-700">
+          <span className="mb-2 block text-sm font-medium text-zinc-300">
             {isResetPassword ? 'New password' : 'Password'}
           </span>
           <span className="relative block">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
               type="password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
-              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-3 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
               placeholder="Minimum 8 characters"
               autoComplete={isLogin ? 'current-password' : 'new-password'}
             />
@@ -88,7 +88,7 @@ export default function AuthFormFields({
         <div className="text-right">
           <Link
             href="/forgot-password"
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+            className="text-sm font-semibold text-[#E8001C] hover:text-red-400"
           >
             Forgot password?
           </Link>

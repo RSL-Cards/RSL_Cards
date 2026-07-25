@@ -16,7 +16,7 @@ export default function ReportsControls({
   onPeriodChange,
 }: ReportsControlsProps) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-6 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {periods.map((option) => (
@@ -26,8 +26,8 @@ export default function ReportsControls({
               onClick={() => onPeriodChange(option)}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                 period === option
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-50 text-gray-500 hover:text-gray-900'
+                  ? 'bg-[#E8001C] text-white'
+                  : 'bg-[#141414] text-zinc-400 hover:text-white border border-[#252525]'
               }`}
             >
               {option}
@@ -36,22 +36,22 @@ export default function ReportsControls({
         </div>
 
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <label className="flex items-center gap-2 text-gray-500">
+          <label className="flex items-center gap-2 text-zinc-400">
             From
             <input
               type="date"
-              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm focus:border-[#E8001C] outline-none sm:text-sm"
               value={dateRange.from}
               onChange={(event) =>
                 onDateRangeChange({ ...dateRange, from: event.target.value })
               }
             />
           </label>
-          <label className="flex items-center gap-2 text-gray-500">
+          <label className="flex items-center gap-2 text-zinc-400">
             To
             <input
               type="date"
-              className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-lg border border-[#252525] bg-[#141414] py-2 px-3 text-white shadow-sm focus:border-[#E8001C] outline-none sm:text-sm"
               value={dateRange.to}
               onChange={(event) =>
                 onDateRangeChange({ ...dateRange, to: event.target.value })

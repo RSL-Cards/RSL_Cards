@@ -12,6 +12,7 @@ export const dailyLogs = pgTable('daily_logs', {
   startingCash:        decimal('starting_cash', { precision: 10, scale: 2 }).default('0'),
   updatedAfterClosing: boolean('updated_after_closing').default(false).notNull(),
   createdAt:           timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt:           timestamp('updated_at', { withTimezone: true }).defaultNow(),
   closedAt:            timestamp('closed_at', { withTimezone: true }),
 }, (t) => ({
   dailyLogUserIdIdx: drizzleIndex('idx_daily_logs_user_id').on(t.userId),

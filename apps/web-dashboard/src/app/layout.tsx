@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${outfit.className} antialiased bg-gray-50 text-gray-900 selection:bg-indigo-500 selection:text-white`}>
+      <body className={`${outfit.className} antialiased bg-black text-white selection:bg-[#E8001C] selection:text-white`}>
         <QueryProvider>
           <GlobalSSEProvider>
             <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>

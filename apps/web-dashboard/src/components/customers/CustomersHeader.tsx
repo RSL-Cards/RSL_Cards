@@ -76,14 +76,14 @@ export default function CustomersHeader({ customers, setCustomers }: Props) {
       
       {/* LEFT SIDE */}
       <div>
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#E8001C]/30 bg-[#E8001C]/15 px-3 py-1 text-xs font-semibold text-[#E8001C]">
           <Users className="h-3.5 w-3.5" />
           Collector CRM
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
+        <h1 className="text-3xl font-bold text-white">Customers</h1>
 
-        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+        <p className="mt-1 max-w-2xl text-sm text-zinc-400">
           Search contacts, review notes, star favorite collectors, and track transaction history.
         </p>
       </div>
@@ -92,8 +92,8 @@ export default function CustomersHeader({ customers, setCustomers }: Props) {
       <div className="flex items-center gap-3">
         
         {/* Import Button */}
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-900 hover:bg-gray-100">
-          <Upload className="h-4 w-4" />
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#252525] bg-[#141414] px-4 py-2 text-sm text-white hover:bg-[#1A1A1A] transition-colors">
+          <Upload className="h-4 w-4 text-zinc-400" />
           Import
           <input
             type="file"
@@ -106,18 +106,18 @@ export default function CustomersHeader({ customers, setCustomers }: Props) {
         {/* Export JSON */}
         <button
           onClick={exportJSON}
-          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-900 hover:bg-gray-100"
+          className="flex items-center gap-2 rounded-lg border border-[#252525] bg-[#141414] px-4 py-2 text-sm text-white hover:bg-[#1A1A1A] transition-colors"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4 text-zinc-400" />
           Export JSON
         </button>
 
         {/* Export CSV */}
         <button
           onClick={exportCSV}
-          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-900 hover:bg-gray-100"
+          className="flex items-center gap-2 rounded-lg border border-[#252525] bg-[#141414] px-4 py-2 text-sm text-white hover:bg-[#1A1A1A] transition-colors"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4 text-zinc-400" />
           Export CSV
         </button>
 

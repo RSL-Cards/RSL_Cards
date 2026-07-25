@@ -5,6 +5,8 @@ export interface InventoryCard {
   year: number | null
   set_name: string
   grade_key: string
+  grade_company?: string | null
+  grade_value?: string | null
   sport: string
   cost_basis: number
   market_value: number
@@ -67,6 +69,21 @@ export const sortLabels: Record<SortKey, string> = {
 
 export const platformOptions = ['eBay', 'Whatnot', 'TCGPlayer', 'Shopify', 'COMC', 'Mercari']
 
+export const GRADE_CONFIG: Record<string, { badgeStyle: string; label: string }> = {
+  PSA_10: { badgeStyle: 'bg-amber-400 text-black border-amber-300 font-extrabold shadow-sm', label: 'PSA 10' },
+  PSA_9:  { badgeStyle: 'bg-zinc-800 text-amber-400 border-amber-500/50 font-bold', label: 'PSA 9' },
+  PSA_8:  { badgeStyle: 'bg-zinc-800 text-amber-300/80 border-zinc-700 font-medium', label: 'PSA 8' },
+  BGS_10: { badgeStyle: 'bg-gradient-to-r from-amber-300 to-yellow-500 text-black border-amber-300 font-extrabold shadow-sm', label: 'BGS 10' },
+  BGS_95: { badgeStyle: 'bg-blue-600 text-white border-blue-400 font-bold shadow-sm', label: 'BGS 9.5' },
+  BGS_9:  { badgeStyle: 'bg-blue-950/80 text-blue-300 border-blue-700/80 font-medium', label: 'BGS 9' },
+  SGC_10: { badgeStyle: 'bg-zinc-950 text-white border-zinc-500 font-extrabold shadow-sm', label: 'SGC 10' },
+  SGC_95: { badgeStyle: 'bg-zinc-900 text-zinc-200 border-zinc-600 font-bold', label: 'SGC 9.5' },
+  SGC_9:  { badgeStyle: 'bg-zinc-900 text-zinc-300 border-zinc-700 font-medium', label: 'SGC 9' },
+  CGC_10: { badgeStyle: 'bg-cyan-500 text-black border-cyan-300 font-extrabold shadow-sm', label: 'CGC 10' },
+  CGC_95: { badgeStyle: 'bg-cyan-700 text-white border-cyan-500 font-bold', label: 'CGC 9.5' },
+  RAW:    { badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium', label: 'RAW' },
+}
+
 export const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -74,7 +91,77 @@ export const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value)
 
-export const formatGrade = (grade: string) => grade.replace('_', ' ')
+export const formatGrade = (
+  gradeKey: string | null | undefined,
+  card?: { grade_company?: string | null; grade_value?: string | null } | null
+): string => {
+  if (card?.grade_company && card?.grade_value) {
+    if (card.grade_company === 'RAW') return 'RAW'
+    return `${card.grade_company} ${card.grade_value}`
+  }
+
+  if (!gradeKey) return 'RAW'
+  if (GRADE_CONFIG[gradeKey]) return GRADE_CONFIG[gradeKey].label
+
+  const formatted = gradeKey.replace(/_/g, ' ')
+
+  // If gradeKey is just a number like "10" or "9" or "9.5"
+  if (/^\d+(?:\.\d+)?$/.test(formatted.trim())) {
+    const company = card?.grade_company || 'PSA'
+    return `${company} ${formatted.trim()}`
+  }
+
+  return formatted
+}
+
+export const getGradeConfig = (
+  gradeKey: string | null | undefined,
+  card?: { grade_company?: string | null; grade_value?: string | null } | null
+) => {
+  const formattedLabel = formatGrade(gradeKey, card)
+
+  if (gradeKey && GRADE_CONFIG[gradeKey]) {
+    return GRADE_CONFIG[gradeKey]
+  }
+
+  const keyWithUnderscores = formattedLabel.replace(/\s+/g, '_')
+  if (GRADE_CONFIG[keyWithUnderscores]) {
+    return {
+      ...GRADE_CONFIG[keyWithUnderscores],
+      label: formattedLabel,
+    }
+  }
+
+  if (formattedLabel.startsWith('PSA')) {
+    return {
+      badgeStyle: 'bg-amber-400 text-black border-amber-300 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('BGS')) {
+    return {
+      badgeStyle: 'bg-blue-600 text-white border-blue-400 font-bold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('SGC')) {
+    return {
+      badgeStyle: 'bg-zinc-950 text-white border-zinc-500 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+  if (formattedLabel.startsWith('CGC')) {
+    return {
+      badgeStyle: 'bg-cyan-500 text-black border-cyan-300 font-extrabold shadow-sm',
+      label: formattedLabel,
+    }
+  }
+
+  return {
+    badgeStyle: 'bg-[#141414] text-zinc-400 border-[#252525] font-medium',
+    label: formattedLabel,
+  }
+}
 
 export const toDisplaySport = (sport: string | null | undefined) => {
   if (!sport) return 'Unspecified'

@@ -88,13 +88,13 @@ export class BullMqAdapter {
       });
       logger.info("🕒 Scheduled 'refresh_all_comps' cron job to run every 12 hours");
 
-      await this.queue.add("generate_ai_insights", {}, {
-        repeat: {
-          every: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
-        },
-        jobId: "generate_ai_insights_cron"
-      });
-      logger.info("🕒 Scheduled 'generate_ai_insights' cron job to run every 6 hours");
+      // await this.queue.add("generate_ai_insights", {}, {
+      //   repeat: {
+      //     every: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
+      //   },
+      //   jobId: "generate_ai_insights_cron"
+      // });
+      // logger.info("🕒 Scheduled 'generate_ai_insights' cron job to run every 6 hours");
 
       await this.queue.add("check_inventory_aging", {}, {
         repeat: {
@@ -111,6 +111,14 @@ export class BullMqAdapter {
         jobId: "notify_close_daily_logs_cron"
       });
       logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM daily");
+
+      await this.queue.add("send_weekly_performance_report", {}, {
+        repeat: {
+          pattern: "0 9 * * 0" // 9:00 AM every Sunday
+        },
+        jobId: "send_weekly_performance_report_cron"
+      });
+      logger.info("🕒 Scheduled 'send_weekly_performance_report' cron job to run every Sunday at 9:00 AM");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

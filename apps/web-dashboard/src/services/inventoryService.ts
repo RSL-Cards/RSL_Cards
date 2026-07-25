@@ -270,4 +270,19 @@ export const inventoryService = {
       { method: 'DELETE' },
     )
   },
+
+  async uploadPhotoDirect(id: string, file: File) {
+    const formData = new FormData()
+    formData.append('photo', file)
+    const response = await apiClient.post<{ success: boolean; url: string }>(
+      `${ENDPOINTS.inventory.list}/${id}/photo`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+    return response.data
+  },
 }

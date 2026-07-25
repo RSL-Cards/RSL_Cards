@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import Shell from '@/components/layout/Shell'
-import AISummary from '@/components/reports/AISummary'
 import InventoryAgingReport from '@/components/reports/InventoryAgingReport'
 import PeriodTrend from '@/components/reports/PeriodTrend'
 import ProfitMarginAnalysis from '@/components/reports/ProfitMarginAnalysis'
@@ -10,6 +9,7 @@ import ReportsControls from '@/components/reports/ReportsControls'
 import ReportsHeader from '@/components/reports/ReportsHeader'
 import ReportsMetrics from '@/components/reports/ReportsMetrics'
 import SalesByPlatformChart from '@/components/reports/SalesByPlatformChart'
+import DailyLogsPanel from '@/components/reports/DailyLogsPanel'
 import {
   buildReportCsv,
   exportCsv,
@@ -122,8 +122,8 @@ export default function ReportsPage() {
         />
 
         {isLoading ? (
-          <div className="flex h-96 items-center justify-center rounded-2xl border border-gray-200 bg-white">
-            <span className="text-sm font-medium text-gray-500">Loading reports...</span>
+          <div className="flex h-96 items-center justify-center rounded-2xl border border-[#252525] bg-[#0D0D0D]">
+            <span className="text-sm font-medium text-zinc-400">Loading reports...</span>
           </div>
         ) : (
           <>
@@ -137,17 +137,8 @@ export default function ReportsPage() {
               totalRevenue={totalRevenue}
             />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="w-full">
           <SalesByPlatformChart salesByPlatform={salesByPlatform} />
-          <AISummary
-            agingAlerts={agingAlerts}
-            bestMarginGroup={bestMarginGroup}
-            bestPlatform={bestPlatform}
-            insights={aiInsights}
-            period={period}
-            totalProfit={totalProfit}
-            totalRevenue={totalRevenue}
-          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -167,6 +158,8 @@ export default function ReportsPage() {
             percentage: totalProfit ? Math.round((s.profit / totalProfit) * 100) : 0
           })) || []}
         />
+
+        <DailyLogsPanel />
           </>
         )}
       </div>

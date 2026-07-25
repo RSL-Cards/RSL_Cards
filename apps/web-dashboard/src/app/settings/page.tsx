@@ -288,6 +288,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <SettingsHeader saveMessage={saveMessage} onSave={saveSettings} />
 
+        {/* Phase 1: Commented out summary metrics cards on Settings page
         <SettingsMetrics
           averagePlatformFee={averagePlatformFee}
           connectedCount={connectedCount}
@@ -296,6 +297,7 @@ export default function SettingsPage() {
           paymentMethodCount={paymentMethods.length}
           platformCount={AVAILABLE_PLATFORMS.length}
         />
+        */}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
           <SettingsSidebar
@@ -335,6 +337,7 @@ export default function SettingsPage() {
               />
             )}
 
+            {/* Phase 1: Commented out Listing Defaults and Team Access sections
             {activeSection === 'listings' && (
               <ListingDefaultsSection
                 defaultPlatformFee={defaultPlatformFee}
@@ -354,6 +357,7 @@ export default function SettingsPage() {
                 onTeamMembersChange={setTeamMembers}
               />
             )}
+            */}
           </div>
         </div>
       </div>
