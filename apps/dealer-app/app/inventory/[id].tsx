@@ -52,6 +52,21 @@ function calcMedian(items: any[]): number {
   return prices.length % 2 !== 0 ? prices[mid] : (prices[mid - 1] + prices[mid]) / 2;
 }
 
+function safeParseJson(val: any): any[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === "object") return [val];
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 // Client-side comps filtering by grade_key classification from the ML model
 function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   return items.filter(item => {
@@ -389,10 +404,10 @@ export default function CardDetailScreen() {
     .toUpperCase();
 
   // Parsing JSON comps datasets cached on DB
-  const rawEbaySales = card.ebay_sales_completed ? JSON.parse(card.ebay_sales_completed) : [];
-  const rawMyslabsSales = card.myslabs_sales_completed ? JSON.parse(card.myslabs_sales_completed) : [];
-  const rawEbayActive = card.ebay_active_listings ? JSON.parse(card.ebay_active_listings) : [];
-  const rawMyslabsActive = card.myslabs_active_listings ? JSON.parse(card.myslabs_active_listings) : [];
+  const rawEbaySales = safeParseJson(card.ebay_sales_completed);
+  const rawMyslabsSales = safeParseJson(card.myslabs_sales_completed);
+  const rawEbayActive = safeParseJson(card.ebay_active_listings);
+  const rawMyslabsActive = safeParseJson(card.myslabs_active_listings);
 
   const allSales = [...rawEbaySales, ...rawMyslabsSales];
   const allActive = [...rawEbayActive, ...rawMyslabsActive];
