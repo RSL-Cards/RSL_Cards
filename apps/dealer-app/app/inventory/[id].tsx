@@ -55,28 +55,32 @@ function calcMedian(items: any[]): number {
 function safeParseJson(val: any): any[] {
   if (!val) return [];
   if (Array.isArray(val)) return val;
-  if (typeof val === "object") return [val];
   if (typeof val === "string") {
     try {
       const parsed = JSON.parse(val);
-      return Array.isArray(parsed) ? parsed : [];
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") return [parsed];
+      return [];
     } catch {
       return [];
     }
   }
+  if (typeof val === "object") return [val];
   return [];
 }
 
 // Client-side comps filtering by grade_key classification from the ML model
 function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
+  if (!Array.isArray(items)) return [];
   return items.filter(item => {
-    const title = (item.title || "").toUpperCase();
-    const condition = (item.condition || "").toUpperCase();
+    if (!item || typeof item !== "object") return false;
+    const title = String(item.title || "").toUpperCase();
+    const condition = String(item.condition || "").toUpperCase();
 
     const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
     const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
 
-    const itemGrade = item.grade_key || "";
+    const itemGrade = String(item.grade_key || "");
     if (itemGrade) {
       let parsedGrade = "RAW";
       if (itemGrade !== "RAW") {
@@ -412,11 +416,11 @@ export default function CardDetailScreen() {
   const allSales = [...rawEbaySales, ...rawMyslabsSales];
   const allActive = [...rawEbayActive, ...rawMyslabsActive];
 
-  const localEbaySales = allSales.filter((i: any) => !i.platform || i.platform.toLowerCase() === 'ebay').map((i: any) => ({ ...i, platform: 'eBay' }));
-  const localMyslabsSales = allSales.filter((i: any) => i.platform && i.platform.toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
+  const localEbaySales = allSales.filter((i: any) => i && typeof i === "object" && (!i.platform || String(i.platform).toLowerCase() === 'ebay')).map((i: any) => ({ ...i, platform: 'eBay' }));
+  const localMyslabsSales = allSales.filter((i: any) => i && typeof i === "object" && i.platform && String(i.platform).toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
 
-  const localEbayActive = allActive.filter((i: any) => !i.platform || i.platform.toLowerCase() === 'ebay').map((i: any) => ({ ...i, platform: 'eBay' }));
-  const localMyslabsActive = allActive.filter((i: any) => i.platform && i.platform.toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
+  const localEbayActive = allActive.filter((i: any) => i && typeof i === "object" && (!i.platform || String(i.platform).toLowerCase() === 'ebay')).map((i: any) => ({ ...i, platform: 'eBay' }));
+  const localMyslabsActive = allActive.filter((i: any) => i && typeof i === "object" && i.platform && String(i.platform).toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }));
 
   // Filtering comps dynamically client-side by exact selectedGradeKey
   const filteredEbaySales = filterCompsByGrade(localEbaySales, selectedGradeKey);
