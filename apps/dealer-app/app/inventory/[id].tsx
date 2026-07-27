@@ -33,18 +33,56 @@ const safeFormatDate = (dateVal: string | number | undefined | null) => {
 };
 
 const getListingUrl = (sale: any) => {
+  if (!sale || typeof sale !== "object") return null;
   if (sale.itemWebUrl) return sale.itemWebUrl;
+  if (sale.slab_link) return sale.slab_link;
   if (sale.itemId && sale.platform) {
-    if (sale.platform.toLowerCase() === "ebay") return `https://www.ebay.com/itm/${sale.itemId}`;
-    if (sale.platform.toLowerCase() === "myslabs") return `https://myslabs.com/slab/view/${sale.itemId}`;
+    if (String(sale.platform).toLowerCase() === "ebay") return `https://www.ebay.com/itm/${sale.itemId}`;
+    if (String(sale.platform).toLowerCase() === "myslabs") return `https://myslabs.com/slab/view/${sale.itemId}`;
+  }
+  if (sale.id && sale.platform && String(sale.platform).toLowerCase() === "myslabs") {
+    return `https://myslabs.com/slab/view/${sale.id}`;
   }
   return null;
 };
 
+function getCompPrice(item: any): number {
+  if (!item || typeof item !== "object") return 0;
+  if (typeof item.price === "number" && !isNaN(item.price)) return item.price;
+  if (typeof item.soldPrice === "number" && !isNaN(item.soldPrice)) return item.soldPrice;
+  if (item.soldPrice?.value != null) {
+    const p = parseFloat(String(item.soldPrice.value));
+    if (!isNaN(p)) return p;
+  }
+  if (item.price?.value != null) {
+    const p = parseFloat(String(item.price.value));
+    if (!isNaN(p)) return p;
+  }
+  if (item.price != null && typeof item.price !== "object") {
+    const p = parseFloat(String(item.price));
+    if (!isNaN(p)) return p;
+  }
+  return 0;
+}
+
+function getCompImage(item: any): string | null {
+  if (!item || typeof item !== "object") return null;
+  if (item.image?.imageUrl) return item.image.imageUrl;
+  if (item.slab_image_1) return item.slab_image_1;
+  if (item.slab_image_1_thumbnail) return item.slab_image_1_thumbnail;
+  if (item.photo) return item.photo;
+  return null;
+}
+
+function fmtNum(val: any): string {
+  const n = parseFloat(String(val ?? 0));
+  return isNaN(n) ? "0.00" : n.toFixed(2);
+}
+
 function calcMedian(items: any[]): number {
-  if (!items.length) return 0;
+  if (!Array.isArray(items) || !items.length) return 0;
   const prices = items
-    .map((i) => parseFloat(i.soldPrice?.value ?? i.price?.value ?? i.displayPrice ?? i.price ?? "0"))
+    .map((i) => getCompPrice(i))
     .filter((v) => v > 0)
     .sort((a, b) => a - b);
   if (!prices.length) return 0;
@@ -428,13 +466,13 @@ export default function CardDetailScreen() {
   const filteredEbayActive = filterCompsByGrade(localEbayActive, selectedGradeKey);
   const filteredMyslabsActive = filterCompsByGrade(localMyslabsActive, selectedGradeKey);
 
-  const sortedEbaySales = filteredEbaySales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
-  const sortedMyslabsSales = filteredMyslabsSales.filter((s: any) => parseFloat(s.soldPrice?.value ?? "0") > 0).sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+  const sortedEbaySales = filteredEbaySales.filter((s: any) => getCompPrice(s) > 0).sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? 0).getTime());
+  const sortedMyslabsSales = filteredMyslabsSales.filter((s: any) => getCompPrice(s) > 0).sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? 0).getTime());
 
-  const sortedEbayActive = filteredEbayActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? "0") - parseFloat(b.price?.value ?? "0"));
-  const sortedMyslabsActive = filteredMyslabsActive.sort((a: any, b: any) => parseFloat(a.price?.value ?? a.soldPrice?.value ?? "0") - parseFloat(b.price?.value ?? b.soldPrice?.value ?? "0"));
+  const sortedEbayActive = filteredEbayActive.sort((a: any, b: any) => getCompPrice(a) - getCompPrice(b));
+  const sortedMyslabsActive = filteredMyslabsActive.sort((a: any, b: any) => getCompPrice(a) - getCompPrice(b));
 
-  const soldCompsForSelectedGrade = [...sortedEbaySales, ...sortedMyslabsSales].sort((a: any, b: any) => new Date(b.endDate ?? 0).getTime() - new Date(a.endDate ?? 0).getTime());
+  const soldCompsForSelectedGrade = [...sortedEbaySales, ...sortedMyslabsSales].sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? 0).getTime());
 
   const gradesList = [
     "RAW",
@@ -761,13 +799,14 @@ export default function CardDetailScreen() {
                   {compsSourceTab === "ebay_sold" && (
                     sortedEbaySales.length > 0 ? (
                       sortedEbaySales.slice(0, salesVisibleCount).map((sale: any, i: number, arr: any[]) => {
-                        const price = parseFloat(sale.soldPrice?.value ?? "0");
-                        const dateStr = safeFormatDate(sale.endDate);
+                        const price = getCompPrice(sale);
+                        const imgUri = getCompImage(sale);
+                        const dateStr = safeFormatDate(sale.endDate ?? sale.sold_date);
                         const url = getListingUrl(sale);
 
                         return (
                           <TouchableOpacity
-                            key={sale.itemId ?? i}
+                            key={sale.itemId || sale.id || i}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -775,9 +814,9 @@ export default function CardDetailScreen() {
                               i < arr.length - 1 && styles.saleRowBorder,
                             ]}
                           >
-                            {sale.image?.imageUrl ? (
+                            {imgUri ? (
                               <Image
-                                source={{ uri: sale.image.imageUrl }}
+                                source={{ uri: imgUri }}
                                 style={styles.compThumbnail}
                                 resizeMode="cover"
                               />
@@ -803,7 +842,7 @@ export default function CardDetailScreen() {
                             </View>
 
                             <View style={{ alignItems: "flex-end" }}>
-                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                              <Text style={styles.salePrice}>${fmtNum(price)}</Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -818,12 +857,13 @@ export default function CardDetailScreen() {
                   {compsSourceTab === "ebay_active" && (
                     sortedEbayActive.length > 0 ? (
                       sortedEbayActive.slice(0, activeVisibleCount).map((item: any, i: number, arr: any[]) => {
-                        const price = parseFloat(item.price?.value ?? "0");
+                        const price = getCompPrice(item);
+                        const imgUri = getCompImage(item);
                         const url = getListingUrl(item);
 
                         return (
                           <TouchableOpacity
-                            key={item.itemId ?? i}
+                            key={item.itemId || item.id || i}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -831,9 +871,9 @@ export default function CardDetailScreen() {
                               i < arr.length - 1 && styles.saleRowBorder,
                             ]}
                           >
-                            {item.image?.imageUrl ? (
+                            {imgUri ? (
                               <Image
-                                source={{ uri: item.image.imageUrl }}
+                                source={{ uri: imgUri }}
                                 style={styles.compThumbnail}
                                 resizeMode="cover"
                               />
@@ -856,7 +896,7 @@ export default function CardDetailScreen() {
                             </View>
 
                             <View style={{ alignItems: "flex-end" }}>
-                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                              <Text style={styles.salePrice}>${fmtNum(price)}</Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -871,13 +911,14 @@ export default function CardDetailScreen() {
                   {compsSourceTab === "myslabs_sold" && (
                     sortedMyslabsSales.length > 0 ? (
                       sortedMyslabsSales.slice(0, salesVisibleCount).map((sale: any, i: number, arr: any[]) => {
-                        const price = parseFloat(sale.soldPrice?.value ?? sale.price ?? "0");
-                        const dateStr = safeFormatDate(sale.endDate);
+                        const price = getCompPrice(sale);
+                        const imgUri = getCompImage(sale);
+                        const dateStr = safeFormatDate(sale.endDate ?? sale.sold_date);
                         const url = getListingUrl(sale);
 
                         return (
                           <TouchableOpacity
-                            key={sale.itemId ?? i}
+                            key={sale.itemId || sale.id || i}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -885,9 +926,9 @@ export default function CardDetailScreen() {
                               i < arr.length - 1 && styles.saleRowBorder,
                             ]}
                           >
-                            {sale.image?.imageUrl ? (
+                            {imgUri ? (
                               <Image
-                                source={{ uri: sale.image.imageUrl }}
+                                source={{ uri: imgUri }}
                                 style={styles.compThumbnail}
                                 resizeMode="cover"
                               />
@@ -911,7 +952,7 @@ export default function CardDetailScreen() {
                             </View>
 
                             <View style={{ alignItems: "flex-end" }}>
-                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                              <Text style={styles.salePrice}>${fmtNum(price)}</Text>
                             </View>
                           </TouchableOpacity>
                         );
@@ -926,12 +967,13 @@ export default function CardDetailScreen() {
                   {compsSourceTab === "myslabs_active" && (
                     sortedMyslabsActive.length > 0 ? (
                       sortedMyslabsActive.slice(0, activeVisibleCount).map((item: any, i: number, arr: any[]) => {
-                        const price = parseFloat(item.price?.value ?? item.soldPrice?.value ?? item.price ?? "0");
+                        const price = getCompPrice(item);
+                        const imgUri = getCompImage(item);
                         const url = getListingUrl(item);
 
                         return (
                           <TouchableOpacity
-                            key={item.itemId ?? i}
+                            key={item.itemId || item.id || i}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -939,9 +981,9 @@ export default function CardDetailScreen() {
                               i < arr.length - 1 && styles.saleRowBorder,
                             ]}
                           >
-                            {item.image?.imageUrl ? (
+                            {imgUri ? (
                               <Image
-                                source={{ uri: item.image.imageUrl }}
+                                source={{ uri: imgUri }}
                                 style={styles.compThumbnail}
                                 resizeMode="cover"
                               />
@@ -964,7 +1006,7 @@ export default function CardDetailScreen() {
                             </View>
 
                             <View style={{ alignItems: "flex-end" }}>
-                              <Text style={styles.salePrice}>${price.toFixed(2)}</Text>
+                              <Text style={styles.salePrice}>${fmtNum(price)}</Text>
                             </View>
                           </TouchableOpacity>
                         );
