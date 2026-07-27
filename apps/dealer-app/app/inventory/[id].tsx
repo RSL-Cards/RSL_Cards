@@ -243,6 +243,13 @@ export default function CardDetailScreen() {
 
   const { data: card, isLoading, isError } = useInventoryItem(id ?? "");
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   const [selectedGradeKey, setSelectedGradeKey] = useState<string>("RAW");
   const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
   const [salesVisibleCount, setSalesVisibleCount] = useState(20);
@@ -484,13 +491,6 @@ export default function CardDetailScreen() {
     "9.5",
     "10",
   ];
-
-  const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await queryClient.invalidateQueries();
-    setRefreshing(false);
-  }, [queryClient]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
