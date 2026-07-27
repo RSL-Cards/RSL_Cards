@@ -8,9 +8,10 @@ import {
   StyleSheet,
   TextInput,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,6 +50,14 @@ export default function HomeScreen() {
   useRefetchDashboardOnFocus();
   
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   const [showOpenLogModal, setShowOpenLogModal] = useState(false);
   const [logName, setLogName] = useState("");
   const [startingCash, setStartingCash] = useState("");
@@ -104,6 +113,14 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: SPACING.lg }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* ── HEADER ── */}
         <View

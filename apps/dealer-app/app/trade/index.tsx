@@ -8,10 +8,11 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -473,6 +474,13 @@ export default function TradeScreen() {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       {/* Header */}
@@ -484,7 +492,17 @@ export default function TradeScreen() {
 
       <ActiveLogIndicator />
 
-      <ScrollView contentContainerStyle={{ padding: SPACING.lg, paddingBottom: 140 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: SPACING.lg, paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {/* SECTION 1: CARDS GIVEN */}
         <View style={{ marginBottom: SPACING.xs }}>
           <Typography variant="label" color={COLORS.zinc400} style={{ letterSpacing: 1, marginBottom: 6 }}>

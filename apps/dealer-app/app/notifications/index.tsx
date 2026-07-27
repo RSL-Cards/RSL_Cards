@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useState, useCallback } from "react";
 import { useNotificationStore } from "../../src/stores/useNotificationStore";
 import { apiClient } from "../../src/lib/apiClient";
 
@@ -26,6 +27,12 @@ export default function NotificationsScreen() {
   const markAllAsRead = useNotificationStore((s) => s.markAllAsRead);
 
   const unread = notifications.filter((n) => n.status !== 'read').length;
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 500);
+  }, []);
 
   const handleMarkAllRead = async () => {
     try {
@@ -54,7 +61,18 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0057FF"
+            colors={["#0057FF"]}
+          />
+        }
+      >
         {notifications.map((n) => {
           const cfg = TYPE_CONFIG[n.type] ?? { icon: "🔔", accent: "#555555" };
           const isRead = n.status === 'read';

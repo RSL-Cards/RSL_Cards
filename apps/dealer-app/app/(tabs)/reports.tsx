@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -99,6 +100,14 @@ function fmtTime(dateVal: any) {
 function PerformanceTab({ period }: { period: Period }) {
   const userId = useAuthStore((s) => s.user?.id);
   const apiPeriod = period === "today" ? "today" : period === "ytd" ? "ytd" : period;
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
   
   const { data: dailyStats, isLoading: loadingDaily } = useDailyStats();
   const { data: report, isLoading: loadingReport } = useReport(apiPeriod === "today" ? "week" : apiPeriod);
@@ -132,7 +141,18 @@ function PerformanceTab({ period }: { period: Period }) {
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={COLORS.primary}
+          colors={[COLORS.primary]}
+        />
+      }
+    >
       {/* Hero Card: Net Profit */}
       <Surface variant="glass" padding="lg" style={styles.heroCard}>
         <Typography variant="label" color={COLORS.zinc400} style={{ marginBottom: 4 }}>
@@ -180,6 +200,13 @@ function DailyLogsTab() {
   const userId = useAuthStore((s) => s.user?.id);
   const { data: logs, isLoading, refetch } = useDailyLogs();
   
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
   
@@ -198,7 +225,13 @@ function DailyLogsTab() {
 
   const filteredLogs = useMemo(() => {
     if (!logs) return [];
-    return logs.filter((log) => log.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (!searchQuery.trim()) return logs;
+    const q = searchQuery.toLowerCase();
+    return logs.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        (l.status && l.status.toLowerCase().includes(q))
+    );
   }, [logs, searchQuery]);
 
   const openLogs = useMemo(() => filteredLogs.filter((l) => l.status === "open"), [filteredLogs]);
@@ -209,37 +242,30 @@ function DailyLogsTab() {
     setShowDetails(true);
   };
 
-  const handleOpenEdit = () => {
-    if (!selectedLog) return;
-    setEditName(selectedLog.name);
-    setEditStartingCash(selectedLog.startingCash);
+  const handleOpenEdit = (log: DailyLog) => {
+    setSelectedLog(log);
+    setEditName(log.name);
+    setEditStartingCash(log.startingCash ? String(log.startingCash) : "");
     setShowEdit(true);
   };
 
   const handleSaveEdit = async () => {
     if (!selectedLog) return;
+    if (!editName.trim()) {
+      Alert.alert("Error", "Daily log name cannot be empty.");
+      return;
+    }
     setIsSavingEdit(true);
     try {
       await apiClient.patch(`/v1/daily-logs/${selectedLog.id}`, {
         name: editName,
-        startingCash: parseFloat(editStartingCash) || 0,
+        startingCash: editStartingCash ? parseFloat(editStartingCash) : 0,
       });
-      
-      // Invalidate and refetch queries
       await queryClient.invalidateQueries({ queryKey: ["daily-logs", "list", userId] });
       await queryClient.invalidateQueries({ queryKey: ["daily-logs", "active", userId] });
-      
-      // Update selectedLog local state
-      const updatedLog = {
-        ...selectedLog,
-        name: editName,
-        startingCash: editStartingCash,
-        updatedAfterClosing: selectedLog.status === "closed" ? true : selectedLog.updatedAfterClosing,
-      };
-      setSelectedLog(updatedLog);
-      
+      refetch();
       setShowEdit(false);
-      Alert.alert("Success", "Daily log updated successfully.");
+      Alert.alert("Success", "Daily log updated.");
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Failed to update daily log.");
     } finally {
@@ -247,14 +273,14 @@ function DailyLogsTab() {
     }
   };
 
-  const handleCloseLog = async () => {
+  const handleCloseDailyLog = async () => {
     if (!selectedLog) return;
     setIsClosingLog(true);
     try {
       await apiClient.patch(`/v1/daily-logs/${selectedLog.id}/close`);
-      
       await queryClient.invalidateQueries({ queryKey: ["daily-logs", "list", userId] });
       await queryClient.invalidateQueries({ queryKey: ["daily-logs", "active", userId] });
+      refetch();
       
       const updatedLog = {
         ...selectedLog,
@@ -325,7 +351,18 @@ function DailyLogsTab() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.logsListContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.logsListContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {isLoading ? (
           <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
         ) : (
@@ -413,7 +450,7 @@ function DailyLogsTab() {
                 <Typography variant="h3" weight="800" color={COLORS.white} style={{ maxWidth: "60%" }} numberOfLines={1}>
                   {selectedLog.name}
                 </Typography>
-                <TouchableOpacity onPress={handleOpenEdit}>
+                <TouchableOpacity onPress={() => handleOpenEdit(selectedLog)}>
                   <Typography variant="body" color={COLORS.primaryLight}>Edit</Typography>
                 </TouchableOpacity>
               </View>
@@ -576,7 +613,7 @@ function DailyLogsTab() {
                 {selectedLog.status === "open" && (
                   <Button
                     label={isClosingLog ? "Closing..." : "Close Daily Log"}
-                    onPress={handleCloseLog}
+                    onPress={handleCloseDailyLog}
                     variant="outline"
                     disabled={isClosingLog}
                     style={{ marginTop: SPACING.xl, borderColor: COLORS.destructive }}

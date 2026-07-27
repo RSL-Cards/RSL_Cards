@@ -1,7 +1,7 @@
-import { View, ScrollView, TextInput, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, TextInput, StyleSheet, Alert, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Typography } from "../../src/components/ui/Typography";
 import { Button } from "../../src/components/ui/Button";
 import { Surface } from "../../src/components/ui/Surface";
@@ -81,6 +81,13 @@ export default function ExpenseScreen() {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <View style={styles.header}>
@@ -91,7 +98,17 @@ export default function ExpenseScreen() {
 
       <ActiveLogIndicator />
 
-      <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
+      <ScrollView
+        contentContainerStyle={{ padding: SPACING.lg }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {activeLog && (
           <View style={{ marginBottom: SPACING.xl, backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: SPACING.md, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.2)' }}>
             <Typography variant="label" color={COLORS.success} style={{ marginBottom: 4 }}>

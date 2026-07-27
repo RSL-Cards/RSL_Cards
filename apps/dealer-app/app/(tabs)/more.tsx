@@ -7,8 +7,9 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
@@ -176,11 +177,26 @@ function MoreScreen() {
     ]);
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         <View style={styles.header}>
           <Typography variant="h1" weight="800">More</Typography>

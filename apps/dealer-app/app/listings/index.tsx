@@ -27,7 +27,7 @@ export default function ListingsScreen() {
   const router = useRouter();
   const [selectedPlatform, setSelectedPlatform] = useState("All");
 
-  const { data: listings = [], isLoading } = useQuery({
+  const { data: listings = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["my-listings"],
     queryFn: async () => {
       const res = await apiClient.get("/v1/listings");
@@ -99,6 +99,8 @@ export default function ListingsScreen() {
       ) : (
         <FlatList
           data={filtered}
+          onRefresh={refetch}
+          refreshing={isRefetching}
           keyExtractor={(item: any) => item.id}
           renderItem={({ item }: any) => {
             const platform = "eBay"; // Currently eBay is primary

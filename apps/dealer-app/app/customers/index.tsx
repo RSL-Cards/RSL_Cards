@@ -18,6 +18,12 @@ const AVATAR_COLORS: Record<string, string> = {
 export default function CustomersScreen() {
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => setRefreshing(false), 600)
+  }
 
   const filtered = MOCK_CUSTOMERS.filter(c =>
     c.name.toLowerCase().includes(query.toLowerCase()) ||
@@ -71,6 +77,8 @@ export default function CustomersScreen() {
       {/* Customer list */}
       <FlashList
         data={filtered}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
         {...{ estimatedItemSize: 88 } as any}
         keyExtractor={(item: any) => item.id}
         renderItem={({ item }: any) => (

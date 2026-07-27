@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -12,6 +12,7 @@ import {
   TextInput,
   Alert,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -427,11 +428,26 @@ export default function CardDetailScreen() {
     "10",
   ];
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setRefreshing(false);
+  }, [queryClient]);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#000000" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#0057FF"
+            colors={["#0057FF"]}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
