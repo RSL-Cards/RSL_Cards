@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import PassbookTable from '@/components/transactions/PassbookTable'
 import TransactionsFilters from '@/components/transactions/TransactionsFilters'
 import TransactionsHeader from '@/components/transactions/TransactionsHeader'
@@ -234,7 +235,7 @@ export default function TransactionsPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-gray-500">Loading passbook...</div>
+          <RSLLoader size={48} />
         </div>
       </Shell>
     )

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
+import RSLLoader from "../../src/components/RSLLoader";
 import { Ionicons } from "@expo/vector-icons";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -495,7 +496,7 @@ function InventoryScreen() {
 
       {/* ── LIST ── */}
       {isLoading && allItems.length === 0 ? (
-        <ActivityIndicator color={COLORS.primary} style={{ marginTop: 40 }} />
+        <RSLLoader size={36} />
       ) : (
         <FlatList
           data={allItems}

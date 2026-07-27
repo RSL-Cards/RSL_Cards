@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useInventory } from "../../src/hooks/useCardScan";
+import RSLLoader from "../../src/components/RSLLoader";
 
 const STEP_PCT = "20%";
 
@@ -119,8 +120,7 @@ export default function AddExistingCardScreen() {
 
         {isLoading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#0057FF" size="large" />
-            <Text style={styles.loadingText}>Loading inventory...</Text>
+            <RSLLoader size={32} />
           </View>
         ) : filteredItems.length === 0 ? (
           <View style={styles.center}>

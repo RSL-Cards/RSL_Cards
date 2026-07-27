@@ -1,5 +1,6 @@
 import { Redirect } from "expo-router";
-import { View, ActivityIndicator } from "react-native";
+import { View } from "react-native";
+import RSLLoader from "../src/components/RSLLoader";
 import { useAuthStore } from "../src/stores/authStore";
 
 export default function Index() {
@@ -16,7 +17,7 @@ export default function Index() {
           justifyContent: "center",
         }}
       >
-        <ActivityIndicator color="#E8001C" size="large" />
+        <RSLLoader size={48} />
       </View>
     );
   }

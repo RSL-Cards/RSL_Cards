@@ -21,6 +21,7 @@ import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
 import { useBatchUpload, useBatchScanMulti } from "../../src/hooks/useBatchScan";
 import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+import RSLLoader from "../../src/components/RSLLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 type Tab = "scan" | "barcode" | "search";
@@ -237,7 +238,7 @@ export default function BuyScanScreen() {
 
                 {(isScanning || isScanningBarcode || isBatchScanning) && (
                   <View style={styles.scanningOverlay}>
-                    <ActivityIndicator color="#0057FF" size="large" />
+                    <RSLLoader size={32} />
                     <Text style={styles.scanningText}>Identifying card{scanMode === "multi" ? "s" : ""}...</Text>
                   </View>
                 )}

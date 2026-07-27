@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock, Eye, Tag } from 'lucide-react'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import ActiveListingsTable from '@/components/listings/ActiveListingsTable'
 import ListingsHeader from '@/components/listings/ListingsHeader'
 import ListingsMetrics from '@/components/listings/ListingsMetrics'
@@ -62,7 +63,7 @@ export default function ListingsPage() {
           <div className="min-w-0 space-y-6">
             {isLoading ? (
               <div className="flex h-48 items-center justify-center rounded-2xl border border-[#252525] bg-[#0D0D0D]">
-                <span className="text-sm text-zinc-400 font-medium">Loading listings...</span>
+                <RSLLoader size={40} />
               </div>
             ) : (
               <ActiveListingsTable listings={listings} onStatusChange={updateStatus} />

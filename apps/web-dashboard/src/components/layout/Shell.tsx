@@ -6,6 +6,7 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import ChatbotWidget from '../assistant/ChatbotWidget'
 import { useAuthStore } from '@/stores/authStore'
+import RSLLoader from '../RSLLoader'
 
 interface ShellProps {
   children: ReactNode
@@ -47,9 +48,7 @@ export default function Shell({ children }: ShellProps) {
   if (!isHydrated || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black px-4">
-        <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-5 py-4 text-sm font-medium text-zinc-300 shadow-xl">
-          Loading your dashboard...
-        </div>
+        <RSLLoader size={56} />
       </div>
     )
   }

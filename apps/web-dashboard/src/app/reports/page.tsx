@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import InventoryAgingReport from '@/components/reports/InventoryAgingReport'
 import PeriodTrend from '@/components/reports/PeriodTrend'
 import ProfitMarginAnalysis from '@/components/reports/ProfitMarginAnalysis'
@@ -123,7 +124,7 @@ export default function ReportsPage() {
 
         {isLoading ? (
           <div className="flex h-96 items-center justify-center rounded-2xl border border-[#252525] bg-[#0D0D0D]">
-            <span className="text-sm font-medium text-zinc-400">Loading reports...</span>
+            <RSLLoader size={48} />
           </div>
         ) : (
           <>

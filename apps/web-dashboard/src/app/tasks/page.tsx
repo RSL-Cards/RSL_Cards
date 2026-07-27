@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import { useBatchJobs } from '@/hooks/dashboard/useBatchJobs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2, Clock, XCircle, FileImage, FileText, Search, ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 
 export default function TasksPageWrapper() {
   return (
-    <React.Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+    <React.Suspense fallback={<div className="flex h-screen items-center justify-center"><RSLLoader size={48} /></div>}>
       <TasksPage />
     </React.Suspense>
   )
@@ -93,7 +94,7 @@ function TasksPage() {
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <Clock className="w-8 h-8 text-[#E8001C] animate-spin" />
+            <RSLLoader size={40} />
           </div>
         ) : jobs.length === 0 ? (
           <div className="bg-[#0D0D0D] rounded-2xl border border-[#252525] p-12 text-center shadow-sm">

@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import CardDetailModal from '@/components/inventory/CardDetailModal'
 import InventoryCardGrid from '@/components/inventory/InventoryCardGrid'
 import InventoryHeader from '@/components/inventory/InventoryHeader'
@@ -158,7 +159,7 @@ export default function InventoryPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-zinc-400">Loading inventory...</div>
+          <RSLLoader size={48} />
         </div>
       </Shell>
     )

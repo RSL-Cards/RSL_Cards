@@ -9,14 +9,8 @@
  * Prod: https://api.rslcards.com
  */
 
-const isDev = typeof __DEV__ !== "undefined" ? __DEV__ : process.env.NODE_ENV === "development";
-
-const DEV_API_URL = process.env.EXPO_PUBLIC_DEV_API_URL || "http://192.168.10.6:8080";
-const PROD_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || "https://api.rslcards.com";
-
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  (isDev ? DEV_API_URL : PROD_API_URL);
+  process.env.EXPO_PUBLIC_API_URL || "https://api.rslcards.com";
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.

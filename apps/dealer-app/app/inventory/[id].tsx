@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
+
   Image,
   Modal,
   TextInput,
@@ -18,6 +18,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as ImagePicker from "expo-image-picker";
 import { useInventoryItem, QUERY_KEYS } from "../../src/hooks/useCardScan";
+import RSLLoader from "../../src/components/RSLLoader";
 import { inventoryService } from "../../src/services/cardService";
 import { useAuthStore } from "../../src/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
@@ -405,7 +406,7 @@ export default function CardDetailScreen() {
           alignItems: "center",
         }}
       >
-        <ActivityIndicator color="#E8001C" size="large" />
+        <RSLLoader size={48} />
       </SafeAreaView>
     );
   }

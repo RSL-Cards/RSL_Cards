@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useCardScan, useInventory } from "../../src/hooks/useCardScan";
 import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
+import RSLLoader from "../../src/components/RSLLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -166,8 +167,7 @@ export default function SellScanScreen() {
           {/* Loading state */}
           {inventoryLoading ? (
             <View style={styles.centeredState}>
-              <ActivityIndicator color="#E8001C" size="large" />
-              <Text style={styles.stateText}>Loading inventory...</Text>
+              <RSLLoader size={32} />
             </View>
           ) : filtered.length === 0 ? (
             /* Empty state */

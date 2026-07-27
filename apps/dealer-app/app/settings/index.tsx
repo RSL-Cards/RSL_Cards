@@ -23,6 +23,7 @@ import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
+import RSLLoader from "../../src/components/RSLLoader";
 import { Surface } from "../../src/components/ui/Surface";
 
 const SPORTS = [
@@ -166,7 +167,7 @@ export default function SettingsScreen() {
           { justifyContent: "center", alignItems: "center" },
         ]}
       >
-        <ActivityIndicator color={COLORS.primary} size="large" />
+        <RSLLoader size={40} />
       </SafeAreaView>
     );
   }

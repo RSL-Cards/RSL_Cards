@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Calendar, Filter, X, ArrowRight } from 'lucide-react'
 import Shell from '@/components/layout/Shell'
+import RSLLoader from '@/components/RSLLoader'
 import MetricCard from '@/components/dashboard/MetricCard'
 import RevenueChart from '@/components/dashboard/RevenueChart'
 import ProfitByChannelChart from '@/components/dashboard/ProfitByChannelChart'
@@ -77,7 +78,7 @@ export default function DashboardPage() {
     return (
       <Shell>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-sm text-zinc-400">Loading command center...</div>
+          <RSLLoader size={48} />
         </div>
       </Shell>
     )

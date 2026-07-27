@@ -27,6 +27,7 @@ import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
+import RSLLoader from "../../src/components/RSLLoader";
 
 type Period = "today" | "week" | "month" | "ytd";
 type TopTab = "performance" | "logs";
@@ -159,7 +160,7 @@ function PerformanceTab({ period }: { period: Period }) {
           Net Profit
         </Typography>
         {isLoading ? (
-          <ActivityIndicator color={COLORS.zinc600} size="large" />
+          <RSLLoader size={28} />
         ) : (
           <Typography variant="h1" weight="900" color={profit >= 0 ? COLORS.success : COLORS.destructive}>
             {fmt$(profit)}
@@ -364,7 +365,7 @@ function DailyLogsTab() {
         }
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+          <RSLLoader size={36} />
         ) : (
           <>
             {/* Open Logs Section */}

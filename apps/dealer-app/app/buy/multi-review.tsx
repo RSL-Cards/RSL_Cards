@@ -9,6 +9,7 @@ import { Button } from "../../src/components/ui/Button";
 import { COLORS, SPACING, RADIUS } from "../../src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useDealTabStore } from "../../src/stores/dealTabStore";
+import RSLLoader from "../../src/components/RSLLoader";
 
 export default function MultiReviewScreen() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function MultiReviewScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={COLORS.primary} size="large" />
+        <RSLLoader size={36} />
       </View>
     );
   }

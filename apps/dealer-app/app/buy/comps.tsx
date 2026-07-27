@@ -19,6 +19,7 @@ import { useInventoryItem } from "../../src/hooks/useCardScan";
 import { format } from "date-fns";
 import type { EbaySoldItem, EbaySearchItem } from "../../src/services/cardService";
 import { isGraded } from "../../src/utils/gradeHelper";
+import RSLLoader from "../../src/components/RSLLoader";
 
 const safeFormatDate = (dateVal: string | number | undefined | null) => {
   if (!dateVal) return "—";
@@ -542,10 +543,7 @@ export default function BuyCompsScreen() {
         {/* Loading / Error States */}
         {isLoadingAll && (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
-            <ActivityIndicator color="#0057FF" size="large" />
-            <Text style={{ color: "#888888", marginTop: 12, fontSize: 13 }}>
-              Loading verification sales...
-            </Text>
+            <RSLLoader size={32} />
           </View>
         )}
 
