@@ -9,7 +9,7 @@
  * Prod: https://api.rslcards.com
  */
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.10.7:8080";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.rslcards.com";
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.
