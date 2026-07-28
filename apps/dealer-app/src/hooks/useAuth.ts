@@ -186,35 +186,17 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const isExpoGo = Constants.appOwnership === "expo";
-
-  const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!;
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!;
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!;
-
-  // In Expo Go, native client IDs fail because Expo Go's package name is host.exp.exponent.
-  // We use webClientId with https://auth.expo.io/@gollavinay/dealer-app in Expo Go.
-  // In standalone / EAS builds, we use native androidClientId and iosClientId.
-  const redirectUri = isExpoGo
-    ? "https://auth.expo.io/@gollavinay/dealer-app"
-    : AuthSession.makeRedirectUri({ scheme: "rslcards" });
-
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: webClientId,
-    webClientId,
-    ...( !isExpoGo && {
-      androidClientId,
-      iosClientId,
-    }),
-    redirectUri,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
   });
 
   useEffect(() => {
     if (request) {
-      console.log("[GoogleAuth] isExpoGo:", isExpoGo);
       console.log("[GoogleAuth] Request redirectUri:", request.redirectUri);
     }
-  }, [request, isExpoGo]);
+  }, [request]);
 
   useEffect(() => {
     async function handleGoogle() {
