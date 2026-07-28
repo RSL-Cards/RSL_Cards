@@ -185,13 +185,16 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const redirectUri = isExpoGo
+    ? "https://auth.expo.io/@gollavinay/dealer-app"
+    : AuthSession.makeRedirectUri({ scheme: "rslcards" });
+
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
-    ...(Constants.appOwnership !== 'expo' && {
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-    }),
-    redirectUri: AuthSession.makeRedirectUri(),
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
+    redirectUri,
   });
 
   useEffect(() => {
@@ -199,7 +202,7 @@ export function useGoogleAuth() {
       if (response?.type !== "success") return;
 
       try {
-        const idToken = response.authentication?.idToken;
+        const idToken = response.authentication?.idToken || (response.params as any)?.id_token;
         if (!idToken) return;
 
         const data = await authService.googleLogin({ idToken });

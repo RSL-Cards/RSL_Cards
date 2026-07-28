@@ -47,12 +47,10 @@ export const initWorker = () => {
       if (job.name === "refresh_all_comps") {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
-          const result = await db.execute(sql`
+          // Fetch all unique card variants in inventory
+          const variantsResult = await db.execute(sql`
             SELECT DISTINCT
               i.variant_id,
-              i.grade_key,
-              i.grade_company,
-              i.grade_value,
               c.year,
               c.set_name,
               c.card_number,
@@ -64,17 +62,59 @@ export const initWorker = () => {
             JOIN players p ON c.player_id = p.id
             WHERE i.variant_id IS NOT NULL
           `);
-          const items = result.rows as any[];
-          logger.info(`[WORKER] Found ${items.length} unique variant/grade combinations in inventory.`);
+          const variants = variantsResult.rows as any[];
+          logger.info(`[WORKER] Found ${variants.length} unique card variants in inventory.`);
+
+          // Standard grades matching the Buy Flow (RAW, 10, 9.5, 9, 8, 7, 6, 5)
+          const STANDARD_GRADES = ["RAW", "10", "9.5", "9", "8", "7", "6", "5"];
+
+          // Fetch all existing grade keys in inventory per variant to ensure custom grades are included
+          const invGradesResult = await db.execute(sql`
+            SELECT DISTINCT variant_id, grade_key, grade_company, grade_value
+            FROM inventory
+            WHERE variant_id IS NOT NULL
+          `);
+          const invGradesMap = new Map<string, Array<{ grade_key: string; grade_company?: string; grade_value?: string }>>();
+          for (const row of invGradesResult.rows as any[]) {
+            if (!invGradesMap.has(row.variant_id)) {
+              invGradesMap.set(row.variant_id, []);
+            }
+            invGradesMap.get(row.variant_id)!.push({
+              grade_key: row.grade_key,
+              grade_company: row.grade_company,
+              grade_value: row.grade_value,
+            });
+          }
 
           const queue = bullMqAdapter.getQueue();
           let delayMs = 0;
-          for (const item of items) {
-            await queue.add("refresh_single_comp", { item }, { delay: delayMs });
-            delayMs += 5000; 
+          let totalEnqueued = 0;
+
+          for (const variant of variants) {
+            // Combine standard grades with any specific inventory grades
+            const customGrades = invGradesMap.get(variant.variant_id) || [];
+            const gradeSet = new Set<string>(STANDARD_GRADES);
+            for (const cg of customGrades) {
+              if (cg.grade_key) gradeSet.add(cg.grade_key);
+            }
+
+            for (const gradeKey of gradeSet) {
+              const matchedCustom = customGrades.find(cg => cg.grade_key === gradeKey);
+              const item = {
+                ...variant,
+                grade_key: gradeKey,
+                grade_company: matchedCustom?.grade_company || (gradeKey === "RAW" ? null : "PSA"),
+                grade_value: matchedCustom?.grade_value || (gradeKey === "RAW" ? null : gradeKey),
+              };
+
+              await queue.add("refresh_single_comp", { item }, { delay: delayMs });
+              delayMs += 5000;
+              totalEnqueued++;
+            }
           }
-          logger.info(`[WORKER] Completed spawner job. Enqueued ${items.length} individual comp refreshes.`);
-          return { success: true, processed: items.length };
+
+          logger.info(`[WORKER] Completed spawner job. Enqueued ${totalEnqueued} comp refreshes across all grades for ${variants.length} variants.`);
+          return { success: true, processed: totalEnqueued };
         } catch (error: any) {
           logger.error(`[WORKER] Failed to process refresh_all_comps: ${error.message}`);
           throw error;
@@ -202,31 +242,51 @@ export const initWorker = () => {
         logger.info(`[WORKER] Running notify_close_daily_logs cron job`);
         try {
           const openLogs = await db.execute(sql`
-            SELECT id, user_id, name 
-            FROM daily_logs 
-            WHERE status = 'open'
+            SELECT dl.id, dl.user_id, dl.name, u.email as user_email, dp.notification_preferences
+            FROM daily_logs dl
+            JOIN users u ON u.id = dl.user_id
+            LEFT JOIN dealer_profiles dp ON dp.user_id = dl.user_id
+            WHERE dl.status = 'open'
           `);
           
           const logs = openLogs.rows as any[];
           logger.info(`[WORKER] Found ${logs.length} open daily logs.`);
 
           const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
+          const { emailService } = await import("./modules/email/index.js");
           const notifRepository = new NotificationRepository();
 
           for (const log of logs) {
+            const prefs = log.notification_preferences?.dailyLogs ?? { push: true, email: true };
+            const isPushEnabled = prefs.push !== false;
+            const isEmailEnabled = prefs.email !== false;
+
             const title = "Close Your Daily Log";
             const body = `Don't forget to close your daily log "${log.name}" for today to finalize your stats.`;
             
             // 1. Send push notification / save to DB
-            await notifRepository.sendNotification(log.user_id, title, body, "INFO", { logId: log.id });
-            
-            // 2. Publish to SSE for real-time frontend updates
-            await sseService.publish(log.user_id, {
-              type: "INFO",
-              title,
-              message: body,
-              timestamp: new Date().toISOString()
-            });
+            if (isPushEnabled) {
+              await notifRepository.sendNotification(log.user_id, title, body, "INFO", { logId: log.id });
+              
+              // Publish to SSE for real-time frontend updates
+              await sseService.publish(log.user_id, {
+                type: "INFO",
+                title,
+                message: body,
+                timestamp: new Date().toISOString()
+              });
+            }
+
+            // 2. Send email notification
+            if (isEmailEnabled && log.user_email) {
+              await emailService.sendNotificationAlert(log.user_email, {
+                alertTitle: title,
+                alertBody: body,
+                actionUrl: "https://app.rslcards.com/daily-logs",
+                actionText: "Manage Daily Logs"
+              });
+              logger.info(`[WORKER] Sent daily log close email alert to ${log.user_email}`);
+            }
           }
           return { success: true, processed: logs.length };
         } catch (error: any) {
@@ -382,6 +442,7 @@ export const initWorker = () => {
         }
       }
 
+      /* 
       else if (job.name === "generate_ai_insights") {
         const { userId } = job.data || {};
         logger.info(`[WORKER] Running generate_ai_insights job (ID: ${job.id}) ${userId ? `for User: ${userId}` : "Globally"}`);
@@ -548,6 +609,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           throw error;
         }
       }
+      */
 
       // -------------------------------------------------------------
       // NEW BATCH JOBS
