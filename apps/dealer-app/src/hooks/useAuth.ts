@@ -14,12 +14,25 @@ import { tokenStorage } from "../lib/tokenStorage";
 import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as AuthSession from "expo-auth-session";
+
+let GoogleSignin: any = null;
+try {
+  const mod = require("@react-native-google-signin/google-signin");
+  GoogleSignin = mod.GoogleSignin;
+  if (GoogleSignin?.configure) {
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
+      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    });
+  }
+} catch (e) {
+  console.warn("[GoogleAuth] Native GoogleSignin module not available in Expo Go.");
+}
 
 WebBrowser.maybeCompleteAuthSession();
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -182,58 +195,55 @@ export function useResetPassword() {
     },
   });
 }
+
 export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
-  });
-
-  useEffect(() => {
-    if (request) {
-      console.log("[GoogleAuth] Request redirectUri:", request.redirectUri);
-    }
-  }, [request]);
-
-  useEffect(() => {
-    async function handleGoogle() {
-      if (response?.type !== "success") return;
-
-      try {
-        const idToken = response.authentication?.idToken || (response.params as any)?.id_token;
-        if (!idToken) return;
-
-        const data = await authService.googleLogin({ idToken });
-
-        setAuth(data.user);
-
-        Toast.show({
-          type: "success",
-          text1: "Signed in with Google",
-        });
-
-        if (!data.user.onboardingCompleted) {
-          router.replace("/(auth)/onboarding/sports");
-        } else {
-          router.replace("/(tabs)");
-        }
-      } catch (error) {
+  const promptGoogleSignIn = async () => {
+    try {
+      if (!GoogleSignin) {
         Toast.show({
           type: "error",
-          text1: "Google sign in failed",
+          text1: "Native Build Required",
+          text2: "Google Sign-In requires running a native build (bun expo run:android or EAS build).",
         });
+        return;
       }
-    }
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
 
-    handleGoogle();
-  }, [response]);
+      if (!idToken) {
+        throw new Error("No ID token returned from Google Sign-In");
+      }
+
+      const data = await authService.googleLogin({ idToken });
+      setAuth(data.user);
+
+      Toast.show({
+        type: "success",
+        text1: "Signed in with Google",
+      });
+
+      if (!data.user.onboardingCompleted) {
+        router.replace("/(auth)/onboarding/sports");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (error: any) {
+      console.error("[GoogleAuth] error:", error);
+      Toast.show({
+        type: "error",
+        text1: "Google sign in failed",
+        text2: getErrorMessage(error, "Could not sign in with Google."),
+      });
+    }
+  };
 
   return {
-    promptGoogleSignIn: () => promptAsync(),
-    request,
+    promptGoogleSignIn,
+    request: true,
   };
 }
 
