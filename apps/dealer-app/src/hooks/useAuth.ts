@@ -17,6 +17,7 @@ import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useEffect } from "react";
+import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as AuthSession from "expo-auth-session";
 
@@ -185,10 +186,24 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
+  const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!;
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!;
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!;
+
+  // Google OAuth requires the reverse client ID scheme on native Android/iOS
+  const redirectUri = AuthSession.makeRedirectUri({
+    native: Platform.OS === "android" && androidClientId
+      ? `com.googleusercontent.apps.${androidClientId.replace(".apps.googleusercontent.com", "")}:/oauth2redirect`
+      : Platform.OS === "ios" && iosClientId
+      ? `com.googleusercontent.apps.${iosClientId.replace(".apps.googleusercontent.com", "")}:/oauth2redirect`
+      : undefined,
+  });
+
   const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
+    androidClientId,
+    iosClientId,
+    webClientId,
+    redirectUri,
   });
 
   useEffect(() => {
