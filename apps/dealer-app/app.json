@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "RSL Cards Pro",
-    "slug": "dealer-app",
+    "slug": "rsl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
