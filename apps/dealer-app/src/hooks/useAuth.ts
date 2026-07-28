@@ -185,27 +185,17 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const isExpoGo = Constants.appOwnership === 'expo';
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: "rslcards",
-  });
-
   const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
-    ...( !isExpoGo && {
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-    }),
-    redirectUri,
   });
 
   useEffect(() => {
     if (request) {
-      console.log("[GoogleAuth] isExpoGo:", isExpoGo);
       console.log("[GoogleAuth] Request redirectUri:", request.redirectUri);
     }
-  }, [request, isExpoGo]);
+  }, [request]);
 
   useEffect(() => {
     async function handleGoogle() {
