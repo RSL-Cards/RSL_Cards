@@ -59,7 +59,8 @@
           }
         }
       ],
-      "./plugins/withAndroidComponentFactory"
+      "./plugins/withAndroidComponentFactory",
+      "./plugins/withExcludeSupportLib"
     ],
     "experiments": {
       "autolinkingModuleResolution": true
