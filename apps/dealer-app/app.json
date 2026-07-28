@@ -58,7 +58,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "./plugins/withAndroidComponentFactory"
     ],
     "experiments": {
       "autolinkingModuleResolution": true
