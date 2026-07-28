@@ -322,7 +322,7 @@ export class InventoryRepository {
     let resolvedVariantId = cleanVariantId;
     let resolvedPlayerId = cleanPlayerId;
 
-    if (!resolvedPlayerId && cleanPlayerName) {
+    if (!resolvedPlayerId && cleanPlayerName && cleanPlayerName.trim() !== "" && cleanPlayerName.toLowerCase() !== "unknown") {
       const existingPlayer = await db.execute(sql`
         SELECT id FROM players
         WHERE LOWER(name) = LOWER(${cleanPlayerName})

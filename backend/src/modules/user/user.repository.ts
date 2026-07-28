@@ -208,6 +208,16 @@ export class UserRepository {
   async postUsersMeConnectedPlatforms(body: any) {
     const { userId, platform, accessToken, refreshToken, tokenExpiresAt, platformUserId } = body;
     
+    const [existingUser] = await db
+      .select({ id: (users as any).id })
+      .from(users as any)
+      .where(eq((users as any).id, userId))
+      .limit(1);
+
+    if (!existingUser) {
+      throw new Error(`User ID ${userId} does not exist in database. Please log in again.`);
+    }
+
     await db.insert(platformConnections as any).values({
       userId,
       platform,

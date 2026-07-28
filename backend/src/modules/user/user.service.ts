@@ -66,7 +66,10 @@ export class UserService {
               continue;
             }
 
-            const playerName = aspects.Player?.[0] || aspects.Athlete?.[0] || "";
+            let playerName = aspects.Player?.[0] || aspects.Athlete?.[0] || l.product?.title || "";
+            if (!playerName || playerName.trim() === "" || playerName.toLowerCase() === "unknown") {
+              continue; // Skip creating unidentifiable dummy cards
+            }
             let year = aspects.Season?.[0] || aspects.Year?.[0] || "";
             // Keep only numbers for year if it's like "2020-21" to fit integers
             year = year.replace(/[^0-9]/g, '').substring(0, 4);
