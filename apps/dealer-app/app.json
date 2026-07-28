@@ -42,7 +42,6 @@
     },
     "plugins": [
       "expo-router",
-      "expo-auth-session",
       "expo-camera",
       [
         "@react-native-voice/voice",
