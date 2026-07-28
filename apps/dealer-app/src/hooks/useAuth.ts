@@ -185,14 +185,10 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const isExpoGo = Constants.appOwnership === 'expo';
-
   const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID!,
-    ...( !isExpoGo && {
-      androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!,
-    }),
   });
 
   useEffect(() => {
