@@ -29,15 +29,10 @@
         "backgroundColor": "#000000"
       },
       "package": "com.rslcards.dealer",
-      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ],
-      "gradleProperties": {
-        "android.useAndroidX": "true",
-        "android.enableJetifier": "true"
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -54,7 +49,16 @@
           "speechRecognitionPermission": "Allow RSL Cards to recognize your speech for voice queries."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableJetifier": true,
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "autolinkingModuleResolution": true
