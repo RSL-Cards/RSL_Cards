@@ -32,6 +32,7 @@ import {
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
 const EBAY_CLIENT_ID = process.env.EXPO_PUBLIC_EBAY_CLIENT_ID;
@@ -93,6 +94,8 @@ function MoreScreen() {
     useUploadAvatar();
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [showEbayModal, setShowEbayModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDisconnectEbayModal, setShowDisconnectEbayModal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: connectedPlatforms = [] } = useQuery({
@@ -175,10 +178,7 @@ function MoreScreen() {
     .slice(0, 2);
 
   const handleLogout = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign Out", style: "destructive", onPress: () => logout() },
-    ]);
+    setShowLogoutModal(true);
   };
 
   const [refreshing, setRefreshing] = useState(false);
@@ -268,18 +268,7 @@ function MoreScreen() {
                 value={isEbayConnected ? "🟢 Connected" : "⚫ Connect"}
                 onPress={() => {
                   if (isEbayConnected) {
-                    Alert.alert(
-                      "Disconnect eBay?",
-                      "This will disconnect your eBay account.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        { 
-                          text: "Disconnect", 
-                          style: "destructive",
-                          onPress: () => disconnectMutation.mutate('ebay')
-                        },
-                      ]
-                    );
+                    setShowDisconnectEbayModal(true);
                   } else {
                     setShowEbayModal(true);
                   }
@@ -404,6 +393,38 @@ function MoreScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Sign Out Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showLogoutModal}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your dealer account?"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        iconName="log-out-outline"
+        variant="danger"
+        onConfirm={() => {
+          setShowLogoutModal(false);
+          logout();
+        }}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {/* Disconnect eBay Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showDisconnectEbayModal}
+        title="Disconnect eBay?"
+        message="This will disconnect your active eBay marketplace integration."
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        iconName="link-outline"
+        variant="danger"
+        onConfirm={() => {
+          setShowDisconnectEbayModal(false);
+          disconnectMutation.mutate('ebay');
+        }}
+        onCancel={() => setShowDisconnectEbayModal(false)}
+      />
     </SafeAreaView>
   );
 }
