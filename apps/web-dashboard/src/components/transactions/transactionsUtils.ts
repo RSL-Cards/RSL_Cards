@@ -118,3 +118,58 @@ export const downloadFile = (fileName: string, blob: Blob) => {
   link.remove()
   URL.revokeObjectURL(url)
 }
+
+export function formatChannelName(channel?: string | null): string {
+  if (!channel) return '—'
+  const c = channel.toLowerCase()
+  switch (c) {
+    case 'card_show':
+    case 'in_person':
+    case 'in-person / show':
+      return 'In-Person / Show'
+    case 'ebay':
+      return 'eBay'
+    case 'myslabs':
+      return 'MySlabs'
+    case 'instagram':
+    case 'social':
+    case 'instagram / social':
+      return 'Instagram / Social'
+    case 'whatnot':
+      return 'WhatNot'
+    case 'facebook':
+      return 'Facebook'
+    case 'other':
+      return 'Other'
+    default:
+      return channel.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+}
+
+export function formatPaymentMethodName(pm?: string | null): string {
+  if (!pm) return '—'
+  const p = pm.toLowerCase()
+  switch (p) {
+    case 'cash':
+      return 'Cash'
+    case 'zelle':
+      return 'Zelle'
+    case 'venmo':
+      return 'Venmo'
+    case 'paypal':
+      return 'PayPal'
+    case 'stripe':
+    case 'stripe / card':
+    case 'stripe_card':
+      return 'Stripe / Card'
+    case 'cashapp':
+      return 'CashApp'
+    case 'wire':
+    case 'wire / other':
+    case 'wire_other':
+      return 'Wire / Other'
+    default:
+      return pm.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+}
+

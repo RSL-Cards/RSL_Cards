@@ -53,6 +53,7 @@ export class AnalyticsRepository {
     const rows = await db.execute(sql`
       SELECT
         t.id, t.type::text, t.price, t.profit, t.player_name, t.created_at,
+        t.channel, t.payment_method,
         i.photos as inventory_photos,
         t.card_snapshot
       FROM transactions t
@@ -64,6 +65,7 @@ export class AnalyticsRepository {
       
       SELECT
         e.id, 'expense' as type, e.amount as price, NULL as profit, e.category as player_name, e.expense_date as created_at,
+        NULL as channel, NULL as payment_method,
         NULL as inventory_photos,
         NULL as card_snapshot
       FROM expenses e
@@ -106,6 +108,8 @@ export class AnalyticsRepository {
         profit: r.profit != null ? parseFloat(r.profit).toFixed(2) : null,
         playerName: r.player_name || (r.type === "trade" ? "Trade Transaction" : "Item"),
         imageUrl,
+        channel: r.channel || null,
+        paymentMethod: r.payment_method || null,
         time: new Date(r.created_at).toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",

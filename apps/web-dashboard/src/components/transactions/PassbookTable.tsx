@@ -1,7 +1,12 @@
 import { ArrowDownLeft, ArrowUpRight, CalendarDays } from 'lucide-react'
 import { formatCurrency } from '@/components/inventory/inventoryUtils'
 import { PassbookTransaction } from './transactionsTypes'
-import { formatDate, getPaymentIcon } from './transactionsUtils'
+import {
+  formatDate,
+  formatChannelName,
+  formatPaymentMethodName,
+  getPaymentIcon,
+} from './transactionsUtils'
 
 interface PassbookTableProps {
   latestDate: string
@@ -80,11 +85,11 @@ export default function PassbookTable({
                     <div className="text-xs text-zinc-400">{transaction.grade}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-zinc-400">{transaction.customer}</td>
-                  <td className="px-6 py-4 text-sm text-zinc-400">{transaction.channel}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-400">{formatChannelName(transaction.channel)}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-sm text-zinc-400">
                       <PaymentIcon className="h-4 w-4 text-zinc-500" />
-                      {transaction.payment}
+                      {formatPaymentMethodName(transaction.payment)}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-sm">

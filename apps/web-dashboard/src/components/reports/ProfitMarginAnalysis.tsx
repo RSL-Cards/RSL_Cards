@@ -71,7 +71,8 @@ export default function ProfitMarginAnalysis({
                 <XAxis dataKey="name" stroke="#888888" tick={{ fill: '#888888', fontSize: 12 }} />
                 <YAxis stroke="#888888" tick={{ fill: '#888888', fontSize: 12 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#1A1A1A', borderColor: '#252525', borderRadius: 8 }}
+                  cursor={{ stroke: '#252525', strokeWidth: 1 }}
+                  contentStyle={{ backgroundColor: '#0D0D0D', borderColor: '#252525', borderRadius: 12, color: '#FFF' }}
                   formatter={(value, name) =>
                     name === 'margin' ? `${Number(value).toFixed(1)}%` : formatCurrency(Number(value))
                   }

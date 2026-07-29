@@ -90,6 +90,7 @@ export default function SalesByPlatformChart({ salesByPlatform }: SalesByPlatfor
                 tickFormatter={(v) => `$${v}`}
               />
               <Tooltip
+                cursor={{ fill: 'rgba(255, 255, 255, 0.05)', radius: 8 }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload as PlatformSales

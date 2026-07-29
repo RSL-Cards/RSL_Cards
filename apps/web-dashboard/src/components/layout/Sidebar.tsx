@@ -21,7 +21,7 @@ import { useAuthStore } from '@/stores/authStore'
 const navItems = [
   { icon: Home, label: 'Dashboard', href: '/' },
   { icon: Package, label: 'Inventory', href: '/inventory' },
-  { icon: ClipboardList, label: 'Listings', href: '/listings' },
+  // { icon: ClipboardList, label: 'Listings', href: '/listings' },
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
   { icon: Calendar, label: 'Daily Logs', href: '/daily-logs' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },

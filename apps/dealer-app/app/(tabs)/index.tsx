@@ -27,8 +27,58 @@ import {
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
-import { Button } from "../../src/components/ui/Button";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
+
+function formatChannelName(channel?: string | null): string {
+  if (!channel) return "";
+  const c = channel.toLowerCase();
+  switch (c) {
+    case "card_show":
+    case "in_person":
+      return "In-Person / Show";
+    case "ebay":
+      return "eBay";
+    case "myslabs":
+      return "MySlabs";
+    case "instagram":
+    case "social":
+      return "Instagram / Social";
+    case "whatnot":
+      return "WhatNot";
+    case "facebook":
+      return "Facebook";
+    default:
+      return channel.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+}
+
+function formatPaymentMethodName(pm?: string | null): string {
+  if (!pm) return "";
+  const p = pm.toLowerCase();
+  switch (p) {
+    case "cash":
+      return "Cash";
+    case "zelle":
+      return "Zelle";
+    case "venmo":
+      return "Venmo";
+    case "paypal":
+      return "PayPal";
+    case "stripe":
+    case "stripe_card":
+      return "Stripe / Card";
+    case "cashapp":
+      return "CashApp";
+    case "wire":
+    case "wire_other":
+      return "Wire / Other";
+    default:
+      return pm.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+}
+
 import { useNotificationStore } from "../../src/stores/useNotificationStore";
+import { Button } from "../../src/components/ui/Button";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -343,7 +393,12 @@ export default function HomeScreen() {
                       {tx.playerName || (tx.type === "trade" ? "Trade Transaction" : "Activity")}
                     </Typography>
                     <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>
-                      {tx.time} {tx.type === "trade" ? "· Trade" : ""}
+                      {[
+                        tx.time,
+                        formatChannelName(tx.channel),
+                        formatPaymentMethodName(tx.paymentMethod),
+                        tx.type === "trade" ? "Trade" : null
+                      ].filter(Boolean).join(" · ")}
                     </Typography>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>

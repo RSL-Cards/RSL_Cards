@@ -25,6 +25,8 @@ export interface TodayActivity {
   playerName: string;
   imageUrl?: string | null;
   time: string;
+  channel?: string | null;
+  paymentMethod?: string | null;
 }
 
 export function useDailyStats() {
