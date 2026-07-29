@@ -1,5 +1,6 @@
 import { InventoryRepository } from "./inventory.repository.js";
 import { redisAdapter } from "../../adapters/redis.adapter.js";
+import { REDIS_KEYS } from "../../config/redisKeys.js";
 
 export class InventoryService {
   constructor(
@@ -7,7 +8,7 @@ export class InventoryService {
   ) {}
 
   private async invalidateSummaryCache(userId: string) {
-    const cacheKey = `cache:inventory_summary:${userId}`;
+    const cacheKey = REDIS_KEYS.inventorySummary(userId);
     try {
       await redisAdapter.delete(cacheKey);
     } catch (err: any) {
@@ -20,7 +21,7 @@ export class InventoryService {
   }
 
   async getInventorySummary(userId: string) {
-    const cacheKey = `cache:inventory_summary:${userId}`;
+    const cacheKey = REDIS_KEYS.inventorySummary(userId);
     try {
       const cached = await redisAdapter.get(cacheKey);
       if (cached) {

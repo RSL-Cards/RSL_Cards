@@ -6,6 +6,8 @@ import type { Env } from "../../config/index.js";
 import { OAuth2Client } from "google-auth-library";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { EmailService } from "../email/email.service.js";
+import { redisAdapter } from "../../adapters/redis.adapter.js";
+import { REDIS_KEYS, REDIS_CONFIG } from "../../config/redisKeys.js";
 
 export class AuthService {
   private googleClient: OAuth2Client;
@@ -227,86 +229,95 @@ export class AuthService {
     return { success: true };
   }
 
- async forgotPassword(body: { email: string }) {
-  const user = await this.repository.getUserByEmail(body.email);
+  async forgotPassword(body: { email: string }) {
+    const cleanEmail = body.email.toLowerCase().trim();
+    const user = await this.repository.getUserByEmail(cleanEmail);
 
-  if (!user) {
-    console.log("❌ User not found:", body.email);
+    if (!user) {
+      console.log("❌ User not found:", cleanEmail);
+
+      return {
+        message: "If an account exists, an OTP has been sent",
+      };
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Save to DB fallback
+    await this.repository.updateUserResetToken(user.id, otp, expiry);
+
+    // Store in Redis using central REDIS_KEYS helper
+    const redisKey = REDIS_KEYS.otp(cleanEmail);
+    const redisPayload = JSON.stringify({
+      otp,
+      version: REDIS_CONFIG.VERSION,
+      email: user.email,
+      createdAt: new Date().toISOString(),
+    });
+    await redisAdapter.set(redisKey, redisPayload, 900); // 15 min expiration
+
+    console.log("\n🔐 PASSWORD RESET OTP (REDIS KEY: " + redisKey + ")");
+    console.log(`📧 Email: ${cleanEmail}`);
+    console.log(`🔢 OTP: ${otp}`);
+
+    try {
+      if (this.emailService) {
+        await this.emailService.sendPasswordReset(
+          user.email,
+          {
+            displayName: user.email.split("@")[0],
+            otp,
+            expiresInMinutes: 15,
+          }
+        );
+        console.log("✅ Password reset email sent");
+      }
+    } catch (error) {
+      console.error("⚠️ Password reset email delivery issue:", error);
+    }
 
     return {
       message: "If an account exists, an OTP has been sent",
+      ...(this.env.NODE_ENV === "development" && { otp }),
     };
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiry = new Date(Date.now() + 15 * 60 * 1000);
+  async resetPassword(body: any) {
+    const cleanEmail = body.email.toLowerCase().trim();
+    const redisKey = REDIS_KEYS.otp(cleanEmail);
 
-  await this.repository.updateUserResetToken(user.id, otp, expiry);
-
-  console.log("\n🔐 PASSWORD RESET OTP");
-  console.log(`📧 Email: ${body.email}`);
-  console.log(`🔢 OTP: ${otp}`);
-
-  console.log("=================================");
-  console.log("FORGOT PASSWORD REQUEST");
-  console.log("Email:", body.email);
-  console.log("Generated OTP:", otp);
-
-  console.log("🔥 About to send password reset email");
-  console.log("EmailService exists:", !!this.emailService);
-
-  try {
-    if (!this.emailService) {
-      throw new Error("EmailService not initialized");
+    let redisOtp: string | null = null;
+    try {
+      const cached = await redisAdapter.get(redisKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        redisOtp = parsed.otp;
+      }
+    } catch (e) {
+      console.error("[AuthService] Redis OTP fetch error:", e);
     }
 
-    const result = await this.emailService.sendPasswordReset(
-      body.email,
-      {
-        displayName: user.email.split("@")[0],
-        otp,
-        expiresInMinutes: 15,
-      }
-    );
-
-    console.log("✅ Password reset email sent");
-    console.log(
-      "📨 Resend Response:",
-      JSON.stringify(result, null, 2)
-    );
-  } catch (error) {
-    console.error("❌ Password reset email failed");
-    console.error(error);
-
-    throw new Error("Failed to send password reset email");
-  }
-
-  return {
-    message: "If an account exists, an OTP has been sent",
-    ...(this.env.NODE_ENV === "development" && { otp }),
-  };
-}
-
-  async resetPassword(body: any) {
-    const user = await this.repository.getUserByEmail(body.email);
+    const user = await this.repository.getUserByEmail(cleanEmail);
     if (!user) {
       throw new Error("Invalid email or OTP");
     }
 
     const userRecord = await this.repository.getResetTokenInfo(user.id);
-    if (
-      !userRecord?.passwordResetToken ||
-      userRecord.passwordResetToken !== body.otp
-    ) {
-      throw new Error("Invalid or expired OTP");
-    }
+    const dbOtp = userRecord?.passwordResetToken;
+    const isDbExpired = userRecord?.passwordResetExpiry ? new Date() > new Date(userRecord.passwordResetExpiry) : true;
 
-    if (new Date() > new Date(userRecord.passwordResetExpiry)) {
-      throw new Error("OTP has expired");
+    const isOtpValid = (redisOtp && redisOtp === body.otp) || (dbOtp && dbOtp === body.otp && !isDbExpired);
+
+    if (!isOtpValid) {
+      throw new Error("Invalid or expired OTP");
     }
 
     const pwdHash = await hashPassword(body.newPassword);
     await this.repository.resetPassword(user.id, pwdHash);
+
+    // Delete used OTP from Redis
+    await redisAdapter.delete(redisKey);
 
     return { message: "Password reset successfully" };
   }

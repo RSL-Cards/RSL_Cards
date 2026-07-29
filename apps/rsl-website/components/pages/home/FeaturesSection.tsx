@@ -85,8 +85,8 @@ export default function FeaturesSection() {
 
         <div className="mt-16 text-center">
           <a
-            href="#coming-soon"
-            className="inline-flex items-center gap-2 bg-rslRed px-8 py-4 text-base font-black transition hover:bg-white hover:text-black"
+            href="https://app.rslcards.com/login"
+            className="inline-flex items-center gap-2 bg-rslRed px-8 py-4 text-base font-black text-white transition hover:bg-white hover:!text-black"
           >
             Be First to Use RSL Cards <ArrowRight className="h-5 w-5" />
           </a>

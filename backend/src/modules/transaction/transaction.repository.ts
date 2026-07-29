@@ -203,7 +203,8 @@ export class TransactionRepository {
     // Invalidate inventory summary cache as item count / value has changed
     try {
       const { redisAdapter } = await import("../../adapters/redis.adapter.js");
-      await redisAdapter.delete(`cache:inventory_summary:${userId}`);
+      const { REDIS_KEYS } = await import("../../config/redisKeys.js");
+      await redisAdapter.delete(REDIS_KEYS.inventorySummary(userId));
     } catch (err: any) {
       console.error(`[TRANSACTION] Redis summary cache invalidate failed: ${err.message}`);
     }

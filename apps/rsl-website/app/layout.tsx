@@ -6,6 +6,14 @@ export const metadata: Metadata = {
   title: "RSL Cards - The Dealer App for Card Shows",
   description:
     "Scan comps, buy and sell in seconds, track your profit. RSL Cards Pro is built for card shows and multi-channel selling.",
+  icons: {
+    icon: [
+      { url: "/rslicon.jpeg", type: "image/jpeg" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/rslicon.jpeg",
+    apple: "/rslicon.jpeg",
+  },
 };
 
 export default function RootLayout({
@@ -15,6 +23,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
+      <head>
+        <link rel="icon" href="/rslicon.jpeg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/rslicon.jpeg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/rslicon.jpeg" />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster

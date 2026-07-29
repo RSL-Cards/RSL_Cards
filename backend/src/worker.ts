@@ -32,6 +32,8 @@ const myslabsService = new MyslabsService(env);
 
 // Helper for generating card ID consistently
 const norm = (s: string | null | undefined) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+import { BULLMQ_CONFIG } from "./config/redisKeys.js";
+
 const generateCardId = (c: any) =>
   [norm(c.player_name), c.year, norm(c.set_name), norm(c.card_number || "")].join("_").slice(0, 255);
 
@@ -39,12 +41,12 @@ export const initWorker = () => {
   logger.info("👷 Starting BullMQ Worker for background tasks...");
 
   const worker = new Worker(
-    "rsl-task-queue",
+    BULLMQ_CONFIG.QUEUE_NAME,
     async (job) => {
       // -------------------------------------------------------------
       // EXISTING JOBS
       // -------------------------------------------------------------
-      if (job.name === "refresh_all_comps") {
+      if (job.name === BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS) {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
           // Fetch all unique card variants in inventory

@@ -39,7 +39,7 @@ export default function Header() {
         {/* Desktop CTA */}
         <div className="hidden items-center gap-3 lg:flex">
           <a
-            href="#coming-soon"
+            href="https://app.rslcards.com/login"
             className="bg-rslRed px-5 py-3 text-sm font-black transition text-white hover:bg-white hover:!text-black"
           >
             Join Early Access
@@ -77,7 +77,7 @@ export default function Header() {
 
             <div className="mt-6 flex flex-col gap-3">
               <a
-                href="#coming-soon"
+                href="https://app.rslcards.com/login"
                 onClick={() => setIsOpen(false)}
                 className="flex h-12 items-center justify-center bg-rslRed font-bold text-white transition hover:bg-white hover:!text-black"
               >

@@ -1,6 +1,7 @@
 import { Queue, QueueEvents } from "bullmq";
 import { redisAdapter } from "./redis.adapter.js";
 import { logger } from "../lib/logger.js";
+import { BULLMQ_CONFIG } from "../config/redisKeys.js";
 
 export class BullMqAdapter {
   private queue: Queue;
@@ -10,7 +11,7 @@ export class BullMqAdapter {
     logger.info("🔌 Initializing BullMQ Task Queue...");
     const connection = redisAdapter.getClient();
 
-    this.queue = new Queue("rsl-task-queue", {
+    this.queue = new Queue(BULLMQ_CONFIG.QUEUE_NAME, {
       connection,
       defaultJobOptions: {
         attempts: 3,
@@ -23,7 +24,7 @@ export class BullMqAdapter {
       },
     });
 
-    this.queueEvents = new QueueEvents("rsl-task-queue", { connection });
+    this.queueEvents = new QueueEvents(BULLMQ_CONFIG.QUEUE_NAME, { connection });
 
     this.queueEvents.on("error", (err) => {
       logger.error(`❌ BullMQ QueueEvents error: ${err.message}`);
@@ -80,46 +81,38 @@ export class BullMqAdapter {
 
   async startCronJobs(): Promise<void> {
     try {
-      await this.queue.add("refresh_all_comps", {}, {
+      await this.queue.add(BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS, {}, {
         repeat: {
           every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
         },
-        jobId: "refresh_all_comps_cron" // prevent duplicates
+        jobId: `${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}_cron` // prevent duplicates
       });
-      logger.info("🕒 Scheduled 'refresh_all_comps' cron job to run every 12 hours");
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}' cron job to run every 12 hours`);
 
-      // await this.queue.add("generate_ai_insights", {}, {
-      //   repeat: {
-      //     every: 6 * 60 * 60 * 1000 // 6 hours in milliseconds
-      //   },
-      //   jobId: "generate_ai_insights_cron"
-      // });
-      // logger.info("🕒 Scheduled 'generate_ai_insights' cron job to run every 6 hours");
-
-      await this.queue.add("check_inventory_aging", {}, {
+      await this.queue.add(BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING, {}, {
         repeat: {
           every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
         },
-        jobId: "check_inventory_aging_cron"
+        jobId: `${BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING}_cron`
       });
-      logger.info("🕒 Scheduled 'check_inventory_aging' cron job to run every 12 hours");
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING}' cron job to run every 12 hours`);
 
-      await this.queue.add("notify_close_daily_logs", {}, {
+      await this.queue.add(BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS, {}, {
         repeat: {
           pattern: "0 * * * *" // Hourly check for worldwide 11:00 PM local time
         },
-        jobId: "notify_close_daily_logs_cron"
+        jobId: `${BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS}_cron`
       });
-      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run hourly for global 11:00 PM local time checks");
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS}' cron job to run hourly for global 11:00 PM local time checks`);
 
-      await this.queue.add("send_weekly_performance_report", {}, {
+      await this.queue.add(BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT, {}, {
         repeat: {
           pattern: "0 9 * * 0", // 9:00 AM US Eastern Time every Sunday
           tz: "America/New_York"
         },
-        jobId: "send_weekly_performance_report_cron"
+        jobId: `${BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT}_cron`
       });
-      logger.info("🕒 Scheduled 'send_weekly_performance_report' cron job to run every Sunday at 9:00 AM EST");
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT}' cron job to run every Sunday at 9:00 AM EST`);
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

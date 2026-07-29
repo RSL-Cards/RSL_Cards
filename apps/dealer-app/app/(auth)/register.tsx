@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useRegister } from "../../src/hooks/useAuth";
+import { useRegister, useGoogleAuth } from "../../src/hooks/useAuth";
+import { AntDesign } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function RegisterScreen() {
   const [validationError, setValidationError] = useState("");
 
   const { mutate: register, isPending, error } = useRegister();
+  const { promptGoogleSignIn } = useGoogleAuth();
 
   const apiError = error
     ? (error as any)?.response?.data?.message ||
@@ -152,6 +154,27 @@ export default function RegisterScreen() {
                 ) : (
                   <Text style={styles.registerBtnText}>Create Account</Text>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  backgroundColor: "#1A1A1A",
+                  height: 52,
+                  borderRadius: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: "#2A2A2A",
+                }}
+                onPress={() => promptGoogleSignIn()}
+                activeOpacity={0.85}
+              >
+                <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                  Sign Up with Google
+                </Text>
               </TouchableOpacity>
             </View>
 

@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useLogin } from "../../src/hooks/useAuth";
+import { useLogin, useGoogleAuth } from "../../src/hooks/useAuth";
+import { AntDesign } from "@expo/vector-icons";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function LoginScreen() {
   const [showPw, setShowPw] = useState(false);
 
   const { mutate: login, isPending, error } = useLogin();
+  const { promptGoogleSignIn } = useGoogleAuth();
 
   const errorMsg = error
     ? (error as any)?.response?.data?.message || "Invalid email or password"
@@ -109,6 +111,27 @@ export default function LoginScreen() {
                 ) : (
                   <Text style={styles.signInBtnText}>Sign In</Text>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  backgroundColor: "#1A1A1A",
+                  height: 52,
+                  borderRadius: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: "#2A2A2A",
+                }}
+                onPress={() => promptGoogleSignIn()}
+                activeOpacity={0.85}
+              >
+                <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                  Sign In with Google
+                </Text>
               </TouchableOpacity>
             </View>
 

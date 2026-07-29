@@ -19,6 +19,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as AuthSession from "expo-auth-session";
+import * as Google from "expo-auth-session/providers/google";
 
 let GoogleSignin: any = null;
 try {
@@ -200,24 +201,14 @@ export function useGoogleAuth() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const promptGoogleSignIn = async () => {
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+  });
+
+  const handleBackendGoogleLogin = async (idToken: string) => {
     try {
-      if (!GoogleSignin) {
-        Toast.show({
-          type: "error",
-          text1: "Native Build Required",
-          text2: "Google Sign-In requires running a native build (bun expo run:android or EAS build).",
-        });
-        return;
-      }
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      const idToken = response.data?.idToken;
-
-      if (!idToken) {
-        throw new Error("No ID token returned from Google Sign-In");
-      }
-
       const data = await authService.googleLogin({ idToken });
       setAuth(data.user);
 
@@ -232,11 +223,45 @@ export function useGoogleAuth() {
         router.replace("/(tabs)");
       }
     } catch (error: any) {
-      console.error("[GoogleAuth] error:", error);
+      console.error("[GoogleAuth] backend login error:", error);
       Toast.show({
         type: "error",
         text1: "Google sign in failed",
         text2: getErrorMessage(error, "Could not sign in with Google."),
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const idToken = response.params?.id_token || response.authentication?.idToken;
+      if (idToken) {
+        handleBackendGoogleLogin(idToken);
+      }
+    }
+  }, [response]);
+
+  const promptGoogleSignIn = async () => {
+    try {
+      if (GoogleSignin && GoogleSignin.signIn) {
+        await GoogleSignin.hasPlayServices();
+        const res = await GoogleSignin.signIn();
+        const idToken = res.data?.idToken || res.idToken;
+        if (idToken) {
+          return handleBackendGoogleLogin(idToken);
+        }
+      }
+    } catch (error: any) {
+      console.log("[GoogleAuth] Native GoogleSignin unavailable/failed, using AuthSession fallback:", error);
+    }
+
+    if (promptAsync) {
+      promptAsync();
+    } else {
+      Toast.show({
+        type: "error",
+        text1: "Google Auth Unavailable",
+        text2: "Google sign-in request is initializing, please try again.",
       });
     }
   };
