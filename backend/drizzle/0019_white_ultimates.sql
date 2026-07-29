@@ -1,1 +1,0 @@
-ALTER TABLE "platform_active_listings" ADD COLUMN "last_seen_at" timestamp with time zone DEFAULT now();

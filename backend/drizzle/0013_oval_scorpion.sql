@@ -1,1 +1,0 @@
-ALTER TABLE "inventory" ADD COLUMN IF NOT EXISTS "ebay_active_listings" text;

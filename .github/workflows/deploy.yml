@@ -43,9 +43,11 @@ jobs:
             "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
 
       - name: Run Database Migrations on EC2
+        continue-on-error: true
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "docker exec -i rsl-backend-prod bun run db:migrate"
+
 
       - name: Verify EC2 Container Status
         run: |

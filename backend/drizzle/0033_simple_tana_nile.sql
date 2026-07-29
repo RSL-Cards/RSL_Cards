@@ -1,2 +1,0 @@
-ALTER TABLE "user_preferences" ADD COLUMN "notify_daily_close_push" boolean DEFAULT true;--> statement-breakpoint
-ALTER TABLE "user_preferences" ADD COLUMN "notify_daily_close_email" boolean DEFAULT true;

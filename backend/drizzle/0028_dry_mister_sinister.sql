@@ -1,1 +1,0 @@
-ALTER TABLE "dealer_profiles" ADD COLUMN "notification_preferences" jsonb DEFAULT '{"priceSpikes":{"push":true,"email":true},"inventoryAging":{"push":false,"email":true},"failedSync":{"push":true,"email":false},"newSales":{"push":true,"email":true},"weeklyReport":{"push":false,"email":true}}'::jsonb;
