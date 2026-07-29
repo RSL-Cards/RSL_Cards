@@ -22,7 +22,7 @@ jobs:
       - name: Add EC2 Host Key to Known Hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST || '100.52.90.163' }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Sync Code to EC2 via Rsync
         run: |
@@ -35,21 +35,19 @@ jobs:
             --exclude '.expo' \
             --exclude 'apps/dealer-app/node_modules' \
             --exclude 'backend/node_modules' \
-            ./ ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }}:~/RSL_Cards/
-
+            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/RSL_Cards/
 
       - name: Rebuild & Restart Docker Containers on EC2
         run: |
-          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
 
       - name: Run Database Migrations on EC2
         run: |
-          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "docker exec -i rsl-backend-prod bun run db:migrate"
 
       - name: Verify EC2 Container Status
         run: |
-          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
             "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-
