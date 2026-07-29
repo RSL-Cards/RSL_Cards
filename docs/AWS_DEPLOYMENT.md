@@ -105,3 +105,21 @@ Building heavy Docker containers (like Bun/Node apps) requires several gigabytes
      ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "sudo growpart /dev/nvme0n1 1 && sudo resize2fs /dev/root"
      ```
    - *Note: If your disk is not named `nvme0n1`, run `lsblk` via SSH to find the correct partition name.*
+
+## 4. Automated CI/CD Deployment via GitHub Actions
+
+An automated GitHub Actions workflow is set up at [`.github/workflows/deploy.yml`](file:///Users/vinay/RSL_Cards/RSL/.github/workflows/deploy.yml). Whenever code is pushed or merged into the `main` branch, GitHub Actions automatically:
+1. Syncs the repository to your AWS EC2 instance.
+2. Rebuilds and restarts the production Docker containers via `docker compose`.
+3. Verifies container health.
+
+### GitHub Repository Secrets Required
+
+To enable the workflow, add the following secrets in GitHub (**Settings > Secrets and variables > Actions**):
+
+| Secret Name | Value | Description |
+| :--- | :--- | :--- |
+| `EC2_SSH_KEY` | *(Contents of `rslcardspem.pem`)* | Private key used to SSH into the EC2 server |
+| `EC2_HOST` | `100.52.90.163` | EC2 public IP or hostname |
+| `EC2_USER` | `ubuntu` | EC2 SSH username |
+

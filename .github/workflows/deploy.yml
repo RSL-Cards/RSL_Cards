@@ -1,0 +1,53 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to AWS EC2 Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 Host Key to Known Hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST || '100.52.90.163' }} >> ~/.ssh/known_hosts
+
+      - name: Sync Code to EC2 via Rsync
+        run: |
+          rsync -avz --delete \
+            --exclude 'node_modules' \
+            --exclude '.git' \
+            --exclude 'dist' \
+            --exclude '.next' \
+            --exclude '.expo' \
+            --exclude 'apps/dealer-app/node_modules' \
+            --exclude 'backend/node_modules' \
+            ./ ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }}:~/RSL_Cards/
+
+      - name: Rebuild & Restart Docker Containers on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+            "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
+
+      - name: Run Database Migrations on EC2
+        run: |
+          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+            "docker exec -i rsl-backend-prod bun run db:migrate"
+
+      - name: Verify EC2 Container Status
+        run: |
+          ssh ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }} \
+            "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+
