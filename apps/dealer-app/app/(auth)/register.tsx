@@ -13,13 +13,15 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useRegister, useGoogleAuth } from "../../src/hooks/useAuth";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [isDealer, setIsDealer] = useState(true);
   const [validationError, setValidationError] = useState("");
 
@@ -88,25 +90,49 @@ export default function RegisterScreen() {
 
               <View style={{ height: 20 }} />
               <Text style={styles.label}>PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor="#555555"
-                secureTextEntry
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor="#555555"
+                  secureTextEntry={!showPw}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowPw(!showPw)}
+                >
+                  <Ionicons
+                    name={showPw ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#888888"
+                  />
+                </TouchableOpacity>
+              </View>
 
               <View style={{ height: 20 }} />
               <Text style={styles.label}>CONFIRM PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                value={confirm}
-                onChangeText={setConfirm}
-                placeholder="••••••••"
-                placeholderTextColor="#555555"
-                secureTextEntry
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  placeholder="••••••••"
+                  placeholderTextColor="#555555"
+                  secureTextEntry={!showConfirmPw}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setShowConfirmPw(!showConfirmPw)}
+                >
+                  <Ionicons
+                    name={showConfirmPw ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#888888"
+                  />
+                </TouchableOpacity>
+              </View>
 
               <View style={{ height: 24 }} />
               <Text style={styles.label}>ROLE</Text>
@@ -219,6 +245,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#2A2A2A",
   },
+  passwordRow: {
+    position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  eyeBtn: { position: "absolute", right: 14, zIndex: 1 },
   roleChip: {
     paddingVertical: 10,
     paddingHorizontal: 20,

@@ -241,13 +241,14 @@ export class AuthService {
       };
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const isDev = this.env.NODE_ENV === "development" || process.env.NODE_ENV === "development";
+    const otp = isDev ? "123456" : Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
     // Save to DB fallback
     await this.repository.updateUserResetToken(user.id, otp, expiry);
 
-    // Store in Redis using central REDIS_KEYS helper
+    // Store in Redis with key 'rsl-cards:v1:otp:<email>' and 15 min TTL
     const redisKey = REDIS_KEYS.otp(cleanEmail);
     const redisPayload = JSON.stringify({
       otp,
@@ -259,10 +260,10 @@ export class AuthService {
 
     console.log("\n🔐 PASSWORD RESET OTP (REDIS KEY: " + redisKey + ")");
     console.log(`📧 Email: ${cleanEmail}`);
-    console.log(`🔢 OTP: ${otp}`);
+    console.log(`🔢 OTP: ${otp} ${isDev ? "(DEV MODE: Default 123456)" : ""}`);
 
-    try {
-      if (this.emailService) {
+    if (!isDev && this.emailService) {
+      try {
         await this.emailService.sendPasswordReset(
           user.email,
           {
@@ -272,14 +273,16 @@ export class AuthService {
           }
         );
         console.log("✅ Password reset email sent");
+      } catch (error) {
+        console.error("⚠️ Password reset email delivery issue:", error);
       }
-    } catch (error) {
-      console.error("⚠️ Password reset email delivery issue:", error);
+    } else if (isDev) {
+      console.log("ℹ️ [DEV MODE] Email delivery skipped for development. Use default OTP: 123456");
     }
 
     return {
       message: "If an account exists, an OTP has been sent",
-      ...(this.env.NODE_ENV === "development" && { otp }),
+      ...(isDev && { otp: "123456" }),
     };
   }
 

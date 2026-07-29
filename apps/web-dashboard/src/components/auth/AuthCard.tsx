@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, useEffect, useState } from 'react'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,6 +20,8 @@ interface AuthCardProps {
 
 export default function AuthCard({ mode }: AuthCardProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialEmail = searchParams.get('email') || ''
   const isRegister = mode === 'register'
   const isLogin = mode === 'login'
   const isForgotPassword = mode === 'forgot-password'
@@ -38,7 +40,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
     resetPassword,
     clearError,
   } = useAuthStore()
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [toastError, setToastError] = useState<string | null>(null)
@@ -118,20 +120,17 @@ export default function AuthCard({ mode }: AuthCardProps) {
     }
 
     if (isForgotPassword) {
-      console.log("🔥 Forgot Password Button Clicked");
-      console.log("📧 Email:", trimmedEmail);
       setToastError(null)
       setToastSuccess(null)
 
       try {
         const message = await forgotPassword({ email: trimmedEmail })
-        console.log("✅ Forgot Password Success");
-        console.log("📨 Response:", message);
         setToastSuccess(message)
+        setTimeout(() => {
+          router.push(`/reset-password?email=${encodeURIComponent(trimmedEmail)}`)
+        }, 1200)
       } catch {
-        console.error("❌ Forgot Password Failed");
-        console.error(error);
-        // The store owns the user-facing error message.
+        console.error("❌ Forgot Password Failed", error);
       }
 
       return

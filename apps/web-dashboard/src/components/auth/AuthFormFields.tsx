@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import Link from 'next/link'
-import { KeyRound, Lock, Mail } from 'lucide-react'
+import { Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react'
 import type { AuthMode } from './authTypes'
 
 interface AuthFormFieldsProps {
@@ -21,6 +22,7 @@ export default function AuthFormFields({
   onOtpChange,
   onPasswordChange,
 }: AuthFormFieldsProps) {
+  const [showPassword, setShowPassword] = useState(false)
   const isLogin = mode === 'login'
   const isForgotPassword = mode === 'forgot-password'
   const isResetPassword = mode === 'reset-password'
@@ -73,13 +75,25 @@ export default function AuthFormFields({
           <span className="relative block">
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
-              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
+              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-10 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
               placeholder="Minimum 8 characters"
               autoComplete={isLogin ? 'current-password' : 'new-password'}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4 text-zinc-400" />
+              ) : (
+                <Eye className="h-4 w-4 text-zinc-400" />
+              )}
+            </button>
           </span>
         </label>
       )}

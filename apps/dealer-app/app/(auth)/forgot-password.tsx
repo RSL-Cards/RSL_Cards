@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForgotPassword, useResetPassword } from "../../src/hooks/useAuth";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -136,9 +137,11 @@ export default function ForgotPasswordScreen() {
                       style={styles.eyeBtn}
                       onPress={() => setShowPw(!showPw)}
                     >
-                      <Text style={{ color: "#555555", fontSize: 18 }}>
-                        {showPw ? "🙈" : "👁"}
-                      </Text>
+                      <Ionicons
+                        name={showPw ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color="#888888"
+                      />
                     </TouchableOpacity>
                   </View>
 
@@ -159,9 +162,11 @@ export default function ForgotPasswordScreen() {
                       style={styles.eyeBtn}
                       onPress={() => setShowConfirmPw(!showConfirmPw)}
                     >
-                      <Text style={{ color: "#555555", fontSize: 18 }}>
-                        {showConfirmPw ? "🙈" : "👁"}
-                      </Text>
+                      <Ionicons
+                        name={showConfirmPw ? "eye-off-outline" : "eye-outline"}
+                        size={20}
+                        color="#888888"
+                      />
                     </TouchableOpacity>
                   </View>
 

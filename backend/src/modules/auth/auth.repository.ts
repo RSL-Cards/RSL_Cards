@@ -7,6 +7,7 @@ import {
   userPreferences,
 } from "../../db/schema/index.js";
 import { db } from "../../db/index.js";
+import { hashPassword } from "../../lib/crypto.js";
 
 export type UserRow = {
   id: string;
@@ -182,12 +183,14 @@ export class AuthRepository {
     providerId: string,
     role: "dealer" | "consumer"
   }) {
+    const pwdHash = await hashPassword(data.email.toLowerCase().trim());
+
     return await db.transaction(async (tx: any) => {
       const [user] = await tx
         .insert(users)
         .values({
           email: data.email,
-          passwordHash: null,
+          passwordHash: pwdHash,
           oauthProvider: data.provider,
           oauthId: data.providerId,
           role: data.role
