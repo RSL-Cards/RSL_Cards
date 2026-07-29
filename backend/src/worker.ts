@@ -266,7 +266,7 @@ export const initWorker = () => {
             
             // 1. Send push notification / save to DB
             if (isPushEnabled) {
-              await notifRepository.sendNotification(log.user_id, title, body, "INFO", { logId: log.id });
+              await notifRepository.sendNotification(log.user_id, title, body, "system", { logId: log.id });
               
               // Publish to SSE for real-time frontend updates
               await sseService.publish(log.user_id, {

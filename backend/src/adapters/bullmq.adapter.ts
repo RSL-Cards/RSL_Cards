@@ -106,19 +106,21 @@ export class BullMqAdapter {
 
       await this.queue.add("notify_close_daily_logs", {}, {
         repeat: {
-          pattern: "0 23 * * *" // 11:00 PM server time every day
+          pattern: "0 23 * * *", // 11:00 PM US Eastern Time
+          tz: "America/New_York"
         },
         jobId: "notify_close_daily_logs_cron"
       });
-      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM daily");
+      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM EST daily");
 
       await this.queue.add("send_weekly_performance_report", {}, {
         repeat: {
-          pattern: "0 9 * * 0" // 9:00 AM every Sunday
+          pattern: "0 9 * * 0", // 9:00 AM US Eastern Time every Sunday
+          tz: "America/New_York"
         },
         jobId: "send_weekly_performance_report_cron"
       });
-      logger.info("🕒 Scheduled 'send_weekly_performance_report' cron job to run every Sunday at 9:00 AM");
+      logger.info("🕒 Scheduled 'send_weekly_performance_report' cron job to run every Sunday at 9:00 AM EST");
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }
