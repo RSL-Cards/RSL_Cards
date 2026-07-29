@@ -108,12 +108,38 @@ export class NotificationRepository {
             } else {
               logger.info(`[NOTIF] Sent Expo push to ${t.token} successfully`);
             }
-          } catch (err: any) {
-            logger.error(`[NOTIF] Fetch error sending Expo push: ${err.message}`);
+          } catch (e: any) {
+            logger.error(`[NOTIF] Failed to send Expo push: ${e.message}`);
           }
         } else {
           // Web FCM / Browser Push placeholder
           logger.info(`[NOTIF] Sending Web push to token ${t.token} (FCM Web placeholder)`);
+        }
+      }
+
+      // 4. Send via OneSignal API if configured in .env
+      const onesignalAppId = process.env.ONESIGNAL_APP_ID;
+      const onesignalApiKey = process.env.ONESIGNAL_REST_API_KEY;
+      if (onesignalAppId && onesignalApiKey) {
+        try {
+          await fetch("https://onesignal.com/api/v1/notifications", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Basic ${onesignalApiKey}`
+            },
+            body: JSON.stringify({
+              app_id: onesignalAppId,
+              include_aliases: { external_id: [userId] },
+              target_channel: "push",
+              contents: { en: body },
+              headings: { en: title },
+              data: data || {}
+            })
+          });
+          logger.info(`[NOTIF] Sent OneSignal push notification to user ${userId}`);
+        } catch (e: any) {
+          logger.warn(`[NOTIF] OneSignal dispatch warning: ${e.message}`);
         }
       }
 

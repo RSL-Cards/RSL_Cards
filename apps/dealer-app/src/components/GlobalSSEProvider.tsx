@@ -10,11 +10,15 @@ import { useAuthStore } from "@/stores/authStore";
 export function GlobalSSEProvider({ children }: { children: React.ReactNode }) {
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   
   useSSE(`${API_BASE_URL}/v1/notifications/stream`);
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
+    if (user?.id) {
+      notificationService.setOneSignalUser(user.id);
+    }
     notificationService.registerForPushNotificationsAsync().catch((err) => {
       console.warn("[PushToken] Registration error:", err.message);
     });
