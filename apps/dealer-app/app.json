@@ -60,7 +60,14 @@
         }
       ],
       "./plugins/withAndroidComponentFactory",
-      "./plugins/withExcludeSupportLib"
+      "./plugins/withExcludeSupportLib",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#000000"
+        }
+      ]
     ],
     "experiments": {
       "autolinkingModuleResolution": true
