@@ -62,7 +62,8 @@ export const notificationService = {
       return;
     }
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId || "62fd97df-6476-4894-9c0c-242103e88a85";
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     
     // Register token with backend
     try {
