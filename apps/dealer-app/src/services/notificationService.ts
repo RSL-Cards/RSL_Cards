@@ -20,13 +20,15 @@ if (Constants.appOwnership !== 'expo') {
   console.warn("expo-notifications is disabled in Expo Go Android. Background notifications disabled.");
 }
 
+let isOneSignalInitialized = false;
 // Initialize OneSignal for cross-platform Android & iOS Push Notifications
 try {
   const { OneSignal } = require('react-native-onesignal');
-  const onesignalAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
+  const onesignalAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || "2c9e1cd7-bffb-4952-86bd-34b109d6aba7";
   if (onesignalAppId) {
     OneSignal.initialize(onesignalAppId);
     OneSignal.Notifications.requestPermission(true);
+    isOneSignalInitialized = true;
   }
 } catch (e: any) {
   console.warn("OneSignal initialization skipped:", e.message);
@@ -34,6 +36,7 @@ try {
 
 export const notificationService = {
   async setOneSignalUser(userId: string) {
+    if (!isOneSignalInitialized) return;
     try {
       const { OneSignal } = require('react-native-onesignal');
       OneSignal.login(userId);

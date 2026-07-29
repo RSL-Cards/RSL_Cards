@@ -8,6 +8,7 @@ import {
   Package,
   ClipboardList,
   DollarSign,
+  Calendar,
   BarChart3,
   CheckSquare,
   Settings,
@@ -22,6 +23,7 @@ const navItems = [
   { icon: Package, label: 'Inventory', href: '/inventory' },
   { icon: ClipboardList, label: 'Listings', href: '/listings' },
   { icon: DollarSign, label: 'Transactions', href: '/transactions' },
+  { icon: Calendar, label: 'Daily Logs', href: '/daily-logs' },
   { icon: BarChart3, label: 'Reports', href: '/reports' },
   { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
   { icon: Settings, label: 'Settings', href: '/settings' },
@@ -85,9 +87,8 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
 
             {(!collapsed || mobileOpen) && (
               <div className="flex-1 overflow-hidden">
-                <div className="text-white font-extrabold text-base tracking-tight leading-none flex items-center gap-1.5">
-                  <span>RSL</span>
-                  <span className="rounded-md bg-[#E8001C]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#E8001C] border border-[#E8001C]/30">PRO</span>
+                <div className="text-white font-extrabold text-base tracking-tight leading-none">
+                  RSL Cards
                 </div>
                 <div className="text-zinc-500 font-medium text-[11px] tracking-wider uppercase mt-1">
                   Dealer Portal
@@ -165,14 +166,6 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
 
         {/* Bottom User Card */}
         <div className="p-4 border-t border-[#252525]">
-          {(!collapsed || mobileOpen) && (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="text-amber-400 font-semibold text-xs tracking-wide">
-                PRO DEALER
-              </span>
-            </div>
-          )}
 
           <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[#141414] transition-colors duration-200 cursor-pointer">
             <div className="w-9 h-9 rounded-full bg-[#E8001C] flex items-center justify-center text-white font-semibold text-sm shadow-md overflow-hidden shrink-0">

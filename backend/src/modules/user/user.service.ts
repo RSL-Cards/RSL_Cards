@@ -66,9 +66,9 @@ export class UserService {
               continue;
             }
 
-            let playerName = aspects.Player?.[0] || aspects.Athlete?.[0] || l.product?.title || "";
-            if (!playerName || playerName.trim() === "" || playerName.toLowerCase() === "unknown") {
-              continue; // Skip creating unidentifiable dummy cards
+            let playerName = aspects.Player?.[0] || aspects.Athlete?.[0] || "";
+            if (!playerName || playerName.trim() === "" || playerName.trim().length < 2 || playerName.toLowerCase() === "unknown") {
+              continue; // Skip creating unidentifiable non-player items
             }
             let year = aspects.Season?.[0] || aspects.Year?.[0] || "";
             // Keep only numbers for year if it's like "2020-21" to fit integers

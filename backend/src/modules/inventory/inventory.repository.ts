@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { AppError } from "../../errors/app-error.js";
 import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
 import { createHash, randomUUID } from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -321,6 +322,12 @@ export class InventoryRepository {
     // Defensive Programming layer: Ensure target card exists in master cards catalog to prevent foreign key errors.
     let resolvedVariantId = cleanVariantId;
     let resolvedPlayerId = cleanPlayerId;
+
+    // Strict Card Validation Guard: Do not allow unidentifiable / "Unknown" cards into inventory
+    const isPlayerNameUnknown = !cleanPlayerName || cleanPlayerName.trim() === "" || cleanPlayerName.toLowerCase() === "unknown";
+    if (!resolvedPlayerId && isPlayerNameUnknown) {
+      throw new AppError("Invalid card data: A valid player name is required to add a card to inventory.", 400, "BAD_REQUEST");
+    }
 
     if (!resolvedPlayerId && cleanPlayerName && cleanPlayerName.trim() !== "" && cleanPlayerName.toLowerCase() !== "unknown") {
       const existingPlayer = await db.execute(sql`

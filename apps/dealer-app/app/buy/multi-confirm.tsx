@@ -35,6 +35,7 @@ export default function MultiConfirmScreen() {
   }, 0);
 
   const handleConfirm = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       // For each card, call addInventory endpoint

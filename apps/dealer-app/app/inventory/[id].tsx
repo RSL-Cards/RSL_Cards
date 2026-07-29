@@ -21,10 +21,12 @@ import { useInventoryItem, QUERY_KEYS } from "../../src/hooks/useCardScan";
 import RSLLoader from "../../src/components/RSLLoader";
 import { inventoryService } from "../../src/services/cardService";
 import { useAuthStore } from "../../src/stores/authStore";
+import { useDealTabStore } from "../../src/stores/dealTabStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { isGraded } from "../../src/utils/gradeHelper";
 import { format, isValid } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const safeFormatDate = (dateVal: string | number | undefined | null) => {
   if (!dateVal) return "—";
@@ -270,6 +272,7 @@ export default function CardDetailScreen() {
   const [editCostBasis, setEditCostBasis] = useState("");
   const [editTargetPrice, setEditTargetPrice] = useState("");
   const [isUpdatingMetrics, setIsUpdatingMetrics] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Initialize selected grade key to card's actual inventory grade on load
   useEffect(() => {
@@ -516,7 +519,12 @@ export default function CardDetailScreen() {
             <Text style={styles.backText}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Card Detail</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            onPress={() => setShowDeleteConfirm(true)}
+            style={{ width: 40, alignItems: "center", justifyContent: "center" }}
+          >
+            <Ionicons name="trash-outline" size={20} color="#ef4444" />
+          </TouchableOpacity>
         </View>
 
         {/* Card image with Edit Button */}
@@ -1028,31 +1036,21 @@ export default function CardDetailScreen() {
       {/* Bottom actions */}
       <View style={styles.bottomActions}>
         <TouchableOpacity
-          style={[
-            styles.listBtn,
-            card.listing_status === "listed" && { opacity: 0.5 },
-          ]}
-          disabled={card.listing_status === "listed"}
-          onPress={() => {
-            router.push({
-              pathname: "/listings/create",
-              params: { cardId: card.id },
-            });
-          }}
-        >
-          <Text style={styles.listBtnText}>
-            {card.listing_status === "listed" ? "Listed" : "Put Listing"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={styles.sellBtn}
-          onPress={() =>
-            router.push({
-              pathname: "/sell/scan",
-              params: { prefillId: card.id },
-            })
-          }
+          onPress={() => {
+            useDealTabStore.getState().addTab({
+              type: "sell",
+              step: 3,
+              cardData: card,
+              cardId: card.card_id || card.id,
+              variantId: card.variant_id,
+              playerId: card.player_id,
+              avgComp: parseFloat(card.current_market_value || card.currentMarketValue || "0"),
+              capturedPhoto: card.photos?.[0],
+              isExisting: true,
+            });
+            router.push("/sell/price");
+          }}
         >
           <Text style={styles.sellBtnText}>Quick Sale</Text>
         </TouchableOpacity>
@@ -1260,6 +1258,28 @@ export default function CardDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <CustomAlertModal
+        visible={showDeleteConfirm}
+        title="Delete Card"
+        message={`Are you sure you want to delete "${card?.player_name || "this card"}" from your inventory? Comps and player info will remain saved.`}
+        confirmText="Delete Card"
+        cancelText="Cancel"
+        iconName="trash-outline"
+        variant="danger"
+        onConfirm={async () => {
+          try {
+            await inventoryService.deleteItem(id ?? "");
+            await queryClient.invalidateQueries();
+            setShowDeleteConfirm(false);
+            router.back();
+          } catch (err: any) {
+            console.error(err);
+            setShowDeleteConfirm(false);
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

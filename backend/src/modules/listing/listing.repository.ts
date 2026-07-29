@@ -332,6 +332,50 @@ ONLY return the JSON object. Do not include any explanations.`;
       }
     }
 
+    // Secondary DB Fallback: Check platform_sold_listings by query matching if variant cache didn't hit
+    if (!forceRefresh && query) {
+      const dbSoldFallback = await db.execute(sql`
+        SELECT platform_item_id, sold_price, sold_at, title, condition, grade_key
+        FROM platform_sold_listings
+        WHERE platform = 'ebay'
+          AND (title ILIKE ${'%' + queryForSold + '%'} OR title ILIKE ${'%' + query + '%'})
+        ORDER BY sold_at DESC
+        LIMIT ${maxResults} OFFSET ${offsetNum}
+      `);
+
+      if (dbSoldFallback.rows.length >= 3) {
+        const mappedSold = (dbSoldFallback.rows as any[]).map((item) => ({
+          itemId: item.platform_item_id,
+          title: item.title,
+          soldPrice: { value: item.sold_price, currency: "USD" },
+          condition: item.condition || "Used",
+          endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
+          shippingCost: "0.00",
+          itemWebUrl: `https://www.ebay.com/itm/${item.platform_item_id}`,
+          grade_key: item.grade_key || "RAW",
+        }));
+
+        console.log(`[COMPS] ✅ Returning ${mappedSold.length} sold comps from DB FALLBACK for: "${query}"`);
+        return {
+          query,
+          fromCache: true,
+          fetchedAt: new Date().toISOString(),
+          snapshots: [],
+          activeListings: [],
+          last7Days: {
+            items: mappedSold.slice(0, Math.min(maxResults, 10)),
+            totalEntries: mappedSold.length,
+            period: "7d",
+          },
+          last30Days: {
+            items: mappedSold,
+            totalEntries: mappedSold.length,
+            period: "30d",
+          },
+        };
+      }
+    }
+
     console.log(`\n======================================================`);
     console.log(`[COMPS] 📡 Fetching LIVE comps for eBay...`);
     console.log(`[COMPS]  👉 Passing to Active Listings (Real eBay API): "${query}"`);
@@ -657,6 +701,49 @@ ONLY return the JSON object. Do not include any explanations.`;
             priceTrend30d: r.price_trend_30d,
           })),
           activeListings: mappedActive,
+          last7Days: {
+            items: mappedSold.slice(0, Math.min(maxResults, 10)),
+            totalEntries: mappedSold.length,
+            period: "7d",
+          },
+          last30Days: {
+            items: mappedSold,
+            totalEntries: mappedSold.length,
+            period: "30d",
+          },
+        };
+      }
+    }
+
+    // Secondary DB Fallback for MySlabs
+    if (!forceRefresh && query) {
+      const dbMySlabsFallback = await db.execute(sql`
+        SELECT platform_item_id, sold_price, sold_at, title, condition
+        FROM platform_sold_listings
+        WHERE platform = 'myslabs'
+          AND (title ILIKE ${'%' + queryForSold + '%'} OR title ILIKE ${'%' + query + '%'})
+        ORDER BY sold_at DESC
+        LIMIT ${maxResults}
+      `);
+
+      if (dbMySlabsFallback.rows.length >= 2) {
+        const mappedSold = (dbMySlabsFallback.rows as any[]).map((item) => ({
+          itemId: item.platform_item_id,
+          title: item.title,
+          soldPrice: { value: item.sold_price, currency: "USD" },
+          condition: item.condition || "Used",
+          endDate: item.sold_at instanceof Date ? item.sold_at.toISOString() : new Date(item.sold_at).toISOString(),
+          shippingCost: "0.00",
+          itemWebUrl: `https://myslabs.com/slab/view/${item.platform_item_id}`,
+        }));
+
+        console.log(`[COMPS] ✅ Returning ${mappedSold.length} MySlabs comps from DB FALLBACK for: "${query}"`);
+        return {
+          query,
+          fromCache: true,
+          fetchedAt: new Date().toISOString(),
+          snapshots: [],
+          activeListings: [],
           last7Days: {
             items: mappedSold.slice(0, Math.min(maxResults, 10)),
             totalEntries: mappedSold.length,

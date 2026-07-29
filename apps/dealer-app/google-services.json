@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "244847435912",
+    "project_id": "rsl-cards",
+    "storage_bucket": "rsl-cards.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:244847435912:android:3ae38d6095cc7322af3f3d",
+        "android_client_info": {
+          "package_name": "com.rslcards.dealer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW2PknZ_MemkLDL0tCg204dqtUIT_WuMk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

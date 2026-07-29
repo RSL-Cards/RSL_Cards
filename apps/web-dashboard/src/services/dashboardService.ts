@@ -28,9 +28,10 @@ export const dashboardService = {
     const qs = params.toString() ? `?${params.toString()}` : ''
     return dashboardRequest<any[]>(`${ENDPOINTS.webDashboard.channelData}${qs}`)
   },
-  getInventory(page: number = 1, limit: number = 20, search?: string) {
+  getInventory(page: number = 1, limit: number = 20, search?: string, status?: string) {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) })
     if (search) params.append('search', search)
+    if (status) params.append('status', status)
     return dashboardRequest<any>(`${ENDPOINTS.webDashboard.inventory}?${params.toString()}`)
   },
   exportInventory() {

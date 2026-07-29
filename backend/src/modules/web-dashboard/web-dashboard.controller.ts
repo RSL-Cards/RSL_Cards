@@ -38,7 +38,8 @@ export class WebDashboardController {
     const page = parseInt(url.searchParams.get("page") || "1", 10);
     const limit = parseInt(url.searchParams.get("limit") || "20", 10);
     const search = url.searchParams.get("search") || undefined;
-    return await this.service.getInventory(this.getUserId(request), page, limit, search);
+    const status = url.searchParams.get("status") || undefined;
+    return await this.service.getInventory(this.getUserId(request), page, limit, search, status);
   };
 
   exportInventory = async ({ request }: { request: Request }) => {

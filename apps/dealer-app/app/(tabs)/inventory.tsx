@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -16,12 +17,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import RSLLoader from "../../src/components/RSLLoader";
 import { Ionicons } from "@expo/vector-icons";
 import { useInventory, useInventorySummary } from "../../src/hooks/useCardScan";
+import { inventoryService } from "../../src/services/cardService";
 import { useAuthStore } from "../../src/stores/authStore";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
 import { useSyncStore } from "../../src/stores/syncStore";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const ALL_SPORTS = [
   { key: "Football", iconName: "american-football-outline" as const },
@@ -116,8 +119,9 @@ function StatusDot({ status }: { status: string }) {
 }
 
 
-function InventoryCard({ item }: { item: any }) {
+function InventoryCard({ item, onDelete }: { item: any; onDelete: (item: any) => void }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const costBasis = parseFloat(item.cost_basis ?? "0");
   const marketValue = parseFloat(item.current_market_value ?? "0");
   const unrealizedGain = marketValue > 0 ? marketValue - costBasis : 0;
@@ -187,12 +191,23 @@ function InventoryCard({ item }: { item: any }) {
 
           {/* Main content */}
           <View style={{ flex: 1, marginLeft: SPACING.md }}>
-            {/* Row 1 — name + grade */}
+            {/* Row 1 — name + grade + delete */}
             <View style={styles.row}>
-              <Typography variant="body" weight="700" numberOfLines={1} style={{ flex: 1, marginRight: SPACING.sm }}>
+              <Typography variant="body" weight="700" numberOfLines={1} style={{ flex: 1, marginRight: SPACING.xs }}>
                 {item.player_name}
               </Typography>
-              <GradeChip gradeKey={item.grade_key} item={item} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <GradeChip gradeKey={item.grade_key} item={item} />
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onDelete(item);
+                  }}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Row 2 — set info */}
@@ -258,6 +273,7 @@ function InventoryScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<any>(null);
 
   const pendingTxs = useSyncStore((s) => s.pendingTransactions);
   const pendingExps = useSyncStore((s) => s.pendingExpenses);
@@ -501,7 +517,7 @@ function InventoryScreen() {
         <FlatList
           data={allItems}
           keyExtractor={(item: any) => item.id}
-          renderItem={({ item }: any) => <InventoryCard item={item} />}
+          renderItem={({ item }: any) => <InventoryCard item={item} onDelete={(target) => setCardToDelete(target)} />}
           contentContainerStyle={{ paddingTop: SPACING.sm, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           onRefresh={handleRefresh}
@@ -703,6 +719,28 @@ function InventoryScreen() {
           </SafeAreaView>
         </View>
       </Modal>
+
+      <CustomAlertModal
+        visible={!!cardToDelete}
+        title="Delete Card"
+        message={`Are you sure you want to delete "${cardToDelete?.player_name || "this card"}" from your inventory? Comps and player info will remain saved.`}
+        confirmText="Delete Card"
+        cancelText="Cancel"
+        iconName="trash-outline"
+        variant="danger"
+        onConfirm={async () => {
+          if (!cardToDelete) return;
+          try {
+            await inventoryService.deleteItem(cardToDelete.id);
+            queryClient.invalidateQueries();
+          } catch (err: any) {
+            console.error(err);
+          } finally {
+            setCardToDelete(null);
+          }
+        }}
+        onCancel={() => setCardToDelete(null)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,7 +1,8 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, TextInput } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, TextInput, Image } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { useDealTabStore } from '../../src/stores/dealTabStore'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -38,6 +39,34 @@ export default function SellPriceScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}>
+        {/* Selected Card Header */}
+        {card && (
+          <View style={styles.cardHeaderBanner}>
+            {activeTab?.capturedPhoto || card.photos?.[0] ? (
+              <Image source={{ uri: activeTab?.capturedPhoto || card.photos?.[0] }} style={styles.cardHeaderImg} />
+            ) : (
+              <View style={styles.cardHeaderImgPlaceholder}>
+                <Ionicons name="card-outline" size={24} color="#666" />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardHeaderTitle} numberOfLines={1}>
+                {card.player_name || card.playerName || "Selected Card"}
+              </Text>
+              <Text style={styles.cardHeaderSub} numberOfLines={1}>
+                {[card.year, card.set_name || card.setName].filter(Boolean).join(" · ")}
+              </Text>
+              {(card.grade_value || card.grade_key || card.gradeKey) && (
+                <View style={styles.gradeBadge}>
+                  <Text style={styles.gradeBadgeText}>
+                    {card.grade_value ? `${card.grade_company || ''} ${card.grade_value}` : card.grade_key || card.gradeKey || "RAW"}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Comp reference */}
         <View style={{ alignItems: 'center', marginBottom: 20, flexDirection: 'row', justifyContent: 'center', gap: 10 }}>
           {avgComp > 0 && (
@@ -145,4 +174,22 @@ const styles = StyleSheet.create({
   primaryBtn: { backgroundColor: '#E8001C', height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   primaryBtnDisabled: { backgroundColor: '#1A1A1A' },
   primaryBtnText: { color: 'white', fontWeight: '700', fontSize: 16 },
+  cardHeaderBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111111',
+    borderRadius: 16,
+    padding: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#222222',
+    gap: 12,
+  },
+  cardHeaderImg: { width: 44, height: 60, borderRadius: 8, backgroundColor: '#222' },
+  cardHeaderImgPlaceholder: { width: 44, height: 60, borderRadius: 8, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' },
+  cardHeaderTitle: { color: 'white', fontSize: 15, fontWeight: '700' },
+  cardHeaderSub: { color: '#888', fontSize: 12, marginTop: 2 },
+  gradeBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(255, 215, 0, 0.15)', borderWidth: 1, borderColor: '#FFD700', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginTop: 6 },
+  gradeBadgeText: { color: '#FFD700', fontSize: 10, fontWeight: '800' },
 })

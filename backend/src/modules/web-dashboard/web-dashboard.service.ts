@@ -107,8 +107,8 @@ export class WebDashboardService {
     });
   }
 
-  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string) {
-    const { items, total } = await this.repository.getInventory(userId, page, limit, search);
+  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string, status?: string) {
+    const { items, total } = await this.repository.getInventory(userId, page, limit, search, status);
     
     const formattedItems = items.map((item: any) => {
       const daysHeld = Math.floor((Date.now() - new Date(item.added_at || new Date()).getTime()) / (1000 * 60 * 60 * 24));

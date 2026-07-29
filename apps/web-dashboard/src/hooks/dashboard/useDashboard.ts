@@ -6,7 +6,7 @@ export const dashboardKeys = {
   metrics: (from?: string, to?: string) => [...dashboardKeys.all, 'metrics', from, to] as const,
   revenueChart: (from?: string, to?: string) => [...dashboardKeys.all, 'revenueChart', from, to] as const,
   channelData: (from?: string, to?: string) => [...dashboardKeys.all, 'channelData', from, to] as const,
-  inventory: (page: number, limit: number, search?: string) => [...dashboardKeys.all, 'inventory', page, limit, search] as const,
+  inventory: (page: number, limit: number, search?: string, status?: string) => [...dashboardKeys.all, 'inventory', page, limit, search, status] as const,
   inventoryCounts: () => [...dashboardKeys.all, 'inventoryCounts'] as const,
   inventoryItemDetails: (id: string) => [...dashboardKeys.all, 'inventoryItemDetails', id] as const,
   topMovers: () => [...dashboardKeys.all, 'topMovers'] as const,
@@ -40,10 +40,10 @@ export function useChannelData(from?: string, to?: string) {
   });
 }
 
-export function useDashboardInventory(page: number = 1, limit: number = 20, search?: string) {
+export function useDashboardInventory(page: number = 1, limit: number = 20, search?: string, status?: string) {
   return useQuery({
-    queryKey: dashboardKeys.inventory(page, limit, search),
-    queryFn: () => dashboardService.getInventory(page, limit, search),
+    queryKey: dashboardKeys.inventory(page, limit, search, status),
+    queryFn: () => dashboardService.getInventory(page, limit, search, status),
   });
 }
 

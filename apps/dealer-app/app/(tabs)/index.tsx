@@ -423,6 +423,24 @@ export default function HomeScreen() {
                         <Typography variant="caption" color={COLORS.zinc400} numberOfLines={2}>
                           {n.body || n.message}
                         </Typography>
+                        <Typography variant="caption" color={COLORS.zinc500} style={{ fontSize: 10, marginTop: 4 }}>
+                          {(() => {
+                            const raw = n.createdAt || n.created_at;
+                            if (!raw) return "";
+                            const d = new Date(raw);
+                            if (isNaN(d.getTime())) return "";
+                            const day = d.getDate();
+                            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                            const month = monthNames[d.getMonth()];
+                            const year = d.getFullYear();
+                            let hours = d.getHours();
+                            const minutes = d.getMinutes().toString().padStart(2, "0");
+                            const ampm = hours >= 12 ? "PM" : "AM";
+                            hours = hours % 12 || 12;
+                            const formattedHours = hours.toString().padStart(2, "0");
+                            return `${day} ${month}, ${year} at ${formattedHours}:${minutes} ${ampm}`;
+                          })()}
+                        </Typography>
                       </View>
                     </TouchableOpacity>
                   ))

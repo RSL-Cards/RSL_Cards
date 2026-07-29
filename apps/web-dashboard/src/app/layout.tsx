@@ -14,6 +14,14 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: 'RSL Cards - Dealer Dashboard',
   description: 'The operating system for sports card dealers',
+  icons: {
+    icon: [
+      { url: '/rslicon.jpeg', type: 'image/jpeg' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/rslicon.jpeg',
+    apple: '/rslicon.jpeg',
+  },
 }
 
 export default function RootLayout({
@@ -23,6 +31,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/rslicon.jpeg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/rslicon.jpeg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/rslicon.jpeg" />
+      </head>
       <body className={`${outfit.className} antialiased bg-black text-white selection:bg-[#E8001C] selection:text-white`}>
         <QueryProvider>
           <GlobalSSEProvider>

@@ -166,6 +166,11 @@ export const inventoryService = {
     return data;
   },
 
+  async deleteItem(id: string): Promise<{ success: boolean }> {
+    const { data } = await apiClient.delete(`${ENDPOINTS.inventory.list}/${id}`);
+    return data;
+  },
+
   async uploadPhotoDirect(id: string, uri: string): Promise<{ success: boolean; url: string }> {
     const formData = new FormData();
     const filename = uri.split("/").pop() || "photo.jpg";

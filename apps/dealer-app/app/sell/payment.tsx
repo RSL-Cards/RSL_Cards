@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useDealTabStore } from '../../src/stores/dealTabStore'
@@ -8,13 +8,13 @@ import { useDealTabStore } from '../../src/stores/dealTabStore'
 const STEP_PCT = '80%'
 
 const PAYMENT_METHODS = [
-  { key: 'cash',    icon: 'cash-outline',              color: '#00C853', label: 'Cash',    lastUsed: false, digital: false },
-  { key: 'venmo',   icon: 'wallet-outline',             color: '#008CFF', label: 'Venmo',   lastUsed: true,  digital: true  },
-  { key: 'zelle',   icon: 'card-outline',               color: '#6C1CD1', label: 'Zelle',   lastUsed: false, digital: true  },
-  { key: 'paypal',  icon: 'logo-paypal',                color: '#003087', label: 'PayPal',  lastUsed: false, digital: true  },
-  { key: 'cashapp', icon: 'logo-usd',                   color: '#00D632', label: 'CashApp', lastUsed: false, digital: true  },
-  { key: 'trade',   icon: 'swap-horizontal-outline',    color: '#888888', label: 'Trade',   lastUsed: false, digital: false },
-  { key: 'other',   icon: 'card-outline',               color: '#888888', label: 'Other',   lastUsed: false, digital: false },
+  { key: 'cash',    icon: 'cash-outline',              color: '#00C853', label: 'Cash',          lastUsed: false, digital: false },
+  { key: 'zelle',   icon: 'card-outline',               color: '#6C1CD1', label: 'Zelle',         lastUsed: false, digital: true  },
+  { key: 'venmo',   icon: 'wallet-outline',             color: '#008CFF', label: 'Venmo',         lastUsed: true,  digital: true  },
+  { key: 'paypal',  icon: 'logo-paypal',                color: '#003087', label: 'PayPal',        lastUsed: false, digital: true  },
+  { key: 'card',    icon: 'card-outline',               color: '#7C3AED', label: 'Stripe / Card', lastUsed: false, digital: true  },
+  { key: 'cashapp', icon: 'logo-usd',                   color: '#00D632', label: 'CashApp',       lastUsed: false, digital: true  },
+  { key: 'other',   icon: 'ellipsis-horizontal-outline', color: '#888888', label: 'Wire / Other', lastUsed: false, digital: false },
 ]
 
 function MockQRCode() {
@@ -40,16 +40,27 @@ function MockQRCode() {
     </View>
   )
 }
+const SELL_CHANNELS = [
+  { key: 'card_show', icon: 'business-outline', color: '#FF9800', label: 'In-Person / Show' },
+  { key: 'ebay', icon: 'cart-outline', color: '#E53238', label: 'eBay' },
+  { key: 'myslabs', icon: 'cube-outline', color: '#E8001C', label: 'MySlabs' },
+  { key: 'instagram', icon: 'logo-instagram', color: '#E1306C', label: 'Instagram / Social' },
+  { key: 'whatnot', icon: 'tv-outline', color: '#9C27B0', label: 'WhatNot' },
+  { key: 'facebook', icon: 'logo-facebook', color: '#1877F2', label: 'Facebook' },
+  { key: 'other', icon: 'search-outline', color: '#888888', label: 'Other' },
+]
 
 export default function SellPaymentScreen() {
   const router = useRouter()
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>('cash')
+  const [selectedChannel, setSelectedChannel] = useState<string | null>('card_show')
   const [received, setReceived] = useState(false)
   const tabs = useDealTabStore((s) => s.tabs)
   const updateTab = useDealTabStore((s) => s.updateTab)
   const activeTab = tabs[tabs.length - 1]
 
   const isDigital = selected ? PAYMENT_METHODS.find(m => m.key === selected)?.digital : false
+  const canContinue = !!selected && !!selectedChannel
 
   return (
     <SafeAreaView style={styles.container}>
@@ -64,8 +75,9 @@ export default function SellPaymentScreen() {
         <View style={[styles.progressFill, { width: STEP_PCT }]} />
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Payment method</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Payment Method */}
+        <Text style={styles.title}>Payment Method</Text>
 
         <View style={styles.grid}>
           {PAYMENT_METHODS.map(m => (
@@ -73,7 +85,7 @@ export default function SellPaymentScreen() {
               key={m.key}
               style={[styles.methodCard, selected === m.key && styles.methodCardSelected]}
               onPress={() => {
-                                setSelected(m.key)
+                setSelected(m.key)
                 setReceived(false)
               }}
               activeOpacity={0.75}
@@ -83,8 +95,24 @@ export default function SellPaymentScreen() {
                   <Text style={styles.lastUsedText}>Last used</Text>
                 </View>
               )}
-              <Ionicons name={m.icon as any} size={28} color={selected === m.key ? 'white' : m.color} style={{ marginBottom: 6 }} />
+              <Ionicons name={m.icon as any} size={24} color={selected === m.key ? 'white' : m.color} style={{ marginBottom: 2 }} />
               <Text style={[styles.methodLabel, selected === m.key && { color: 'white' }]}>{m.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Selling Channel / Source */}
+        <Text style={[styles.title, { marginTop: 28 }]}>Where Did You Sell It?</Text>
+        <View style={styles.grid}>
+          {SELL_CHANNELS.map(c => (
+            <TouchableOpacity
+              key={c.key}
+              style={[styles.methodCard, selectedChannel === c.key && styles.methodCardSelected]}
+              onPress={() => setSelectedChannel(c.key)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name={c.icon as any} size={24} color={selectedChannel === c.key ? 'white' : c.color} style={{ marginBottom: 2 }} />
+              <Text style={[styles.methodLabel, selectedChannel === c.key && { color: 'white' }]}>{c.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -96,7 +124,7 @@ export default function SellPaymentScreen() {
             <TouchableOpacity
               style={styles.receivedBtn}
               onPress={() => {
-                                setReceived(true)
+                setReceived(true)
               }}
               activeOpacity={0.85}
             >
@@ -111,15 +139,15 @@ export default function SellPaymentScreen() {
             <Text style={{ color: '#00C853', fontWeight: '700', fontSize: 16 }}>Payment Confirmed!</Text>
           </View>
         )}
-      </View>
+      </ScrollView>
 
       <View style={styles.bottomBar}>
         <TouchableOpacity
-          style={[styles.primaryBtn, (!selected) && styles.primaryBtnDisabled]}
-          disabled={!selected}
+          style={[styles.primaryBtn, (!canContinue) && styles.primaryBtnDisabled]}
+          disabled={!canContinue}
           onPress={() => {
-            if (activeTab?.id && selected) {
-              updateTab(activeTab.id, { paymentMethod: selected })
+            if (activeTab?.id && selected && selectedChannel) {
+              updateTab(activeTab.id, { paymentMethod: selected, channel: selectedChannel })
             }
             router.push('/sell/confirm')
           }}
@@ -144,14 +172,21 @@ const styles = StyleSheet.create({
   title: { color: 'white', fontSize: 22, fontWeight: '700', marginBottom: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   methodCard: {
-    width: '30%', aspectRatio: 1, backgroundColor: '#1A1A1A',
-    borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#2A2A2A', position: 'relative',
+    width: '30%',
+    aspectRatio: 1,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#2A2A2A',
+    position: 'relative',
+    paddingHorizontal: 4,
   },
-  methodCardSelected: { borderWidth: 2, borderColor: '#E8001C', backgroundColor: 'rgba(232,0,28,0.1)' },
-  lastUsedBadge: { position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,200,83,0.2)', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 },
+  methodCardSelected: { borderColor: '#E8001C', backgroundColor: 'rgba(232,0,28,0.1)' },
+  lastUsedBadge: { position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,200,83,0.2)', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 },
   lastUsedText: { color: '#00C853', fontSize: 8, fontWeight: '700' },
-  methodLabel: { color: '#888888', fontSize: 13, fontWeight: '600' },
+  methodLabel: { color: '#888888', fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 2 },
   qrContainer: { alignItems: 'center', backgroundColor: '#111111', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#2A2A2A' },
   qrLabel: { color: '#888888', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 16 },
   qrGrid: { flexDirection: 'row', flexWrap: 'wrap', width: 140, height: 140 },

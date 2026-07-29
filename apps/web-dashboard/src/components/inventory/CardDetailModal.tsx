@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { CalendarClock, LineChart as LineChartIcon, ReceiptText, Sparkles, X, Tag, DollarSign, Layers, ExternalLink, AlertCircle, Camera, Pencil, Upload } from 'lucide-react'
+import { CalendarClock, LineChart as LineChartIcon, ReceiptText, Sparkles, X, Tag, DollarSign, Layers, ExternalLink, AlertCircle, Camera, Pencil, Upload, Trash2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { inventoryService } from '@/services/inventoryService'
+import { dashboardKeys } from '@/hooks/dashboard/useDashboard'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 import {
   Area,
   AreaChart,
@@ -24,8 +28,6 @@ import Image from 'next/image'
 import { useDashboardInventoryItemDetails } from '@/hooks/dashboard/useDashboard'
 import ListingModal from '@/components/listings/ListingModal'
 import QuickSaleModal from './QuickSaleModal'
-import { inventoryService } from '@/services/inventoryService'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface CardDetailModalProps {
   card: InventoryCard
@@ -134,6 +136,8 @@ export default function CardDetailModal({
   const queryClient = useQueryClient()
   const [showListingModal, setShowListingModal] = useState(false)
   const [showQuickSaleModal, setShowQuickSaleModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeletingCard, setIsDeletingCard] = useState(false)
 
   // Image Edit State
   const [showImageEditModal, setShowImageEditModal] = useState(false)
@@ -875,21 +879,16 @@ export default function CardDetailModal({
         {/* Bottom Actions Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#252525] pt-5">
           <div className="text-xs font-medium text-zinc-400">
-            Manage inventory status across marketplaces &amp; sales channels
+            Manage inventory status &amp; sales transactions
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={() => setShowListingModal(true)}
-              disabled={detailedCard.status === 'listed'}
-              className={`inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition-all ${
-                detailedCard.status === 'listed'
-                  ? 'border border-[#252525] bg-[#141414] text-zinc-500 cursor-not-allowed opacity-70'
-                  : 'border border-[#252525] bg-[#141414] text-white hover:bg-[#1A1A1A] shadow-sm'
-              }`}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 px-5 py-2.5 text-xs font-bold text-red-400 shadow-sm transition-all"
             >
-              <Tag className="h-4 w-4 shrink-0 text-zinc-400" />
-              <span>{detailedCard.status === 'listed' ? 'Listed' : 'Put Listing'}</span>
+              <Trash2 className="h-4 w-4 shrink-0 text-red-400" />
+              <span>Delete Card</span>
             </button>
             <button
               type="button"
@@ -920,6 +919,30 @@ export default function CardDetailModal({
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Card from Inventory"
+        message={`Are you sure you want to delete "${detailedCard.player_name || 'this card'}" from your inventory? Comps and player info will remain saved.`}
+        confirmText="Delete Card"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeletingCard}
+        onConfirm={async () => {
+          setIsDeletingCard(true)
+          try {
+            await inventoryService.deleteItem(detailedCard.id)
+            queryClient.invalidateQueries({ queryKey: dashboardKeys.all })
+            setShowDeleteConfirm(false)
+            onClose()
+          } catch (err) {
+            console.error(err)
+          } finally {
+            setIsDeletingCard(false)
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Image Edit Modal */}
       {showImageEditModal && (

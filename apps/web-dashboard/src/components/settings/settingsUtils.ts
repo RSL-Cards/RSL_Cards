@@ -46,6 +46,8 @@ export const notificationDefaults: NotificationPreference[] = [
   { id: 'failed_sync', label: 'Failed marketplace sync', channel: 'Push', enabled: true },
   { id: 'new_sales', label: 'New sales and payouts', channel: 'Push + Email', enabled: true },
   { id: 'weekly_report', label: 'Weekly performance report', channel: 'Email', enabled: false },
+  { id: 'daily_log_push', label: '11:00 PM Daily Log Close Push Notification', channel: 'Push Alert', enabled: true },
+  { id: 'daily_log_email', label: '11:00 PM Daily Log Close Email Digest', channel: 'Email Digest', enabled: true },
 ]
 
 export const listingToggleOptions: Array<{

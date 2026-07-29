@@ -34,6 +34,8 @@ const SALE_CHANNELS = [
   { id: 'ebay', label: 'eBay', icon: Tag },
   { id: 'myslabs', label: 'MySlabs', icon: Tag },
   { id: 'instagram', label: 'Instagram / Social', icon: Tag },
+  { id: 'whatnot', label: 'WhatNot', icon: Tag },
+  { id: 'facebook', label: 'Facebook', icon: Tag },
   { id: 'other', label: 'Other', icon: Tag },
 ]
 
@@ -43,6 +45,7 @@ const PAYMENT_METHODS = [
   { id: 'venmo', label: 'Venmo', icon: Wallet, color: 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100' },
   { id: 'paypal', label: 'PayPal', icon: DollarSign, color: 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
   { id: 'card', label: 'Stripe / Card', icon: CreditCard, color: 'text-violet-600 bg-violet-50 border-violet-200 hover:bg-violet-100' },
+  { id: 'cashapp', label: 'CashApp', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
   { id: 'other', label: 'Wire / Other', icon: Tag, color: 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100' },
 ]
 

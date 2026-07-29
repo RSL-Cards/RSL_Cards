@@ -168,6 +168,7 @@ function BulkAddPage() {
   }
 
   const handleSave = async () => {
+    if (status === 'saving') return;
     const cardsToSave = cards.filter(c => selectedCards.has(c.id))
     if (cardsToSave.length === 0) {
       setErrorMsg("Please select at least one card to save.")

@@ -82,6 +82,18 @@ export class TransactionRepository {
       throw new Error("playerName and price are required");
     }
 
+    if (inventoryId) {
+      const invCheck = await db.execute(sql`
+        SELECT listing_status FROM inventory WHERE id = ${inventoryId} AND user_id = ${userId} LIMIT 1
+      `);
+      if (invCheck.rows.length > 0) {
+        const itemStatus = (invCheck.rows[0] as any).listing_status;
+        if (itemStatus === 'sold') {
+          throw new Error("This card has already been sold.");
+        }
+      }
+    }
+
     const sellPrice = parseFloat(price);
     const cost = parseFloat(costBasis || "0");
     const profit = sellPrice - cost;
@@ -615,6 +627,16 @@ export class TransactionRepository {
               .where(eq(transactions.localId, payload.localInventoryId))
               .limit(1);
             if (buyTx) resolvedInvId = buyTx.inventoryId;
+          }
+
+          if (resolvedInvId) {
+            const invCheck = await db.execute(sql`
+              SELECT listing_status FROM inventory WHERE id = ${resolvedInvId} AND user_id = ${userId} LIMIT 1
+            `);
+            if (invCheck.rows.length > 0 && (invCheck.rows[0] as any).listing_status === 'sold') {
+              results.transactions.push({ localId, status: "skipped", message: "Card already sold" });
+              continue;
+            }
           }
 
           const sellPrice = parseFloat(payload.price);

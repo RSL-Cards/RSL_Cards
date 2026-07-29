@@ -1,6 +1,7 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
+  Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,8 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
 } from "react-native";
 import { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
@@ -89,6 +92,7 @@ function MoreScreen() {
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadAvatar();
   const [localUri, setLocalUri] = useState<string | null>(null);
+  const [showEbayModal, setShowEbayModal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: connectedPlatforms = [] } = useQuery({
@@ -277,7 +281,7 @@ function MoreScreen() {
                       ]
                     );
                   } else {
-                    handleEbayConnect();
+                    setShowEbayModal(true);
                   }
                 }}
                 isLast
@@ -334,9 +338,170 @@ function MoreScreen() {
           <Typography variant="body" weight="800" color={COLORS.destructive}>Sign Out</Typography>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* eBay Connection Features Modal */}
+      <Modal
+        visible={showEbayModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEbayModal(false)}
+      >
+        <Pressable style={modalStyles.overlay} onPress={() => setShowEbayModal(false)}>
+          <Pressable style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Ionicons name="cart" size={26} color="#E53238" />
+              <Text style={modalStyles.title}>eBay Integration (Coming Soon)</Text>
+            </View>
+
+            <View style={modalStyles.devBadge}>
+              <Text style={modalStyles.devBadgeText}>🛠️ Under Active Development</Text>
+            </View>
+
+            <Text style={modalStyles.subtitle}>
+              We are actively developing native eBay integration! The following features will take place shortly:
+            </Text>
+
+            <View style={modalStyles.featureList}>
+              <View style={modalStyles.featureRow}>
+                <Text style={modalStyles.featureIcon}>📦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={modalStyles.featureTitle}>Automatic Inventory Sync</Text>
+                  <Text style={modalStyles.featureDesc}>Imports & syncs active eBay listings into RSL Card inventory.</Text>
+                </View>
+              </View>
+
+              <View style={modalStyles.featureRow}>
+                <Text style={modalStyles.featureIcon}>📊</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={modalStyles.featureTitle}>Real-Time Market Comps</Text>
+                  <Text style={modalStyles.featureDesc}>Fetches live eBay active & sold price comps for accurate valuation.</Text>
+                </View>
+              </View>
+
+              <View style={modalStyles.featureRow}>
+                <Text style={modalStyles.featureIcon}>⚡</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={modalStyles.featureTitle}>One-Click Cross-Posting</Text>
+                  <Text style={modalStyles.featureDesc}>Instantly publish inventory items directly to your eBay store.</Text>
+                </View>
+              </View>
+
+              <View style={modalStyles.featureRow}>
+                <Text style={modalStyles.featureIcon}>💰</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={modalStyles.featureTitle}>Automated Sales & P&L Log</Text>
+                  <Text style={modalStyles.featureDesc}>Automatically tracks completed eBay sales in your daily log.</Text>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={modalStyles.connectBtn}
+              onPress={() => setShowEbayModal(false)}
+            >
+              <Text style={modalStyles.connectBtnText}>Got It, Thanks!</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  content: {
+    width: "100%",
+    backgroundColor: "#161618",
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: "#2D2D30",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  devBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(230, 81, 0, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(230, 81, 0, 0.4)",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 12,
+  },
+  devBadgeText: {
+    color: "#FF9800",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  title: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  subtitle: {
+    color: "#888888",
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  featureList: {
+    gap: 16,
+    marginBottom: 24,
+  },
+  featureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  featureIcon: {
+    fontSize: 20,
+  },
+  featureTitle: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  featureDesc: {
+    color: "#888888",
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  connectBtn: {
+    backgroundColor: "#E53238",
+    height: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  connectBtnText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  cancelBtn: {
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtnText: {
+    color: "#888888",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+});
 
 export default MoreScreen;
 

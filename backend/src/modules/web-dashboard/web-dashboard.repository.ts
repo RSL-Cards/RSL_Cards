@@ -199,10 +199,12 @@ export class WebDashboardRepository {
     return result.rows;
   }
 
-  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string) {
+  async getInventory(userId: string, page: number = 1, limit: number = 20, search?: string, status?: string) {
     const offset = (page - 1) * limit;
 
-    let condition = sql`i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')`;
+    let condition = status === 'sold' 
+      ? sql`i.user_id = ${userId} AND i.listing_status = 'sold'`
+      : sql`i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')`;
 
     if (search) {
       const searchLower = `%${search.toLowerCase()}%`;

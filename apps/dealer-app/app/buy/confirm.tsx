@@ -21,6 +21,7 @@ import { useActiveDailyLog } from "../../src/hooks/useDashboard";
 import NetInfo from "@react-native-community/netinfo";
 import { useSyncStore } from "../../src/stores/syncStore";
 import Toast from "react-native-toast-message";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const PAYMENT_ICONS: Record<string, string> = {
   cash: "💵",
@@ -72,6 +73,8 @@ export default function BuyConfirmScreen() {
   const capturedPhoto = activeTab?.capturedPhoto;
 
   const [confirmed, setConfirmed] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showLogAlert, setShowLogAlert] = useState(false);
   const fadeAnim = useState(() => new Animated.Value(0))[0];
 
   const { mutate: addToInventory, isPending } = useAddToInventory();
@@ -105,6 +108,9 @@ export default function BuyConfirmScreen() {
   const variantId = activeTab?.variantId;
 
   const proceedToSave = () => {
+    if (isSaving || isPending || confirmed) return;
+    setIsSaving(true);
+
     const dealRating =
       pctOfComp == null
         ? null
@@ -156,6 +162,7 @@ export default function BuyConfirmScreen() {
           text1: "Saved Offline",
           text2: "Pending Sync — transaction will sync when online.",
         });
+        setIsSaving(false);
         setConfirmed(true);
         return;
       }
@@ -206,7 +213,6 @@ export default function BuyConfirmScreen() {
                 cardSnapshot: JSON.stringify(card),
                 dailyLogId: payload.dailyLogId,
               });
-              // Refresh dashboard and inventory queries
               if (userId) {
                 queryClient.invalidateQueries({
                   queryKey: ["analytics", "daily", userId],
@@ -224,7 +230,16 @@ export default function BuyConfirmScreen() {
             } catch {
               // Non-fatal
             }
+            setIsSaving(false);
             setConfirmed(true);
+          },
+          onError: (err: any) => {
+            setIsSaving(false);
+            Toast.show({
+              type: "error",
+              text1: "Purchase failed",
+              text2: err?.message || "Could not save card to inventory.",
+            });
           },
         },
       );
@@ -508,23 +523,17 @@ export default function BuyConfirmScreen() {
 
         {/* Confirm */}
         <TouchableOpacity
-          style={[styles.confirmBtn, isPending && { opacity: 0.7 }]}
-          disabled={isPending}
+          style={[styles.confirmBtn, (isSaving || isPending || confirmed) && { opacity: 0.5 }]}
+          disabled={isSaving || isPending || confirmed}
           onPress={() => {
+            if (isSaving || isPending || confirmed) return;
             if (!card?.player_name || !price) {
               console.log("[CONFIRM] BLOCKED — missing card or price");
               return;
             }
 
             if (!activeLog) {
-              Alert.alert(
-                "No Active Daily Log",
-                "You are about to record this purchase outside of an active daily log. Would you like to proceed or open a daily log first?",
-                [
-                  { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
-                  { text: "Proceed Anyway", onPress: () => proceedToSave() }
-                ]
-              );
+              setShowLogAlert(true);
             } else {
               proceedToSave();
             }
@@ -532,7 +541,7 @@ export default function BuyConfirmScreen() {
           activeOpacity={0.85}
         >
           <Text style={styles.confirmBtnText}>
-            {isPending ? "SAVING..." : "CONFIRM PURCHASE"}
+            {isSaving || isPending ? "SAVING..." : "CONFIRM PURCHASE"}
           </Text>
         </TouchableOpacity>
 
@@ -542,6 +551,24 @@ export default function BuyConfirmScreen() {
         >
           <Text style={{ color: "#555555", fontSize: 14 }}>Cancel</Text>
         </TouchableOpacity>
+
+        <CustomAlertModal
+          visible={showLogAlert}
+          title="No Active Daily Log"
+          message="You are about to record this purchase outside of an active daily log. Would you like to proceed or open a daily log first?"
+          confirmText="Proceed Anyway"
+          cancelText="Open Daily Log"
+          iconName="alert-circle-outline"
+          variant="warning"
+          onConfirm={() => {
+            setShowLogAlert(false);
+            proceedToSave();
+          }}
+          onCancel={() => {
+            setShowLogAlert(false);
+            router.push("/(tabs)/");
+          }}
+        />
       </View>
     </SafeAreaView>
   );

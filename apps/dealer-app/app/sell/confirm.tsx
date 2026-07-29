@@ -19,6 +19,7 @@ import { ENDPOINTS } from "../../src/config/api";
 import Toast from "react-native-toast-message";
 import NetInfo from "@react-native-community/netinfo";
 import { useSyncStore } from "../../src/stores/syncStore";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const STEP_PCT = "100%";
 
@@ -58,6 +59,17 @@ export default function SellConfirmScreen() {
 
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    iconName?: any;
+    variant?: "danger" | "warning" | "info";
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({ visible: false, title: "", message: "", onConfirm: () => {} });
   const fadeAnim = useState(new Animated.Value(0))[0];
   const scaleAnim = useState(new Animated.Value(0.3))[0];
 
@@ -86,14 +98,23 @@ export default function SellConfirmScreen() {
     if (!playerName || !sellPrice) return;
     
     if (!activeLog) {
-      Alert.alert(
-        "No Active Daily Log",
-        "You are about to record this sale outside of an active daily log. Would you like to proceed or open a daily log first?",
-        [
-          { text: "Open Daily Log", onPress: () => router.push("/(tabs)/") },
-          { text: "Proceed Anyway", onPress: () => processConfirmSale() }
-        ]
-      );
+      setAlertConfig({
+        visible: true,
+        title: "No Active Daily Log",
+        message: "You are about to record this sale outside of an active daily log. Would you like to proceed or open a daily log first?",
+        confirmText: "Proceed Anyway",
+        cancelText: "Open Daily Log",
+        iconName: "alert-circle-outline",
+        variant: "warning",
+        onConfirm: () => {
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+          processConfirmSale();
+        },
+        onCancel: () => {
+          setAlertConfig((prev) => ({ ...prev, visible: false }));
+          router.push("/(tabs)/");
+        },
+      });
     } else {
       processConfirmSale();
     }
@@ -148,12 +169,28 @@ export default function SellConfirmScreen() {
       setConfirmed(true);
     } catch (err: any) {
       console.error("[SELL CONFIRM] error:", err?.response?.data ?? err);
-      Toast.show({
-        type: "error",
-        text1: "Sale failed",
-        text2:
-          err?.response?.data?.message ?? "Could not record sale. Try again.",
-      });
+      const msg = err?.response?.data?.message ?? "Could not record sale. Try again.";
+      if (msg.includes("already been sold") || msg.includes("already sold")) {
+        setAlertConfig({
+          visible: true,
+          title: "Card Already Sold",
+          message: "This card has already been sold in your inventory (e.g. via Web Dashboard or another device).",
+          confirmText: "OK",
+          iconName: "trash-outline",
+          variant: "danger",
+          onConfirm: () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            if (activeTab?.id) removeTab(activeTab.id);
+            router.replace("/(tabs)/inventory");
+          },
+        });
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Sale failed",
+          text2: msg,
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -323,6 +360,18 @@ export default function SellConfirmScreen() {
         >
           <Text style={{ color: "#555555", fontSize: 14 }}>Cancel</Text>
         </TouchableOpacity>
+
+        <CustomAlertModal
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          confirmText={alertConfig.confirmText}
+          cancelText={alertConfig.cancelText}
+          iconName={alertConfig.iconName}
+          variant={alertConfig.variant}
+          onConfirm={alertConfig.onConfirm}
+          onCancel={alertConfig.onCancel}
+        />
       </View>
     </SafeAreaView>
   );

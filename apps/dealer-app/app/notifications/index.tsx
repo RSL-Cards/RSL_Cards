@@ -13,12 +13,26 @@ const TYPE_CONFIG: Record<string, { icon: string; accent: string }> = {
   failed_sync:  { icon: "❌", accent: "#E8001C" },
 };
 
-function timeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60)   return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
+function formatNotificationDate(rawDate?: number | string): string {
+  if (!rawDate) return "";
+  const d = new Date(rawDate);
+  if (isNaN(d.getTime())) return "";
+
+  const day = d.getDate();
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const month = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  const formattedHours = hours.toString().padStart(2, "0");
+
+  return `${day} ${month}, ${year} at ${formattedHours}:${minutes} ${ampm}`;
 }
 
 export default function NotificationsScreen() {
@@ -88,13 +102,11 @@ export default function NotificationsScreen() {
 
               {/* Content */}
               <View style={styles.content}>
-                <View style={styles.titleRow}>
-                  <Text style={[styles.notifTitle, !isRead && { color: "white" }]} numberOfLines={1}>
-                    {n.title}
-                  </Text>
-                  <Text style={styles.time}>{timeAgo(n.created_at || new Date(n.createdAt).toISOString())}</Text>
-                </View>
+                <Text style={[styles.notifTitle, !isRead && { color: "white" }]} numberOfLines={1}>
+                  {n.title}
+                </Text>
                 <Text style={styles.body} numberOfLines={2}>{n.body || n.message}</Text>
+                <Text style={styles.time}>{formatNotificationDate(n.createdAt || n.created_at)}</Text>
               </View>
             </TouchableOpacity>
           );
@@ -155,7 +167,7 @@ const styles = StyleSheet.create({
 
   content:   { flex: 1 },
   titleRow:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  notifTitle:{ color: "#AAAAAA", fontWeight: "700", fontSize: 14, flex: 1, marginRight: 8 },
-  time:      { color: "#444444", fontSize: 11 },
-  body:      { color: "#555555", fontSize: 13, lineHeight: 18 },
+  notifTitle:{ color: "#AAAAAA", fontWeight: "700", fontSize: 14, marginBottom: 2 },
+  time:      { color: "#71717a", fontSize: 11, marginTop: 4, fontWeight: "500" },
+  body:      { color: "#999999", fontSize: 13, lineHeight: 18 },
 });

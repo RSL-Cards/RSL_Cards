@@ -263,24 +263,77 @@ export class UserRepository {
       .where(eq((dealerProfiles as any).userId, userId))
       .limit(1);
 
-    if (profileRows.length === 0) {
-      throw new Error("Profile not found");
-    }
+    const upRows = await db.execute(sql`
+      SELECT notify_daily_close_push, notify_daily_close_email, timezone FROM user_preferences WHERE user_id = ${userId} LIMIT 1
+    `);
 
-    return { notification_preferences: (profileRows[0] as any).notificationPreferences };
+    const prefs = (profileRows[0]?.notificationPreferences as any) || {};
+    const up = (upRows.rows[0] as any) || {};
+
+    return { 
+      notification_preferences: {
+        ...prefs,
+        dailyLogs: {
+          push: up.notify_daily_close_push !== false,
+          email: up.notify_daily_close_email !== false,
+        },
+        notify_daily_close_push: up.notify_daily_close_push !== false,
+        notify_daily_close_email: up.notify_daily_close_email !== false,
+      } 
+    };
   }
 
   async patchUsersMeNotificationPreferences(userId: string, body: any) {
-    if (!body.notification_preferences) {
-      throw new Error("Missing notification_preferences in body");
+    const prefs = body.notification_preferences || body;
+
+    const pushVal = Boolean(prefs.dailyLogs?.push ?? prefs.notify_daily_close_push ?? true);
+    const emailVal = Boolean(prefs.dailyLogs?.email ?? prefs.notify_daily_close_email ?? true);
+
+    // 1. Check if dealer_profile exists; update or insert with default display_name from users table
+    const existing = await db.execute(sql`
+      SELECT id FROM dealer_profiles WHERE user_id = ${userId} LIMIT 1
+    `);
+
+    if (existing.rows.length > 0) {
+      await db.execute(sql`
+        UPDATE dealer_profiles 
+        SET notification_preferences = ${JSON.stringify(prefs)}::jsonb, updated_at = NOW()
+        WHERE user_id = ${userId}
+      `);
+    } else {
+      const userRow = await db.execute(sql`
+        SELECT name, email FROM users WHERE id = ${userId} LIMIT 1
+      `);
+      const defaultName = (userRow.rows[0] as any)?.name || (userRow.rows[0] as any)?.email?.split('@')[0] || 'Dealer';
+
+      await db.execute(sql`
+        INSERT INTO dealer_profiles (id, user_id, display_name, notification_preferences, updated_at)
+        VALUES (gen_random_uuid(), ${userId}, ${defaultName}, ${JSON.stringify(prefs)}::jsonb, NOW())
+        ON CONFLICT (user_id) DO UPDATE SET
+          notification_preferences = ${JSON.stringify(prefs)}::jsonb,
+          updated_at = NOW()
+      `);
     }
-    
-    await db
-      .update(dealerProfiles as any)
-      .set({ notificationPreferences: body.notification_preferences })
-      .where(eq((dealerProfiles as any).userId, userId));
-      
-    return { success: true };
+
+    // 2. Upsert into user_preferences
+    await db.execute(sql`
+      INSERT INTO user_preferences (id, user_id, notify_daily_close_push, notify_daily_close_email, updated_at)
+      VALUES (gen_random_uuid(), ${userId}, ${pushVal}, ${emailVal}, NOW())
+      ON CONFLICT (user_id) DO UPDATE SET
+        notify_daily_close_push = ${pushVal},
+        notify_daily_close_email = ${emailVal},
+        updated_at = NOW()
+    `);
+
+    return { 
+      success: true, 
+      notification_preferences: {
+        ...prefs,
+        dailyLogs: { push: pushVal, email: emailVal },
+        notify_daily_close_push: pushVal,
+        notify_daily_close_email: emailVal,
+      } 
+    };
   }
 
   async listDealers() {

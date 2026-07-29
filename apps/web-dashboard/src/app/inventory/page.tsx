@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -25,14 +25,21 @@ export default function InventoryPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   
   const [page, setPage] = useState(1)
+  const [selectedTab, setSelectedTab] = useState<'active' | 'sold'>('active')
   const limit = 20
   
-  const { data: listData, isLoading: isListLoading } = useDashboardInventory(page, limit)
+  const statusParam = selectedTab === 'sold' ? 'sold' : undefined
+  const { data: listData, isLoading: isListLoading } = useDashboardInventory(page, limit, undefined, statusParam)
   const { data: countsData, isLoading: isCountsLoading } = useDashboardInventoryCounts()
   
   const items = listData?.items || []
   const total = listData?.total || 0
   const totalPages = listData?.totalPages || 1
+
+  const handleTabChange = useCallback((tab: 'active' | 'sold') => {
+    setSelectedTab(tab)
+    setPage(1)
+  }, [])
   
   const isLoading = isListLoading || isCountsLoading
   const [activeCard, setActiveCard] = useState<InventoryCard | null>(null)
@@ -181,6 +188,30 @@ export default function InventoryPage() {
           listedCards={countsData?.listedCards || 0}
           unlistedCards={countsData?.unlistedCards || 0}
         />
+
+        {/* Active / History Tab Switcher */}
+        <div className="flex items-center gap-1 rounded-2xl border border-[#252525] bg-[#0D0D0D] p-1 w-fit">
+          <button
+            onClick={() => handleTabChange('active')}
+            className={`relative px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              selectedTab === 'active'
+                ? 'bg-[#E8001C] text-white shadow-lg shadow-red-900/30'
+                : 'text-zinc-400 hover:text-white hover:bg-[#1A1A1A]'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => handleTabChange('sold')}
+            className={`relative px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              selectedTab === 'sold'
+                ? 'bg-[#E8001C] text-white shadow-lg shadow-red-900/30'
+                : 'text-zinc-400 hover:text-white hover:bg-[#1A1A1A]'
+            }`}
+          >
+            History
+          </button>
+        </div>
 
         <div className="flex flex-col gap-6">
           <InventoryCardGrid

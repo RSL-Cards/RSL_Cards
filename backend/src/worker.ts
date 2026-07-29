@@ -244,6 +244,8 @@ export const initWorker = () => {
           const openLogs = await db.execute(sql`
             SELECT dl.id, dl.user_id, dl.name, u.email as user_email, 
                    dp.notification_preferences,
+                   up.notify_daily_close_push,
+                   up.notify_daily_close_email,
                    COALESCE(up.timezone, dp.timezone, 'America/New_York') as timezone
             FROM daily_logs dl
             JOIN users u ON u.id = dl.user_id
@@ -282,9 +284,8 @@ export const initWorker = () => {
             }
             notifiedCount++;
 
-            const prefs = log.notification_preferences?.dailyLogs ?? { push: true, email: true };
-            const isPushEnabled = prefs.push !== false;
-            const isEmailEnabled = prefs.email !== false;
+            const isPushEnabled = log.notify_daily_close_push !== false;
+            const isEmailEnabled = log.notify_daily_close_email !== false;
 
             const title = "Close Your Daily Log";
             const body = `Don't forget to close your daily log "${log.name}" for today to finalize your stats.`;

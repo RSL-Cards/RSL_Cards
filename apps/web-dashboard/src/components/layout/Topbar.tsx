@@ -45,6 +45,7 @@ export default function Topbar({ onMobileToggle }: TopbarProps) {
     if (pathname.startsWith('/inventory')) return { title: 'Inventory', subtitle: 'Manage your collection' }
     if (pathname.startsWith('/listings')) return { title: 'Listings', subtitle: 'Cross-platform listings' }
     if (pathname.startsWith('/transactions')) return { title: 'Transactions', subtitle: 'Sales and purchases' }
+    if (pathname.startsWith('/daily-logs')) return { title: 'Daily Logs', subtitle: 'Manage card show & daily session sales' }
     if (pathname.startsWith('/reports')) return { title: 'Reports', subtitle: 'Financials and analytics' }
     if (pathname.startsWith('/ai-insights')) return { title: 'RSL Insights', subtitle: 'Smart recommendations' }
     if (pathname.startsWith('/tasks')) return { title: 'Tasks', subtitle: 'Background processing' }
@@ -167,6 +168,24 @@ export default function Topbar({ onMobileToggle }: TopbarProps) {
                         </button>
                       </div>
                       <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{notif.message}</p>
+                      <div className="text-[11px] text-zinc-500 mt-1 font-medium">
+                        {(() => {
+                          const dateVal = notif.createdAt || (notif as any).created_at;
+                          if (!dateVal) return '';
+                          const d = new Date(dateVal);
+                          if (isNaN(d.getTime())) return '';
+                          const day = d.getDate();
+                          const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                          const month = monthNames[d.getMonth()];
+                          const year = d.getFullYear();
+                          let hours = d.getHours();
+                          const minutes = d.getMinutes().toString().padStart(2, "0");
+                          const ampm = hours >= 12 ? "PM" : "AM";
+                          hours = hours % 12 || 12;
+                          const formattedHours = hours.toString().padStart(2, "0");
+                          return `${day} ${month}, ${year} at ${formattedHours}:${minutes} ${ampm}`;
+                        })()}
+                      </div>
                     </div>
                   ))
                 )}

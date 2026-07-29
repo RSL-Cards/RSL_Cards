@@ -28,6 +28,7 @@ interface NotificationPreferences {
   failedSync: ChannelPrefs;
   newSales: ChannelPrefs;
   weeklyReport: ChannelPrefs;
+  dailyLogs: ChannelPrefs;
 }
 
 const DEFAULT_PREFS: NotificationPreferences = {
@@ -36,6 +37,7 @@ const DEFAULT_PREFS: NotificationPreferences = {
   failedSync: { push: true, email: false },
   newSales: { push: true, email: true },
   weeklyReport: { push: false, email: true },
+  dailyLogs: { push: true, email: true },
 };
 
 const SECTIONS = [
@@ -82,15 +84,33 @@ const SECTIONS = [
         label: "Weekly Performance Report",
         description: "Automated report delivered every Sunday at 9:00 AM with sales & margin breakdown.",
       },
+      {
+        key: "dailyLogs" as keyof NotificationPreferences,
+        icon: "calendar-outline" as const,
+        iconColor: "#9C27B0",
+        label: "11:00 PM Daily Log Close Alert",
+        description: "Nightly push alert & email digest at 11:00 PM local time to close open daily logs.",
+      },
     ],
   },
 ];
 
 async function fetchPreferences(): Promise<NotificationPreferences> {
-  const { data } = await apiClient.get<{ notification_preferences?: NotificationPreferences }>(
+  const { data } = await apiClient.get<{ notification_preferences?: Partial<NotificationPreferences> }>(
     "/v1/users/me/notification-preferences"
   );
-  return data.notification_preferences ?? DEFAULT_PREFS;
+  const raw = data.notification_preferences ?? {};
+  return {
+    priceSpikes: raw.priceSpikes ?? DEFAULT_PREFS.priceSpikes,
+    inventoryAging: raw.inventoryAging ?? DEFAULT_PREFS.inventoryAging,
+    failedSync: raw.failedSync ?? DEFAULT_PREFS.failedSync,
+    newSales: raw.newSales ?? DEFAULT_PREFS.newSales,
+    weeklyReport: raw.weeklyReport ?? DEFAULT_PREFS.weeklyReport,
+    dailyLogs: raw.dailyLogs ?? {
+      push: (raw as any).notify_daily_close_push !== false,
+      email: (raw as any).notify_daily_close_email !== false,
+    },
+  };
 }
 
 async function savePreferences(prefs: NotificationPreferences): Promise<void> {
@@ -126,9 +146,14 @@ export default function NotificationPreferencesScreen() {
   });
 
   const toggle = (key: keyof NotificationPreferences, channel: "push" | "email") => {
-    const updated = {
+    const current = prefs[key] || DEFAULT_PREFS[key] || { push: true, email: true };
+    const updated: NotificationPreferences = {
+      ...DEFAULT_PREFS,
       ...prefs,
-      [key]: { ...prefs[key], [channel]: !prefs[key][channel] },
+      [key]: {
+        push: channel === "push" ? !current.push : (current.push ?? true),
+        email: channel === "email" ? !current.email : (current.email ?? true),
+      },
     };
     setPrefs(updated);
     save(updated);

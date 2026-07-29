@@ -86,6 +86,8 @@ export const userPreferences = pgTable('user_preferences', {
   quietHoursEnd:    varchar('quiet_hours_end', { length: 5 }).default('08:00'),
   timezone:         varchar('timezone', { length: 50 }).default('America/New_York'),
   dailyLimit:       integer('daily_limit').default(20),
+  notifyDailyClosePush:  boolean('notify_daily_close_push').default(true),
+  notifyDailyCloseEmail: boolean('notify_daily_close_email').default(true),
   updatedAt:        timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 

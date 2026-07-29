@@ -1,8 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { Clock3, TrendingDown, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
+import { Clock3, TrendingDown, TrendingUp, Trash2 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { GRADE_CONFIG, InventoryCard, formatCurrency, formatGrade, getGradeConfig } from './inventoryUtils'
+import { inventoryService } from '@/services/inventoryService'
+import { dashboardKeys } from '@/hooks/dashboard/useDashboard'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 type Props = {
   cards: InventoryCard[]
@@ -10,6 +15,23 @@ type Props = {
 }
 
 export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
+  const queryClient = useQueryClient()
+  const [cardToDelete, setCardToDelete] = useState<InventoryCard | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteConfirm = async () => {
+    if (!cardToDelete) return
+    setIsDeleting(true)
+    try {
+      await inventoryService.deleteItem(cardToDelete.id)
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all })
+      setCardToDelete(null)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
   if (cards.length === 0) {
     return (
       <div className="rounded-2xl border border-[#252525] bg-[#0D0D0D] p-8 text-center text-sm text-zinc-400 shadow-sm">
@@ -73,6 +95,18 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                       <span className={card.status === 'listed' ? 'rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-semibold capitalize text-emerald-400' : 'rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-xs font-semibold capitalize text-blue-400'}>
                         {card.status}
                       </span>
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCardToDelete(card)
+                        }}
+                        title="Delete card from inventory"
+                        className="ml-auto inline-flex items-center justify-center p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
 
                     {/* Set Name / Year / Variation / Card Number */}
@@ -200,6 +234,18 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
           </div>
         )
       })}
+
+      <ConfirmModal
+        isOpen={!!cardToDelete}
+        title="Delete Card from Inventory"
+        message={`Are you sure you want to delete "${cardToDelete?.player_name || 'this card'}" from your inventory? Comps and player info will remain saved.`}
+        confirmText="Delete Card"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setCardToDelete(null)}
+      />
     </div>
   )
 }
