@@ -18,3 +18,7 @@ out
 build
 .eslintcache
 *.tsbuildinfo
+
+# Ignore deployment docs with credentials or sensitive info
+docs/AWS_DEPLOYMENT.md
+

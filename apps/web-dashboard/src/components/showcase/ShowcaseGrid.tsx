@@ -1,4 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
+
 
 import { useState } from 'react';
 import { Loader2, Search, Sparkles, Filter, X, ExternalLink, Mail, Tag, Award, Layers, AlertCircle } from 'lucide-react';
