@@ -27,6 +27,7 @@ jobs:
       - name: Sync Code to EC2 via Rsync
         run: |
           rsync -avz --delete \
+            --exclude '.env*' \
             --exclude 'node_modules' \
             --exclude '.git' \
             --exclude 'dist' \
@@ -35,6 +36,7 @@ jobs:
             --exclude 'apps/dealer-app/node_modules' \
             --exclude 'backend/node_modules' \
             ./ ${{ secrets.EC2_USER || 'ubuntu' }}@${{ secrets.EC2_HOST || '100.52.90.163' }}:~/RSL_Cards/
+
 
       - name: Rebuild & Restart Docker Containers on EC2
         run: |
