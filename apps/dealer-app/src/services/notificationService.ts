@@ -21,10 +21,11 @@ if (Constants.appOwnership !== 'expo') {
 }
 
 export const notificationService = {
-  async registerToken(token: string, platform: string): Promise<{ success: boolean }> {
+  async registerToken(token: string, platform: string, timezone?: string): Promise<{ success: boolean }> {
+    const userTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     const { data } = await apiClient.post<{ success: boolean }>(
       ENDPOINTS.notifications.registerToken,
-      { token, platform }
+      { token, platform, timezone: userTimezone }
     );
     return data;
   },
@@ -68,8 +69,9 @@ export const notificationService = {
     // Register token with backend
     try {
       const platform = Platform.OS; // 'ios' | 'android'
-      await this.registerToken(token, platform);
-      console.log("Registered token successfully with backend:", token);
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      await this.registerToken(token, platform, userTimezone);
+      console.log("Registered token successfully with backend:", token, userTimezone);
     } catch (err: any) {
       console.error("Failed to register token with backend:", err.message);
     }

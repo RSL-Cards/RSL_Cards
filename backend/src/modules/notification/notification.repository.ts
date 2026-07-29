@@ -4,7 +4,22 @@ import { eq, and, desc, count } from "drizzle-orm";
 import { logger } from "../../lib/logger.js";
 
 export class NotificationRepository {
-  async registerToken(userId: string, token: string, platform: string) {
+  async registerToken(userId: string, token: string, platform: string, timezone?: string) {
+    if (timezone) {
+      try {
+        const { userPreferences } = await import("../../db/schema/index.js");
+        await db
+          .insert(userPreferences)
+          .values({ userId, timezone, updatedAt: new Date() })
+          .onConflictDoUpdate({
+            target: userPreferences.userId,
+            set: { timezone, updatedAt: new Date() }
+          });
+      } catch (e: any) {
+        logger.warn(`Failed to update user timezone preference: ${e.message}`);
+      }
+    }
+
     // Check if the token already exists
     const existing = await db
       .select()

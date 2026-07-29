@@ -4,8 +4,8 @@ import { sseService } from "./sse.service.js";
 export class NotificationService {
   constructor(private readonly repository: NotificationRepository) {}
 
-  async registerToken(userId: string, token: string, platform: string) {
-    return this.repository.registerToken(userId, token, platform);
+  async registerToken(userId: string, token: string, platform: string, timezone?: string) {
+    return this.repository.registerToken(userId, token, platform, timezone);
   }
 
   async sendNotification(userId: string, title: string, body: string, type: string, data?: any) {

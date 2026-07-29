@@ -242,21 +242,46 @@ export const initWorker = () => {
         logger.info(`[WORKER] Running notify_close_daily_logs cron job`);
         try {
           const openLogs = await db.execute(sql`
-            SELECT dl.id, dl.user_id, dl.name, u.email as user_email, dp.notification_preferences
+            SELECT dl.id, dl.user_id, dl.name, u.email as user_email, 
+                   dp.notification_preferences,
+                   COALESCE(up.timezone, dp.timezone, 'America/New_York') as timezone
             FROM daily_logs dl
             JOIN users u ON u.id = dl.user_id
             LEFT JOIN dealer_profiles dp ON dp.user_id = dl.user_id
+            LEFT JOIN user_preferences up ON up.user_id = dl.user_id
             WHERE dl.status = 'open'
           `);
           
           const logs = openLogs.rows as any[];
-          logger.info(`[WORKER] Found ${logs.length} open daily logs.`);
+          logger.info(`[WORKER] Found ${logs.length} open daily logs across timezones.`);
 
           const { NotificationRepository } = await import("./modules/notification/notification.repository.js");
           const { emailService } = await import("./modules/email/index.js");
           const notifRepository = new NotificationRepository();
 
+          const now = new Date();
+          let notifiedCount = 0;
+
           for (const log of logs) {
+            const userTimezone = log.timezone || "America/New_York";
+            let localHour = 23;
+            try {
+              const hourStr = new Intl.DateTimeFormat("en-US", {
+                timeZone: userTimezone,
+                hour: "numeric",
+                hour12: false
+              }).format(now);
+              localHour = parseInt(hourStr, 10);
+            } catch (tzErr) {
+              logger.warn(`[WORKER] Invalid timezone ${userTimezone} for user ${log.user_id}, falling back to hour check.`);
+            }
+
+            // Only trigger notification when local hour in user's timezone is 23 (11:00 PM)
+            if (localHour !== 23) {
+              continue;
+            }
+            notifiedCount++;
+
             const prefs = log.notification_preferences?.dailyLogs ?? { push: true, email: true };
             const isPushEnabled = prefs.push !== false;
             const isEmailEnabled = prefs.email !== false;

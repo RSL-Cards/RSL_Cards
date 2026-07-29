@@ -52,11 +52,11 @@ export class NotificationController {
     if (userId === "guest") {
       throw new Error("Authentication is required");
     }
-    const { token, platform } = body as { token?: string; platform?: string };
+    const { token, platform, timezone } = body as { token?: string; platform?: string; timezone?: string };
     if (!token || !platform) {
       throw new Error("Missing token or platform");
     }
-    return await this.service.registerToken(userId, token, platform);
+    return await this.service.registerToken(userId, token, platform, timezone);
   };
 
   getNotifications = async ({ request }: { request: Request }) => {

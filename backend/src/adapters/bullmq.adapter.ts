@@ -106,12 +106,11 @@ export class BullMqAdapter {
 
       await this.queue.add("notify_close_daily_logs", {}, {
         repeat: {
-          pattern: "0 23 * * *", // 11:00 PM US Eastern Time
-          tz: "America/New_York"
+          pattern: "0 * * * *" // Hourly check for worldwide 11:00 PM local time
         },
         jobId: "notify_close_daily_logs_cron"
       });
-      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run at 11:00 PM EST daily");
+      logger.info("🕒 Scheduled 'notify_close_daily_logs' cron job to run hourly for global 11:00 PM local time checks");
 
       await this.queue.add("send_weekly_performance_report", {}, {
         repeat: {
