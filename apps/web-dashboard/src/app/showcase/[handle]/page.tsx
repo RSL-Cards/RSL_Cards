@@ -4,8 +4,18 @@ import ShowcaseGrid from '@/components/showcase/ShowcaseGrid';
 import { Award, CalendarDays, ShieldCheck, Sparkles, Layers } from 'lucide-react';
 import ShowcaseShareButton from '@/components/showcase/ShowcaseShareButton';
 
+function getApiBaseUrl() {
+  return (
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    "http://localhost:8080"
+  );
+}
+
 async function getDealerData(handle: string) {
-  const res = await fetch(`http://localhost:8080/v1/showcase/${handle}`, { 
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/v1/showcase/${handle}`, { 
     cache: 'no-store' 
   });
   if (!res.ok) {
@@ -16,7 +26,8 @@ async function getDealerData(handle: string) {
 }
 
 async function getDealerInventory(handle: string) {
-  const res = await fetch(`http://localhost:8080/v1/showcase/${handle}/inventory?page=1&limit=30`, {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/v1/showcase/${handle}/inventory?page=1&limit=30`, {
     cache: 'no-store'
   });
   if (!res.ok) throw new Error('Failed to fetch inventory');

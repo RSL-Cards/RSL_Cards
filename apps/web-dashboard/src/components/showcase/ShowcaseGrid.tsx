@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Loader2, Search, Sparkles, Filter, X, ExternalLink, Mail, Tag, Award, Layers, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
+import { API_BASE_URL } from '@/config/api';
 
 interface ShowcaseCard {
   id: string;
@@ -42,7 +43,6 @@ export default function ShowcaseGrid({ initialCards, handle, hasMoreInitial }: S
     
     try {
       const nextPage = page + 1;
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       const res = await fetch(`${API_BASE_URL}/v1/showcase/${encodeURIComponent(handle)}/inventory?page=${nextPage}&limit=20`);
       if (!res.ok) throw new Error('Failed to fetch cards');
       

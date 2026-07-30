@@ -30,7 +30,7 @@ export class ShowcaseRepository {
       .from(dealerProfiles)
       .where(
         and(
-          eq(dealerProfiles.isPublic, true),
+          or(eq(dealerProfiles.isPublic, true), isNull(dealerProfiles.isPublic)),
           or(...filters)
         )
       )
