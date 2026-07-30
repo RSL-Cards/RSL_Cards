@@ -233,13 +233,15 @@ export default function BuyConfirmScreen() {
             setIsSaving(false);
             setConfirmed(true);
           },
-          onError: (err: any) => {
-            setIsSaving(false);
+          onError: () => {
+            useSyncStore.getState().addPendingTransaction("buy", payload);
             Toast.show({
-              type: "error",
-              text1: "Purchase failed",
-              text2: err?.message || "Could not save card to inventory.",
+              type: "info",
+              text1: "Saved Offline",
+              text2: "Network drop detected — will sync automatically when connection returns.",
             });
+            setIsSaving(false);
+            setConfirmed(true);
           },
         },
       );

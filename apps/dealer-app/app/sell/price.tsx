@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useDealTabStore } from '../../src/stores/dealTabStore'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
-const STEP_PCT = '60%'
+const STEP_PCT = '50%'
 
 const QUICK_PRICES = [5, 10, 25, 50, 75, 100, 150, 200, 250, 300, 500, 1000]
 
@@ -31,7 +31,7 @@ export default function SellPriceScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SELL — Step 3 of 5</Text>
+        <Text style={styles.headerTitle}>SELL — Step 2 of 4</Text>
         <View style={{ width: 40 }} />
       </View>
       <View style={styles.progressBar}>

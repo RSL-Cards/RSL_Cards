@@ -3,6 +3,7 @@
 
 import { useActiveDailyLog, useCreateDailyLog, useCloseDailyLog, useAddExpense, useUpdateExpense, useDeleteExpense, useUpdateTransaction, useDailyLogTransactions } from '@/hooks/dashboard/useDailyLog';
 import { Plus, X, DollarSign, Activity, Settings2, Trash2, List, AlertTriangle, CheckCircle2, Lock, Pencil } from 'lucide-react';
+import { PAYMENT_METHODS, TRANSACTION_CHANNELS } from '@/constants/transactionOptions';
 import clsx from 'clsx';
 import React, { useState, useRef, Fragment } from 'react';
 
@@ -36,7 +37,7 @@ export default function DailyLogPanel() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   // Transaction edit state (buy, sell, trade)
-  const [editingTx, setEditingTx] = useState<{ id: string; card: string; amount: string; type: string; logId?: string } | null>(null);
+  const [editingTx, setEditingTx] = useState<{ id: string; card: string; amount: string; type: string; paymentMethod?: string; channel?: string; logId?: string } | null>(null);
   const [editingTxSaving, setEditingTxSaving] = useState(false);
   const [editingTxError, setEditingTxError] = useState<string | null>(null);
   // Expense delete state
@@ -529,6 +530,8 @@ export default function DailyLogPanel() {
                                         card: tx.description || tx.card || 'Card Transaction',
                                         amount: parseFloat(tx.amount || 0).toFixed(2),
                                         type: tx.type,
+                                        paymentMethod: tx.paymentMethod || 'cash',
+                                        channel: tx.channel || 'card_show',
                                         logId: activeLog?.id,
                                       });
                                     }
@@ -728,6 +731,36 @@ export default function DailyLogPanel() {
                     placeholder="0.00"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={editingTx.paymentMethod || 'cash'}
+                    onChange={(e) => setEditingTx({ ...editingTx, paymentMethod: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    {PAYMENT_METHODS.map((pm) => (
+                      <option key={pm.key} value={pm.key}>{pm.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Channel / Event
+                  </label>
+                  <select
+                    value={editingTx.channel || 'card_show'}
+                    onChange={(e) => setEditingTx({ ...editingTx, channel: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    {TRANSACTION_CHANNELS.map((ch) => (
+                      <option key={ch.key} value={ch.key}>{ch.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 mt-5">
@@ -750,6 +783,8 @@ export default function DailyLogPanel() {
                         data: {
                           amount: parseFloat(editingTx.amount),
                           card: editingTx.card,
+                          paymentMethod: editingTx.paymentMethod,
+                          channel: editingTx.channel,
                         },
                         logId: editingTx.logId,
                       },

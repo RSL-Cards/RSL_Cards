@@ -170,7 +170,15 @@ export default function SellConfirmScreen() {
     } catch (err: any) {
       console.error("[SELL CONFIRM] error:", err?.response?.data ?? err);
       const msg = err?.response?.data?.message ?? "Could not record sale. Try again.";
-      if (msg.includes("already been sold") || msg.includes("already sold")) {
+      if (!err.response || err.message?.includes("Network") || err.message?.includes("fetch")) {
+        useSyncStore.getState().addPendingTransaction("sell", payload);
+        Toast.show({
+          type: "info",
+          text1: "Saved Offline",
+          text2: "Network drop detected — will sync automatically when connection returns.",
+        });
+        setConfirmed(true);
+      } else if (msg.includes("already been sold") || msg.includes("already sold")) {
         setAlertConfig({
           visible: true,
           title: "Card Already Sold",
@@ -250,7 +258,7 @@ export default function SellConfirmScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SELL — Step 5 of 5</Text>
+        <Text style={styles.headerTitle}>SELL — Step 4 of 4</Text>
         <View style={{ width: 40 }} />
       </View>
       <View style={styles.progressBar}>

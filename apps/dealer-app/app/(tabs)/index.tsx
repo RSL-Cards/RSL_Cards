@@ -28,6 +28,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
+import { EditTransactionModal, TransactionToEdit } from "../../src/components/ui/EditTransactionModal";
 
 function formatChannelName(channel?: string | null): string {
   if (!channel) return "";
@@ -77,6 +78,30 @@ function formatPaymentMethodName(pm?: string | null): string {
   }
 }
 
+function fmtActivityTime(dateVal: any): string {
+  if (!dateVal) return "";
+  try {
+    let d: Date;
+    if (dateVal instanceof Date) {
+      d = dateVal;
+    } else {
+      let cleaned = String(dateVal).trim();
+      if (cleaned.includes(" ") && !cleaned.includes("T")) {
+        cleaned = cleaned.replace(" ", "T");
+      }
+      cleaned = cleaned.replace(/([+-]\d{2})$/, "$1:00");
+      d = new Date(cleaned);
+    }
+    if (isNaN(d.getTime())) return String(dateVal);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dateStr = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${dateStr} · ${timeStr}`;
+  } catch (e) {
+    return String(dateVal);
+  }
+}
+
 import { useNotificationStore } from "../../src/stores/useNotificationStore";
 import { Button } from "../../src/components/ui/Button";
 
@@ -108,6 +133,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
+  const [editingTx, setEditingTx] = useState<TransactionToEdit | null>(null);
   const [showOpenLogModal, setShowOpenLogModal] = useState(false);
   const [logName, setLogName] = useState("");
   const [startingCash, setStartingCash] = useState("");
@@ -394,7 +420,7 @@ export default function HomeScreen() {
                     </Typography>
                     <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 2 }}>
                       {[
-                        tx.time,
+                        fmtActivityTime(tx.time),
                         formatChannelName(tx.channel),
                         formatPaymentMethodName(tx.paymentMethod),
                         tx.type === "trade" ? "Trade" : null
@@ -416,24 +442,12 @@ export default function HomeScreen() {
                         </Typography>
                       )}
                     </View>
-                    {tx.type === "expense" && (
-                      <TouchableOpacity
-                        onPress={() =>
-                          router.push({
-                            pathname: "/expense",
-                            params: {
-                              id: tx.id,
-                              category: tx.playerName || "General",
-                              amount: String(tx.price || 0),
-                              description: tx.playerName || "",
-                            },
-                          })
-                        }
-                        style={{ padding: 4, justifyContent: "center" }}
-                      >
-                        <Ionicons name="pencil-outline" size={16} color="#FFB300" />
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      onPress={() => setEditingTx(tx as TransactionToEdit)}
+                      style={{ padding: 4, justifyContent: "center" }}
+                    >
+                      <Ionicons name="pencil-outline" size={16} color="#FFB300" />
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
@@ -722,6 +736,12 @@ export default function HomeScreen() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      <EditTransactionModal
+        visible={!!editingTx}
+        transaction={editingTx}
+        onClose={() => setEditingTx(null)}
+      />
 
     </SafeAreaView>
   );

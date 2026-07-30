@@ -29,6 +29,7 @@ import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
 import RSLLoader from "../../src/components/RSLLoader";
 import { router } from "expo-router";
+import { EditTransactionModal, TransactionToEdit } from "../../src/components/ui/EditTransactionModal";
 
 type Period = "today" | "week" | "month" | "ytd";
 type TopTab = "performance" | "logs";
@@ -215,6 +216,7 @@ function DailyLogsTab() {
   // Modals
   const [showDetails, setShowDetails] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editingTx, setEditingTx] = useState<TransactionToEdit | null>(null);
   
   // Edit form states
   const [editName, setEditName] = useState("");
@@ -602,24 +604,21 @@ function DailyLogsTab() {
                           <Typography variant="body" weight="800" color={amtColor}>
                             {formattedAmountStr}
                           </Typography>
-                          {isExpense && (
-                            <TouchableOpacity
-                              onPress={() =>
-                                router.push({
-                                  pathname: "/expense",
-                                  params: {
-                                    id: tx.id,
-                                    category: tx.description?.split(" - ")[0] || "General",
-                                    amount: String(tx.amount || 0),
-                                    description: tx.description || "",
-                                  },
-                                })
-                              }
-                              style={{ padding: 4 }}
-                            >
-                              <Ionicons name="pencil-outline" size={18} color="#FFB300" />
-                            </TouchableOpacity>
-                          )}
+                          <TouchableOpacity
+                            onPress={() =>
+                              setEditingTx({
+                                id: tx.id,
+                                type: tx.type,
+                                playerName: tx.description,
+                                amount: tx.amount,
+                                paymentMethod: tx.paymentMethod,
+                                channel: tx.channel,
+                              })
+                            }
+                            style={{ padding: 4 }}
+                          >
+                            <Ionicons name="pencil-outline" size={18} color="#FFB300" />
+                          </TouchableOpacity>
                           <TouchableOpacity onPress={() => handleDeleteItem(tx.id, tx.type)} style={{ padding: 4 }}>
                             <Ionicons name="trash-outline" size={18} color={COLORS.destructive} />
                           </TouchableOpacity>
@@ -691,6 +690,15 @@ function DailyLogsTab() {
           </Surface>
         </TouchableOpacity>
       </Modal>
+      <EditTransactionModal
+        visible={!!editingTx}
+        transaction={editingTx}
+        onClose={() => setEditingTx(null)}
+        onSuccess={() => {
+          refetchTxs();
+          refetch();
+        }}
+      />
     </View>
   );
 }
@@ -702,6 +710,16 @@ function ReportsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+      {/* Screen Header */}
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Typography variant="h1" weight="800">Reports</Typography>
+          <Typography variant="caption" color={COLORS.zinc400}>
+            {topTab === "performance" ? "Financial analytics & channel metrics" : "Daily logs & show transaction session history"}
+          </Typography>
+        </View>
+      </View>
+
       {/* Top Selector Bar */}
       <View style={styles.topSelectorBar}>
         <TouchableOpacity
@@ -751,6 +769,14 @@ function ReportsScreen() {
 export default ReportsScreen;
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xs,
+  },
   topSelectorBar: {
     flexDirection: "row",
     backgroundColor: COLORS.zinc900,

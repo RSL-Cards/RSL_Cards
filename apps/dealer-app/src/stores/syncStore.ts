@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { apiClient } from "../lib/apiClient";
@@ -123,8 +124,21 @@ export const useSyncStore = create<SyncStore>((set, get) => {
         return;
       }
 
-      const txsToSync = get().pendingTransactions.filter((t) => t.status === "pending");
-      const expsToSync = get().pendingExpenses.filter((e) => e.status === "pending");
+      // Automatically reset any previously failed items back to pending when online
+      const currentPendingTxs = get().pendingTransactions.map((t) =>
+        t.status === "failed" ? { ...t, status: "pending" as const, error: undefined } : t
+      );
+      const currentPendingExps = get().pendingExpenses.map((e) =>
+        e.status === "failed" ? { ...e, status: "pending" as const, error: undefined } : e
+      );
+
+      set({
+        pendingTransactions: currentPendingTxs,
+        pendingExpenses: currentPendingExps,
+      });
+
+      const txsToSync = currentPendingTxs.filter((t) => t.status === "pending");
+      const expsToSync = currentPendingExps.filter((e) => e.status === "pending");
 
       if (txsToSync.length === 0 && expsToSync.length === 0) {
         set({ syncStatus: "idle" });
@@ -301,12 +315,28 @@ export const useSyncStore = create<SyncStore>((set, get) => {
         console.error("[SYNC STORE] Init failed:", err);
       }
 
-      // Auto-trigger sync when connectivity returns
+      // 1. Auto-trigger sync when connectivity returns
       NetInfo.addEventListener((state) => {
         if (state.isConnected) {
           get().syncNow(queryClient);
         }
       });
+
+      // 2. Auto-trigger sync when app comes back to foreground
+      AppState.addEventListener("change", (nextState) => {
+        if (nextState === "active") {
+          get().syncNow(queryClient);
+        }
+      });
+
+      // 3. Periodic background check every 20 seconds
+      setInterval(() => {
+        const hasPending =
+          get().pendingTransactions.length > 0 || get().pendingExpenses.length > 0;
+        if (hasPending) {
+          get().syncNow(queryClient);
+        }
+      }, 20000);
     },
   };
 });

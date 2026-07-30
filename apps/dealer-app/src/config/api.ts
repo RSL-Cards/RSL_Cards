@@ -1,16 +1,12 @@
 /**
  * API Configuration
  *
- * All traffic goes through Nginx gateway (port 80 in dev).
- * Nginx routes to microservices based on path prefix.
- *
- * Dev:  http://10.0.2.2:80  (Android emulator → host machine)
- *       http://<LAN_IP>:80  (physical device)
+ * Dev:  http://192.168.10.7:8080  (Wi-Fi / LAN IP)
  * Prod: https://api.rslcards.com
  */
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "https://api.rslcards.com";
+  process.env.EXPO_PUBLIC_API_URL || "http://192.168.10.7:8080";
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.

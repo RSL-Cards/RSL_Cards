@@ -8,7 +8,7 @@ export function useUpdateTransaction() {
   const userId = useAuthStore((s) => s.user?.id ?? '');
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { amount?: number; price?: number; playerName?: string; card?: string }; logId?: string }) =>
+    mutationFn: ({ id, data }: { id: string; data: { amount?: number; price?: number; playerName?: string; card?: string; paymentMethod?: string; channel?: string }; logId?: string }) =>
       dailyLogService.updateTransaction(id, data),
     onSettled: (_data, _err, vars) => {
       syncInBackground(queryClient, userId, vars.logId);

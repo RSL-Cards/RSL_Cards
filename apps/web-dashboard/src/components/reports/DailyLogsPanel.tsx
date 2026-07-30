@@ -9,6 +9,7 @@ import {
   DollarSign, ShoppingCart, BarChart2, Calendar, Clock,
   AlertTriangle, CheckCircle2, List, Loader2, Pencil,
 } from 'lucide-react';
+import { PAYMENT_METHODS, TRANSACTION_CHANNELS } from '@/constants/transactionOptions';
 import clsx from 'clsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -168,7 +169,7 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
   const profit = parseFloat(log.stats?.profit ?? '0');
 
   const queryClient = useQueryClient();
-  const [editingTx, setEditingTx] = useState<{ id: string; type: string; card: string; amount: string } | null>(null);
+  const [editingTx, setEditingTx] = useState<{ id: string; type: string; card: string; amount: string; paymentMethod?: string; channel?: string } | null>(null);
   const [editingExpense, setEditingExpense] = useState<{ id: string; category: string; amount: string; note: string } | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -188,7 +189,7 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
   });
 
   const updateTxMutation = useMutation({
-    mutationFn: async (payload: { amount: number; card?: string }) => {
+    mutationFn: async (payload: { amount: number; card?: string; paymentMethod?: string; channel?: string }) => {
       if (!editingTx) return;
       await apiClient.patch(`/v1/transactions/${editingTx.id}`, payload);
     },
@@ -210,6 +211,8 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
     updateTxMutation.mutate({
       amount: parseFloat(editingTx.amount),
       card: editingTx.card,
+      paymentMethod: editingTx.paymentMethod,
+      channel: editingTx.channel,
     });
   };
 
@@ -416,6 +419,8 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
                                 type: tx.type,
                                 card: tx.description || tx.card || 'Card Transaction',
                                 amount: parseFloat(tx.amount || 0).toFixed(2),
+                                paymentMethod: tx.paymentMethod || 'cash',
+                                channel: tx.channel || 'card_show',
                               });
                             }
                           }}
@@ -486,6 +491,36 @@ function LogDetailPanel({ log, onClose }: { log: DailyLog; onClose: () => void }
                     className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
                     placeholder="0.00"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={editingTx.paymentMethod || 'cash'}
+                    onChange={(e) => setEditingTx({ ...editingTx, paymentMethod: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    {PAYMENT_METHODS.map((pm) => (
+                      <option key={pm.key} value={pm.key}>{pm.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Channel / Event
+                  </label>
+                  <select
+                    value={editingTx.channel || 'card_show'}
+                    onChange={(e) => setEditingTx({ ...editingTx, channel: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    {TRANSACTION_CHANNELS.map((ch) => (
+                      <option key={ch.key} value={ch.key}>{ch.label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

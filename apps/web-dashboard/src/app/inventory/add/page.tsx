@@ -9,24 +9,25 @@ import { Upload, Image as ImageIcon, FileText, Loader2, CheckCircle, XCircle, Re
 type Status = 'idle' | 'uploading' | 'processing' | 'review' | 'saving' | 'success'
 type UploadMode = 'single_image' | 'multiple_images' | 'written_file'
 
-const BUY_CHANNELS = [
-  { key: "card_show", icon: Store, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200", label: "Card Show" },
-  { key: "ebay", icon: ShoppingCart, color: "text-red-600", bg: "bg-red-50", border: "border-red-200", label: "eBay" },
-  { key: "facebook", icon: Facebook, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", label: "Facebook" },
-  { key: "app", icon: MessageCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", label: "App/DM" },
-  { key: "comc", icon: Box, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", label: "COMC" },
-  { key: "other", icon: MoreHorizontal, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Other" },
-];
+import { PAYMENT_METHODS as CENTRAL_PAYMENT_METHODS, TRANSACTION_CHANNELS as CENTRAL_CHANNELS } from '@/constants/transactionOptions'
 
-const PAYMENT_METHODS = [
-  { key: "cash", icon: Banknote, color: "text-green-600", bg: "bg-green-50", border: "border-green-200", label: "Cash" },
-  { key: "venmo", icon: Wallet, color: "text-blue-500", bg: "bg-blue-50", border: "border-blue-200", label: "Venmo" },
-  { key: "zelle", icon: ArrowRightLeft, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", label: "Zelle" },
-  { key: "paypal", icon: CreditCard, color: "text-blue-800", bg: "bg-blue-100", border: "border-blue-200", label: "PayPal" },
-  { key: "cashapp", icon: Smartphone, color: "text-green-500", bg: "bg-green-50", border: "border-green-200", label: "CashApp" },
-  { key: "trade", icon: RefreshCcw, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Trade" },
-  { key: "other", icon: MoreHorizontal, color: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200", label: "Other" },
-];
+const BUY_CHANNELS = CENTRAL_CHANNELS.map((c) => ({
+  key: c.key,
+  icon: Store,
+  color: "text-zinc-300",
+  bg: "bg-[#141414]",
+  border: "border-[#252525]",
+  label: c.label,
+}));
+
+const PAYMENT_METHODS = CENTRAL_PAYMENT_METHODS.map((m) => ({
+  key: m.key,
+  icon: Banknote,
+  color: "text-zinc-300",
+  bg: "bg-[#141414]",
+  border: "border-[#252525]",
+  label: m.label,
+}));
 
 import { Suspense } from 'react'
 

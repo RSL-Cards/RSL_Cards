@@ -30,7 +30,7 @@ export class InventoryRepository {
       WHERE i.user_id = ${userId}
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
-      ${status === 'all' ? sql`` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
+      ${status === 'all' ? sql`` : status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
       ORDER BY i.${sql.raw(sort)} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
@@ -42,7 +42,7 @@ export class InventoryRepository {
       WHERE i.user_id = ${userId}
       ${sport ? sql`AND i.sport = ${sport}` : sql``}
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
-      ${status === 'all' ? sql`` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
+      ${status === 'all' ? sql`` : status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
     `);
 

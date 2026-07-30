@@ -13,24 +13,7 @@ import { useDealTabStore } from "../../src/stores/dealTabStore";
 
 const STEP_PCT = "80%";
 
-const BUY_CHANNELS = [
-  { key: "card_show", icon: "business-outline", color: "#FF9800", label: "Card Show" },
-  { key: "ebay", icon: "cart-outline", color: "#E53238", label: "eBay" },
-  { key: "facebook", icon: "logo-facebook", color: "#1877F2", label: "Facebook" },
-  { key: "app", icon: "chatbubbles-outline", color: "#4CAF50", label: "App/DM" },
-  { key: "comc", icon: "cube-outline", color: "#9C27B0", label: "COMC" },
-  { key: "other", icon: "search-outline", color: "#888888", label: "Other" },
-];
-
-const PAYMENT_METHODS = [
-  { key: "cash", icon: "cash-outline", color: "#00C853", label: "Cash", lastUsed: false },
-  { key: "venmo", icon: "wallet-outline", color: "#008CFF", label: "Venmo", lastUsed: true },
-  { key: "zelle", icon: "card-outline", color: "#6C1CD1", label: "Zelle", lastUsed: false },
-  { key: "paypal", icon: "logo-paypal", color: "#003087", label: "PayPal", lastUsed: false },
-  { key: "cashapp", icon: "logo-usd", color: "#00D632", label: "CashApp", lastUsed: false },
-  { key: "trade", icon: "swap-horizontal-outline", color: "#888888", label: "Trade", lastUsed: false },
-  { key: "other", icon: "card-outline", color: "#888888", label: "Other", lastUsed: false },
-];
+import { PAYMENT_METHODS, TRANSACTION_CHANNELS } from "../../src/constants/transactionOptions";
 
 export default function BuyPaymentScreen() {
   const router = useRouter();
@@ -91,7 +74,7 @@ export default function BuyPaymentScreen() {
           Where did you buy it?
         </Text>
         <View style={styles.grid}>
-          {BUY_CHANNELS.map((c) => (
+          {TRANSACTION_CHANNELS.map((c) => (
             <TouchableOpacity
               key={c.key}
               style={[

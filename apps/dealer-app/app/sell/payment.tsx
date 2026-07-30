@@ -5,17 +5,9 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useDealTabStore } from '../../src/stores/dealTabStore'
 
-const STEP_PCT = '80%'
+const STEP_PCT = '75%'
 
-const PAYMENT_METHODS = [
-  { key: 'cash',    icon: 'cash-outline',              color: '#00C853', label: 'Cash',          lastUsed: false, digital: false },
-  { key: 'zelle',   icon: 'card-outline',               color: '#6C1CD1', label: 'Zelle',         lastUsed: false, digital: true  },
-  { key: 'venmo',   icon: 'wallet-outline',             color: '#008CFF', label: 'Venmo',         lastUsed: true,  digital: true  },
-  { key: 'paypal',  icon: 'logo-paypal',                color: '#003087', label: 'PayPal',        lastUsed: false, digital: true  },
-  { key: 'card',    icon: 'card-outline',               color: '#7C3AED', label: 'Stripe / Card', lastUsed: false, digital: true  },
-  { key: 'cashapp', icon: 'logo-usd',                   color: '#00D632', label: 'CashApp',       lastUsed: false, digital: true  },
-  { key: 'other',   icon: 'ellipsis-horizontal-outline', color: '#888888', label: 'Wire / Other', lastUsed: false, digital: false },
-]
+import { PAYMENT_METHODS, TRANSACTION_CHANNELS } from '../../src/constants/transactionOptions'
 
 function MockQRCode() {
   const rows = Array.from({ length: 7 })
@@ -36,19 +28,10 @@ function MockQRCode() {
           ))
         )}
       </View>
-      <Text style={styles.qrSubLabel}>@MikeSherrer · $340</Text>
+      <Text style={styles.qrSubLabel}>SCAN QR CODE TO PAY</Text>
     </View>
   )
 }
-const SELL_CHANNELS = [
-  { key: 'card_show', icon: 'business-outline', color: '#FF9800', label: 'In-Person / Show' },
-  { key: 'ebay', icon: 'cart-outline', color: '#E53238', label: 'eBay' },
-  { key: 'myslabs', icon: 'cube-outline', color: '#E8001C', label: 'MySlabs' },
-  { key: 'instagram', icon: 'logo-instagram', color: '#E1306C', label: 'Instagram / Social' },
-  { key: 'whatnot', icon: 'tv-outline', color: '#9C27B0', label: 'WhatNot' },
-  { key: 'facebook', icon: 'logo-facebook', color: '#1877F2', label: 'Facebook' },
-  { key: 'other', icon: 'search-outline', color: '#888888', label: 'Other' },
-]
 
 export default function SellPaymentScreen() {
   const router = useRouter()
@@ -68,7 +51,7 @@ export default function SellPaymentScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SELL — Step 4 of 5</Text>
+        <Text style={styles.headerTitle}>SELL — Step 3 of 4</Text>
         <View style={{ width: 40 }} />
       </View>
       <View style={styles.progressBar}>
@@ -104,7 +87,7 @@ export default function SellPaymentScreen() {
         {/* Selling Channel / Source */}
         <Text style={[styles.title, { marginTop: 28 }]}>Where Did You Sell It?</Text>
         <View style={styles.grid}>
-          {SELL_CHANNELS.map(c => (
+          {TRANSACTION_CHANNELS.map(c => (
             <TouchableOpacity
               key={c.key}
               style={[styles.methodCard, selectedChannel === c.key && styles.methodCardSelected]}

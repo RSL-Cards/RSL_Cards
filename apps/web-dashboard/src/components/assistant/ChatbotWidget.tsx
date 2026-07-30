@@ -13,6 +13,7 @@ interface Message {
 }
 
 const SUGGESTIONS = [
+  { text: 'How many cards did I buy in Chicago CardShow?', icon: Sparkles, label: 'Show Log' },
   { text: 'What is my inventory summary & valuation?', icon: Package, label: 'Inventory Summary' },
   { text: 'How much net profit did I earn this month?', icon: DollarSign, label: 'Monthly Profit' },
   { text: 'Show me my aging inventory sitting over 60 days', icon: TrendingUp, label: 'Aging Alerts' },
@@ -27,7 +28,7 @@ export default function ChatbotWidget() {
     {
       id: '0',
       role: 'model',
-      text: "👋 Hi! I'm your **RSL Assistant**. I have live access to your inventory, transactions, sales analytics, and live market comps.\n\nHow can I assist your business today?",
+      text: "👋 Hi! I'm your **RSL Assistant**. I have live access to your inventory, transactions, daily logs & card show records, sales analytics, and live market comps.\n\nHow can I assist your business today?",
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     },
   ])
@@ -63,7 +64,7 @@ export default function ChatbotWidget() {
       {
         id: Date.now().toString(),
         role: 'model',
-        text: "✨ Chat cleared! Ask me anything about your inventory, transactions, or card comps.",
+        text: "✨ Chat cleared! Ask me anything about your inventory, transactions, daily logs, or card comps.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ])

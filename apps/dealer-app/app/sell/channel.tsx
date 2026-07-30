@@ -38,7 +38,7 @@ export default function SellChannelScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>SELL — Step 2 of 5</Text>
+        <Text style={styles.headerTitle}>SELL — Channel</Text>
         <View style={{ width: 40 }} />
       </View>
       

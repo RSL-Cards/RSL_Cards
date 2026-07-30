@@ -35,6 +35,7 @@ interface AssistantModalProps {
 }
 
 const SUGGESTIONS = [
+  { label: "Card Show Log", text: "How many cards did I buy in Chicago CardShow?" },
   { label: "Inventory Summary", text: "What is my inventory summary & total valuation?" },
   { label: "Monthly Profit", text: "How much net profit did I earn this month?" },
   { label: "Aging Stock (>60d)", text: "Show me my aging inventory sitting over 60 days" },
@@ -65,7 +66,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
     {
       id: "0",
       role: "model",
-      text: "👋 Hi! I'm your RSL Assistant. I have live access to your inventory, transactions, sales analytics, and live market comps.\n\nHow can I assist your dealership today?",
+      text: "👋 Hi! I'm your RSL Assistant. I have live access to your inventory, transactions, daily logs & card show records, sales analytics, and live market comps.\n\nHow can I assist your dealership today?",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     }
   ]);

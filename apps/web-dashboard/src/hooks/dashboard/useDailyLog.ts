@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { dailyLogService } from '@/services/dailyLogService';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,6 +13,17 @@ export const dailyLogKeys = {
 
 export function useActiveDailyLog() {
   const userId = useAuthStore((s) => s.user?.id ?? '');
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => {
+      queryClient.invalidateQueries();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [queryClient]);
+
   return useQuery({
     queryKey: dailyLogKeys.active(userId),
     queryFn:  dailyLogService.getActiveLog,

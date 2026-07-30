@@ -29,25 +29,20 @@ interface QuickSaleModalProps {
   onSuccess: () => void
 }
 
-const SALE_CHANNELS = [
-  { id: 'card_show', label: 'In-Person / Show', icon: Tag },
-  { id: 'ebay', label: 'eBay', icon: Tag },
-  { id: 'myslabs', label: 'MySlabs', icon: Tag },
-  { id: 'instagram', label: 'Instagram / Social', icon: Tag },
-  { id: 'whatnot', label: 'WhatNot', icon: Tag },
-  { id: 'facebook', label: 'Facebook', icon: Tag },
-  { id: 'other', label: 'Other', icon: Tag },
-]
+import { PAYMENT_METHODS as CENTRAL_PAYMENT_METHODS, TRANSACTION_CHANNELS as CENTRAL_CHANNELS } from '@/constants/transactionOptions'
 
-const PAYMENT_METHODS = [
-  { id: 'cash', label: 'Cash', icon: Banknote, color: 'text-green-600 bg-green-50 border-green-200 hover:bg-green-100' },
-  { id: 'zelle', label: 'Zelle', icon: CreditCard, color: 'text-purple-600 bg-purple-50 border-purple-200 hover:bg-purple-100' },
-  { id: 'venmo', label: 'Venmo', icon: Wallet, color: 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100' },
-  { id: 'paypal', label: 'PayPal', icon: DollarSign, color: 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100' },
-  { id: 'card', label: 'Stripe / Card', icon: CreditCard, color: 'text-violet-600 bg-violet-50 border-violet-200 hover:bg-violet-100' },
-  { id: 'cashapp', label: 'CashApp', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100' },
-  { id: 'other', label: 'Wire / Other', icon: Tag, color: 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100' },
-]
+const SALE_CHANNELS = CENTRAL_CHANNELS.map((c) => ({
+  id: c.key,
+  label: c.label,
+  icon: Tag,
+}))
+
+const PAYMENT_METHODS = CENTRAL_PAYMENT_METHODS.map((m) => ({
+  id: m.key,
+  label: m.label,
+  icon: Banknote,
+  color: 'text-gray-300 bg-zinc-900 border-[#252525] hover:bg-zinc-800',
+}))
 
 export default function QuickSaleModal({
   card,
