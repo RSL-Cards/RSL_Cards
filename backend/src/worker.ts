@@ -374,7 +374,7 @@ export const initWorker = () => {
                    dp.notification_preferences,
                    up.notify_daily_close_push,
                    up.notify_daily_close_email,
-                   COALESCE(up.timezone, dp.timezone, 'America/New_York') as timezone
+                   COALESCE(up.timezone, 'Asia/Kolkata', 'America/New_York') as timezone
             FROM daily_logs dl
             JOIN users u ON u.id = dl.user_id
             LEFT JOIN dealer_profiles dp ON dp.user_id = dl.user_id
