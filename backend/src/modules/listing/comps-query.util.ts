@@ -70,7 +70,7 @@ export function buildCompsSearchQuery(card: CompsCardContext): string {
 
   if (card.search_string?.trim()) {
     const base = card.search_string.trim().replace(/\s+/g, " ");
-    if (selectedGrade === "RAW") return `${base} RAW`;
+    if (selectedGrade === "RAW") return base;
     return `${base} ${company} ${selectedGrade}`;
   }
 
@@ -89,7 +89,7 @@ export function buildCompsSearchQuery(card: CompsCardContext): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  if (selectedGrade === "RAW") return `${base} RAW`.trim();
+  if (selectedGrade === "RAW") return base;
   return `${base} ${company} ${selectedGrade}`.trim();
 }
 

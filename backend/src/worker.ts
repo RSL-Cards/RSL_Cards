@@ -748,10 +748,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
               set_name: card.set_name,
               variation: card.variation,
               card_number: card.card_number,
-              grade_key: card.grading ? `${card.grading.company}_${card.grading.grade}` : "RAW",
-              grade_company: card.grading?.company,
-              grade_value: card.grading?.grade,
-              grading: card.grading,
+              grade_key: "RAW",
               search_string: card.search_string,
             }, 20);
             

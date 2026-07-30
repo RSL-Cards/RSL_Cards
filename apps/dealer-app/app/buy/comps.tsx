@@ -85,7 +85,7 @@ function buildGradeQuery(card: any, grade: string): string {
   const cleanedBase = cleanQueryString(base);
 
   if (grade === "RAW") {
-    return `${cleanedBase} RAW`;
+    return cleanedBase;
   }
 
   const company = card.grading?.company || "PSA";

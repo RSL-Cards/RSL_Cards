@@ -707,6 +707,9 @@ export class InventoryRepository {
   }
 
   async deleteInventoryId(id: string, userId: string) {
+    await db.execute(sql`UPDATE transactions SET inventory_id = NULL WHERE inventory_id = ${id}`);
+    await db.execute(sql`UPDATE trade_items SET inventory_id = NULL WHERE inventory_id = ${id}`);
+    await db.execute(sql`DELETE FROM listings WHERE inventory_id = ${id}`);
     await db.execute(sql`
       DELETE FROM inventory WHERE id = ${id} AND user_id = ${userId}
     `);

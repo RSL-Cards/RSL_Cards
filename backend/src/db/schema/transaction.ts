@@ -16,7 +16,7 @@ export const transactions = pgTable('transactions', {
   id:              uuid('id').primaryKey().defaultRandom(),
   userId:          uuid('user_id').references(() => users.id).notNull(),
   dailyLogId:      uuid('daily_log_id').references(() => dailyLogs.id),
-  inventoryId:     uuid('inventory_id').references(() => inventory.id),
+  inventoryId:     uuid('inventory_id').references(() => inventory.id, { onDelete: 'set null' }),
   customerId:      uuid('customer_id').references(() => customers.id),
   type:            txTypeEnum('type').notNull(),
   channel:         txChannelEnum('channel').default('card_show'),
