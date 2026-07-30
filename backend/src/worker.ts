@@ -399,7 +399,7 @@ export const initWorker = () => {
               const hourStr = new Intl.DateTimeFormat("en-US", {
                 timeZone: userTimezone,
                 hour: "numeric",
-                hour12: false
+                hourCycle: "h23"
               }).format(now);
               localHour = parseInt(hourStr, 10);
             } catch (tzErr) {
