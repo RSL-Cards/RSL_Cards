@@ -3,6 +3,7 @@ import { formatCurrency } from '@/components/inventory/inventoryUtils'
 import { PassbookTransaction } from './transactionsTypes'
 import {
   formatDate,
+  formatTime,
   formatChannelName,
   formatPaymentMethodName,
   getPaymentIcon,
@@ -63,7 +64,7 @@ export default function PassbookTable({
                 <tr key={transaction.id} className="transition-colors hover:bg-[#141414]">
                   <td className="px-6 py-4">
                     <div className="font-medium text-white">{formatDate(transaction.date)}</div>
-                    <div className="text-xs text-zinc-400">{transaction.time}</div>
+                    <div className="text-xs text-zinc-400">{formatTime(transaction.time)}</div>
                   </td>
                   <td className="px-6 py-4 font-mono text-xs text-zinc-400">
                     {transaction.reference}

@@ -12,6 +12,10 @@ const pool = new pg.Pool({
   max: env.DB_POOL_MAX,
 });
 
+pool.on('connect', (client) => {
+  client.query("SET timezone = 'UTC'");
+});
+
 import { DefaultLogger, LogWriter } from "drizzle-orm/logger";
 import { logger } from "../lib/logger.js";
 

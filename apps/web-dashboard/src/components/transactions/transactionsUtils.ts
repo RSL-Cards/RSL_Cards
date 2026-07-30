@@ -12,12 +12,32 @@ const recentTransactionDates: Record<string, string> = {
   'tx-005': '2026-04-13',
 }
 
-export const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(`${date}T12:00:00`))
+export const formatDate = (date: string) => {
+  if (!date) return '—';
+  try {
+    const d = new Date(date.includes('T') ? date : `${date}T12:00:00`);
+    if (!isNaN(d.getTime())) {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(d);
+    }
+  } catch (e) {}
+  return date;
+};
+
+export const formatTime = (time: string) => {
+  if (!time) return '—';
+  try {
+    const d = new Date(time);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  } catch (e) {}
+  return time;
+};
+
 
 const parseCustomerDate = (date: string) => {
   const parsed = new Date(date)

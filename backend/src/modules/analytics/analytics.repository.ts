@@ -110,10 +110,7 @@ export class AnalyticsRepository {
         imageUrl,
         channel: r.channel || null,
         paymentMethod: r.payment_method || null,
-        time: new Date(r.created_at).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        }),
+        time: new Date(r.created_at).toISOString(),
       };
     });
   }

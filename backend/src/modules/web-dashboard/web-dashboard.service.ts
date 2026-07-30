@@ -244,19 +244,24 @@ export class WebDashboardService {
 
   async getRecentTransactions(userId: string, fromDate?: string, toDate?: string) {
     const recent = await this.repository.getRecentTransactions(userId, fromDate, toDate);
-    return recent.map(tx => ({
-      id: tx.id,
-      date: tx.createdAt || new Date().toISOString(),
-      type: tx.type,
-      player: tx.playerName || '',
-      grade: tx.gradeKey?.replace('_', ' ') || 'RAW',
-      price: Number(tx.price),
-      profit: tx.profit ? Number(tx.profit) : null,
-      margin: tx.profitPct ? Number(tx.profitPct) : null,
-      channel: tx.channel || 'Direct',
-      payment: tx.paymentMethod || 'Other',
-      time: new Date(tx.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }));
+    return recent.map(tx => {
+      const dateObj = new Date(tx.createdAt || new Date());
+      const isoStr = dateObj.toISOString();
+      return {
+        id: tx.id,
+        date: isoStr.slice(0, 10),
+        createdAt: isoStr,
+        type: tx.type,
+        player: tx.playerName || '',
+        grade: tx.gradeKey?.replace('_', ' ') || 'RAW',
+        price: Number(tx.price),
+        profit: tx.profit ? Number(tx.profit) : null,
+        margin: tx.profitPct ? Number(tx.profitPct) : null,
+        channel: tx.channel || 'Direct',
+        payment: tx.paymentMethod || 'Other',
+        time: isoStr,
+      };
+    });
   }
 
   async getPassbookTransactions(userId: string) {
@@ -285,11 +290,13 @@ export class WebDashboardService {
         : null;
 
       const dateObj = new Date(tx.created_at || new Date());
+      const isoStr = dateObj.toISOString();
       
       return {
         id: tx.id,
-        date: dateObj.toISOString().slice(0, 10),
-        time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: isoStr.slice(0, 10),
+        createdAt: isoStr,
+        time: isoStr,
         reference: tx.id.slice(0, 8).toUpperCase(),
         type,
         card: tx.player_name || '',
