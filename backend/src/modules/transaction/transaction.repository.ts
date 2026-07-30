@@ -350,17 +350,37 @@ export class TransactionRepository {
       currentMarketValue,
       photos,
       notes,
+      ebaySalesCompleted,
+      ebayActiveListings,
+      myslabsSalesCompleted,
+      myslabsActiveListings,
+      search_string,
+      searchString,
     } = params;
 
     const photosArr = Array.isArray(photos) && photos.length > 0
       ? `{${photos.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}`
       : null;
 
+    const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
+    const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
+    const cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
+    const cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
+    const cleanSearchString = (search_string || searchString)?.trim() || null;
+
+    if (variantId && cleanSearchString) {
+      await tx.execute(sql`
+        UPDATE card_variants 
+        SET search_string = ${cleanSearchString}, updated_at = NOW() 
+        WHERE id = ${variantId} AND (search_string IS NULL OR search_string = '')
+      `);
+    }
+
     const result = await tx.execute(sql`
       INSERT INTO inventory (
         id, user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, listing_status, added_at, updated_at
+        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, myslabs_sales_completed, myslabs_active_listings, search_string, listing_status, added_at, updated_at
       ) VALUES (
         gen_random_uuid(),
         ${userId},
@@ -381,6 +401,11 @@ export class TransactionRepository {
         1,
         ${photosArr}::text[],
         ${notes || null},
+        ${cleanEbaySalesCompleted},
+        ${cleanEbayActiveListings},
+        ${cleanMyslabsSalesCompleted},
+        ${cleanMyslabsActiveListings},
+        ${cleanSearchString},
         'unlisted',
         NOW(),
         NOW()

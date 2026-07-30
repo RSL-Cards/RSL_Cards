@@ -4,97 +4,11 @@ import { createHash } from "node:crypto";
 import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
 import type { MyslabsService, MyslabsItem } from "./myslabs.service.js";
-import { vertexAiClient } from "../../lib/vertex-ai.client.js";
 import { normalizeCompsGradeKey } from "./comps-query.util.js";
 
 const t500 = (s?: string | null) => s && s.length > 500 ? s.slice(0, 500) : (s || null);
 
 export class ListingRepository {
-  private async filterWithGemini(
-    query: string, 
-    items: any[], 
-    idField: string, 
-    titleField: string,
-    filterObj?: { must_include?: string[], must_exclude?: string[] },
-    gradeKey?: string
-  ): Promise<any[]> {
-    if (!items || items.length === 0) return [];
-    
-    try {
-      const minimalItems = items.map(i => ({ id: String(i[idField]), title: i[titleField] }));
-      console.log(`[FILTER] Query: "${query}" | Items sent to Gemini:`, JSON.stringify(minimalItems));
-
-      let filterInstructions = "";
-      if (filterObj) {
-        console.log(`[FILTER] 🔪 Applying KILL ALGORITHM Rules:`, JSON.stringify(filterObj));
-        filterInstructions = `
-9. KILL ALGORITHM:
-   - The title MUST INCLUDE all of these terms (case-insensitive): ${JSON.stringify(filterObj.must_include || [])}
-   - The title MUST NOT INCLUDE any of these terms (case-insensitive): ${JSON.stringify(filterObj.must_exclude || [])}
-   If the title fails either of these conditions, REJECT IT IMMEDIATELY.`;
-      }
-
-      const prompt = `We are looking for EXACT matches for this specific sports card: "${query}".
-For each of the search results, determine if it is an exact match for this player, card, set, and variation.
-If it is a match, classify the grade of the card into one of the following grade categories based on its title and condition:
-- "RAW" (if the card is ungraded)
-- "5", "6", "7", "8", "9", "9.5", "10" (representing the numeric grade score if it is graded).
-
-Here are the search results: ${JSON.stringify(minimalItems)}.
-
-CRITICAL FILTERING RULES:
-1. The listing MUST be the exact same player, year, set, and subset.
-2. The listing MUST be the exact same variation/parallel (e.g. if the query specifies a parallel like "Silver" or "Orange Foil", reject base cards. If the query is for "Base", reject any parallels/refractors).
-3. The listing MUST match the exact print run if one is specified (e.g. "/25", "/99").
-4. Grade Classification:
-   - Check the listing title / name first. If a grade number is explicitly mentioned in the title (e.g., "PSA 10", "PSA 9", "SGC 10", "BGS 9.5", "Grade 10"), classify it as that numeric grade.
-   - If the listing title does NOT explicitly mention a grade number (even if it has company names like "PSA", "SGC" or describes it as "slabbed" or "graded" without a number), you MUST classify it as "RAW" (ungraded). Do not guess or assume a grade.
-   - Watch out for raw card clickbait like "PSA 10 Ready?", "PSA 10 Candidate", "PSA?", "Lky PSA 10" or "PSA 10 Look". These must be classified as "RAW"! Only classify as a numeric grade if the card is ACTUALLY graded and slabbed.
-   - For half-grades, map it to the closest match (e.g., "9.5" or "8.5").
-5. Reject any lots, sealed boxes, packs, or digital cards.
-6. DO NOT filter strictly based on card number. Minor formatting differences are okay.
-7. SELLER KEYWORDS: Sellers on eBay often stuff extra words in the title such as "RC", "Rookie", "HOF", "SSP", team names (like "49ers"), or other fluff. Do NOT reject a listing just because it has extra words or missing words. 
-8. As long as the core attributes (Player, Year, Set, Parallel/Refractor) are present in the title, ACCEPT IT.
-9. Be very lenient with punctuation, capitalization, and slight variations in subset or parallel names. If the meaning is clearly the same, accept it.${filterInstructions}
-
-Return a JSON object in this exact format with NO markdown, NO extra text:
-{
-  "matches": [
-    { "id": "listing_id_string", "grade": "RAW" },
-    { "id": "listing_id_string", "grade": "10" }
-  ]
-}
-ONLY return the JSON object. Do not include any explanations.`;
-
-      const response = await vertexAiClient.generateChat(
-        "You are a strict data classifier. Only return valid JSON objects matching the requested schema.",
-        [],
-        prompt,
-        "gemini-3.1-flash-lite"
-      );
-
-      const jsonStr = response.replace(/```json/gi, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(jsonStr);
-      const matches = parsed.matches || [];
-
-      console.log(`[FILTER] Gemini classified matches:`, matches);
-
-      const gradeMap = new Map<string, string>();
-      for (const m of matches) {
-        gradeMap.set(String(m.id), String(m.grade));
-      }
-
-      return items
-        .filter(i => gradeMap.has(String(i[idField])))
-        .map(i => ({
-          ...i,
-          grade_key: gradeMap.get(String(i[idField])) || "RAW"
-        }));
-    } catch (e) {
-      console.error("[FILTER] Failed to filter items with Gemini", e);
-      return items.map(i => ({ ...i, grade_key: "RAW" }));
-    }
-  }
 
   async getListings(userId: string) {
     const result = await db.execute(sql`
@@ -412,71 +326,43 @@ ONLY return the JSON object. Do not include any explanations.`;
       ? activeResult.value
       : { total: 0, itemSummaries: [] };
 
+    // Universal Grade Filter: Ensures RAW tab has NO graded cards, and numeric grade tabs (10, 9.5, 9, etc.) match their respective grade
+    const matchesGrade = (title?: string | null, targetGrade?: string): boolean => {
+      if (!title) return false;
+      if (!targetGrade || targetGrade === "RAW") {
+        return !/\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG)\b|\b(Slab|Slabbed|Graded)\b/i.test(title);
+      }
+
+      const escapedGrade = targetGrade.replace('.', '\\.');
+      if (targetGrade === "10") {
+        const grade10Regex = new RegExp(`\\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG|GRADE|GRADED)?\\s*(:|-|\\s)?\\s*(10|GEM\\s*MINT|GEM-MT)\\b`, "i");
+        return grade10Regex.test(title);
+      }
+
+      const numericGradeRegex = new RegExp(`\\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG|GRADE|GRADED)?\\s*(:|-|\\s)?\\s*${escapedGrade}\\b`, "i");
+      return numericGradeRegex.test(title);
+    };
+
+    if (gradeKey) {
+      if (activeData.itemSummaries && Array.isArray(activeData.itemSummaries)) {
+        activeData.itemSummaries = activeData.itemSummaries.filter(item => matchesGrade(item.title, gradeKey));
+      }
+      if (soldData.items && Array.isArray(soldData.items)) {
+        soldData.items = soldData.items.filter(item => matchesGrade(item.title, gradeKey));
+      }
+    }
+
     console.log(`\n======================================================`);
-    console.log(`[COMPS] 📥 RECEIVED DATA FROM EBAY APIs:`);
-    console.log(`[COMPS]  📦 Sold Comps API Response count: ${soldData.items?.length || 0}`);
-    if (soldData.items && soldData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
-    }
-    console.log(`[COMPS]  📦 Active Listings API Response count: ${activeData.itemSummaries?.length || 0}`);
-    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.itemSummaries[0])}`);
-    }
+    console.log(`[EBAY_SOLD_COMPS] 🔍 Search String Passed: "${queryForSold}"`);
+    console.log(`[EBAY_SOLD_COMPS] 📊 Count of Items Returned: ${soldData.items?.length || 0}`);
+    console.log(`[EBAY_SOLD_COMPS] 📦 Data Array (JSON):`, JSON.stringify(soldData.items || []));
     console.log(`======================================================\n`);
 
-    // -------------------------------------------------------------
-    // EBAY GEMINI FILTERING
-    // -------------------------------------------------------------
-    const ebaySoldBefore = soldData.items?.length || 0;
-    const ebayActiveBefore = activeData.itemSummaries?.length || 0;
-    
-    let firstOriginalSoldItem = null;
-    if (soldData.items && soldData.items.length > 0) {
-      firstOriginalSoldItem = Object.assign({}, soldData.items[0]);
-    }
-
-    let cleanedFilter = filter;
-    if (filter && Array.isArray(filter.must_exclude)) {
-      cleanedFilter = {
-        ...filter,
-        must_exclude: filter.must_exclude.filter((term: string) => {
-          const cleanTerm = term.trim();
-          // Filter out numeric grade numbers or decimals (e.g. 5, 8.5, 9, 9.5, 10) from the excludes
-          const isNumericGrade = /^\d+(\.\d+)?$/.test(cleanTerm);
-          return !isNumericGrade;
-        })
-      };
-    }
-
-    if (soldData.items && soldData.items.length > 0) {
-      soldData.items = await this.filterWithGemini(query, soldData.items, "itemId", "title", cleanedFilter, gradeKey);
-    }
-    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
-      activeData.itemSummaries = await this.filterWithGemini(query, activeData.itemSummaries, "itemId", "title", cleanedFilter, gradeKey);
-    }
-
-    const ebaySoldAfter = soldData.items?.length || 0;
-    const ebayActiveAfter = activeData.itemSummaries?.length || 0;
-
     console.log(`\n======================================================`);
-    console.log(`[COMPS] ✨ EBAY GEMINI FILTER RESULTS:`);
-    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
-    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${ebayActiveBefore} | AFTER = ${ebayActiveAfter}`);
-    if (activeData.itemSummaries && activeData.itemSummaries.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.itemSummaries[0])}`);
-    }
-    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
-    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${ebaySoldBefore} | AFTER = ${ebaySoldAfter}`);
-    if (soldData.items && soldData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Sold (AFTER): ${JSON.stringify(soldData.items[0])}`);
-    } else if (ebaySoldBefore > 0 && firstOriginalSoldItem) {
-      console.log(`[COMPS]  ⚠️ ALL ITEMS FILTERED OUT. First item BEFORE filter was: ${JSON.stringify(firstOriginalSoldItem)}`);
-    }
-    console.log("======================================================\n");
-
-    console.log(`[COMPS] ✅ Returning LIVE comps for: ${query}`);
-    console.log(`  -> Sold (Sold Comps API): ${soldData.items.length} items`);
-    console.log(`  -> Active (Real eBay API): ${activeData.itemSummaries?.length ?? 0} items`);
+    console.log(`[EBAY_ACTIVE_SEARCH] 🔍 Search String Passed: "${query}"`);
+    console.log(`[EBAY_ACTIVE_SEARCH] 📊 Count of Items Returned: ${activeData.itemSummaries?.length || 0}`);
+    console.log(`[EBAY_ACTIVE_SEARCH] 📦 Data Array (JSON):`, JSON.stringify(activeData.itemSummaries || []));
+    console.log(`======================================================\n`);
 
     if (activeResult.status === "rejected") {
       console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
@@ -802,51 +688,16 @@ ONLY return the JSON object. Do not include any explanations.`;
     }
     
     console.log(`\n======================================================`);
-    console.log(`[COMPS] 📥 RECEIVED DATA FROM MYSLABS APIs:`);
-    console.log(`[COMPS]  📦 Sold API Response count: ${soldData.items?.length || 0}`);
-    if (soldData.items && soldData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Sold item: ${JSON.stringify(soldData.items[0])}`);
-    }
-    console.log(`[COMPS]  📦 Active API Response count: ${activeData.items?.length || 0}`);
-    if (activeData.items && activeData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Active item: ${JSON.stringify(activeData.items[0])}`);
-    }
+    console.log(`[MYSLABS_SOLD_COMPS] 🔍 Search String Passed: "${queryForSold}"`);
+    console.log(`[MYSLABS_SOLD_COMPS] 📊 Count of Items Returned: ${soldData.items?.length || 0}`);
+    console.log(`[MYSLABS_SOLD_COMPS] 📦 Data Array (JSON):`, JSON.stringify(soldData.items || []));
     console.log(`======================================================\n`);
-
-    const myslabsDuration = Date.now() - myslabsStartTime;
-    console.log(`[PERF] ⏱️ MySlabs API (Sold & Active) total time: ${myslabsDuration}ms`);
-
-    // -------------------------------------------------------------
-    // MYSLABS GEMINI FILTERING
-    // -------------------------------------------------------------
-    const myslabsSoldBefore = soldData.items?.length || 0;
-    const myslabsActiveBefore = activeData.items?.length || 0;
-
-    // USER REQUEST: "myslabs data doesnt need send to modal , show all"
-    // Bypassing Gemini filter for MySlabs.
-    // soldData.items = await this.filterWithGemini(query, soldData.items, "id", "title", filter);
-    // activeData.items = await this.filterWithGemini(query, activeData.items, "id", "title", filter);
-
-    const myslabsSoldAfter = soldData.items?.length || 0;
-    const myslabsActiveAfter = activeData.items?.length || 0;
 
     console.log(`\n======================================================`);
-    console.log(`[COMPS] ✨ MYSLABS GEMINI FILTER RESULTS:`);
-    console.log(`[COMPS]  👉 Active Query String: "${query}"`);
-    console.log(`[COMPS]  👉 Active Listings: BEFORE = ${myslabsActiveBefore} | AFTER = ${myslabsActiveAfter}`);
-    if (activeData.items && activeData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Active: ${JSON.stringify(activeData.items[0])}`);
-    }
-    console.log(`[COMPS]  👉 Sold Query String: "${queryForSold}"`);
-    console.log(`[COMPS]  👉 Sold Comps: BEFORE = ${myslabsSoldBefore} | AFTER = ${myslabsSoldAfter}`);
-    if (soldData.items && soldData.items.length > 0) {
-      console.log(`[COMPS]  🔍 Sample Sold: ${JSON.stringify(soldData.items[0])}`);
-    }
+    console.log(`[MYSLABS_ACTIVE_SEARCH] 🔍 Search String Passed: "${query}"`);
+    console.log(`[MYSLABS_ACTIVE_SEARCH] 📊 Count of Items Returned: ${activeData.items?.length || 0}`);
+    console.log(`[MYSLABS_ACTIVE_SEARCH] 📦 Data Array (JSON):`, JSON.stringify(activeData.items || []));
     console.log(`======================================================\n`);
-
-    console.log(`[COMPS] ✅ Returning LIVE comps from MySlabs APIs for: ${query}`);
-    console.log(`  -> Sold (MySlabs API): ${soldData.items.length} items`);
-    console.log(`  -> Active (MySlabs API): ${activeData.items.length} items`);
 
     const prices = soldData.items.map((i) => i.price).filter((p) => p > 0);
     const activePrices = activeData.items.map((i) => i.price).filter((p) => p > 0);

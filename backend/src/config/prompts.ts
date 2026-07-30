@@ -12,7 +12,7 @@ Return ONLY this JSON:
   "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269",
   "filter": {
     "must_include": ["2017", "mahomes", "prizm", "269"],
-    "must_exclude": ["auto","patch","reprint","lot","repack","psa","bgs","sgc","cgc","graded","gold","blue","red","green","orange","pink","purple","mojo","disco"]
+    "must_exclude": ["reprint", "lot", "repack", "custom", "digital", "sticker"]
   },
   "is_rookie": false,
   "is_autograph": false,

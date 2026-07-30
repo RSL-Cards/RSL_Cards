@@ -9,6 +9,7 @@ import {
   index,
   uniqueIndex,
   real,
+  text,
 } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 import { listingPlatformEnum } from "./listing";
@@ -88,6 +89,7 @@ export const cardVariants = pgTable(
     isAutograph: boolean("is_autograph").default(false),
     isRelic: boolean("is_relic").default(false), // Includes memorabilia
     printRun: integer("print_run"), // nullable; e.g. 50, 10, 1
+    searchString: text("search_string"), // AI generated search string
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },

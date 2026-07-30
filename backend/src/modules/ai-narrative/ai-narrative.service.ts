@@ -186,7 +186,17 @@ export class AiNarrativeService {
         }
 
         geminiCard = parsedCard;
-        console.log(`[SCAN-CARD] ✅ Successfully identified card using model: ${modelName}`);
+        console.log(`\n======================================================`);
+        console.log(`[AI_CARD_SCAN] 🤖 EXTRACTED CARD DETAILS FROM MODAL/GEMINI:`);
+        console.log(`[AI_CARD_SCAN]  👉 Player: "${geminiCard.player_name}"`);
+        console.log(`[AI_CARD_SCAN]  👉 Year: ${geminiCard.year || 'N/A'}`);
+        console.log(`[AI_CARD_SCAN]  👉 Set: "${geminiCard.set_name || ''}"`);
+        console.log(`[AI_CARD_SCAN]  👉 Variation: "${geminiCard.variation || ''}"`);
+        console.log(`[AI_CARD_SCAN]  👉 Card #: "${geminiCard.card_number || ''}"`);
+        console.log(`[AI_CARD_SCAN]  👉 Search String: "${geminiCard.search_string || ''}"`);
+        console.log(`[AI_CARD_SCAN]  👉 Grading: ${JSON.stringify(geminiCard.grading || null)}`);
+        console.log(`[AI_CARD_SCAN] 📦 FULL AI JSON:`, JSON.stringify(geminiCard));
+        console.log(`======================================================\n`);
         break;
       } catch (err: any) {
         console.warn(`[SCAN-CARD] ❌ Model ${modelName} failed: ${err.message}`);

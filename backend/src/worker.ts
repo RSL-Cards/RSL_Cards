@@ -49,7 +49,7 @@ export const initWorker = () => {
       if (job.name === BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS) {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
-          // Fetch all unique card variants in inventory
+          // Fetch all unique card variants in inventory along with stored search_string
           const variantsResult = await db.execute(sql`
             SELECT DISTINCT
               i.variant_id,
@@ -57,7 +57,8 @@ export const initWorker = () => {
               c.set_name,
               c.card_number,
               p.name as player_name,
-              cv.name as variant_name
+              cv.name as variant_name,
+              COALESCE(i.search_string, cv.search_string) as search_string
             FROM inventory i
             JOIN card_variants cv ON i.variant_id = cv.id
             JOIN cards c ON cv.card_id = c.id
@@ -136,6 +137,7 @@ export const initWorker = () => {
             grade_company: item.grade_company,
             grade_value: item.grade_value,
             variant_id: item.variant_id,
+            search_string: item.search_string,
           }, 20),
           forceRefresh: true
         };
@@ -735,6 +737,8 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           if (validCards.length === 0) {
             throw new Error("No cards identified in image or file");
           }
+
+          logger.info(`[AI_CARD_SCAN] 🤖 Extracted Card Details from Batch Scan: ${JSON.stringify(validCards)}`);
 
           const enrichedCards = [];
           for (const card of validCards) {

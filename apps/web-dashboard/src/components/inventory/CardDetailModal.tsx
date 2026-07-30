@@ -60,6 +60,7 @@ function getListingUrl(item: any): string {
 }
 
 const gradesList = [
+  "ALL",
   "RAW",
   "5",
   "6",
@@ -80,6 +81,7 @@ function calcMedian(prices: number[]): number {
 // Client-side comps filtering by exact grade matching mobile app logic
 function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   if (!items || !items.length) return []
+  if (!selectedGrade || selectedGrade === "ALL") return items
   return items.filter(item => {
     const title = (item.title || item.name || "").toUpperCase()
     const condition = (item.condition || "").toUpperCase()

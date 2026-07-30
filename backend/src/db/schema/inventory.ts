@@ -35,6 +35,7 @@ export const inventory = pgTable('inventory', {
   listingStatus:        listingStatusEnum('listing_status').default('unlisted'),
   photos:               text('photos').array(),                        // S3 URLs
   notes:                text('notes'),
+  searchString:         text('search_string'),                         // AI generated search string
   addedAt:              timestamp('added_at', { withTimezone: true }).defaultNow(),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
 }, (t) => ({

@@ -162,10 +162,71 @@ export class InventoryRepository {
           platform: 'MySlabs'
         }));
 
-      item.ebay_sales_completed = JSON.stringify(mappedEbaySold);
-      item.myslabs_sales_completed = JSON.stringify(mappedMyslabsSold);
-      item.ebay_active_listings = JSON.stringify(mappedEbayActive);
-      item.myslabs_active_listings = JSON.stringify(mappedMyslabsActive);
+      if (mappedEbaySold.length > 0) {
+        item.ebay_sales_completed = JSON.stringify(mappedEbaySold);
+      }
+      if (mappedMyslabsSold.length > 0) {
+        item.myslabs_sales_completed = JSON.stringify(mappedMyslabsSold);
+      }
+      if (mappedEbayActive.length > 0) {
+        item.ebay_active_listings = JSON.stringify(mappedEbayActive);
+      }
+      if (mappedMyslabsActive.length > 0) {
+        item.myslabs_active_listings = JSON.stringify(mappedMyslabsActive);
+      }
+    }
+
+    // Live Comps Fallback: If comps are empty in DB, fetch live comps and persist to inventory item
+    const isEbaySoldEmpty = !item.ebay_sales_completed || item.ebay_sales_completed === '[]' || item.ebay_sales_completed === 'null';
+    const isEbayActiveEmpty = !item.ebay_active_listings || item.ebay_active_listings === '[]' || item.ebay_active_listings === 'null';
+
+    if ((isEbaySoldEmpty || isEbayActiveEmpty) && item.player_name) {
+      try {
+        const { ListingRepository } = await import("../listing/listing.repository.js");
+        const { EbayService } = await import("../listing/ebay.service.js");
+        const { SoldCompsService } = await import("../listing/sold-comps.service.js");
+        const { env } = await import("../../config/index.js");
+
+        const listingRepo = new ListingRepository();
+        const ebayService = new EbayService(env);
+        const soldCompsService = new SoldCompsService(env);
+
+        const cardQuery = [
+          item.player_name,
+          item.year,
+          item.set_name,
+          item.variation !== 'Base' ? item.variation : '',
+          item.card_number ? `#${item.card_number}` : ''
+        ].filter(Boolean).join(' ');
+
+        if (cardQuery.trim()) {
+          const compsResult = await listingRepo.ebaySold({
+            q: cardQuery,
+            grade_key: item.grade_key || 'RAW',
+            variant_id: item.variant_id,
+            limit: 20
+          }, ebayService, soldCompsService);
+
+          if (compsResult) {
+            if (isEbaySoldEmpty && compsResult.last30Days?.items?.length > 0) {
+              item.ebay_sales_completed = JSON.stringify(compsResult.last30Days.items);
+            }
+            if (isEbayActiveEmpty && compsResult.activeListings?.length > 0) {
+              item.ebay_active_listings = JSON.stringify(compsResult.activeListings);
+            }
+
+            await db.execute(sql`
+              UPDATE inventory 
+              SET ebay_sales_completed = ${item.ebay_sales_completed},
+                  ebay_active_listings = ${item.ebay_active_listings},
+                  updated_at = NOW()
+              WHERE id = ${id}
+            `);
+          }
+        }
+      } catch (liveFetchErr: any) {
+        console.warn(`[INVENTORY] Failed live comps fallback for inventory item ${id}:`, liveFetchErr.message);
+      }
     }
     
     // Calculate days_held on backend to guarantee sync with web-dashboard
@@ -312,10 +373,22 @@ export class InventoryRepository {
       ? `{${listedPlatforms.map((platform: string) => `"${platform.replace(/"/g, '\\"')}"`).join(",")}}`
       : null;
     const cleanListingStatus = cleanListedPlatforms ? "listed" : "unlisted";
-    const cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
-    const cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
-    const cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
-    const cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
+    let cleanEbaySalesCompleted = ebaySalesCompleted && ebaySalesCompleted !== "" ? ebaySalesCompleted : null;
+    let cleanEbayActiveListings = ebayActiveListings && ebayActiveListings !== "" ? ebayActiveListings : null;
+    let cleanMyslabsSalesCompleted = myslabsSalesCompleted && myslabsSalesCompleted !== "" ? myslabsSalesCompleted : null;
+    let cleanMyslabsActiveListings = myslabsActiveListings && myslabsActiveListings !== "" ? myslabsActiveListings : null;
+
+    if (!cleanEbaySalesCompleted && body.comps) {
+      if (body.comps.last30Days?.items && Array.isArray(body.comps.last30Days.items) && body.comps.last30Days.items.length > 0) {
+        cleanEbaySalesCompleted = JSON.stringify(body.comps.last30Days.items);
+      } else if (body.comps.last7Days?.items && Array.isArray(body.comps.last7Days.items) && body.comps.last7Days.items.length > 0) {
+        cleanEbaySalesCompleted = JSON.stringify(body.comps.last7Days.items);
+      }
+    }
+
+    if (!cleanEbayActiveListings && body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
+      cleanEbayActiveListings = JSON.stringify(body.comps.activeListings);
+    }
 
 
 
@@ -423,17 +496,33 @@ export class InventoryRepository {
       }
     }
 
+    const cleanSearchString = (body.search_string || body.searchString)?.trim() || [
+      cleanPlayerName,
+      cleanYear,
+      cleanSetName,
+      cleanVariation && cleanVariation !== 'Base' ? cleanVariation : '',
+      cleanCardNumber ? `#${cleanCardNumber}` : ''
+    ].filter(Boolean).join(' ');
+
+    if (resolvedVariantId && cleanSearchString) {
+      await db.execute(sql`
+        UPDATE card_variants 
+        SET search_string = ${cleanSearchString}, updated_at = NOW() 
+        WHERE id = ${resolvedVariantId} AND (search_string IS NULL OR search_string = '')
+      `);
+    }
+
     const result = await db.execute(sql`
       INSERT INTO inventory (
         user_id, card_id, variant_id, player_id, year, set_name, variation, card_number, sport,
         grade_company, grade_value, grade_key, cert_number, cost_basis, current_market_value,
-        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, myslabs_sales_completed, myslabs_active_listings, listing_status, added_at, updated_at
+        quantity, photos, notes, ebay_sales_completed, ebay_active_listings, myslabs_sales_completed, myslabs_active_listings, search_string, listing_status, added_at, updated_at
       ) VALUES (
         ${userId}, ${cleanCardId}, ${resolvedVariantId}, ${resolvedPlayerId}, ${cleanYear}, ${cleanSetName}, 
         ${cleanVariation}, ${cleanCardNumber}, ${cleanSport},
         ${cleanGradeCompany}, ${cleanGradeValue}, ${gradeKey}, ${cleanCertNumber},
         ${cleanCostBasis}, ${cleanCurrentMarketValue}, ${cleanQuantity}, ${cleanPhotos}::text[], ${cleanNotes},
-        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, ${cleanMyslabsSalesCompleted}, ${cleanMyslabsActiveListings}, 'unlisted', NOW(), NOW()
+        ${cleanEbaySalesCompleted}, ${cleanEbayActiveListings}, ${cleanMyslabsSalesCompleted}, ${cleanMyslabsActiveListings}, ${cleanSearchString}, 'unlisted', NOW(), NOW()
       )
       RETURNING *
     `);
