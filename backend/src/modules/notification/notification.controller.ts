@@ -23,10 +23,11 @@ export class NotificationController {
     return "guest";
   }
 
-  streamNotifications = ({ request }: { request: Request }) => {
+  streamNotifications = ({ request, set }: { request: Request; set: any }) => {
     const userId = this.getUserId(request);
     if (userId === "guest") {
-      throw new Error("Authentication is required for SSE");
+      set.status = 401;
+      return { error: "Authentication is required for SSE" };
     }
 
     return new Stream((stream) => {

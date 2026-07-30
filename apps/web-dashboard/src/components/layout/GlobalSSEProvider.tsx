@@ -9,11 +9,11 @@ import { useNotificationStore } from "../../stores/useNotificationStore";
 import { useAuthStore } from "../../stores/authStore";
 
 export function GlobalSSEProvider({ children }: { children: React.ReactNode }) {
-  // Use the global API url for SSE
-  useSSE(`${API_BASE_URL}/v1/notifications/stream`);
-
   const setNotifications = useNotificationStore((state) => state.setNotifications);
   const token = useAuthStore((state) => state.tokens?.accessToken);
+
+  // Only open SSE stream connection when user is authenticated with a valid token
+  useSSE(token ? `${API_BASE_URL}/v1/notifications/stream` : "");
 
   useEffect(() => {
     if (token) {

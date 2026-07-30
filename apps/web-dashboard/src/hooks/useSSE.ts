@@ -11,7 +11,7 @@ export function useSSE(url: string) {
 
   useEffect(() => {
     const token = tokens?.accessToken;
-    if (!token) return;
+    if (!url || !token) return;
 
     // Use a custom header approach if your SSE endpoint requires it, 
     // but native EventSource in browser doesn't support headers well.

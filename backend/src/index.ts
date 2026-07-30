@@ -172,6 +172,11 @@ const app = new Elysia()
     const url = new URL(request.url);
     return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
   })
+  .get("/", () => ({ status: "ok", service: "RSL Cards API", version: "1.0.0" }))
+  .get("/favicon.ico", ({ set }) => {
+    set.status = 204;
+    return "";
+  })
   .use(contactModule)
   .use(webDashboardModule)
   .use(batchRouter)
