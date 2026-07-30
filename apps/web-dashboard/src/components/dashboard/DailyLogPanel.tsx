@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useActiveDailyLog, useCreateDailyLog, useCloseDailyLog, useAddExpense, useUpdateExpense, useDeleteExpense, useDailyLogTransactions } from '@/hooks/dashboard/useDailyLog';
+import { useActiveDailyLog, useCreateDailyLog, useCloseDailyLog, useAddExpense, useUpdateExpense, useDeleteExpense, useUpdateTransaction, useDailyLogTransactions } from '@/hooks/dashboard/useDailyLog';
 import { Plus, X, DollarSign, Activity, Settings2, Trash2, List, AlertTriangle, CheckCircle2, Lock, Pencil } from 'lucide-react';
 import clsx from 'clsx';
 import React, { useState, useRef, Fragment } from 'react';
@@ -13,6 +13,7 @@ export default function DailyLogPanel() {
   const addExpense = useAddExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const updateTx = useUpdateTransaction();
 
   const [isOpening, setIsOpening] = useState(false);
   const [newLogName, setNewLogName] = useState('');
@@ -34,6 +35,10 @@ export default function DailyLogPanel() {
   const [editingExpense, setEditingExpense] = useState<{ id: string; category: string; amount: string; note: string; logId?: string } | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  // Transaction edit state (buy, sell, trade)
+  const [editingTx, setEditingTx] = useState<{ id: string; card: string; amount: string; type: string; logId?: string } | null>(null);
+  const [editingTxSaving, setEditingTxSaving] = useState(false);
+  const [editingTxError, setEditingTxError] = useState<string | null>(null);
   // Expense delete state
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 
@@ -506,22 +511,34 @@ export default function DailyLogPanel() {
                                   : `${tx.type === 'sell' ? '+' : '-'}$${parseFloat(tx.amount || 0).toFixed(2)}`}
                               </span>
 
-                              {/* Edit/Delete — only for expense type */}
-                              {tx.type === 'expense' && (
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => setEditingExpense({
-                                      id: tx.id,
-                                      category: tx.description?.split(' - ')[0] || '',
-                                      amount: parseFloat(tx.amount || 0).toFixed(2),
-                                      note: tx.description?.split(' - ').slice(1).join(' - ') || '',
-                                      logId: activeLog?.id,
-                                    })}
-                                    className="p-1 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
-                                    title="Edit expense"
-                                  >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </button>
+                              {/* Edit Action for All Transaction Types */}
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => {
+                                    if (tx.type === 'expense') {
+                                      setEditingExpense({
+                                        id: tx.id,
+                                        category: tx.description?.split(' - ')[0] || 'Expense',
+                                        amount: parseFloat(tx.amount || 0).toFixed(2),
+                                        note: tx.description?.split(' - ').slice(1).join(' - ') || '',
+                                        logId: activeLog?.id,
+                                      });
+                                    } else {
+                                      setEditingTx({
+                                        id: tx.id,
+                                        card: tx.description || tx.card || 'Card Transaction',
+                                        amount: parseFloat(tx.amount || 0).toFixed(2),
+                                        type: tx.type,
+                                        logId: activeLog?.id,
+                                      });
+                                    }
+                                  }}
+                                  className="p-1 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
+                                  title={`Edit ${tx.type}`}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                {tx.type === 'expense' && (
                                   <button
                                     onClick={() => setDeletingExpenseId(tx.id)}
                                     className="p-1 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
@@ -529,8 +546,8 @@ export default function DailyLogPanel() {
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -569,55 +586,64 @@ export default function DailyLogPanel() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">Edit Expense</h3>
-                  <p className="text-[11px] text-zinc-400">Update category, amount or note</p>
+                  <p className="text-[11px] text-zinc-400">Update expense details</p>
                 </div>
               </div>
 
               {editError && (
-                <div className="mb-3 flex items-center gap-2 rounded-xl bg-red-500/15 border border-red-500/30 px-3 py-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                  <p className="text-xs text-red-400">{editError}</p>
+                <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-400">
+                  {editError}
                 </div>
               )}
 
-              <div className="space-y-2.5 mb-4">
-                <input
-                  type="text"
-                  placeholder="Category"
-                  value={editingExpense.category}
-                  onChange={(e) => setEditingExpense({ ...editingExpense, category: e.target.value })}
-                  disabled={editSaving}
-                  className="w-full px-3 py-2 text-sm bg-[#141414] border border-[#252525] rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 disabled:opacity-50"
-                />
-                <input
-                  type="number"
-                  placeholder="Amount"
-                  value={editingExpense.amount}
-                  onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
-                  disabled={editSaving}
-                  className="w-full px-3 py-2 text-sm bg-[#141414] border border-[#252525] rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 disabled:opacity-50 font-mono"
-                />
-                <input
-                  type="text"
-                  placeholder="Note (optional)"
-                  value={editingExpense.note}
-                  onChange={(e) => setEditingExpense({ ...editingExpense, note: e.target.value })}
-                  disabled={editSaving}
-                  className="w-full px-3 py-2 text-sm bg-[#141414] border border-[#252525] rounded-xl text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 disabled:opacity-50"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Category *</label>
+                  <input
+                    type="text"
+                    value={editingExpense.category}
+                    onChange={(e) => setEditingExpense({ ...editingExpense, category: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    placeholder="e.g. Show Fee, Shipping"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Amount ($) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingExpense.amount}
+                    onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Note</label>
+                  <input
+                    type="text"
+                    value={editingExpense.note}
+                    onChange={(e) => setEditingExpense({ ...editingExpense, note: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                    placeholder="Optional note"
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 mt-5">
                 <button
+                  type="button"
                   onClick={() => { setEditingExpense(null); setEditError(null); }}
-                  disabled={editSaving}
-                  className="flex-1 rounded-xl border border-[#252525] bg-[#141414] hover:bg-[#1E1E1E] px-4 py-2.5 text-xs font-bold text-zinc-300 disabled:opacity-50"
+                  className="flex-1 rounded-xl border border-[#252525] bg-[#141414] py-2.5 text-xs font-bold text-zinc-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    if (!editingExpense.category || !editingExpense.amount) return;
+                    if (!editingExpense.category || !editingExpense.amount || editSaving) return;
                     setEditSaving(true);
                     setEditError(null);
                     updateExpense.mutate(
@@ -641,6 +667,103 @@ export default function DailyLogPanel() {
                 >
                   {editSaving ? (
                     <><span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />Saving...</>
+                  ) : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Transaction Modal (BUY, SELL, TRADE) */}
+        {editingTx && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#252525] bg-[#0D0D0D] p-5 shadow-2xl animate-in zoom-in-95 duration-150">
+              <button
+                onClick={() => { setEditingTx(null); setEditingTxError(null); }}
+                className="absolute top-4 right-4 h-7 w-7 flex items-center justify-center rounded-xl border border-[#252525] bg-[#141414] text-zinc-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 shrink-0">
+                  <Pencil className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white capitalize">Edit {editingTx.type} Transaction</h3>
+                  <p className="text-[11px] text-zinc-400">Update transaction details</p>
+                </div>
+              </div>
+
+              {editingTxError && (
+                <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-400">
+                  {editingTxError}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Card / Details
+                  </label>
+                  <input
+                    type="text"
+                    value={editingTx.card}
+                    onChange={(e) => setEditingTx({ ...editingTx, card: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    placeholder="Player / Card description"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                    Amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingTx.amount}
+                    onChange={(e) => setEditingTx({ ...editingTx, amount: e.target.value })}
+                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-5">
+                <button
+                  type="button"
+                  onClick={() => { setEditingTx(null); setEditingTxError(null); }}
+                  className="flex-1 rounded-xl border border-[#252525] bg-[#141414] py-2.5 text-xs font-bold text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!editingTx.amount || editingTxSaving) return;
+                    setEditingTxSaving(true);
+                    setEditingTxError(null);
+                    updateTx.mutate(
+                      {
+                        id: editingTx.id,
+                        data: {
+                          amount: parseFloat(editingTx.amount),
+                          card: editingTx.card,
+                        },
+                        logId: editingTx.logId,
+                      },
+                      {
+                        onSuccess: () => { setEditingTxSaving(false); setEditingTx(null); setEditingTxError(null); },
+                        onError: (err: any) => { setEditingTxSaving(false); setEditingTxError(err?.message || 'Failed to update transaction'); },
+                      }
+                    );
+                  }}
+                  disabled={!editingTx.amount || editingTxSaving}
+                  className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {editingTxSaving ? (
+                    <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
                   ) : 'Save Changes'}
                 </button>
               </div>

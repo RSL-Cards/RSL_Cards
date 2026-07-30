@@ -20,4 +20,5 @@ export const transactionModule = new Elysia({ prefix: "/v1/transactions" })
   .get("/customers/:customerId", controller.byCustomer)
   .get("/export", controller.export)
   .get("/:id", controller.getById)
+  .patch("/:id", controller.patch)
   .delete("/:id", controller.delete);

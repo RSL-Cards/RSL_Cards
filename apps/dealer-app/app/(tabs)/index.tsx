@@ -401,18 +401,38 @@ export default function HomeScreen() {
                       ].filter(Boolean).join(" · ")}
                     </Typography>
                   </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Typography variant="body" weight="700" color={tx.type === "trade" ? "#00C853" : COLORS.text}>
-                      {tx.type === "trade"
-                        ? tx.price.startsWith("+") || tx.price.startsWith("-") || tx.price === "Straight Trade"
-                          ? tx.price
-                          : `$${tx.price}`
-                        : `$${tx.price}`}
-                    </Typography>
-                    {tx.profit && (
-                      <Typography variant="caption" weight="600" color={parseFloat(tx.profit) >= 0 ? COLORS.success : COLORS.destructive} style={{ marginTop: 2 }}>
-                        {parseFloat(tx.profit) >= 0 ? "+" : ""}${tx.profit}
+                  <View style={{ alignItems: "flex-end", flexDirection: "row", gap: 8 }}>
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Typography variant="body" weight="700" color={tx.type === "trade" ? "#00C853" : COLORS.text}>
+                        {tx.type === "trade"
+                          ? tx.price.startsWith("+") || tx.price.startsWith("-") || tx.price === "Straight Trade"
+                            ? tx.price
+                            : `$${tx.price}`
+                          : `$${tx.price}`}
                       </Typography>
+                      {tx.profit && (
+                        <Typography variant="caption" weight="600" color={parseFloat(tx.profit) >= 0 ? COLORS.success : COLORS.destructive} style={{ marginTop: 2 }}>
+                          {parseFloat(tx.profit) >= 0 ? "+" : ""}${tx.profit}
+                        </Typography>
+                      )}
+                    </View>
+                    {tx.type === "expense" && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          router.push({
+                            pathname: "/expense",
+                            params: {
+                              id: tx.id,
+                              category: tx.playerName || "General",
+                              amount: String(tx.price || 0),
+                              description: tx.playerName || "",
+                            },
+                          })
+                        }
+                        style={{ padding: 4, justifyContent: "center" }}
+                      >
+                        <Ionicons name="pencil-outline" size={16} color="#FFB300" />
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>

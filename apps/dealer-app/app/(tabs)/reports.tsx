@@ -28,6 +28,7 @@ import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { Button } from "../../src/components/ui/Button";
 import RSLLoader from "../../src/components/RSLLoader";
+import { router } from "expo-router";
 
 type Period = "today" | "week" | "month" | "ytd";
 type TopTab = "performance" | "logs";
@@ -597,11 +598,29 @@ function DailyLogsTab() {
                             {tx.description || (isTrade ? "Trade Transaction" : "Transaction")}
                           </Typography>
                         </View>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
                           <Typography variant="body" weight="800" color={amtColor}>
                             {formattedAmountStr}
                           </Typography>
-                          <TouchableOpacity onPress={() => handleDeleteItem(tx.id, tx.type)}>
+                          {isExpense && (
+                            <TouchableOpacity
+                              onPress={() =>
+                                router.push({
+                                  pathname: "/expense",
+                                  params: {
+                                    id: tx.id,
+                                    category: tx.description?.split(" - ")[0] || "General",
+                                    amount: String(tx.amount || 0),
+                                    description: tx.description || "",
+                                  },
+                                })
+                              }
+                              style={{ padding: 4 }}
+                            >
+                              <Ionicons name="pencil-outline" size={18} color="#FFB300" />
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity onPress={() => handleDeleteItem(tx.id, tx.type)} style={{ padding: 4 }}>
                             <Ionicons name="trash-outline" size={18} color={COLORS.destructive} />
                           </TouchableOpacity>
                         </View>

@@ -60,4 +60,8 @@ export class TransactionService {
   async deleteTransactionsId(userId: string, id: string) {
     return this.repository.deleteTransactionsId(userId, id);
   }
+
+  async patchTransactionsId(userId: string, id: string, body: any) {
+    return this.repository.patchTransaction(userId, id, body);
+  }
 }

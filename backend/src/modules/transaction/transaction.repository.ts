@@ -904,4 +904,48 @@ export class TransactionRepository {
 
     return { success: true, id: result.rows[0].id };
   }
+
+  async patchTransaction(userId: string, id: string, body: any) {
+    const fields: Record<string, any> = {};
+    if (body.amount !== undefined) fields.price = String(body.amount);
+    if (body.price !== undefined) fields.price = String(body.price);
+    if (body.costBasis !== undefined) fields.cost_basis = String(body.costBasis);
+    if (body.playerName !== undefined) fields.player_name = body.playerName;
+    if (body.card !== undefined) fields.player_name = body.card;
+    if (body.gradeKey !== undefined) fields.grade_key = body.gradeKey;
+    if (body.channel !== undefined) fields.channel = body.channel;
+    if (body.paymentMethod !== undefined) fields.payment_method = body.paymentMethod;
+
+    const setEntries = Object.entries(fields);
+    if (setEntries.length > 0) {
+      const setSql = setEntries.map(([col, val]) => sql`${sql.identifier(col)} = ${val}`);
+      await db.execute(sql`
+        UPDATE transactions
+        SET ${sql.join(setSql, sql`, `)}
+        WHERE id = ${id} AND user_id = ${userId}
+      `);
+    }
+
+    const [txRow] = (await db.execute(sql`
+      SELECT id, daily_log_id, inventory_id, type, price FROM transactions WHERE id = ${id} AND user_id = ${userId} LIMIT 1
+    `)).rows as any[];
+
+    if (txRow) {
+      if (txRow.inventory_id && txRow.type === 'buy' && (body.price !== undefined || body.amount !== undefined)) {
+        const newPrice = Number(body.price ?? body.amount);
+        await db.execute(sql`
+          UPDATE inventory SET cost_basis = ${newPrice}, updated_at = NOW() WHERE id = ${txRow.inventory_id}
+        `);
+      }
+      if (txRow.daily_log_id) {
+        await db.execute(sql`
+          UPDATE daily_logs 
+          SET updated_after_closing = TRUE, updated_at = NOW() 
+          WHERE id = ${txRow.daily_log_id} AND status = 'closed'
+        `);
+      }
+    }
+
+    return { success: true };
+  }
 }

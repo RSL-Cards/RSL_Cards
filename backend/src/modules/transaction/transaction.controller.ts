@@ -50,4 +50,8 @@ export class TransactionController {
   delete = async ({ request, params }: { request: Request; params: any }) => {
     return await this.service.deleteTransactionsId(this.getUserId(request), params.id);
   };
+
+  patch = async ({ request, params, body }: { request: Request; params: any; body: any }) => {
+    return await this.service.patchTransactionsId(this.getUserId(request), params.id, body);
+  };
 }
