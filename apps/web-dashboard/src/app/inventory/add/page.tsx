@@ -94,6 +94,53 @@ function BulkAddPage() {
     return () => clearInterval(interval)
   }, [status, batchId])
 
+  const compressImageFile = (file: File, maxWidth = 1920, maxHeight = 1920, quality = 0.85): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+        return
+      }
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        let width = img.width
+        let height = img.height
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          } else {
+            width = Math.round((width * maxHeight) / height)
+            height = maxHeight
+          }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          const reader = new FileReader()
+          reader.onload = () => resolve((reader.result as string).split(',')[1])
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        resolve(dataUrl.split(',')[1])
+      }
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url)
+        reject(err)
+      }
+      img.src = url
+    })
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = e.target.files
@@ -106,30 +153,17 @@ function BulkAddPage() {
         await apiClient.post('/batch/upload', { rawText: text })
         router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       } else if (uploadMode === 'multiple_images') {
-        const promises = Array.from(files).map((file) => {
-          return new Promise<void>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = async () => {
-              try {
-                const base64 = (reader.result as string).split(',')[1]
-                await apiClient.post('/batch/scan-multi', { image: base64 })
-                resolve()
-              } catch (err) { reject(err) }
-            }
-            reader.readAsDataURL(file)
-          })
+        const promises = Array.from(files).map(async (file) => {
+          const base64 = await compressImageFile(file)
+          await apiClient.post('/batch/scan-multi', { image: base64 })
         })
         await Promise.all(promises)
         router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       } else {
         // single_image
-        const reader = new FileReader()
-        reader.onload = async () => {
-          const base64 = (reader.result as string).split(',')[1]
-          await apiClient.post('/batch/scan-multi', { image: base64 })
-          router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
-        }
-        reader.readAsDataURL(files[0])
+        const base64 = await compressImageFile(files[0])
+        await apiClient.post('/batch/scan-multi', { image: base64 })
+        router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Upload failed')

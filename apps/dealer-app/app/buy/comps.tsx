@@ -51,6 +51,9 @@ function cleanQueryString(query: string): string {
 
 function buildEbayQuery(card: any): string {
   if (!card) return "";
+  if (card.search_string?.trim()) {
+    return cleanQueryString(card.search_string.trim());
+  }
   const query = [
     card.player_name, 
     card.year, 
@@ -71,7 +74,7 @@ function buildMyslabsQuery(card: any): string {
 
 function buildGradeQuery(card: any, grade: string): string {
   if (!card) return "";
-  const base = [
+  const base = card.search_string?.trim() || [
     card.player_name,
     card.year,
     card.set_name,

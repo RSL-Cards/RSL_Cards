@@ -1,4 +1,4 @@
-export const CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this card image and extract the following details in strict JSON format with NO markdown, NO extra text.
+export const CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this card image to extract all card details and generate an optimal search string for eBay active listings and Sold Comps APIs in strict JSON format with NO markdown, NO extra text.
 IMPORTANT: If the image does NOT contain a sports card or trading card, return an empty JSON object: {}
 Return ONLY this JSON:
 {
@@ -9,7 +9,7 @@ Return ONLY this JSON:
   "sport": "football",
   "card_number": "269",
   "manufacturer": "Panini",
-  "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm",
+  "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269",
   "filter": {
     "must_include": ["2017", "mahomes", "prizm", "269"],
     "must_exclude": ["auto","patch","reprint","lot","repack","psa","bgs","sgc","cgc","graded","gold","blue","red","green","orange","pink","purple","mojo","disco"]
@@ -30,7 +30,7 @@ Rules:
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
 - "variation": the parallel/refractor/insert name exactly as on the card or slab label (e.g. "Downtown!", "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave"). **CRITICAL: If the card is in a graded slab, READ the slab label text to determine the exact variation, subset (e.g. Downtown!), card number, cert number, and grade.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
-- "search_string": Include all core descriptive text visible on the card itself (Player, Year, Set, Variation, Subsets like "Performers", "Auto", etc.). DO NOT include grading company, grade, or the card number (e.g. no "PSA 10", no "#100").
+- "search_string": An optimized search query specifically generated for querying eBay active listings and Sold Comps APIs. Combine the core card identifiers: Player Full Name, Year, Set Name (Brand + Product), Variation/Parallel/Subset (if not Base), and Card Number / RC if visible. DO NOT include grading company names, numeric grades, or cert numbers (e.g. no "PSA 10", no "cert #123456"), as grading details are appended dynamically based on user filters. Example: "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269".
 - "card_number": number printed on the card or slab (omit #, e.g. "DTPM" or "269"). null if not visible.
 - "set_name": brand+product as on eBay (e.g. "Panini Donruss", "Panini Prizm", "Topps Chrome"). No year.
 - "manufacturer": card company.
@@ -68,10 +68,11 @@ KILL ALGORITHM — build the "filter" object using these rules:
 IMPORTANT:
 - NEVER put a term in must_exclude that also appears in must_include or in the card's own variation/grade.
 - must_exclude entries must be single lowercase tokens or short phrases, matched as substrings against listing titles.
-- The search_string and the filter are SEPARATE: search_string is broad for the API; the filter is applied by our code to the returned titles for exact matching.
+- The search_string and the filter are SEPARATE: search_string is specially formatted for querying eBay active listings and Sold Comps APIs; the filter is applied by our code to the returned titles for exact matching.
 
 Return ONLY the JSON object, nothing else`;
-export const MULTI_CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this image, which may contain ONE OR MORE cards. Extract the details for EVERY visible card in strict JSON format with NO markdown, NO extra text.
+
+export const MULTI_CARD_SCAN_PROMPT = `You are an expert sports card identifier. Analyze this image to extract card details for EVERY visible card and generate an optimal search string for eBay active listings and Sold Comps APIs for each card in strict JSON format with NO markdown, NO extra text.
 Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are found):
 [
   {
@@ -82,7 +83,7 @@ Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are
     "sport": "football",
     "card_number": "269",
     "manufacturer": "Panini",
-    "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm",
+    "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269",
     "filter": {
       "must_include": ["2017", "mahomes", "prizm", "269"],
       "must_exclude": ["auto","patch","reprint","lot","repack","psa","bgs","sgc","cgc","graded","gold","blue","red","green","orange","pink","purple","mojo","disco"]
@@ -104,7 +105,7 @@ Rules (apply to EACH card):
 - "confidence" 0.0-1.0 based on image clarity
 - "sport": specific sport/category (e.g. "football","basketball","baseball","hockey","soccer","racing","pokemon","ufc","wwe"). Use the real name, never "other".
 - "variation": the parallel/refractor/insert name exactly as on the card or slab label (e.g. "Downtown!", "Silver Prizm","Gold Refractor","Holo","Base","Blue Wave"). **CRITICAL: If the card is in a graded slab, READ the slab label text to determine the exact variation, subset (e.g. Downtown!), card number, cert number, and grade.** Include print run if visible (e.g. "Orange /49"). If base, use "Base".
-- "search_string": Include all core descriptive text visible on the card itself (Player, Year, Set, Variation, Subsets like "Performers", "Auto", etc.). DO NOT include grading company, grade, or the card number (e.g. no "PSA 10", no "#100").
+- "search_string": An optimized search query specifically generated for querying eBay active listings and Sold Comps APIs. Combine the core card identifiers: Player Full Name, Year, Set Name (Brand + Product), Variation/Parallel/Subset (if not Base), and Card Number / RC if visible. DO NOT include grading company names, numeric grades, or cert numbers (e.g. no "PSA 10", no "cert #123456"). Example: "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269".
 - "card_number": number printed on the card or slab (omit #, e.g. "DTPM" or "269"). null if not visible.
 - "set_name": brand+product as on eBay (e.g. "Panini Donruss", "Panini Prizm", "Topps Chrome"). No year.
 - "manufacturer": card company.
@@ -135,12 +136,12 @@ KILL ALGORITHM — build the "filter" object using these rules:
        add ALL of the above parallel color/finish names
 IMPORTANT:
 - NEVER put a term in must_exclude that also appears in must_include or in the card's own variation/grade.
-- The search_string and the filter are SEPARATE: search_string is broad for the API; the filter is applied by our code to the returned titles for exact matching.
+- The search_string and the filter are SEPARATE: search_string is specially formatted for querying eBay active listings and Sold Comps APIs; the filter is applied by our code to the returned titles for exact matching.
 
 Return ONLY the JSON ARRAY, nothing else`;
 
 export const TEXT_EXTRACTION_PROMPT = `You are an expert sports card data extractor. I will provide you with raw text (which may be from a CSV, Excel sheet, or plain text list) containing one or more sports cards.
-Extract the details for EVERY card found in the text and output them in strict JSON format with NO markdown, NO extra text.
+Extract the details and generate an optimal search string for eBay active listings and Sold Comps APIs for EVERY card found in the text in strict JSON format with NO markdown, NO extra text.
 Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are found):
 [
   {
@@ -151,7 +152,7 @@ Return ONLY this JSON ARRAY of objects (return an empty array [] if no cards are
     "sport": "football",
     "card_number": "269",
     "manufacturer": "Panini",
-    "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm",
+    "search_string": "Patrick Mahomes 2017 Panini Prizm Silver Prizm #269",
     "filter": {
       "must_include": ["2017", "mahomes", "prizm", "269"],
       "must_exclude": ["auto","patch","reprint","lot","repack","psa","bgs","sgc","cgc","graded","gold","blue","red","green","orange","pink","purple","mojo","disco"]

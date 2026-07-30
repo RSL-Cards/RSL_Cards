@@ -30,24 +30,37 @@ export class SoldCompsService {
   private readonly cache = new Map<string, { data: SoldCompsResponse, timestamp: number }>();
   private readonly inFlight = new Map<string, Promise<SoldCompsResponse>>();
 
-  async getSoldItems(keyword: string): Promise<SoldCompsResponse> {
+  async getSoldItems(
+    keyword: string,
+    options?: {
+      count?: number;
+      ebaySite?: string;
+      sortOrder?: string;
+      itemCondition?: string;
+    }
+  ): Promise<SoldCompsResponse> {
     const apiKey = this.env.SOLD_COMPS_KEY;
     if (!apiKey) {
       throw new Error("SOLD_COMPS_KEY is not configured");
     }
 
-    const cached = this.cache.get(keyword);
+    const cacheKey = `${keyword}:${JSON.stringify(options || {})}`;
+    const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < 3600000) {
       return cached.data;
     }
 
-    if (this.inFlight.has(keyword)) {
-      return this.inFlight.get(keyword)!;
+    if (this.inFlight.has(cacheKey)) {
+      return this.inFlight.get(cacheKey)!;
     }
 
     const promise = (async () => {
       const url = new URL(`${this.baseUrl}/scrape`);
       url.searchParams.set("keyword", keyword);
+      url.searchParams.set("count", String(options?.count ?? 240));
+      url.searchParams.set("ebaySite", options?.ebaySite ?? "ebay.com");
+      url.searchParams.set("sortOrder", options?.sortOrder ?? "endedRecently");
+      url.searchParams.set("itemCondition", options?.itemCondition ?? "any");
 
       const res = await fetch(url.toString(), {
         headers: {
@@ -61,13 +74,13 @@ export class SoldCompsService {
       }
 
       const data = (await res.json()) as SoldCompsResponse;
-      this.cache.set(keyword, { data, timestamp: Date.now() });
+      this.cache.set(cacheKey, { data, timestamp: Date.now() });
       return data;
     })().finally(() => {
-      this.inFlight.delete(keyword);
+      this.inFlight.delete(cacheKey);
     });
 
-    this.inFlight.set(keyword, promise);
+    this.inFlight.set(cacheKey, promise);
     return promise;
   }
 }
