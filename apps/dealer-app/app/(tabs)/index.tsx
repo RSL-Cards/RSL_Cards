@@ -326,6 +326,8 @@ export default function HomeScreen() {
             label="Add Expense"
             variant="outline"
             onPress={handleExpense}
+            icon="receipt-outline"
+            iconPosition="left"
             style={{ width: "100%" }}
           />
         </View>

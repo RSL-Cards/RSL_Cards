@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Pressable, Animated, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, Animated, StyleSheet, ViewStyle, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Typography } from './Typography';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
@@ -10,6 +11,8 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg' | 'hero';
   style?: ViewStyle;
   disabled?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconPosition?: 'left' | 'right';
 }
 
 export function Button({
@@ -19,6 +22,8 @@ export function Button({
   size = 'md',
   style,
   disabled = false,
+  icon,
+  iconPosition = 'left',
 }: ButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -53,13 +58,31 @@ export function Button({
           disabled && styles.disabled,
         ]}
       >
-        <Typography
-          variant={size === 'hero' ? 'h2' : 'body'}
-          weight="700"
-          color={getTextColor(variant)}
-        >
-          {size === 'hero' ? label.toUpperCase() : label}
-        </Typography>
+        <View style={icon ? styles.labelRow : undefined}>
+          {icon && iconPosition === 'left' && (
+            <Ionicons
+              name={icon}
+              size={size === 'hero' ? 22 : 18}
+              color={getTextColor(variant)}
+              style={{ marginRight: 8 }}
+            />
+          )}
+          <Typography
+            variant={size === 'hero' ? 'h2' : 'body'}
+            weight="700"
+            color={getTextColor(variant)}
+          >
+            {size === 'hero' ? label.toUpperCase() : label}
+          </Typography>
+          {icon && iconPosition === 'right' && (
+            <Ionicons
+              name={icon}
+              size={size === 'hero' ? 22 : 18}
+              color={getTextColor(variant)}
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -131,5 +154,12 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: 'transparent',
+  },
+
+  // Icon layout
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

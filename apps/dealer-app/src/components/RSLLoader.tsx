@@ -8,7 +8,7 @@ import { COLORS } from "../constants/theme";
  * Logo image fades in first, then "R", "S", "L" letters appear
  * one by one in slow motion with scale. Premium feel, loops.
  */
-export default function RSLLoader({ size = 40 }: { size?: number }) {
+export default function RSLLoader({ size = 80 }: { size?: number }) {
   const animLogo = useRef(new Animated.Value(0)).current;
   const animR = useRef(new Animated.Value(0)).current;
   const animS = useRef(new Animated.Value(0)).current;
@@ -95,7 +95,7 @@ export default function RSLLoader({ size = 40 }: { size?: number }) {
     );
   };
 
-  const logoSize = Math.round(size * 1.2);
+  const logoSize = Math.round(size * 1.35);
   const logoScale = animLogo.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0.85, 1.05, 1],
@@ -114,7 +114,7 @@ export default function RSLLoader({ size = 40 }: { size?: number }) {
           style={{
             width: logoSize,
             height: logoSize,
-            borderRadius: 12,
+            borderRadius: 20,
           }}
         />
       </Animated.View>

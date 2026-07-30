@@ -17,7 +17,7 @@ export default function Index() {
           justifyContent: "center",
         }}
       >
-        <RSLLoader size={48} />
+        <RSLLoader size={80} />
       </View>
     );
   }

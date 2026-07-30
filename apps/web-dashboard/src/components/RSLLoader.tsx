@@ -9,8 +9,8 @@ import Image from 'next/image'
  * Logo image fades in first, then "R", "S", "L" letters appear
  * one by one in slow motion with blur + scale. Premium feel, loops.
  */
-export default function RSLLoader({ size = 48 }: { size?: number }) {
-  const logoSize = Math.round(size * 1.2)
+export default function RSLLoader({ size = 88 }: { size?: number }) {
+  const logoSize = Math.round(size * 1.35)
 
   return (
     <div className="rsl-loader-wrapper">
@@ -44,7 +44,7 @@ export default function RSLLoader({ size = 48 }: { size?: number }) {
         }
 
         .rsl-logo-icon :global(.rsl-logo-img) {
-          border-radius: 16px;
+          border-radius: 20px;
         }
 
         .rsl-loader-letters {

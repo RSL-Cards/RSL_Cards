@@ -48,7 +48,7 @@ export default function Shell({ children }: ShellProps) {
   if (!isHydrated || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black px-4">
-        <RSLLoader size={56} />
+        <RSLLoader size={88} />
       </div>
     )
   }

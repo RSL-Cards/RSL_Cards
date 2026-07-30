@@ -24,22 +24,14 @@ import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 import RSLLoader from "../../src/components/RSLLoader";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-type Tab = "scan" | "barcode" | "search";
+
 
 const STEP_PCT = "20%";
 
 export default function BuyScanScreen() {
   const router = useRouter();
   const addTab = useDealTabStore((s) => s.addTab);
-  const [activeTab, setActiveTab] = useState<Tab>("scan");
   const [scanMode, setScanMode] = useState<"single" | "multi">("single");
-  const [query, setQuery] = useState("");
-
-  const filtered = MOCK_CARD_SEARCH_RESULTS.filter(
-    (c) =>
-      c.player_name.toLowerCase().includes(query.toLowerCase()) ||
-      c.set_name.toLowerCase().includes(query.toLowerCase()),
-  );
 
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -128,161 +120,120 @@ export default function BuyScanScreen() {
 
       <ActiveLogIndicator />
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        {(["scan", "barcode", "search"] as Tab[]).map((t) => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.tab, activeTab === t && styles.tabActive]}
-            onPress={() => setActiveTab(t)}
-          >
-            <Text
-              style={[styles.tabText, activeTab === t && styles.tabTextActive]}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+      {/* Camera Scan — always shown directly, no tabs */}
+      <View style={styles.scanContent}>
+        {!permission?.granted ? (
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionText}>
+              Camera permission needed to scan cards
             </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={requestPermission}
+            >
+              <Text style={styles.primaryBtnText}>Grant Permission</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.cameraWrapper}>
+              {/* Full-screen camera feed */}
+              <CameraView
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill}
+                facing="back"
+                mode="picture"
+              />
 
-      {/* SCAN tab */}
-      {activeTab === "scan" && (
-        <View style={styles.scanContent}>
-          {!permission?.granted ? (
-            <View style={styles.permissionContainer}>
-              <Text style={styles.permissionText}>
-                Camera permission needed to scan cards
-              </Text>
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={requestPermission}
-              >
-                <Text style={styles.primaryBtnText}>Grant Permission</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.cameraWrapper}>
-                {/* Full-screen camera feed */}
-                <CameraView
-                  ref={cameraRef}
-                  style={StyleSheet.absoluteFill}
-                  facing="back"
-                  mode="picture"
+              {/* Dark mask — top */}
+              <View style={styles.maskTop} />
+              {/* Dark mask — bottom */}
+              <View style={styles.maskBottom} />
+              {/* Dark mask — left */}
+              <View style={styles.maskLeft} />
+              {/* Dark mask — right */}
+              <View style={styles.maskRight} />
+
+              {/* Card frame */}
+              <View style={styles.cardFrame} pointerEvents="none">
+                {/* Corner accents */}
+                <View
+                  style={[
+                    styles.frameCorner,
+                    {
+                      top: -2,
+                      left: -2,
+                      borderTopWidth: 3,
+                      borderLeftWidth: 3,
+                    },
+                  ]}
                 />
-
-                {/* Dark mask — top */}
-                <View style={styles.maskTop} />
-                {/* Dark mask — bottom */}
-                <View style={styles.maskBottom} />
-                {/* Dark mask — left */}
-                <View style={styles.maskLeft} />
-                {/* Dark mask — right */}
-                <View style={styles.maskRight} />
-
-                {/* Card frame */}
-                <View style={styles.cardFrame} pointerEvents="none">
-                  {/* Corner accents */}
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        top: -2,
-                        left: -2,
-                        borderTopWidth: 3,
-                        borderLeftWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        top: -2,
-                        right: -2,
-                        borderTopWidth: 3,
-                        borderRightWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        bottom: -2,
-                        left: -2,
-                        borderBottomWidth: 3,
-                        borderLeftWidth: 3,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.frameCorner,
-                      {
-                        bottom: -2,
-                        right: -2,
-                        borderBottomWidth: 3,
-                        borderRightWidth: 3,
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* Hint label */}
-                <View style={styles.hintBadge}>
-                  <Text style={styles.hintText}>
-                    Align card within the frame
-                  </Text>
-                </View>
-
-                {(isScanning || isScanningBarcode || isBatchScanning) && (
-                  <View style={styles.scanningOverlay}>
-                    <RSLLoader size={32} />
-                    <Text style={styles.scanningText}>Identifying card{scanMode === "multi" ? "s" : ""}...</Text>
-                  </View>
-                )}
+                <View
+                  style={[
+                    styles.frameCorner,
+                    {
+                      top: -2,
+                      right: -2,
+                      borderTopWidth: 3,
+                      borderRightWidth: 3,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.frameCorner,
+                    {
+                      bottom: -2,
+                      left: -2,
+                      borderBottomWidth: 3,
+                      borderLeftWidth: 3,
+                    },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.frameCorner,
+                    {
+                      bottom: -2,
+                      right: -2,
+                      borderBottomWidth: 3,
+                      borderRightWidth: 3,
+                    },
+                  ]}
+                />
               </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.primaryBtn,
-                  (isScanning || isScanningBarcode) && styles.disabledBtn,
-                ]}
-                onPress={handleCapture}
-                activeOpacity={0.85}
-                disabled={isScanning || isScanningBarcode}
-              >
-                <Text style={styles.primaryBtnText}>
-                  {isScanning ? "Scanning..." : "Capture Card"}
+              {/* Hint label */}
+              <View style={styles.hintBadge}>
+                <Text style={styles.hintText}>
+                  Align card within the frame
                 </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+              </View>
 
-      {/* BARCODE tab */}
-      {activeTab === "barcode" && (
-        <View style={styles.comingSoonContainer}>
-          <View style={styles.comingSoonCard}>
-            <Ionicons name="barcode-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
-            <Text style={styles.comingSoonTitle}>Barcode Scanner</Text>
-            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
-          </View>
-        </View>
-      )}
+              {(isScanning || isScanningBarcode || isBatchScanning) && (
+                <View style={styles.scanningOverlay}>
+                  <RSLLoader size={32} />
+                  <Text style={styles.scanningText}>Identifying card{scanMode === "multi" ? "s" : ""}...</Text>
+                </View>
+              )}
+            </View>
 
-      {/* SEARCH tab */}
-      {activeTab === "search" && (
-        <View style={styles.comingSoonContainer}>
-          <View style={styles.comingSoonCard}>
-            <Ionicons name="search-outline" size={64} color="#0057FF" style={{ marginBottom: 16 }} />
-            <Text style={styles.comingSoonTitle}>Card Database Search</Text>
-            <Text style={styles.comingSoonSubtitle}>This feature is coming soon</Text>
-          </View>
-        </View>
-      )}
+            <TouchableOpacity
+              style={[
+                styles.primaryBtn,
+                (isScanning || isScanningBarcode) && styles.disabledBtn,
+              ]}
+              onPress={handleCapture}
+              activeOpacity={0.85}
+              disabled={isScanning || isScanningBarcode}
+            >
+              <Text style={styles.primaryBtnText}>
+                {isScanning ? "Scanning..." : "Capture Card"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
