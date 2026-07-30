@@ -34,6 +34,8 @@ export class SoldCompsService {
     keyword: string,
     options?: {
       count?: number;
+      page?: number;
+      offset?: number;
       ebaySite?: string;
       sortOrder?: string;
       itemCondition?: string;
@@ -58,6 +60,12 @@ export class SoldCompsService {
       const url = new URL(`${this.baseUrl}/scrape`);
       url.searchParams.set("keyword", keyword);
       url.searchParams.set("count", String(options?.count ?? 240));
+      if (options?.page) {
+        url.searchParams.set("page", String(options.page));
+      }
+      if (options?.offset) {
+        url.searchParams.set("offset", String(options.offset));
+      }
       url.searchParams.set("ebaySite", options?.ebaySite ?? "ebay.com");
       url.searchParams.set("sortOrder", options?.sortOrder ?? "endedRecently");
       url.searchParams.set("itemCondition", options?.itemCondition ?? "any");
@@ -82,5 +90,90 @@ export class SoldCompsService {
 
     this.inFlight.set(cacheKey, promise);
     return promise;
+  }
+
+  /**
+   * Fetches pages for a keyword query up to maxPages (default: 10 pages).
+   * Supports incremental/delta fetching using `minSoldAt`: stops fetching as soon
+   * as an item's sold date is <= minSoldAt (previously stored in DB).
+   */
+  async getAllPagesSoldItems(
+    keyword: string,
+    options?: {
+      countPerPage?: number;
+      maxPages?: number;
+      minSoldAt?: Date | string | null;
+      ebaySite?: string;
+      sortOrder?: string;
+      itemCondition?: string;
+    }
+  ): Promise<SoldCompsResponse> {
+    const maxPages = options?.maxPages ?? 10;
+    const count = options?.countPerPage ?? 240;
+    const minTimestamp = options?.minSoldAt ? new Date(options.minSoldAt).getTime() : null;
+
+    let currentPage = 1;
+    let accumulatedItems: SoldCompsItem[] = [];
+    const seenIds = new Set<string>();
+
+    let firstPageResponse: SoldCompsResponse | null = null;
+    let hasNextPage = true;
+    let reachedAlreadyFetchedPoint = false;
+
+    while (hasNextPage && currentPage <= maxPages && !reachedAlreadyFetchedPoint) {
+      try {
+        const resp = await this.getSoldItems(keyword, {
+          count,
+          page: currentPage,
+          ebaySite: options?.ebaySite,
+          sortOrder: options?.sortOrder ?? "endedRecently",
+          itemCondition: options?.itemCondition,
+        });
+
+        if (!firstPageResponse) {
+          firstPageResponse = resp;
+        }
+
+        const newItems = resp.items || [];
+        if (newItems.length === 0) {
+          break;
+        }
+
+        let addedCount = 0;
+        for (const item of newItems) {
+          if (minTimestamp && item.endedAt) {
+            const itemTime = new Date(item.endedAt).getTime();
+            // If item was sold at or before minSoldAt (our latest DB record timestamp), stop fetching!
+            if (itemTime <= minTimestamp) {
+              console.log(
+                `[SoldCompsService] ⏱️ Reached previously stored sold record (${item.endedAt} <= ${options?.minSoldAt}). Stopping delta fetch on page ${currentPage}.`
+              );
+              reachedAlreadyFetchedPoint = true;
+              break;
+            }
+          }
+
+          const key = item.itemId || item.url || `${item.title}:${item.endedAt}`;
+          if (!seenIds.has(key)) {
+            seenIds.add(key);
+            accumulatedItems.push(item);
+            addedCount++;
+          }
+        }
+
+        hasNextPage = resp.hasNextPage && addedCount > 0 && accumulatedItems.length < resp.totalItems;
+        currentPage++;
+      } catch (err: any) {
+        console.warn(`[SoldCompsService] Page ${currentPage} fetch failed: ${err.message}`);
+        break;
+      }
+    }
+
+    return {
+      keyword,
+      totalItems: firstPageResponse?.totalItems || accumulatedItems.length,
+      hasNextPage: false,
+      items: accumulatedItems,
+    };
   }
 }

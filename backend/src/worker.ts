@@ -49,6 +49,12 @@ export const initWorker = () => {
       if (job.name === BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS) {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
+          // Query active daily logs count for system metrics report
+          const activeLogsRes = await db.execute(sql`
+            SELECT COUNT(*)::int as active_count FROM daily_logs WHERE status = 'active'
+          `);
+          const activeDailyLogsCount = Number(activeLogsRes.rows[0]?.active_count || 0);
+
           // Fetch all unique card variants in inventory along with stored search_string
           const variantsResult = await db.execute(sql`
             SELECT DISTINCT
@@ -89,12 +95,13 @@ export const initWorker = () => {
             });
           }
 
+          const batchId = `comp_batch_${Date.now()}`;
           const queue = bullMqAdapter.getQueue();
           let delayMs = 0;
           let totalEnqueued = 0;
 
+          const itemsToEnqueue: any[] = [];
           for (const variant of variants) {
-            // Combine standard grades with any specific inventory grades
             const customGrades = invGradesMap.get(variant.variant_id) || [];
             const gradeSet = new Set<string>(STANDARD_GRADES);
             for (const cg of customGrades) {
@@ -103,21 +110,62 @@ export const initWorker = () => {
 
             for (const gradeKey of gradeSet) {
               const matchedCustom = customGrades.find(cg => cg.grade_key === gradeKey);
-              const item = {
+              itemsToEnqueue.push({
                 ...variant,
                 grade_key: gradeKey,
                 grade_company: matchedCustom?.grade_company || (gradeKey === "RAW" ? null : "PSA"),
                 grade_value: matchedCustom?.grade_value || (gradeKey === "RAW" ? null : gradeKey),
-              };
-
-              await queue.add("refresh_single_comp", { item }, { delay: delayMs });
-              delayMs += 5000;
-              totalEnqueued++;
+              });
             }
           }
 
-          logger.info(`[WORKER] Completed spawner job. Enqueued ${totalEnqueued} comp refreshes across all grades for ${variants.length} variants.`);
-          return { success: true, processed: totalEnqueued };
+          totalEnqueued = itemsToEnqueue.length;
+
+          // Initialize Batch Metadata in Redis
+          const redis = redisAdapter.getClient();
+          const initialBatchData = {
+            batchId,
+            totalEnqueued,
+            processedCount: 0,
+            successCount: 0,
+            failedCount: 0,
+            totalSoldStored: 0,
+            totalActiveStored: 0,
+            activeDailyLogsCount,
+            startTime: new Date().toISOString(),
+            targetEmail: "gollavinay13@gmail.com",
+            failedItems: [],
+          };
+          await redis.set(`comp_batch:${batchId}`, JSON.stringify(initialBatchData), "EX", 86400);
+
+          logger.info(`[WORKER] Initialized comp batch ${batchId} with ${totalEnqueued} total items enqueued.`);
+
+          if (totalEnqueued === 0) {
+            const { emailService } = await import("./modules/email/index.js");
+            await emailService.sendCompRefreshReport("gollavinay13@gmail.com", {
+              batchId,
+              totalEnqueued: 0,
+              processedCount: 0,
+              successCount: 0,
+              failedCount: 0,
+              totalSoldStored: 0,
+              totalActiveStored: 0,
+              activeDailyLogsCount,
+              startTime: new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+              endTime: new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+              durationSeconds: 0,
+              failedItems: [],
+            });
+            return { success: true, processed: 0 };
+          }
+
+          for (const item of itemsToEnqueue) {
+            await queue.add("refresh_single_comp", { item, batchId }, { delay: delayMs });
+            delayMs += 5000;
+          }
+
+          logger.info(`[WORKER] Completed spawner job for batch ${batchId}. Enqueued ${totalEnqueued} comp refreshes across all grades.`);
+          return { success: true, processed: totalEnqueued, batchId };
         } catch (error: any) {
           logger.error(`[WORKER] Failed to process refresh_all_comps: ${error.message}`);
           throw error;
@@ -125,7 +173,7 @@ export const initWorker = () => {
       } 
       
       else if (job.name === "refresh_single_comp") {
-        const { item } = job.data;
+        const { item, batchId } = job.data;
         const fetchParams = {
           ...buildCompsFetchParams({
             player_name: item.player_name,
@@ -143,18 +191,31 @@ export const initWorker = () => {
         };
 
         logger.info(
-          `[WORKER] Fetching live comps for single item: ${fetchParams.q} (Grade: ${fetchParams.grade_key})`,
+          `[WORKER] Fetching live comps for item (${batchId || "standalone"}): ${fetchParams.q} (Grade: ${fetchParams.grade_key})`,
         );
+
+        let soldStored = 0;
+        let activeStored = 0;
+        let isSuccess = true;
+        let errorMessage = "";
+
         try {
-          await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
+          const ebayRes = await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
+          soldStored += ebayRes?.last30Days?.items?.length || 0;
+          activeStored += ebayRes?.activeListings?.length || 0;
         } catch (err: any) {
+          isSuccess = false;
+          errorMessage = `eBay: ${err.message}`;
           logger.error(`[WORKER] Error fetching eBay comps: ${err.message}`);
         }
         
         await delay(1500); // Avoid rate limits
         try { 
-          await listingRepo.myslabsSold(fetchParams, myslabsService); 
+          const myslabsRes = await listingRepo.myslabsSold(fetchParams, myslabsService);
+          soldStored += myslabsRes?.last30Days?.items?.length || 0;
+          activeStored += myslabsRes?.activeListings?.length || 0;
         } catch (err: any) { 
+          if (!errorMessage) errorMessage = `MySlabs: ${err.message}`;
           logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); 
         }
 
@@ -167,6 +228,69 @@ export const initWorker = () => {
           grade_key: fetchParams.grade_key,
           item,
         });
+
+        // Atomic Batch Progress Tracking in Redis
+        if (batchId) {
+          try {
+            const redis = redisAdapter.getClient();
+            const key = `comp_batch:${batchId}`;
+            const raw = await redis.get(key);
+            if (raw) {
+              const bData = JSON.parse(raw);
+              bData.processedCount = (bData.processedCount || 0) + 1;
+              if (isSuccess) {
+                bData.successCount = (bData.successCount || 0) + 1;
+              } else {
+                bData.failedCount = (bData.failedCount || 0) + 1;
+                if (!bData.failedItems) bData.failedItems = [];
+                bData.failedItems.push({
+                  itemName: `${item.year || ''} ${item.player_name || ''} ${item.set_name || ''}`.trim(),
+                  gradeKey: item.grade_key || 'RAW',
+                  error: errorMessage || 'API fetch error',
+                });
+              }
+
+              bData.totalSoldStored = (bData.totalSoldStored || 0) + soldStored;
+              bData.totalActiveStored = (bData.totalActiveStored || 0) + activeStored;
+
+              await redis.set(key, JSON.stringify(bData), "EX", 86400);
+
+              logger.info(
+                `[WORKER] Batch ${batchId} progress: ${bData.processedCount}/${bData.totalEnqueued} processed.`
+              );
+
+              // IF ALL ENQUEUED JOBS FINISHED: SEND SINGLE SUMMARY EMAIL REPORT TO ADMIN
+              if (bData.processedCount >= bData.totalEnqueued) {
+                const endTime = new Date();
+                const startTimeDate = new Date(bData.startTime);
+                const durationSeconds = Math.max(1, Math.round((endTime.getTime() - startTimeDate.getTime()) / 1000));
+
+                logger.info(
+                  `[WORKER] 📧 Batch ${batchId} COMPLETED! Sending single report email to ${bData.targetEmail}...`
+                );
+
+                const { emailService } = await import("./modules/email/index.js");
+                await emailService.sendCompRefreshReport(bData.targetEmail, {
+                  batchId: bData.batchId,
+                  totalEnqueued: bData.totalEnqueued,
+                  processedCount: bData.processedCount,
+                  successCount: bData.successCount,
+                  failedCount: bData.failedCount,
+                  totalSoldStored: bData.totalSoldStored,
+                  totalActiveStored: bData.totalActiveStored,
+                  activeDailyLogsCount: bData.activeDailyLogsCount || 0,
+                  startTime: startTimeDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+                  endTime: endTime.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+                  durationSeconds,
+                  failedItems: bData.failedItems || [],
+                });
+                logger.info(`[WORKER] ✅ Admin report email sent successfully to ${bData.targetEmail}!`);
+              }
+            }
+          } catch (batchErr: any) {
+            logger.error(`[WORKER] Error updating batch progress for ${batchId}: ${batchErr.message}`);
+          }
+        }
 
         return { success: true, processed: item.variant_id };
       }

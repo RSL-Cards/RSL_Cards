@@ -22,6 +22,13 @@
       "when": 1785406690896,
       "tag": "0002_great_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785427644916,
+      "tag": "0003_sour_raider",
+      "breakpoints": true
     }
   ]
 }

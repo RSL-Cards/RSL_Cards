@@ -1,0 +1,1 @@
+CREATE INDEX "idx_platform_sold_variant_date" ON "platform_sold_listings" USING btree ("variant_id","sold_at");

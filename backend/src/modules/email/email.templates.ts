@@ -46,6 +46,21 @@ type NotificationAlertInput = {
   actionText?: string | null;
 };
 
+export type CompRefreshReportInput = {
+  batchId: string;
+  totalEnqueued: number;
+  processedCount: number;
+  successCount: number;
+  failedCount: number;
+  totalSoldStored: number;
+  totalActiveStored: number;
+  activeDailyLogsCount: number;
+  startTime: string;
+  endTime: string;
+  durationSeconds: number;
+  failedItems?: Array<{ itemName: string; gradeKey: string; error: string }>;
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -235,6 +250,105 @@ export const emailTemplates = {
             : ""
         }
         <p style="margin-top:24px;color:#6b7280;font-size:12px;">You can manage your notification preferences in your RSL Cards account settings.</p>
+      `
+    );
+
+    return { subject, html, text };
+  },
+
+  compRefreshReport(input: CompRefreshReportInput): EmailTemplateResult {
+    const subject = `📊 RSL Cards Admin Report: REFRESH_ALL_COMPS Completed (${input.successCount}/${input.totalEnqueued} Cards Success)`;
+
+    const text = `RSL Cards Admin Report - Comp Refresh Completed\n
+Batch ID: ${input.batchId}
+Start Time: ${input.startTime}
+End Time: ${input.endTime}
+Duration: ${input.durationSeconds} seconds
+
+SUMMARY METRICS:
+- Total Cards Checked: ${input.totalEnqueued}
+- Successful Persistence: ${input.successCount}
+- Failed / Errors: ${input.failedCount}
+- Total Sold Listings Stored: ${input.totalSoldStored}
+- Total Active Listings Stored: ${input.totalActiveStored}
+- System Active Daily Logs: ${input.activeDailyLogsCount}
+${
+  input.failedItems && input.failedItems.length > 0
+    ? `\nFAILED ITEMS:\n${input.failedItems.map((f: { itemName: string; gradeKey: string; error: string }) => `- ${f.itemName} (${f.gradeKey}): ${f.error}`).join("\n")}`
+    : "\nAll card comps refreshed successfully with 0 errors!"
+}
+
+Thanks,
+RSL Cards System Worker`;
+
+    const html = baseTemplate(
+      "RSL Cards - Comp Refresh & System Report",
+      `Batch ${input.batchId} completed: ${input.successCount}/${input.totalEnqueued} cards updated`,
+      `
+        <div style="background:#0F172A;border-radius:12px;padding:20px;color:#F8FAFC;margin-bottom:24px;">
+          <h2 style="margin:0 0 8px;font-size:20px;color:#38BDF8;">📊 Comp Refresh & System Execution Report</h2>
+          <p style="margin:0;font-size:13px;color:#94A3B8;">Batch ID: <code>${escapeHtml(input.batchId)}</code></p>
+          <p style="margin:4px 0 0;font-size:12px;color:#64748B;">
+            Duration: <strong>${input.durationSeconds}s</strong> | ${escapeHtml(input.startTime)} &rarr; ${escapeHtml(input.endTime)}
+          </p>
+        </div>
+
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
+          <tr>
+            <td width="50%" style="padding-right:8px;vertical-align:top;">
+              <div style="background:#F1F5F9;border-radius:10px;padding:16px;border:1px solid #E2E8F0;">
+                <div style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;">Cards Evaluated</div>
+                <div style="font-size:26px;font-weight:900;color:#0F172A;margin-top:4px;">${input.totalEnqueued}</div>
+                <div style="font-size:12px;color:#16A34A;margin-top:4px;">✅ ${input.successCount} Successful</div>
+                ${input.failedCount > 0 ? `<div style="font-size:12px;color:#DC2626;margin-top:2px;">❌ ${input.failedCount} Failed</div>` : ''}
+              </div>
+            </td>
+            <td width="50%" style="padding-left:8px;vertical-align:top;">
+              <div style="background:#F1F5F9;border-radius:10px;padding:16px;border:1px solid #E2E8F0;">
+                <div style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;">Data Stored in DB</div>
+                <div style="font-size:26px;font-weight:900;color:#2563EB;margin-top:4px;">${(input.totalSoldStored + input.totalActiveStored).toLocaleString()}</div>
+                <div style="font-size:12px;color:#475569;margin-top:4px;">🛒 Sold Listings: <strong>${input.totalSoldStored.toLocaleString()}</strong></div>
+                <div style="font-size:12px;color:#475569;margin-top:2px;">🏷️ Active Listings: <strong>${input.totalActiveStored.toLocaleString()}</strong></div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="background:#EFF6FF;border-left:4px solid #3B82F6;padding:14px;border-radius:6px;margin-bottom:24px;">
+          <div style="font-weight:700;color:#1E40AF;font-size:13px;">📋 System Active Logs Status</div>
+          <div style="font-size:13px;color:#1E3A8A;margin-top:4px;">Currently <strong>${input.activeDailyLogsCount}</strong> active daily show logs open across all dealers.</div>
+        </div>
+
+        ${
+          input.failedItems && input.failedItems.length > 0
+            ? `
+              <h3 style="font-size:16px;color:#DC2626;margin:0 0 12px;">Failed Card Refreshes (${input.failedItems.length})</h3>
+              <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse:collapse;font-size:12px;border:1px solid #E2E8F0;">
+                <thead>
+                  <tr style="background:#F8FAFC;text-align:left;">
+                    <th style="border-bottom:1px solid #E2E8F0;">Card</th>
+                    <th style="border-bottom:1px solid #E2E8F0;">Grade</th>
+                    <th style="border-bottom:1px solid #E2E8F0;">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${input.failedItems
+                    .slice(0, 20)
+                    .map(
+                      (f: { itemName: string; gradeKey: string; error: string }) => `
+                        <tr>
+                          <td style="border-bottom:1px solid #F1F5F9;">${escapeHtml(f.itemName)}</td>
+                          <td style="border-bottom:1px solid #F1F5F9;">${escapeHtml(f.gradeKey)}</td>
+                          <td style="border-bottom:1px solid #F1F5F9;color:#DC2626;">${escapeHtml(f.error)}</td>
+                        </tr>
+                      `
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            `
+            : `<div style="background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px;border-radius:8px;font-weight:600;font-size:13px;text-align:center;">🎉 All card variants were refreshed and stored successfully!</div>`
+        }
       `
     );
 

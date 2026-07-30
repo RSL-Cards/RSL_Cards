@@ -229,4 +229,17 @@ const data: ResendResponse | null =
       trackingUrl: payload.trackingUrl || "https://www.ups.com/track",
     });
   }
+
+  async sendCompRefreshReport(
+    toEmail: string,
+    data: Parameters<typeof emailTemplates.compRefreshReport>[0]
+  ) {
+    const { subject, html, text } = emailTemplates.compRefreshReport(data);
+    return this.sendEmail({
+      to: toEmail,
+      subject,
+      html,
+      text,
+    });
+  }
 }

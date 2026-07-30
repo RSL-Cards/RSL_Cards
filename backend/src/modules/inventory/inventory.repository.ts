@@ -101,15 +101,17 @@ export class InventoryRepository {
 
     if (item.variant_id) {
       const soldListings = await db.execute(sql`
-        SELECT * FROM platform_sold_listings 
+        SELECT platform_item_id, title, condition, grade_key, sold_price, sold_at, platform 
+        FROM platform_sold_listings 
         WHERE variant_id = ${item.variant_id}
-        ORDER BY sold_at DESC LIMIT 100
+        ORDER BY sold_at DESC
       `);
 
       const activeListings = await db.execute(sql`
-        SELECT * FROM platform_active_listings 
+        SELECT platform_item_id, title, condition, grade_key, price, item_web_url, image_url, platform 
+        FROM platform_active_listings 
         WHERE variant_id = ${item.variant_id}
-        ORDER BY price ASC LIMIT 100
+        ORDER BY price ASC
       `);
 
       const mappedEbaySold = soldListings.rows

@@ -157,6 +157,7 @@ export const platformSoldListings = pgTable("platform_sold_listings", {
 }, (t) => ({
   soldVariantIdx: index("idx_platform_sold_variant_id").on(t.variantId),
   soldVariantGradeIdx: index("idx_platform_sold_variant_grade").on(t.variantId, t.gradeKey),
+  soldVariantDateIdx: index("idx_platform_sold_variant_date").on(t.variantId, t.soldAt),
 }));
 
 // ALL platforms active listings. Replaced during 15min cache cycles.

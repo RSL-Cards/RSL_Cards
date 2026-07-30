@@ -290,18 +290,32 @@ export class ListingRepository {
       }
     }
 
+    let latestSoldAt: Date | null = null;
+    if (effectiveVariantId) {
+      const latestRes = await db.execute(sql`
+        SELECT MAX(sold_at) as latest_sold_at
+        FROM platform_sold_listings
+        WHERE variant_id = ${effectiveVariantId}
+          AND grade_key = ${gradeKey}
+      `);
+      if (latestRes.rows.length > 0 && (latestRes.rows[0] as any).latest_sold_at) {
+        latestSoldAt = new Date((latestRes.rows[0] as any).latest_sold_at);
+        console.log(`[COMPS] 🕒 Latest stored sold_at for variant ${effectiveVariantId} (${gradeKey}): ${latestSoldAt.toISOString()}`);
+      }
+    }
+
     console.log(`\n======================================================`);
     console.log(`[COMPS] 📡 Fetching LIVE comps for eBay...`);
     console.log(`[COMPS]  👉 Passing to Active Listings (Real eBay API): "${query}"`);
-    console.log(`[COMPS]  👉 Passing to Sold Comps API: "${queryForSold}"`);
+    console.log(`[COMPS]  👉 Passing to Sold Comps API (Delta Min: ${latestSoldAt ? latestSoldAt.toISOString() : 'NONE'}): "${queryForSold}"`);
     console.log(`======================================================\n`);
     const ebayActiveStartTime = Date.now();
     const soldCompsStartTime = Date.now();
     
     const [soldResult, activeResult] = await Promise.allSettled([
-      soldCompsService.getSoldItems(queryForSold).finally(() => {
+      soldCompsService.getAllPagesSoldItems(queryForSold, { minSoldAt: latestSoldAt }).finally(() => {
         const duration = Date.now() - soldCompsStartTime;
-        console.log(`[PERF] ⏱️ Sold Comps API (Sold) took ${duration}ms`);
+        console.log(`[PERF] ⏱️ Sold Comps API (Multi-Page Delta Sold) took ${duration}ms`);
       }),
       ebayService.searchListings({
         q: query,
@@ -354,19 +368,8 @@ export class ListingRepository {
 
     console.log(`\n======================================================`);
     console.log(`[EBAY_SOLD_COMPS] 🔍 Search String Passed: "${queryForSold}"`);
-    console.log(`[EBAY_SOLD_COMPS] 📊 Count of Items Returned: ${soldData.items?.length || 0}`);
-    console.log(`[EBAY_SOLD_COMPS] 📦 Data Array (JSON):`, JSON.stringify(soldData.items || []));
+    console.log(`[EBAY_SOLD_COMPS] 📊 Total Items Across All Pages: ${soldData.items?.length || 0}`);
     console.log(`======================================================\n`);
-
-    console.log(`\n======================================================`);
-    console.log(`[EBAY_ACTIVE_SEARCH] 🔍 Search String Passed: "${query}"`);
-    console.log(`[EBAY_ACTIVE_SEARCH] 📊 Count of Items Returned: ${activeData.itemSummaries?.length || 0}`);
-    console.log(`[EBAY_ACTIVE_SEARCH] 📦 Data Array (JSON):`, JSON.stringify(activeData.itemSummaries || []));
-    console.log(`======================================================\n`);
-
-    if (activeResult.status === "rejected") {
-      console.warn("Failed to fetch active listings from ebayService:", activeResult.reason?.message || activeResult.reason);
-    }
 
     const prices = soldData.items
       .map((i) => parseFloat(i.soldPrice))
@@ -381,7 +384,7 @@ export class ListingRepository {
     const last = prices.length ? prices[0] : 0;
     const lowest = activePrices.length ? Math.min(...activePrices) : 0;
 
-    // Always cache if we hit the APIs to avoid re-fetching, even if results are 0
+    // High-performance DB persistence using multi-row SQL batch inserts
     if (effectiveVariantId) {
       await db.execute(sql`
         INSERT INTO card_comp_snapshots
@@ -397,36 +400,58 @@ export class ListingRepository {
           fetched_at = NOW()
       `);
 
-      for (const item of soldData.items) {
-        const itemGrade = (item as any).grade_key || gradeKey;
-        const contentHash = createHash("sha256")
-          .update(`soldcomps:${effectiveVariantId}:${itemGrade}:${item.url || item.itemId}:${item.endedAt}`)
-          .digest("hex")
-          .slice(0, 64);
+      // Multi-row Bulk Insert for platform_sold_listings in chunks of 50
+      const soldItems = soldData.items;
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < soldItems.length; i += CHUNK_SIZE) {
+        const chunk = soldItems.slice(i, i + CHUNK_SIZE);
+        const valueSqls = chunk.map((item) => {
+          const itemGrade = (item as any).grade_key || gradeKey;
+          const contentHash = createHash("sha256")
+            .update(`soldcomps:${effectiveVariantId}:${itemGrade}:${item.url || item.itemId}:${item.endedAt}`)
+            .digest("hex")
+            .slice(0, 64);
+          
+          const priceVal = parseFloat(item.soldPrice) || 0;
+          const soldAtVal = item.endedAt ? new Date(item.endedAt) : new Date();
 
-        await db.execute(sql`
-          INSERT INTO platform_sold_listings
-            (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
-          VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${parseFloat(item.soldPrice)}, ${item.itemId}, ${item.endedAt}, ${t500(item.title)}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())
-          ON CONFLICT (content_hash) DO NOTHING
-        `);
+          return sql`(gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${priceVal}, ${item.itemId || null}, ${soldAtVal}, ${t500(item.title) || null}, ${item.itemCondition || "Used"}, ${contentHash}, NOW())`;
+        });
+
+        if (valueSqls.length > 0) {
+          await db.execute(sql`
+            INSERT INTO platform_sold_listings
+              (id, variant_id, grade_key, platform, sold_price, platform_item_id, sold_at, title, condition, content_hash, created_at)
+            VALUES ${sql.join(valueSqls, sql`, `)}
+            ON CONFLICT (content_hash) DO NOTHING
+          `);
+        }
       }
 
-      for (const item of activeData.itemSummaries ?? []) {
-        const itemGrade = (item as any).grade_key || gradeKey;
-        const contentHash = createHash("sha256")
-          .update(`ebayactive:${effectiveVariantId}:${itemGrade}:${item.itemId}`)
-          .digest("hex")
-          .slice(0, 64);
-        
-        await db.execute(sql`
-          INSERT INTO platform_active_listings
-            (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
-          VALUES
-            (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${parseFloat(item.price?.value ?? "0")}, ${item.itemId}, ${t500(item.title)}, ${item.condition}, ${t500(item.itemWebUrl)}, ${t500(item.image?.imageUrl)}, ${contentHash}, NOW(), NOW())
-          ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
-        `);
+      // Multi-row Bulk Insert for platform_active_listings in chunks of 50
+      const activeSummaries = activeData.itemSummaries ?? [];
+      for (let i = 0; i < activeSummaries.length; i += CHUNK_SIZE) {
+        const chunk = activeSummaries.slice(i, i + CHUNK_SIZE);
+        const valueSqls = chunk.map((item) => {
+          const itemGrade = (item as any).grade_key || gradeKey;
+          const contentHash = createHash("sha256")
+            .update(`ebayactive:${effectiveVariantId}:${itemGrade}:${item.itemId}`)
+            .digest("hex")
+            .slice(0, 64);
+
+          const priceVal = parseFloat(item.price?.value ?? "0") || 0;
+
+          return sql`(gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'ebay', ${priceVal}, ${item.itemId || null}, ${t500(item.title) || null}, ${item.condition || null}, ${t500(item.itemWebUrl) || null}, ${t500(item.image?.imageUrl) || null}, ${contentHash}, NOW(), NOW())`;
+        });
+
+        if (valueSqls.length > 0) {
+          await db.execute(sql`
+            INSERT INTO platform_active_listings
+              (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
+            VALUES ${sql.join(valueSqls, sql`, `)}
+            ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
+          `);
+        }
       }
     }
 
