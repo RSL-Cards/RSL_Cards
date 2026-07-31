@@ -815,7 +815,7 @@ export default function CardDetailScreen() {
 
                         return (
                           <TouchableOpacity
-                            key={sale.itemId || sale.id || i}
+                            key={`ebay-sold-${sale.itemId || sale.id || "item"}-${i}`}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -872,7 +872,7 @@ export default function CardDetailScreen() {
 
                         return (
                           <TouchableOpacity
-                            key={item.itemId || item.id || i}
+                            key={`ebay-active-${item.itemId || item.id || "item"}-${i}`}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -927,7 +927,7 @@ export default function CardDetailScreen() {
 
                         return (
                           <TouchableOpacity
-                            key={sale.itemId || sale.id || i}
+                            key={`myslabs-sold-${sale.itemId || sale.id || "item"}-${i}`}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
@@ -982,7 +982,7 @@ export default function CardDetailScreen() {
 
                         return (
                           <TouchableOpacity
-                            key={item.itemId || item.id || i}
+                            key={`myslabs-active-${item.itemId || item.id || "item"}-${i}`}
                             activeOpacity={0.7}
                             onPress={() => url && WebBrowser.openBrowserAsync(url)}
                             style={[
