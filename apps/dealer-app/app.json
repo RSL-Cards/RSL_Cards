@@ -4,12 +4,12 @@
     "slug": "rsl",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/rslicon.jpeg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "rslcards",
     "splash": {
-      "image": "./assets/rslicon.jpeg",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -25,7 +25,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/rslicon.jpeg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
       "package": "com.rslcards.dealer",
