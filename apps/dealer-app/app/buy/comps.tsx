@@ -74,22 +74,26 @@ function buildMyslabsQuery(card: any): string {
 
 function buildGradeQuery(card: any, grade: string): string {
   if (!card) return "";
+  const formattedCardNum = card.card_number
+    ? (String(card.card_number).startsWith("#") ? card.card_number : `#${card.card_number}`)
+    : "";
+
   const base = card.search_string?.trim() || [
     card.player_name,
     card.year,
     card.set_name,
     card.variation !== "Base" ? card.variation : "",
-    card.card_number ? `#${card.card_number}` : ""
+    formattedCardNum
   ].filter(Boolean).join(" ");
 
   const cleanedBase = cleanQueryString(base);
 
   if (grade === "RAW") {
-    return cleanedBase;
+    return `${cleanedBase} -psa -bgs -sgc -cgc -slab -graded`.trim();
   }
 
   const company = card.grading?.company || "PSA";
-  return `${cleanedBase} ${company} ${grade}`;
+  return `${cleanedBase} ${company} ${grade}`.trim();
 }
 
 function calcAvg(items: EbaySoldItem[]): number {

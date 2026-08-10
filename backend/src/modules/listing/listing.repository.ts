@@ -357,13 +357,43 @@ export class ListingRepository {
       return numericGradeRegex.test(title);
     };
 
-    if (gradeKey) {
-      if (activeData.itemSummaries && Array.isArray(activeData.itemSummaries)) {
-        activeData.itemSummaries = activeData.itemSummaries.filter(item => matchesGrade(item.title, gradeKey));
+    // Quality Title Filter: Rejects noise (lots, presales, reprints) and handles Base vs Specific Variant matching
+    const isValidListingTitle = (title?: string | null): boolean => {
+      if (!title) return false;
+      // Filter out lots, presales, reprints
+      if (/\b(lot|bundle|presale|pre-sale|custom|reprint)\b/i.test(title) && !/\bbase set\b/i.test(title)) {
+        return false;
       }
-      if (soldData.items && Array.isArray(soldData.items)) {
-        soldData.items = soldData.items.filter(item => matchesGrade(item.title, gradeKey));
+      
+      const parallelKeywords = [
+        "refractor", "silver", "pink", "red", "blue", "gold", "green", "purple", 
+        "orange", "ice", "mojo", "wave", "cracked", "auto", "autograph", "patch", "jersey", "ruby", "hyper", "velocity", "pulsar"
+      ];
+
+      // If query specifies Base card, filter out parallel keywords
+      if (/\bbase\b/i.test(query)) {
+        const parallelRegex = new RegExp(`\\b(${parallelKeywords.join("|")})\\b`, "i");
+        if (parallelRegex.test(title)) return false;
+      } else {
+        // If query specifies a specific variant (e.g. "Silver" or "Green"), ensure title matches that variant
+        for (const kw of parallelKeywords) {
+          if (new RegExp(`\\b${kw}\\b`, "i").test(query)) {
+            if (!new RegExp(`\\b${kw}\\b`, "i").test(title)) return false;
+          }
+        }
       }
+      return true;
+    };
+
+    if (activeData.itemSummaries && Array.isArray(activeData.itemSummaries)) {
+      activeData.itemSummaries = activeData.itemSummaries.filter(item => 
+        matchesGrade(item.title, gradeKey) && isValidListingTitle(item.title)
+      );
+    }
+    if (soldData.items && Array.isArray(soldData.items)) {
+      soldData.items = soldData.items.filter(item => 
+        matchesGrade(item.title, gradeKey) && isValidListingTitle(item.title)
+      );
     }
 
     console.log(`\n======================================================`);
@@ -712,6 +742,51 @@ export class ListingRepository {
       console.error("Failed to fetch MySlabs LIVE comps:", e);
     }
     
+    const matchesGradeMySlabs = (title?: string | null, targetGrade?: string): boolean => {
+      if (!title) return false;
+      if (!targetGrade || targetGrade === "RAW") {
+        return !/\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG)\b|\b(Slab|Slabbed|Graded)\b/i.test(title);
+      }
+      const escapedGrade = targetGrade.replace('.', '\\.');
+      if (targetGrade === "10") {
+        return /\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG|GRADE|GRADED)?\s*(:|-|\s)?\s*(10|GEM\s*MINT|GEM-MT)\b/i.test(title);
+      }
+      return new RegExp(`\\b(PSA|BGS|SGC|CGC|CSG|TAG|HGA|GMA|KSA|WCG|GRADE|GRADED)?\\s*(:|-|\\s)?\\s*${escapedGrade}\\b`, "i").test(title);
+    };
+
+    const isValidMySlabsTitle = (title?: string | null): boolean => {
+      if (!title) return false;
+      if (/\b(lot|bundle|presale|pre-sale|custom|reprint)\b/i.test(title) && !/\bbase set\b/i.test(title)) {
+        return false;
+      }
+      const parallelKeywords = [
+        "refractor", "silver", "pink", "red", "blue", "gold", "green", "purple", 
+        "orange", "ice", "mojo", "wave", "cracked", "auto", "autograph", "patch", "jersey", "ruby", "hyper", "velocity", "pulsar"
+      ];
+      if (/\bbase\b/i.test(query)) {
+        const parallelRegex = new RegExp(`\\b(${parallelKeywords.join("|")})\\b`, "i");
+        if (parallelRegex.test(title)) return false;
+      } else {
+        for (const kw of parallelKeywords) {
+          if (new RegExp(`\\b${kw}\\b`, "i").test(query)) {
+            if (!new RegExp(`\\b${kw}\\b`, "i").test(title)) return false;
+          }
+        }
+      }
+      return true;
+    };
+
+    if (activeData.items && Array.isArray(activeData.items)) {
+      activeData.items = activeData.items.filter(item => 
+        matchesGradeMySlabs(item.title, gradeKey) && isValidMySlabsTitle(item.title)
+      );
+    }
+    if (soldData.items && Array.isArray(soldData.items)) {
+      soldData.items = soldData.items.filter(item => 
+        matchesGradeMySlabs(item.title, gradeKey) && isValidMySlabsTitle(item.title)
+      );
+    }
+
     console.log(`\n======================================================`);
     console.log(`[MYSLABS_SOLD_COMPS] 🔍 Search String Passed: "${queryForSold}"`);
     console.log(`[MYSLABS_SOLD_COMPS] 📊 Count of Items Returned: ${soldData.items?.length || 0}`);

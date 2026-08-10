@@ -67,12 +67,19 @@ export function normalizeCompsGradeKey(
 
 export function buildCompsSearchQuery(card: CompsCardContext): string {
   const { selectedGrade, company } = parseGradeParts(card);
+  const rawNegativeTerms = "-psa -bgs -sgc -cgc -slab -graded";
 
   if (card.search_string?.trim()) {
     const base = card.search_string.trim().replace(/\s+/g, " ");
-    if (selectedGrade === "RAW") return base;
+    if (selectedGrade === "RAW") {
+      return `${base} ${rawNegativeTerms}`.trim();
+    }
     return `${base} ${company} ${selectedGrade}`;
   }
+
+  const formattedCardNum = card.card_number
+    ? (card.card_number.startsWith("#") ? card.card_number : `#${card.card_number}`)
+    : "";
 
   const base = [
     card.player_name,
@@ -82,14 +89,16 @@ export function buildCompsSearchQuery(card: CompsCardContext): string {
     (card.variant_name || card.variation) !== "Base"
       ? card.variant_name || card.variation
       : "",
-    card.card_number ? `#${card.card_number}` : "",
+    formattedCardNum,
   ]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (selectedGrade === "RAW") return base;
+  if (selectedGrade === "RAW") {
+    return `${base} ${rawNegativeTerms}`.trim();
+  }
   return `${base} ${company} ${selectedGrade}`.trim();
 }
 
