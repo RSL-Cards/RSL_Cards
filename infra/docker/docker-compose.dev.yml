@@ -143,7 +143,7 @@ services:
     command:
       - sh
       - -c
-      - "DATABASE_URL=$$TEST_DATABASE_URL bun run db:migrate && bun test --sequence"
+      - "bun run --cwd ../packages/shared-db migrate:test && bun test --sequence"
     networks:
       - rsl-dev
 

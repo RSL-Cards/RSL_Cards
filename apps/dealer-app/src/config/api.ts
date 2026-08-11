@@ -1,12 +1,12 @@
 /**
  * API Configuration
  *
- * Dev:  http://192.168.10.7:8080  (Wi-Fi / LAN IP)
+ * Dev:  http://192.168.10.10:8080  (Wi-Fi / LAN IP)
  * Prod: https://api.rslcards.com
  */
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://192.168.10.7:8080";
+  process.env.EXPO_PUBLIC_API_URL || "http://192.168.10.10:8080";
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.

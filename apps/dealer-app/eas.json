@@ -9,7 +9,7 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.10.7:8080",
+        "EXPO_PUBLIC_API_URL": "http://192.168.10.10:8080",
         "EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID": "156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "156597264526-1cpp7kadv9ifvt708gi1qlfc8l727c1a.apps.googleusercontent.com",
@@ -44,6 +44,10 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6796585607"
+      }
+    }
   }
 }
