@@ -126,7 +126,6 @@ export default function AddExistingCardScreen() {
           <View style={styles.center}>
             <Ionicons name="albums-outline" size={48} color="#444" style={{ marginBottom: 16 }} />
             <Text style={styles.emptyText}>No cards found.</Text>
-            <Text style={{color: 'red', marginTop: 10}}>{JSON.stringify(data)}</Text>
           </View>
         ) : (
           <FlatList

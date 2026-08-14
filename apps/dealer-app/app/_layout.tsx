@@ -37,9 +37,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Register for push notifications dynamically
+      const user = useAuthStore.getState().user;
       import("../src/services/notificationService").then(({ notificationService }) => {
         notificationService.registerForPushNotificationsAsync().catch(console.error);
+        if (user?.id) {
+          notificationService.setOneSignalUser(user.id);
+        }
       });
     }
   }, [isAuthenticated]);
