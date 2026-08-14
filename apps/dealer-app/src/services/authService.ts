@@ -8,6 +8,7 @@ export interface AuthUser {
   role: "dealer" | "consumer";
   displayName: string;
   onboardingCompleted: boolean;
+  isNewUser?: boolean;
   sports?: string[];
   sellChannels?: string[];
   photoUrl?: string | null;
@@ -25,13 +26,33 @@ export interface AuthResponse {
 
 export interface LoginPayload {
   email: string;
-  password: string;
+  password?: string;
+  otp?: string;
+}
+
+export interface SendLoginOtpPayload {
+  email: string;
+}
+
+export interface LoginWithOtpPayload {
+  email: string;
+  otp: string;
 }
 
 export interface RegisterPayload {
   email: string;
   password: string;
   role: "dealer" | "consumer";
+  otp?: string;
+}
+
+export interface SendOtpPayload {
+  email: string;
+}
+
+export interface VerifyOtpPayload {
+  email: string;
+  otp: string;
 }
 
 export interface ForgotPasswordPayload {
@@ -45,10 +66,14 @@ export interface ResetPasswordPayload {
 }
 export interface GoogleAuthPayload {
   idToken: string;
+  rawName?: string;
+  email?: string;
 }
 
 export interface AppleAuthPayload {
   idToken: string;
+  rawName?: string;
+  email?: string;
 }
 async function persistAuth(data: AuthResponse) {
   await tokenStorage.setTokens(
@@ -70,6 +95,38 @@ export const authService = {
     return persistAuth(data);
   },
 
+  async sendLoginOtp(payload: SendLoginOtpPayload): Promise<{ success: boolean; message: string }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string }>(
+      ENDPOINTS.auth.sendLoginOtp,
+      payload,
+    );
+    return data;
+  },
+
+  async loginWithOtp(payload: LoginWithOtpPayload): Promise<AuthResponse> {
+    const { data } = await apiClient.post<AuthResponse>(
+      ENDPOINTS.auth.loginWithOtp,
+      payload,
+    );
+    return persistAuth(data);
+  },
+
+  async sendOtp(payload: SendOtpPayload): Promise<{ success: boolean; message: string }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string }>(
+      ENDPOINTS.auth.sendOtp,
+      payload,
+    );
+    return data;
+  },
+
+  async verifyOtp(payload: VerifyOtpPayload): Promise<{ success: boolean; message: string }> {
+    const { data } = await apiClient.post<{ success: boolean; message: string }>(
+      ENDPOINTS.auth.verifyOtp,
+      payload,
+    );
+    return data;
+  },
+
   async register(payload: RegisterPayload): Promise<AuthResponse> {
     const { data } = await apiClient.post<AuthResponse>(
       ENDPOINTS.auth.register,
@@ -81,7 +138,7 @@ export const authService = {
   async googleLogin(payload: GoogleAuthPayload) {
     const { data } = await apiClient.post<AuthResponse>(
       ENDPOINTS.auth.oauthGoogle,
-      payload,
+      { ...payload, role: "dealer" },
     );
 
     return persistAuth(data);
@@ -90,7 +147,7 @@ export const authService = {
   async appleLogin(payload: AppleAuthPayload) {
     const { data } = await apiClient.post<AuthResponse>(
       ENDPOINTS.auth.oauthApple,
-      payload,
+      { ...payload, role: "dealer" },
     );
 
     return persistAuth(data);

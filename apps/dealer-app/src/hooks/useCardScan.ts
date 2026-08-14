@@ -225,12 +225,12 @@ export function useAddToInventory() {
   });
 }
 
-export function useInventoryItem(id: string) {
+export function useInventoryItem(id: string, grade?: string) {
   const userId = useAuthStore((s) => s.user?.id ?? "");
 
   return useQuery({
-    queryKey: [...QUERY_KEYS.inventory(userId), "item", id],
-    queryFn: () => inventoryService.getItem(id),
+    queryKey: [...QUERY_KEYS.inventory(userId), "item", id, grade || "ALL"],
+    queryFn: () => inventoryService.getItem(id, grade),
     enabled: !!userId && !!id,
     staleTime: 1000 * 60 * 5,
   });

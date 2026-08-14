@@ -10,6 +10,10 @@ import {
   type LoginPayload,
   type OAuthPayload,
   type RegisterPayload,
+  type SendOtpPayload,
+  type VerifyOtpPayload,
+  type SendLoginOtpPayload,
+  type LoginWithOtpPayload,
   type ResetPasswordPayload,
 } from '@/services/authService'
 
@@ -22,6 +26,10 @@ interface AuthStore {
   error: string | null
   login: (payload: LoginPayload) => Promise<AuthUser>
   register: (payload: RegisterPayload) => Promise<AuthUser>
+  sendOtp: (payload: SendOtpPayload) => Promise<string>
+  verifyOtp: (payload: VerifyOtpPayload) => Promise<string>
+  sendLoginOtp: (payload: SendLoginOtpPayload) => Promise<string>
+  loginWithOtp: (payload: LoginWithOtpPayload) => Promise<AuthUser>
   googleLogin: (payload: OAuthPayload) => Promise<AuthUser>
   appleLogin: (payload: OAuthPayload) => Promise<AuthUser>
   refreshAuth: () => Promise<AuthTokens | null>
@@ -79,6 +87,67 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Registration failed.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      sendOtp: async (payload) => {
+        set({ isLoading: true, error: null })
+        try {
+          const res = await authService.sendOtp(payload)
+          set({ isLoading: false })
+          return res.message
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Failed to send OTP.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      verifyOtp: async (payload) => {
+        set({ isLoading: true, error: null })
+        try {
+          const res = await authService.verifyOtp(payload)
+          set({ isLoading: false })
+          return res.message
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Invalid or expired OTP.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      sendLoginOtp: async (payload) => {
+        set({ isLoading: true, error: null })
+        try {
+          const res = await authService.sendLoginOtp(payload)
+          set({ isLoading: false })
+          return res.message
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Failed to send login code.'
+          set({ error: message, isLoading: false })
+          throw error
+        }
+      },
+
+      loginWithOtp: async (payload) => {
+        set({ isLoading: true, error: null })
+        try {
+          const data = await authService.loginWithOtp(payload)
+          set({
+            user: data.user,
+            tokens: data.tokens,
+            isAuthenticated: true,
+            isLoading: false,
+          })
+          return data.user
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Invalid or expired OTP code.'
           set({ error: message, isLoading: false })
           throw error
         }

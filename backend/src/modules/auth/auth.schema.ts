@@ -4,11 +4,31 @@ export const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  otp: z.string().length(6).optional(),
+});
+
+export const SendOtpSchema = z.object({
+  email: z.string().email(),
+});
+
+export const VerifyOtpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
 });
 
 export const LoginSchema = z.object({
   email: z.string().email(),
-  password: z.string(),
+  password: z.string().optional(),
+  otp: z.string().length(6).optional(),
+});
+
+export const SendLoginOtpSchema = z.object({
+  email: z.string().email(),
+});
+
+export const LoginWithOtpSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
 });
 
 export const RefreshSchema = z.object({
@@ -47,11 +67,15 @@ export const ResetPasswordSchema = z.object({
 export const GoogleOauthSchema = z.object({
   idToken: z.string().min(1),
   role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  rawName: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 export const AppleOauthSchema = z.object({
   idToken: z.string().min(1),
   role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  rawName: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 export type RegisterBody = z.infer<typeof RegisterSchema>;

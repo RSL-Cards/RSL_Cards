@@ -756,6 +756,7 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: SPACING.md,
     paddingHorizontal: 20,
     marginBottom: SPACING.md,

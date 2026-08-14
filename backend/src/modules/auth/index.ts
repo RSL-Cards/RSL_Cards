@@ -10,6 +10,10 @@ const service = new AuthService(repository, env, emailService);
 const controller = new AuthController(service);
 
 export const authModule = new Elysia({ prefix: "/v1/auth" })
+  .post("/send-otp", controller.sendOtp)
+  .post("/verify-otp", controller.verifyOtp)
+  .post("/send-login-otp", controller.sendLoginOtp)
+  .post("/login-with-otp", controller.loginWithOtp)
   .post("/register", controller.register)
   .post("/login", controller.login)
   .post("/refresh", controller.refresh)

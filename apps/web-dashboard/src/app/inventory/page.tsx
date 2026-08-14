@@ -20,6 +20,22 @@ import {
 } from '@/hooks/dashboard/useDashboard'
 import { dashboardService } from '@/services/dashboardService'
 
+import ExportColumnModal, { ExportColumnOption, ExportFormat } from '@/components/export/ExportColumnModal'
+
+const INVENTORY_EXPORT_COLUMNS: ExportColumnOption[] = [
+  { key: 'player', label: 'Player Name', defaultSelected: true },
+  { key: 'year', label: 'Year', defaultSelected: true },
+  { key: 'set', label: 'Set / Card Name', defaultSelected: true },
+  { key: 'grade', label: 'Grade', defaultSelected: true },
+  { key: 'sport', label: 'Sport', defaultSelected: true },
+  { key: 'costBasis', label: 'Cost Basis ($)', defaultSelected: true },
+  { key: 'marketValue', label: 'Market Value ($)', defaultSelected: true },
+  { key: 'unrealizedGain', label: 'Unrealized Gain ($)', defaultSelected: true },
+  { key: 'gainPct', label: 'Gain (%)', defaultSelected: true },
+  { key: 'status', label: 'Status', defaultSelected: true },
+  { key: 'addedAt', label: 'Date Added', defaultSelected: true },
+]
+
 export default function InventoryPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -43,8 +59,10 @@ export default function InventoryPage() {
   
   const isLoading = isListLoading || isCountsLoading
   const [activeCard, setActiveCard] = useState<InventoryCard | null>(null)
-  const [isExportingExcel, setIsExportingExcel] = useState(false)
-  const [isExportingPdf, setIsExportingPdf] = useState(false)
+  
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [exportInitialFormat, setExportInitialFormat] = useState<ExportFormat>('xlsx')
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated) return
@@ -58,69 +76,77 @@ export default function InventoryPage() {
     setActiveCard(null)
   }
 
-  const handleDownloadExcel = async () => {
-    try {
-      setIsExportingExcel(true)
-      let data = await dashboardService.exportInventory()
-      if (!data || data.length === 0) {
-        data = items.map((card: any) => ({
-          player: card.playerName || card.player || 'Unknown',
-          year: card.year || '',
-          set: card.setName || card.set || '',
-          grade: card.grade || card.gradeKey || 'RAW',
-          sport: card.sport || 'Unknown',
-          costBasis: Number(card.costBasis || 0),
-          marketValue: Number(card.marketValue || 0),
-          unrealizedGain: Number((card.marketValue || 0) - (card.costBasis || 0)),
-          gainPct: card.costBasis ? (((card.marketValue || 0) - card.costBasis) / card.costBasis * 100).toFixed(1) + '%' : '0%',
-          status: card.status || 'unlisted',
-          addedAt: card.addedAt || ''
-        }))
-      }
+  const openExportModal = (format: ExportFormat) => {
+    setExportInitialFormat(format)
+    setIsExportModalOpen(true)
+  }
 
-      const worksheetData = data.map((card: any) => ({
-        'Player Name': card.player || 'Unknown',
-        'Year': card.year || '',
-        'Set / Card Name': card.set || '',
-        'Grade': card.grade || 'RAW',
-        'Sport': card.sport || 'Unknown',
-        'Cost Basis ($)': Number(card.costBasis || 0).toFixed(2),
-        'Market Value ($)': Number(card.marketValue || 0).toFixed(2),
-        'Unrealized Gain ($)': Number(card.unrealizedGain || 0).toFixed(2),
-        'Gain (%)': card.gainPct || '0%',
-        'Status': String(card.status || 'unlisted').toUpperCase(),
-        'Date Added': card.addedAt || ''
+  const handlePerformExport = async ({ format, selectedColumns }: { format: ExportFormat; selectedColumns: string[] }) => {
+    let data = await dashboardService.exportInventory()
+    if (!data || data.length === 0) {
+      data = items.map((card: any) => ({
+        player: card.playerName || card.player || 'Unknown',
+        year: card.year || '',
+        set: card.setName || card.set || '',
+        grade: card.grade || card.gradeKey || 'RAW',
+        sport: card.sport || 'Unknown',
+        costBasis: Number(card.costBasis || 0),
+        marketValue: Number(card.marketValue || 0),
+        unrealizedGain: Number((card.marketValue || 0) - (card.costBasis || 0)),
+        gainPct: card.costBasis ? (((card.marketValue || 0) - card.costBasis) / card.costBasis * 100).toFixed(1) + '%' : '0%',
+        status: String(card.status || 'unlisted').toUpperCase(),
+        addedAt: card.addedAt || ''
       }))
+    }
+
+    const columnHeaderMap: Record<string, string> = {
+      player: 'Player Name',
+      year: 'Year',
+      set: 'Set / Card Name',
+      grade: 'Grade',
+      sport: 'Sport',
+      costBasis: 'Cost Basis ($)',
+      marketValue: 'Market Value ($)',
+      unrealizedGain: 'Unrealized Gain ($)',
+      gainPct: 'Gain (%)',
+      status: 'Status',
+      addedAt: 'Date Added',
+    }
+
+    const getFormattedValue = (card: any, key: string) => {
+      switch (key) {
+        case 'player': return card.player || 'Unknown'
+        case 'year': return card.year || ''
+        case 'set': return card.set || ''
+        case 'grade': return card.grade || 'RAW'
+        case 'sport': return card.sport || 'Unknown'
+        case 'costBasis': return Number(card.costBasis || 0).toFixed(2)
+        case 'marketValue': return Number(card.marketValue || 0).toFixed(2)
+        case 'unrealizedGain': return Number(card.unrealizedGain || 0).toFixed(2)
+        case 'gainPct': return card.gainPct || '0%'
+        case 'status': return String(card.status || 'unlisted').toUpperCase()
+        case 'addedAt': return card.addedAt || ''
+        default: return String(card[key] ?? '')
+      }
+    }
+
+    if (format === 'xlsx' || format === 'csv') {
+      const worksheetData = data.map((card: any) => {
+        const row: Record<string, any> = {}
+        selectedColumns.forEach((colKey) => {
+          const header = columnHeaderMap[colKey] || colKey
+          row[header] = getFormattedValue(card, colKey)
+        })
+        return row
+      })
 
       const worksheet = XLSX.utils.json_to_sheet(worksheetData)
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Portfolio Inventory')
-      XLSX.writeFile(workbook, `RSL_Inventory_Export_${new Date().toISOString().split('T')[0]}.xlsx`)
-    } catch (err) {
-      console.error('Failed to export Excel:', err)
-    } finally {
-      setIsExportingExcel(false)
-    }
-  }
 
-  const handleDownloadPdf = async () => {
-    try {
-      setIsExportingPdf(true)
-      let data = await dashboardService.exportInventory()
-      if (!data || data.length === 0) {
-        data = items.map((card: any) => ({
-          player: card.playerName || card.player || 'Unknown',
-          year: card.year || '',
-          set: card.setName || card.set || '',
-          grade: card.grade || card.gradeKey || 'RAW',
-          sport: card.sport || 'Unknown',
-          costBasis: Number(card.costBasis || 0),
-          marketValue: Number(card.marketValue || 0),
-          unrealizedGain: Number((card.marketValue || 0) - (card.costBasis || 0)),
-          status: card.status || 'unlisted',
-        }))
-      }
-
+      const fileName = `RSL_Inventory_Export_${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`
+      XLSX.writeFile(workbook, fileName, { bookType: format === 'csv' ? 'csv' : 'xlsx' })
+    } else if (format === 'pdf') {
       const doc = new jsPDF()
       
       doc.setFontSize(18)
@@ -131,34 +157,22 @@ export default function InventoryPage() {
       doc.setTextColor(100, 116, 139)
       doc.text(`Generated on: ${new Date().toLocaleDateString()} | Total Items: ${data.length}`, 14, 28)
 
-      const tableColumn = ['Player', 'Year', 'Set / Card Name', 'Grade', 'Sport', 'Cost ($)', 'Market ($)', 'Gain ($)', 'Status']
-      const tableRows = data.map((card: any) => [
-        card.player || 'Unknown',
-        card.year || '',
-        card.set || '',
-        card.grade || 'RAW',
-        card.sport || 'Unknown',
-        `$${Number(card.costBasis || 0).toFixed(2)}`,
-        `$${Number(card.marketValue || 0).toFixed(2)}`,
-        `$${Number(card.unrealizedGain || 0).toFixed(2)}`,
-        String(card.status || 'unlisted').toUpperCase()
-      ])
+      const tableColumn = selectedColumns.map((colKey) => columnHeaderMap[colKey] || colKey)
+      const tableRows = data.map((card: any) =>
+        selectedColumns.map((colKey) => getFormattedValue(card, colKey))
+      )
 
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 34,
         theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' },
+        headStyles: { fillColor: [232, 0, 28], textColor: 255, fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 3 },
         alternateRowStyles: { fillColor: [248, 250, 252] }
       })
 
       doc.save(`RSL_Inventory_Export_${new Date().toISOString().split('T')[0]}.pdf`)
-    } catch (err) {
-      console.error('Failed to export PDF:', err)
-    } finally {
-      setIsExportingPdf(false)
     }
   }
 
@@ -177,10 +191,8 @@ export default function InventoryPage() {
       <div className="space-y-6">
         <InventoryHeader
           onAddItem={() => {}}
-          onDownloadExcel={handleDownloadExcel}
-          onDownloadPdf={handleDownloadPdf}
-          isExportingExcel={isExportingExcel}
-          isExportingPdf={isExportingPdf}
+          onDownloadExcel={() => openExportModal('xlsx')}
+          onDownloadPdf={() => openExportModal('pdf')}
         />
 
         <InventoryMetrics
@@ -291,6 +303,16 @@ export default function InventoryPage() {
           onClose={closeCardDetail}
         />
       )}
+
+      <ExportColumnModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Inventory Report"
+        subtitle="Select file format and columns to include in your inventory report"
+        availableColumns={INVENTORY_EXPORT_COLUMNS}
+        onExport={handlePerformExport}
+        initialFormat={exportInitialFormat}
+      />
     </Shell>
   )
 }

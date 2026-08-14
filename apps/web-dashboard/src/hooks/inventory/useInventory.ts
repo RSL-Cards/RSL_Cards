@@ -6,7 +6,7 @@ export const inventoryKeys = {
   lists: () => [...inventoryKeys.all, 'list'] as const,
   list: (filters: InventoryQuery) => [...inventoryKeys.lists(), filters] as const,
   details: () => [...inventoryKeys.all, 'detail'] as const,
-  detail: (id: string) => [...inventoryKeys.details(), id] as const,
+  detail: (id: string, grade?: string) => [...inventoryKeys.details(), id, grade || 'ALL'] as const,
   summary: () => [...inventoryKeys.all, 'summary'] as const,
   agingAlerts: () => [...inventoryKeys.all, 'agingAlerts'] as const,
 };
@@ -37,10 +37,10 @@ export function useAgingAlerts() {
   });
 }
 
-export function useInventoryItem(id: string) {
+export function useInventoryItem(id: string, grade?: string) {
   return useQuery({
-    queryKey: inventoryKeys.detail(id),
-    queryFn: () => inventoryService.getItem(id),
+    queryKey: inventoryKeys.detail(id, grade),
+    queryFn: () => inventoryService.getItem(id, grade),
     enabled: !!id,
   });
 }

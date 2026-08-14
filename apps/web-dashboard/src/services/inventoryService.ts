@@ -174,11 +174,33 @@ export const inventoryService = {
     return data.alerts.map(normalizeInventoryItem)
   },
 
-  async getItem(id: string) {
+  async getItem(id: string, grade?: string) {
+    const query = grade ? `?grade=${encodeURIComponent(grade)}` : ''
     const data = await inventoryRequest<RawInventoryItem>(
-      `${ENDPOINTS.inventory.list}/${id}`,
+      `${ENDPOINTS.inventory.list}/${id}${query}`,
     )
-    return normalizeInventoryItem(data)
+    const normalized = normalizeInventoryItem(data)
+    return {
+      ...data,
+      ...normalized,
+      ebay_sales_completed: (data as any).ebay_sales_completed,
+      myslabs_sales_completed: (data as any).myslabs_sales_completed,
+      ebay_active_listings: (data as any).ebay_active_listings,
+      myslabs_active_listings: (data as any).myslabs_active_listings,
+      photos: (data as any).photos,
+      grade_company: (data as any).grade_company,
+      grade_value: (data as any).grade_value,
+      median_comp_price: (data as any).median_comp_price,
+      verified_sales_count: (data as any).verified_sales_count,
+      grade_lowest_active: (data as any).grade_lowest_active,
+      grade_highest_active: (data as any).grade_highest_active,
+      filtered_ebay_sold: (data as any).filtered_ebay_sold,
+      filtered_myslabs_sold: (data as any).filtered_myslabs_sold,
+      filtered_ebay_active: (data as any).filtered_ebay_active,
+      filtered_myslabs_active: (data as any).filtered_myslabs_active,
+      all_filtered_sold_comps: (data as any).all_filtered_sold_comps,
+      all_filtered_active_comps: (data as any).all_filtered_active_comps,
+    }
   },
 
   addItem(payload: AddInventoryPayload) {

@@ -46,8 +46,27 @@ export class InventoryService {
     return this.repository.getInventoryAgingAlerts(userId);
   }
 
-  async getInventoryId(id: string, userId: string) {
-    return this.repository.getInventoryId(id, userId);
+  async getInventoryId(id: string, userId: string, grade?: string) {
+    const targetGrade = (grade || "ALL").toUpperCase().trim();
+    const cacheKey = REDIS_KEYS.inventoryItemDetail(id, targetGrade);
+    try {
+      const cached = await redisAdapter.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (err: any) {
+      console.warn(`[INVENTORY] Redis cache get failed for item ${id}: ${err.message}`);
+    }
+
+    const item = await this.repository.getInventoryId(id, userId, targetGrade);
+
+    try {
+      await redisAdapter.set(cacheKey, JSON.stringify(item), 300); // 5 min TTL for 1000 req/sec scale
+    } catch (err: any) {
+      console.warn(`[INVENTORY] Redis cache set failed for item ${id}: ${err.message}`);
+    }
+
+    return item;
   }
 
   async postInventory(body: any, userId: string) {

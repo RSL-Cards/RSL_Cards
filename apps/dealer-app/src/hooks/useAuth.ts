@@ -4,7 +4,11 @@ import Toast from "react-native-toast-message";
 import {
   authService,
   type LoginPayload,
+  type SendLoginOtpPayload,
+  type LoginWithOtpPayload,
   type RegisterPayload,
+  type SendOtpPayload,
+  type VerifyOtpPayload,
   type ForgotPasswordPayload,
   type ResetPasswordPayload,
 } from "../services/authService";
@@ -42,6 +46,93 @@ function getErrorMessage(error: unknown, fallback: string): string {
     (error as any)?.response?.data?.message ??
     fallback
   );
+}
+
+export function useSendOtp() {
+  return useMutation({
+    mutationFn: (payload: SendOtpPayload) => authService.sendOtp(payload),
+    onSuccess: (data) => {
+      Toast.show({
+        type: "success",
+        text1: "Verification Code Sent",
+        text2: data.message || "Check your email for the 6-digit OTP code.",
+      });
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Failed to send OTP",
+        text2: getErrorMessage(error, "Could not send verification code."),
+      });
+    },
+  });
+}
+
+export function useVerifyOtp() {
+  return useMutation({
+    mutationFn: (payload: VerifyOtpPayload) => authService.verifyOtp(payload),
+    onSuccess: () => {
+      Toast.show({
+        type: "success",
+        text1: "OTP Verified",
+      });
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Verification Failed",
+        text2: getErrorMessage(error, "Invalid or expired OTP code."),
+      });
+    },
+  });
+}
+
+export function useSendLoginOtp() {
+  return useMutation({
+    mutationFn: (payload: SendLoginOtpPayload) => authService.sendLoginOtp(payload),
+    onSuccess: (data) => {
+      Toast.show({
+        type: "success",
+        text1: "Login Code Sent",
+        text2: data.message || "Check your email for your 6-digit login OTP.",
+      });
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Failed to send login code",
+        text2: getErrorMessage(error, "Could not send login verification code."),
+      });
+    },
+  });
+}
+
+export function useLoginWithOtp() {
+  const router = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
+
+  return useMutation({
+    mutationFn: (payload: LoginWithOtpPayload) => authService.loginWithOtp(payload),
+    onSuccess: (data) => {
+      setAuth(data.user);
+      Toast.show({
+        type: "success",
+        text1: `Welcome back, ${data.user.displayName}!`,
+      });
+      if (!data.user.onboardingCompleted) {
+        router.replace("/(auth)/onboarding/sports");
+      } else {
+        router.replace("/(tabs)");
+      }
+    },
+    onError: (error) => {
+      Toast.show({
+        type: "error",
+        text1: "Login Failed",
+        text2: getErrorMessage(error, "Invalid or expired OTP code."),
+      });
+    },
+  });
 }
 
 export function useLogin() {
@@ -217,7 +308,7 @@ export function useGoogleAuth() {
         text1: "Signed in with Google",
       });
 
-      if (!data.user.onboardingCompleted) {
+      if (data.user.isNewUser || !data.user.onboardingCompleted) {
         router.replace("/(auth)/onboarding/sports");
       } else {
         router.replace("/(tabs)");
@@ -287,21 +378,36 @@ export function useAppleAuth() {
 
       if (!credential.identityToken) return;
 
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(" ");
+
       const data = await authService.appleLogin({
         idToken: credential.identityToken,
+        rawName: fullName || undefined,
+        email: credential.email || undefined,
       });
 
       setAuth(data.user);
 
-      if (!data.user.onboardingCompleted) {
+      if (data.user.isNewUser || !data.user.onboardingCompleted) {
         router.replace("/(auth)/onboarding/sports");
       } else {
         router.replace("/(tabs)");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Apple sign in error:", error);
+      if (error?.code === "ERR_REQUEST_CANCELED" || error?.code === "ERR_CANCELED") {
+        return;
+      }
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Apple sign in failed. Please check your Apple ID settings.";
       Toast.show({
         type: "error",
         text1: "Apple sign in failed",
+        text2: typeof message === "string" ? message : JSON.stringify(message),
       });
     }
   };

@@ -1,6 +1,10 @@
 import { AuthService } from "./auth.service.js";
 import {
   RegisterSchema,
+  SendOtpSchema,
+  VerifyOtpSchema,
+  SendLoginOtpSchema,
+  LoginWithOtpSchema,
   LoginSchema,
   RefreshSchema,
   LogoutSchema,
@@ -21,6 +25,27 @@ export class AuthController {
       deviceInfo: request.headers.get("user-agent") || null,
     };
   }
+
+  sendOtp = async ({ body }: { body: any }) => {
+    const data = SendOtpSchema.parse(body);
+    return await this.service.sendRegistrationOtp(data.email);
+  };
+
+  verifyOtp = async ({ body }: { body: any }) => {
+    const data = VerifyOtpSchema.parse(body);
+    return await this.service.verifyRegistrationOtp(data.email, data.otp);
+  };
+
+  sendLoginOtp = async ({ body }: { body: any }) => {
+    const data = SendLoginOtpSchema.parse(body);
+    return await this.service.sendLoginOtp(data.email);
+  };
+
+  loginWithOtp = async ({ body, request }: { body: any; request: Request }) => {
+    const data = LoginWithOtpSchema.parse(body);
+    const { ipAddress, deviceInfo } = this.getRequestMeta(request);
+    return await this.service.loginWithOtp(data.email, data.otp, ipAddress, deviceInfo);
+  };
 
   register = async ({ body, request }: { body: any; request: Request }) => {
     const data = RegisterSchema.parse(body);
@@ -58,13 +83,13 @@ export class AuthController {
   googleOauth = async ({ body, request }: { body: any; request: Request }) => {
     const data = GoogleOauthSchema.parse(body);
     const { ipAddress, deviceInfo } = this.getRequestMeta(request);
-    return await this.service.loginWithGoogle(data.idToken, data.role, ipAddress, deviceInfo);
+    return await this.service.loginWithGoogle(data.idToken, data.role, data.rawName, data.email, ipAddress, deviceInfo);
   };
 
   appleOauth = async ({ body, request }: { body: any; request: Request }) => {
     const data = AppleOauthSchema.parse(body);
     const { ipAddress, deviceInfo } = this.getRequestMeta(request);
-    return await this.service.loginWithApple(data.idToken, data.role, ipAddress, deviceInfo);
+    return await this.service.loginWithApple(data.idToken, data.role, data.rawName, data.email, ipAddress, deviceInfo);
   };
 
   adminDemo = async () => {

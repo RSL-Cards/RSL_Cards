@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,29 +12,53 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useRegister, useGoogleAuth } from "../../src/hooks/useAuth";
+import { useRegister, useSendOtp, useGoogleAuth } from "../../src/hooks/useAuth";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const [step, setStep] = useState<"details" | "otp">("details");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [isDealer, setIsDealer] = useState(true);
   const [validationError, setValidationError] = useState("");
 
-  const { mutate: register, isPending, error } = useRegister();
+  const [timerSeconds, setTimerSeconds] = useState(300);
+
+  const { mutate: register, isPending: isRegistering, error: registerError } = useRegister();
+  const { mutate: sendOtp, isPending: isSendingOtp, error: sendOtpError } = useSendOtp();
   const { promptGoogleSignIn } = useGoogleAuth();
 
-  const apiError = error
-    ? (error as any)?.response?.data?.message ||
-      "Registration failed. Please try again."
-    : null;
+  useEffect(() => {
+    let interval: any = null;
+    if (step === "otp" && timerSeconds > 0) {
+      interval = setInterval(() => {
+        setTimerSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [step, timerSeconds]);
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  const apiError =
+    (sendOtpError as any)?.response?.data?.message ||
+    (registerError as any)?.response?.data?.message ||
+    null;
   const displayError = validationError || apiError;
 
-  const handleRegister = () => {
+  const handleSendOtpStep = () => {
     if (!email || !password || !confirm) {
       setValidationError("All fields are required.");
       return;
@@ -48,11 +72,42 @@ export default function RegisterScreen() {
       return;
     }
     setValidationError("");
+
+    sendOtp(
+      { email: email.trim().toLowerCase() },
+      {
+        onSuccess: () => {
+          setStep("otp");
+          setTimerSeconds(300);
+        },
+      }
+    );
+  };
+
+  const handleFinalRegister = () => {
+    if (!otp || otp.length !== 6) {
+      setValidationError("Please enter the 6-digit OTP code.");
+      return;
+    }
+    setValidationError("");
     register({
       email: email.trim().toLowerCase(),
       password,
       role: isDealer ? "dealer" : "consumer",
+      otp: otp.trim(),
     });
+  };
+
+  const handleResendOtp = () => {
+    setValidationError("");
+    sendOtp(
+      { email: email.trim().toLowerCase() },
+      {
+        onSuccess: () => {
+          setTimerSeconds(300);
+        },
+      }
+    );
   };
 
   return (
@@ -67,142 +122,204 @@ export default function RegisterScreen() {
         >
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (step === "otp") {
+                setStep("details");
+              } else {
+                router.back();
+              }
+            }}
           >
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
 
           <View style={styles.content}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start tracking your deals today</Text>
+            <Text style={styles.title}>
+              {step === "details" ? "Create Account" : "Verify Your Email"}
+            </Text>
+            <Text style={styles.subtitle}>
+              {step === "details"
+                ? "Start tracking your deals today"
+                : `We sent a 6-digit code to ${email}`}
+            </Text>
 
-            <View style={styles.form}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor="#555555"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-
-              <View style={{ height: 20 }} />
-              <Text style={styles.label}>PASSWORD</Text>
-              <View style={styles.passwordRow}>
+            {step === "details" ? (
+              <View style={styles.form}>
+                <Text style={styles.label}>EMAIL ADDRESS</Text>
                 <TextInput
-                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="you@example.com"
                   placeholderTextColor="#555555"
-                  secureTextEntry={!showPw}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  style={styles.eyeBtn}
-                  onPress={() => setShowPw(!showPw)}
-                >
-                  <Ionicons
-                    name={showPw ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#888888"
-                  />
-                </TouchableOpacity>
-              </View>
 
-              <View style={{ height: 20 }} />
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
-              <View style={styles.passwordRow}>
-                <TextInput
-                  style={[styles.input, { flex: 1, paddingRight: 48 }]}
-                  value={confirm}
-                  onChangeText={setConfirm}
-                  placeholder="••••••••"
-                  placeholderTextColor="#555555"
-                  secureTextEntry={!showConfirmPw}
-                />
-                <TouchableOpacity
-                  style={styles.eyeBtn}
-                  onPress={() => setShowConfirmPw(!showConfirmPw)}
-                >
-                  <Ionicons
-                    name={showConfirmPw ? "eye-off-outline" : "eye-outline"}
-                    size={20}
-                    color="#888888"
+                <View style={{ height: 20 }} />
+                <Text style={styles.label}>PASSWORD</Text>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor="#555555"
+                    secureTextEntry={!showPw}
                   />
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ height: 24 }} />
-              <Text style={styles.label}>ROLE</Text>
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-                <TouchableOpacity
-                  style={[styles.roleChip, isDealer && styles.roleChipActive]}
-                  onPress={() => setIsDealer(true)}
-                >
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      isDealer && styles.roleChipTextActive,
-                    ]}
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPw(!showPw)}
                   >
-                    I'm a Dealer
+                    <Ionicons
+                      name={showPw ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color="#888888"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 20 }} />
+                <Text style={styles.label}>CONFIRM PASSWORD</Text>
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, paddingRight: 48 }]}
+                    value={confirm}
+                    onChangeText={setConfirm}
+                    placeholder="••••••••"
+                    placeholderTextColor="#555555"
+                    secureTextEntry={!showConfirmPw}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowConfirmPw(!showConfirmPw)}
+                  >
+                    <Ionicons
+                      name={showConfirmPw ? "eye-off-outline" : "eye-outline"}
+                      size={20}
+                      color="#888888"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 24 }} />
+                <Text style={styles.label}>ROLE</Text>
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.roleChip, isDealer && styles.roleChipActive]}
+                    onPress={() => setIsDealer(true)}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        isDealer && styles.roleChipTextActive,
+                      ]}
+                    >
+                      I'm a Dealer
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.roleChip, !isDealer && styles.roleChipActive]}
+                    onPress={() => setIsDealer(false)}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        !isDealer && styles.roleChipTextActive,
+                      ]}
+                    >
+                      I'm a Collector
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {displayError ? (
+                  <Text style={styles.errorText}>{displayError}</Text>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.registerBtn}
+                  onPress={handleSendOtpStep}
+                  disabled={isSendingOtp}
+                  activeOpacity={0.85}
+                >
+                  {isSendingOtp ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.registerBtnText}>Send Verification Code</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: "#1A1A1A",
+                    height: 52,
+                    borderRadius: 16,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 1,
+                    borderColor: "#2A2A2A",
+                  }}
+                  onPress={() => promptGoogleSignIn()}
+                  activeOpacity={0.85}
+                >
+                  <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                  <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                    Sign Up with Google
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.roleChip, !isDealer && styles.roleChipActive]}
-                  onPress={() => setIsDealer(false)}
-                >
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      !isDealer && styles.roleChipTextActive,
-                    ]}
-                  >
-                    I'm a Collector
+              </View>
+            ) : (
+              <View style={styles.form}>
+                <Text style={styles.label}>ENTER 6-DIGIT VERIFICATION CODE</Text>
+                <TextInput
+                  style={[styles.input, { letterSpacing: 8, textAlign: "center", fontSize: 22 }]}
+                  value={otp}
+                  onChangeText={(val) => setOtp(val.replace(/[^0-9]/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  placeholderTextColor="#555555"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                />
+
+                <View style={styles.timerRow}>
+                  <Text style={styles.timerText}>
+                    Code expires in:{" "}
+                    <Text style={{ color: "#E8001C", fontWeight: "700" }}>
+                      {formatTimer(timerSeconds)}
+                    </Text>
                   </Text>
+                  <TouchableOpacity
+                    onPress={handleResendOtp}
+                    disabled={isSendingOtp || timerSeconds > 240}
+                  >
+                    <Text style={{ color: timerSeconds > 240 ? "#555" : "#0057FF", fontWeight: "600" }}>
+                      Resend Code
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {displayError ? (
+                  <Text style={styles.errorText}>{displayError}</Text>
+                ) : null}
+
+                <TouchableOpacity
+                  style={styles.registerBtn}
+                  onPress={handleFinalRegister}
+                  disabled={isRegistering}
+                  activeOpacity={0.85}
+                >
+                  {isRegistering ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.registerBtnText}>Verify & Create Account</Text>
+                  )}
                 </TouchableOpacity>
               </View>
-
-              {displayError ? (
-                <Text style={styles.errorText}>{displayError}</Text>
-              ) : null}
-
-              <TouchableOpacity
-                style={styles.registerBtn}
-                onPress={handleRegister}
-                disabled={isPending}
-                activeOpacity={0.85}
-              >
-                {isPending ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.registerBtnText}>Create Account</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  marginTop: 12,
-                  backgroundColor: "#1A1A1A",
-                  height: 52,
-                  borderRadius: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#2A2A2A",
-                }}
-                onPress={() => promptGoogleSignIn()}
-                activeOpacity={0.85}
-              >
-                <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
-                <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
-                  Sign Up with Google
-                </Text>
-              </TouchableOpacity>
-            </View>
+            )}
 
             <TouchableOpacity
               style={styles.loginRow}
@@ -271,6 +388,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   registerBtnText: { color: "white", fontWeight: "700", fontSize: 16 },
+  timerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 16,
+  },
+  timerText: { color: "#888888", fontSize: 13 },
   loginRow: { alignItems: "center", marginTop: 32, marginBottom: 24 },
   loginText: { color: "#888888", fontSize: 14 },
   errorText: {

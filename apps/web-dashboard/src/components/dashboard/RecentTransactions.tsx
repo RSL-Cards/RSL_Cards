@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { formatDisplayDate } from '@/lib/utils'
 
 import {
   TrendingUp,
@@ -9,6 +10,10 @@ import {
   CreditCard,
   Smartphone
 } from 'lucide-react'
+
+import { useState } from 'react'
+import * as XLSX from 'xlsx'
+import ExportColumnModal, { ExportColumnOption, ExportFormat } from '@/components/export/ExportColumnModal'
 
 interface RecentTransactionsProps {
   transactions: Array<{
@@ -25,26 +30,34 @@ interface RecentTransactionsProps {
   }>
 }
 
+const DASHBOARD_EXPORT_COLUMNS: ExportColumnOption[] = [
+  { key: 'player', label: 'Player Name', defaultSelected: true },
+  { key: 'type', label: 'Type (Buy/Sell)', defaultSelected: true },
+  { key: 'grade', label: 'Grade', defaultSelected: true },
+  { key: 'price', label: 'Price ($)', defaultSelected: true },
+  { key: 'profit', label: 'Profit ($)', defaultSelected: true },
+  { key: 'margin', label: 'Margin (%)', defaultSelected: true },
+  { key: 'channel', label: 'Channel', defaultSelected: true },
+  { key: 'payment', label: 'Payment Method', defaultSelected: true },
+  { key: 'time', label: 'Date & Time', defaultSelected: true },
+]
+
 export default function RecentTransactions({
   transactions
 }: RecentTransactionsProps) {
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   const getPaymentIcon = (payment: string) => {
-
     switch (payment.toLowerCase()) {
-
       case 'cash':
         return DollarSign
-
       case 'paypal':
       case 'ebay':
         return CreditCard
-
       case 'venmo':
       case 'cashapp':
       case 'zelle':
         return Smartphone
-
       default:
         return DollarSign
     }
@@ -54,12 +67,88 @@ export default function RecentTransactions({
     if (grade.includes('PSA')) {
       return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
     }
-
     if (grade.includes('BGS')) {
       return 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
     }
-
     return 'bg-[#141414] text-zinc-300 border border-[#252525]'
+  }
+
+  const columnHeaderMap: Record<string, string> = {
+    player: 'Player Name',
+    type: 'Type',
+    grade: 'Grade',
+    price: 'Price ($)',
+    profit: 'Profit ($)',
+    margin: 'Margin (%)',
+    channel: 'Channel',
+    payment: 'Payment Method',
+    time: 'Date & Time',
+  }
+
+  const getFormattedValue = (tx: any, key: string) => {
+    switch (key) {
+      case 'player': return tx.player || 'Unknown'
+      case 'type': return String(tx.type || '').toUpperCase()
+      case 'grade': return tx.grade || 'RAW'
+      case 'price': return typeof tx.price === 'number' ? `$${tx.price}` : String(tx.price || '')
+      case 'profit': return tx.profit != null ? `${tx.profit > 0 ? '+' : ''}$${tx.profit}` : '—'
+      case 'margin': return tx.margin != null ? `${tx.margin}%` : '—'
+      case 'channel': return tx.channel || '—'
+      case 'payment': return tx.payment || '—'
+      case 'time': return formatDisplayDate(tx.time)
+      default: return String(tx[key] ?? '—')
+    }
+  }
+
+  const handlePerformExport = async ({ format, selectedColumns }: { format: ExportFormat; selectedColumns: string[] }) => {
+    if (format === 'xlsx' || format === 'csv') {
+      const worksheetData = transactions.map((tx) => {
+        const row: Record<string, any> = {}
+        selectedColumns.forEach((colKey) => {
+          const header = columnHeaderMap[colKey] || colKey
+          row[header] = getFormattedValue(tx, colKey)
+        })
+        return row
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Recent Transactions')
+
+      const fileName = `rsl-recent-transactions-${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : 'xlsx'}`
+      XLSX.writeFile(workbook, fileName, { bookType: format === 'csv' ? 'csv' : 'xlsx' })
+    } else if (format === 'pdf') {
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ])
+      const doc = new jsPDF({ orientation: 'landscape' })
+
+      doc.setFontSize(18)
+      doc.setTextColor(15, 23, 42)
+      doc.text('RSL Cards - Recent Transactions Report', 14, 20)
+
+      doc.setFontSize(9)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Generated on: ${formatDisplayDate(new Date())} | Total Records: ${transactions.length}`, 14, 28)
+
+      const tableColumn = selectedColumns.map((colKey) => columnHeaderMap[colKey] || colKey)
+      const tableRows = transactions.map((tx) =>
+        selectedColumns.map((colKey) => getFormattedValue(tx, colKey))
+      )
+
+      autoTable(doc, {
+        startY: 34,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [232, 0, 28], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      })
+
+      doc.save(`rsl-recent-transactions-${new Date().toISOString().split('T')[0]}.pdf`)
+    }
   }
 
   return (
@@ -121,7 +210,7 @@ export default function RecentTransactions({
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-semibold text-white">{transaction.player}</div>
-                    <div className="text-xs text-zinc-400 mt-1">{transaction.channel} • {transaction.time}</div>
+                    <div className="text-xs text-zinc-400 mt-1">{transaction.channel} • {formatDisplayDate(transaction.time)}</div>
                   </div>
                   <div className="flex flex-col items-end">
                     <div className="font-mono font-bold text-white">${transaction.price}</div>
@@ -389,9 +478,8 @@ export default function RecentTransactions({
 
                   {/* Time */}
                   <td className="px-5 py-4 text-right">
-
                     <div className="text-zinc-400 text-sm whitespace-nowrap">
-                      {transaction.time}
+                      {formatDisplayDate(transaction.time)}
                     </div>
                   </td>
                 </tr>
@@ -409,10 +497,24 @@ export default function RecentTransactions({
           Showing latest {transactions.length} transactions
         </div>
 
-        <button className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200">
+        <button
+          type="button"
+          onClick={() => setIsExportModalOpen(true)}
+          className="text-blue-400 hover:text-blue-300 text-sm font-semibold transition-colors duration-200"
+        >
           Export Transactions →
         </button>
       </div>
+
+      <ExportColumnModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Recent Transactions"
+        subtitle="Select format and columns to include in your recent transactions export"
+        availableColumns={DASHBOARD_EXPORT_COLUMNS}
+        onExport={handlePerformExport}
+        initialFormat="xlsx"
+      />
     </div>
   )
 }

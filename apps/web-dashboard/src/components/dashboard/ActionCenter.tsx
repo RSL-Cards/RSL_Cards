@@ -76,12 +76,6 @@ export default function ActionCenter({ agingCount = 0, unlistedCount = 0 }: Acti
                     <div className="text-[11px] text-zinc-400 mt-0.5">Ready to cross-post to marketplaces</div>
                   </div>
                 </div>
-                <Link
-                  href="/listings"
-                  className="shrink-0 rounded-lg bg-[#E8001C] hover:bg-[#CC0018] px-2.5 py-1 text-xs font-bold text-white transition-all"
-                >
-                  List Now
-                </Link>
               </div>
             </div>
           )}

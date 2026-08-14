@@ -148,6 +148,29 @@ const data: ResendResponse | null =
     return this.sendEmail({ to, ...template });
   }
 
+  async sendPasswordResetSuccess(
+    to: string,
+    input: { displayName?: string | null } = {},
+  ) {
+    const template = emailTemplates.passwordResetSuccess({
+      displayName: input.displayName,
+    });
+
+    return this.sendEmail({ to, ...template });
+  }
+
+  async sendPasswordResetFailed(
+    to: string,
+    input: { displayName?: string | null; reason?: string } = {},
+  ) {
+    const template = emailTemplates.passwordResetFailed({
+      displayName: input.displayName,
+      reason: input.reason,
+    });
+
+    return this.sendEmail({ to, ...template });
+  }
+
   async sendOrderConfirmation(
     to: string,
     input: {

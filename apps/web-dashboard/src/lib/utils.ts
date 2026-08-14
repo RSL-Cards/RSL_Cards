@@ -47,3 +47,44 @@ export function getTrendIcon(trend: number): string {
   if (trend < 0) return '↓'
   return '→'
 }
+
+/**
+ * Formats a date string, timestamp, or Date object into a clean human-readable date & time.
+ * Example output: "14 Aug, 2026 at 06:25 AM"
+ */
+export function formatDisplayDate(
+  dateInput: string | Date | number | null | undefined,
+  options: { includeTime?: boolean } = { includeTime: true }
+): string {
+  if (!dateInput) return '—'
+
+  let date: Date
+  if (typeof dateInput === 'string') {
+    const cleanedStr = dateInput.trim().includes(' ') && !dateInput.includes('T')
+      ? dateInput.trim().replace(' ', 'T')
+      : dateInput.trim()
+    date = new Date(cleanedStr)
+  } else if (typeof dateInput === 'number') {
+    date = new Date(dateInput)
+  } else {
+    date = dateInput
+  }
+
+  if (isNaN(date.getTime())) return '—'
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const day = date.getDate()
+  const month = months[date.getMonth()]
+  const year = date.getFullYear()
+
+  if (options?.includeTime !== false) {
+    let hours = date.getHours()
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12 || 12
+    const formattedHours = hours.toString().padStart(2, '0')
+    return `${day} ${month}, ${year} at ${formattedHours}:${minutes} ${ampm}`
+  }
+
+  return `${day} ${month}, ${year}`
+}

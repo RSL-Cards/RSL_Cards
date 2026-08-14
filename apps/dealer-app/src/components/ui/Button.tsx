@@ -71,6 +71,8 @@ export function Button({
             variant={size === 'hero' ? 'h2' : 'body'}
             weight="700"
             color={getTextColor(variant)}
+            numberOfLines={1}
+            adjustsFontSizeToFit
           >
             {size === 'hero' ? label.toUpperCase() : label}
           </Typography>
@@ -116,16 +118,16 @@ const styles = StyleSheet.create({
 
   // Sizes
   sm: {
-    paddingVertical: SPACING.sm,
+    height: 36,
     paddingHorizontal: SPACING.md,
     borderRadius: RADIUS.sm,
   },
   md: {
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    height: 48,
+    paddingHorizontal: SPACING.md,
   },
   lg: {
-    paddingVertical: 18,
+    height: 56,
     paddingHorizontal: SPACING.xl,
     borderRadius: RADIUS.lg,
   },

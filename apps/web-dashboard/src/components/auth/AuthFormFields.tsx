@@ -8,16 +8,20 @@ interface AuthFormFieldsProps {
   mode: AuthMode
   otp: string
   password: string
+  showOtpField?: boolean
+  loginType?: 'password' | 'otp'
   onEmailChange: (value: string) => void
   onOtpChange: (value: string) => void
   onPasswordChange: (value: string) => void
 }
 
-export default function AuthFormFields({
+      export default function AuthFormFields({
   email,
   mode,
   otp,
   password,
+  showOtpField,
+  loginType,
   onEmailChange,
   onOtpChange,
   onPasswordChange,
@@ -26,6 +30,7 @@ export default function AuthFormFields({
   const isLogin = mode === 'login'
   const isForgotPassword = mode === 'forgot-password'
   const isResetPassword = mode === 'reset-password'
+  const hidePassword = isForgotPassword || (isLogin && loginType === 'otp')
 
   return (
     <>
@@ -42,14 +47,15 @@ export default function AuthFormFields({
             className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
             placeholder="dealer@rslcards.com"
             autoComplete="email"
+            disabled={showOtpField}
           />
         </span>
       </label>
 
-      {isResetPassword && (
+      {(isResetPassword || showOtpField) && (
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-zinc-300">
-            OTP
+            {showOtpField ? 'Verification Code (6-digit OTP sent to email)' : 'OTP'}
           </span>
           <span className="relative block">
             <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
@@ -57,17 +63,18 @@ export default function AuthFormFields({
               type="text"
               value={otp}
               onChange={(event) => onOtpChange(event.target.value)}
-              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20"
-              placeholder="6 digit OTP"
+              className="h-12 w-full rounded-xl border border-[#252525] bg-[#141414] pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 outline-none transition focus:border-[#E8001C] focus:ring-1 focus:ring-[#E8001C]/20 tracking-widest text-center text-lg font-mono"
+              placeholder="123456"
               inputMode="numeric"
               maxLength={6}
               autoComplete="one-time-code"
+              autoFocus={showOtpField}
             />
           </span>
         </label>
       )}
 
-      {!isForgotPassword && (
+      {!hidePassword && (
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-zinc-300">
             {isResetPassword ? 'New password' : 'Password'}
@@ -98,7 +105,7 @@ export default function AuthFormFields({
         </label>
       )}
 
-      {isLogin && (
+      {isLogin && loginType === 'password' && (
         <div className="text-right">
           <Link
             href="/forgot-password"

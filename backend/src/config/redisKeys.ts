@@ -19,6 +19,13 @@ export const REDIS_KEYS = {
    * Format: cache:inventory_summary:<userId>
    */
   inventorySummary: (userId: string) => `cache:inventory_summary:${userId}`,
+
+  /**
+   * Generates Redis key for Inventory Item Details & Grade Comps Cache
+   * Format: rsl-cards:v1:inventory:item:<id>:<grade>
+   */
+  inventoryItemDetail: (id: string, grade?: string) =>
+    `rsl-cards:v1:inventory:item:${id}:${(grade || "ALL").toUpperCase()}`,
 } as const;
 
 export const BULLMQ_CONFIG = {

@@ -156,8 +156,9 @@ export const inventoryService = {
     return data;
   },
 
-  async getItem(id: string): Promise<any> {
-    const { data } = await apiClient.get(ENDPOINTS.inventory.detail(id));
+  async getItem(id: string, grade?: string): Promise<any> {
+    const params = grade ? { grade } : undefined;
+    const { data } = await apiClient.get(ENDPOINTS.inventory.detail(id), { params });
     return data;
   },
 

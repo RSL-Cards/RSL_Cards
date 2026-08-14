@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   users,
   refreshTokens,
@@ -64,6 +64,20 @@ export class AuthRepository {
       .select()
       .from(users as any)
       .where(eq((users as any).email, email))
+      .limit(1)) as any;
+    return user || null;
+  }
+
+  async getOAuthUser(provider: "google" | "apple", providerId: string): Promise<UserRow | null> {
+    const [user] = (await db
+      .select()
+      .from(users as any)
+      .where(
+        and(
+          eq((users as any).oauthProvider, provider),
+          eq((users as any).oauthId, providerId)
+        )
+      )
       .limit(1)) as any;
     return user || null;
   }
@@ -181,9 +195,11 @@ export class AuthRepository {
     email: string,
     provider: "google" | "apple",
     providerId: string,
-    role: "dealer" | "consumer"
+    role: "dealer" | "consumer",
+    displayName?: string,
   }) {
     const pwdHash = await hashPassword(data.email.toLowerCase().trim());
+    const name = data.displayName || data.email.split("@")[0] || "User";
 
     return await db.transaction(async (tx: any) => {
       const [user] = await tx
@@ -200,12 +216,12 @@ export class AuthRepository {
       if (data.role === "dealer") {
         await tx.insert(dealerProfiles).values({
           userId: user.id,
-          displayName: data.email.split("@")[0]
+          displayName: name
         });
       } else {
         await tx.insert(consumerProfiles).values({
           userId: user.id,
-          displayName: data.email.split("@")[0]
+          displayName: name
         });
       }
 

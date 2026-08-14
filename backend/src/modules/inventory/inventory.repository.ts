@@ -7,6 +7,109 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const t500 = (s?: string | null) => s ? s.slice(0, 500) : null;
 
+function parseJsonArray(val: any): any[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object") return [parsed];
+      return [];
+    } catch {
+      return [];
+    }
+  }
+  if (typeof val === "object") return [val];
+  return [];
+}
+
+function extractCompPrice(item: any): number {
+  if (!item || typeof item !== "object") return 0;
+  if (typeof item.price === "number" && !isNaN(item.price)) return item.price;
+  if (typeof item.soldPrice === "number" && !isNaN(item.soldPrice)) return item.soldPrice;
+  if (typeof item.sold_price === "number" && !isNaN(item.sold_price)) return item.sold_price;
+  if (typeof item.list_price === "number" && !isNaN(item.list_price)) return item.list_price;
+  if (item.soldPrice?.value != null) {
+    const p = parseFloat(String(item.soldPrice.value));
+    if (!isNaN(p)) return p;
+  }
+  if (item.price?.value != null) {
+    const p = parseFloat(String(item.price.value));
+    if (!isNaN(p)) return p;
+  }
+  if (item.price != null && typeof item.price !== "object") {
+    const p = parseFloat(String(item.price));
+    if (!isNaN(p)) return p;
+  }
+  if (item.sold_price != null && typeof item.sold_price !== "object") {
+    const p = parseFloat(String(item.sold_price));
+    if (!isNaN(p)) return p;
+  }
+  return 0;
+}
+
+function calculateMedianPrice(prices: number[]): number {
+  if (!prices.length) return 0;
+  const sorted = [...prices].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function filterCompsByGradeServer(items: any[], selectedGrade: string): any[] {
+  if (!Array.isArray(items) || !items.length) return [];
+  if (!selectedGrade || selectedGrade.toUpperCase() === "ALL") return items;
+  const gradeUpper = selectedGrade.toUpperCase().trim();
+
+  return items.filter(item => {
+    if (!item || typeof item !== "object") return false;
+    const title = String(item.title || "").toUpperCase();
+    const condition = String(item.condition || "").toUpperCase();
+
+    const isUngradedCondition = condition === "UNGRADED" || condition === "RAW";
+    const isGradedCondition = condition === "GRADED" || condition === "SLABBED" || condition === "SLAB";
+
+    const itemGrade = String(item.grade_key || item.gradeKey || "");
+    if (itemGrade) {
+      let parsedGrade = "RAW";
+      if (itemGrade !== "RAW") {
+        const numMatch = itemGrade.match(/_(\d+(?:\.\d+)?)$/);
+        parsedGrade = numMatch ? numMatch[1] : (/^\d+(?:\.\d+)?$/.test(itemGrade) ? itemGrade : "RAW");
+      }
+      if (parsedGrade === gradeUpper) {
+        if (gradeUpper !== "RAW" && isUngradedCondition) return false;
+        return true;
+      }
+      return false;
+    }
+
+    if (gradeUpper === "RAW") {
+      if (isGradedCondition) return false;
+      return !/\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+    } else {
+      if (isUngradedCondition) return false;
+      if (/\b(READY|RAW|LOT|NOT\s+(?:PSA|BGS|SGC|CGC|CSG)|PSA\s*\?|\?\s*PSA)\b/i.test(title)) {
+        return false;
+      }
+
+      const hasGradingCompany = /\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+      if (!hasGradingCompany) return false;
+
+      if (gradeUpper === "9") {
+        return /\b9\b/.test(title) && !/\b9\.5\b/.test(title);
+      } else if (gradeUpper === "9.5") {
+        return /\b9\.5\b/.test(title);
+      } else if (gradeUpper === "10") {
+        return /\b10\b/.test(title);
+      } else {
+        const escapedGrade = gradeUpper.replace(".", "\\.");
+        const gradeRegex = new RegExp(`\\b${escapedGrade}\\b`);
+        return gradeRegex.test(title);
+      }
+    }
+  });
+}
+
 export class InventoryRepository {
   async getInventory(query: any, userId: string) {
     const {
@@ -84,7 +187,7 @@ export class InventoryRepository {
     return { alerts: result.rows };
   }
 
-  async getInventoryId(id: string, userId: string) {
+  async getInventoryId(id: string, userId: string, targetGrade?: string) {
     const result = await db.execute(sql`
       SELECT i.*, COALESCE(p.name, '') as player_name 
       FROM inventory i
@@ -97,7 +200,7 @@ export class InventoryRepository {
       throw new Error("Inventory item not found");
     }
 
-    const item = result.rows[0];
+    const item: any = result.rows[0];
 
     if (item.variant_id) {
       const soldListings = await db.execute(sql`
@@ -234,6 +337,71 @@ export class InventoryRepository {
     // Calculate days_held on backend to guarantee sync with web-dashboard
     const addedAtTime = item.added_at ? new Date(item.added_at as string | number).getTime() : Date.now();
     item.days_held = Math.floor((Date.now() - addedAtTime) / (1000 * 60 * 60 * 24));
+
+    // Server-Side Pre-Computed Grade Comps & Market Metrics
+    const rawEbaySales = parseJsonArray(item.ebay_sales_completed);
+    const rawMyslabsSales = parseJsonArray(item.myslabs_sales_completed);
+    const rawEbayActive = parseJsonArray(item.ebay_active_listings);
+    const rawMyslabsActive = parseJsonArray(item.myslabs_active_listings);
+
+    const allSales = [...rawEbaySales, ...rawMyslabsSales];
+    const allActive = [...rawEbayActive, ...rawMyslabsActive];
+
+    const localEbaySales = allSales
+      .filter((i: any) => i && typeof i === "object" && (!i.platform || String(i.platform).toLowerCase() === "ebay"))
+      .map((i: any) => ({ ...i, platform: "eBay" }));
+    const localMyslabsSales = allSales
+      .filter((i: any) => i && typeof i === "object" && i.platform && String(i.platform).toLowerCase() === "myslabs")
+      .map((i: any) => ({ ...i, platform: "MySlabs" }));
+
+    const localEbayActive = allActive
+      .filter((i: any) => i && typeof i === "object" && (!i.platform || String(i.platform).toLowerCase() === "ebay"))
+      .map((i: any) => ({ ...i, platform: "eBay" }));
+    const localMyslabsActive = allActive
+      .filter((i: any) => i && typeof i === "object" && i.platform && String(i.platform).toLowerCase() === "myslabs")
+      .map((i: any) => ({ ...i, platform: "MySlabs" }));
+
+    const selectedGrade = targetGrade || (item.grade_key === "RAW" ? "RAW" : (item.grade_key ? item.grade_key.match(/[\d\.]+/)?.[0] || "RAW" : "RAW"));
+
+    const filteredEbaySold = filterCompsByGradeServer(localEbaySales, selectedGrade);
+    const filteredMyslabsSold = filterCompsByGradeServer(localMyslabsSales, selectedGrade);
+    const filteredEbayActive = filterCompsByGradeServer(localEbayActive, selectedGrade);
+    const filteredMyslabsActive = filterCompsByGradeServer(localMyslabsActive, selectedGrade);
+
+    const sortedEbaySales = filteredEbaySold
+      .filter((s: any) => extractCompPrice(s) > 0)
+      .sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? b.sold_at ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? a.sold_at ?? 0).getTime());
+    const sortedMyslabsSales = filteredMyslabsSold
+      .filter((s: any) => extractCompPrice(s) > 0)
+      .sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? b.sold_at ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? a.sold_at ?? 0).getTime());
+
+    const sortedEbayActive = filteredEbayActive.sort((a: any, b: any) => extractCompPrice(a) - extractCompPrice(b));
+    const sortedMyslabsActive = filteredMyslabsActive.sort((a: any, b: any) => extractCompPrice(a) - extractCompPrice(b));
+
+    const allFilteredSoldComps = [...sortedEbaySales, ...sortedMyslabsSales]
+      .sort((a: any, b: any) => new Date(b.endDate ?? b.sold_date ?? b.sold_at ?? 0).getTime() - new Date(a.endDate ?? a.sold_date ?? a.sold_at ?? 0).getTime());
+    const allFilteredActiveComps = [...sortedEbayActive, ...sortedMyslabsActive]
+      .sort((a: any, b: any) => extractCompPrice(a) - extractCompPrice(b));
+
+    const gradePrices = allFilteredSoldComps.map((s: any) => extractCompPrice(s)).filter((p) => p > 0);
+    const medianCompPrice = gradePrices.length > 0 ? calculateMedianPrice(gradePrices) : 0;
+
+    const activePrices = allFilteredActiveComps.map((a: any) => extractCompPrice(a)).filter((p) => p > 0);
+    const gradeLowestActive = activePrices.length > 0 ? Math.min(...activePrices) : 0;
+    const gradeHighestActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
+
+    // Attach pre-calculated server metrics
+    item.selected_grade = selectedGrade;
+    item.median_comp_price = medianCompPrice;
+    item.verified_sales_count = gradePrices.length;
+    item.grade_lowest_active = gradeLowestActive;
+    item.grade_highest_active = gradeHighestActive;
+    item.filtered_ebay_sold = sortedEbaySales;
+    item.filtered_myslabs_sold = sortedMyslabsSales;
+    item.filtered_ebay_active = sortedEbayActive;
+    item.filtered_myslabs_active = sortedMyslabsActive;
+    item.all_filtered_sold_comps = allFilteredSoldComps;
+    item.all_filtered_active_comps = allFilteredActiveComps;
 
     return item;
   }

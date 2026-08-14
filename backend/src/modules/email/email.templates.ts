@@ -179,6 +179,42 @@ export const emailTemplates = {
     return { subject, html, text };
   },
 
+  passwordResetSuccess(input: { displayName?: string | null }): EmailTemplateResult {
+    const subject = "Your RSL Cards password was successfully changed";
+    const text = `${input.displayName ? `Hi ${input.displayName},` : "Hi,"}\n\nYour RSL Cards password has been successfully reset.\nIf you did not make this change, please contact support immediately to secure your account.`;
+    const html = baseTemplate(
+      subject,
+      "Your password reset was successful.",
+      `
+        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;color:#10b981;">Password Reset Successful</h1>
+        <p style="margin:0 0 16px;color:#374151;line-height:24px;">${greeting(input.displayName)}</p>
+        <p style="margin:0 0 24px;color:#374151;line-height:24px;">Your RSL Cards account password was changed successfully.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;color:#166534;font-size:14px;line-height:20px;">
+          If you did not initiate this change, please contact support immediately or reset your password again to secure your account.
+        </div>
+      `,
+    );
+    return { subject, html, text };
+  },
+
+  passwordResetFailed(input: { displayName?: string | null; reason?: string }): EmailTemplateResult {
+    const subject = "Security Alert: Failed password reset attempt on RSL Cards";
+    const text = `${input.displayName ? `Hi ${input.displayName},` : "Hi,"}\n\nThere was a failed password reset attempt on your RSL Cards account (${input.reason || "Invalid or expired OTP"}).\nIf this was you, please request a new verification code. If you did not request this, your account is safe, but we recommend checking your security.`;
+    const html = baseTemplate(
+      subject,
+      "Security Alert: Failed password reset attempt.",
+      `
+        <h1 style="margin:0 0 16px;font-size:24px;line-height:32px;color:#ef4444;">Security Alert</h1>
+        <p style="margin:0 0 16px;color:#374151;line-height:24px;">${greeting(input.displayName)}</p>
+        <p style="margin:0 0 24px;color:#374151;line-height:24px;">A password reset attempt on your RSL Cards account failed (${escapeHtml(input.reason || "Invalid or expired verification code")}).</p>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;color:#991b1b;font-size:14px;line-height:20px;">
+          If you were trying to reset your password, please request a new code. If you did not make this request, someone else may have entered your email address by mistake.
+        </div>
+      `,
+    );
+    return { subject, html, text };
+  },
+
   orderConfirmation(input: OrderConfirmationInput): EmailTemplateResult {
     const subject = `Order confirmation ${input.orderId}`;
     const text = `${input.displayName ? `Hi ${input.displayName},` : "Hi,"}\n\nYour order is confirmed.\nOrder: ${input.orderId}\nItem: ${input.itemName}\nTotal: ${input.total}${input.orderUrl ? `\nView order: ${input.orderUrl}` : ""}`;

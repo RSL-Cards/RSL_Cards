@@ -24,13 +24,33 @@ export interface AuthResponse {
 
 export interface LoginPayload {
   email: string
-  password: string
+  password?: string
+  otp?: string
+}
+
+export interface SendLoginOtpPayload {
+  email: string
+}
+
+export interface LoginWithOtpPayload {
+  email: string
+  otp: string
 }
 
 export interface RegisterPayload {
   email: string
   password: string
   role?: 'dealer' | 'consumer'
+  otp?: string
+}
+
+export interface SendOtpPayload {
+  email: string
+}
+
+export interface VerifyOtpPayload {
+  email: string
+  otp: string
 }
 
 export interface ForgotPasswordPayload {
@@ -70,6 +90,34 @@ async function authRequest<TResponse, TBody extends object>(
 export const authService = {
   login(payload: LoginPayload) {
     return authRequest<AuthResponse, LoginPayload>(ENDPOINTS.auth.login, payload)
+  },
+
+  sendLoginOtp(payload: SendLoginOtpPayload) {
+    return authRequest<AuthMessageResponse, SendLoginOtpPayload>(
+      ENDPOINTS.auth.sendLoginOtp,
+      payload,
+    )
+  },
+
+  loginWithOtp(payload: LoginWithOtpPayload) {
+    return authRequest<AuthResponse, LoginWithOtpPayload>(
+      ENDPOINTS.auth.loginWithOtp,
+      payload,
+    )
+  },
+
+  sendOtp(payload: SendOtpPayload) {
+    return authRequest<AuthMessageResponse, SendOtpPayload>(
+      ENDPOINTS.auth.sendOtp,
+      payload,
+    )
+  },
+
+  verifyOtp(payload: VerifyOtpPayload) {
+    return authRequest<AuthMessageResponse, VerifyOtpPayload>(
+      ENDPOINTS.auth.verifyOtp,
+      payload,
+    )
   },
 
   register(payload: RegisterPayload) {

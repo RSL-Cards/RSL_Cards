@@ -13,6 +13,10 @@ export const ENDPOINTS = {
   auth: {
     login: '/v1/auth/login',
     register: '/v1/auth/register',
+    sendOtp: '/v1/auth/send-otp',
+    verifyOtp: '/v1/auth/verify-otp',
+    sendLoginOtp: '/v1/auth/send-login-otp',
+    loginWithOtp: '/v1/auth/login-with-otp',
     refresh: '/v1/auth/refresh',
     logout: '/v1/auth/logout',
     forgotPassword: '/v1/auth/forgot-password',

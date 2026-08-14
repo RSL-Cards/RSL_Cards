@@ -24,8 +24,8 @@ export class InventoryController {
     return await this.service.getInventoryAgingAlerts(this.getUserId(request));
   };
 
-  getItem = async ({ request, params }: { request: Request; params: any }) => {
-    return await this.service.getInventoryId(params.id, this.getUserId(request));
+  getItem = async ({ request, params, query }: { request: Request; params: any; query?: any }) => {
+    return await this.service.getInventoryId(params.id, this.getUserId(request), query?.grade);
   };
 
   addItem = async ({ request, body, set }: { request: Request; body: any; set: any }) => {

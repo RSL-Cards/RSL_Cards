@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayDate } from "@/lib/utils";
 import { useNotificationStore, NotificationEvent } from "../../stores/useNotificationStore";
 import { CheckCircle2, XCircle, Info, Loader2, X } from "lucide-react";
 import { useEffect } from "react";
@@ -48,22 +49,7 @@ const NotificationItem = ({ notification }: { notification: NotificationEvent })
               {notification.message}
             </p>
             <div className="mt-1 text-[11px] text-zinc-500 font-medium">
-              {(() => {
-                const raw = notification.createdAt || (notification as any).created_at;
-                if (!raw) return "";
-                const d = new Date(raw);
-                if (isNaN(d.getTime())) return "";
-                const day = d.getDate();
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                const month = monthNames[d.getMonth()];
-                const year = d.getFullYear();
-                let hours = d.getHours();
-                const minutes = d.getMinutes().toString().padStart(2, "0");
-                const ampm = hours >= 12 ? "PM" : "AM";
-                hours = hours % 12 || 12;
-                const formattedHours = hours.toString().padStart(2, "0");
-                return `${day} ${month}, ${year} at ${formattedHours}:${minutes} ${ampm}`;
-              })()}
+              {formatDisplayDate(notification.createdAt || (notification as any).created_at, { includeTime: true })}
             </div>
           </div>
           <div className="ml-4 flex flex-shrink-0">

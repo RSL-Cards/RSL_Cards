@@ -17,6 +17,13 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rslcards.dealer",
       "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae"
+            ]
+          }
+        ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
@@ -41,6 +48,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       "@react-native-google-signin/google-signin",
       "expo-camera",
       [

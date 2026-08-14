@@ -20,14 +20,67 @@ export class AuthService {
     this.googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
   }
 
+  async sendRegistrationOtp(email: string) {
+    const trimmedEmail = email.toLowerCase().trim();
+    const existingUser = await this.repository.getUserByEmail(trimmedEmail);
+    if (existingUser) {
+      throw AuthError.userAlreadyExists();
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const redisKey = REDIS_KEYS.otp(trimmedEmail);
+    await redisAdapter.set(redisKey, otp, 300);
+
+    console.log(`🔐 [OTP] Generated OTP for ${trimmedEmail}: ${otp} (stored in Redis for 300s)`);
+
+    if (this.emailService) {
+      await this.emailService.sendEmailVerification(trimmedEmail, {
+        code: otp,
+        displayName: trimmedEmail.split("@")[0],
+      }).catch((err) => {
+        console.error(`Failed to send OTP email to ${trimmedEmail}:`, err);
+      });
+    }
+
+    return {
+      success: true,
+      message: "Verification code sent to your email.",
+    };
+  }
+
+  async verifyRegistrationOtp(email: string, otp: string) {
+    const trimmedEmail = email.toLowerCase().trim();
+    const redisKey = REDIS_KEYS.otp(trimmedEmail);
+    const storedOtp = await redisAdapter.get(redisKey);
+
+    if (!storedOtp || storedOtp !== otp) {
+      throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code", 400);
+    }
+
+    return {
+      success: true,
+      message: "OTP verified successfully.",
+    };
+  }
+
   async registerUser(
     body: any,
     ipAddress?: string | null,
     deviceInfo?: string | null,
   ) {
-    const existingUser = await this.repository.getUserByEmail(body.email);
+    const trimmedEmail = body.email.toLowerCase().trim();
+    const existingUser = await this.repository.getUserByEmail(trimmedEmail);
     if (existingUser) {
       throw AuthError.userAlreadyExists();
+    }
+
+    if (body.otp) {
+      const redisKey = REDIS_KEYS.otp(trimmedEmail);
+      const storedOtp = await redisAdapter.get(redisKey);
+      if (!storedOtp || storedOtp !== body.otp) {
+        throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code", 400);
+      }
+      await redisAdapter.delete(redisKey);
     }
 
     const pwdHash = await hashPassword(body.password);
@@ -83,11 +136,104 @@ export class AuthService {
     };
   }
 
+  async sendLoginOtp(email: string) {
+    const trimmedEmail = email.toLowerCase().trim();
+    const user = await this.repository.getUserByEmail(trimmedEmail);
+    if (!user) {
+      throw new AuthError(AuthErrorCode.USER_NOT_FOUND, "No account found with this email address.", 404);
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const redisKey = REDIS_KEYS.otp(`login:${trimmedEmail}`);
+    await redisAdapter.set(redisKey, otp, 300);
+
+    console.log(`🔐 [LOGIN OTP] Generated Login OTP for ${trimmedEmail}: ${otp} (stored in Redis for 300s)`);
+
+    if (this.emailService) {
+      await this.emailService.sendEmailVerification(trimmedEmail, {
+        code: otp,
+        displayName: trimmedEmail.split("@")[0],
+      }).catch((err) => {
+        console.error(`Failed to send login OTP email to ${trimmedEmail}:`, err);
+      });
+    }
+
+    return {
+      success: true,
+      message: "Login verification code sent to your email.",
+    };
+  }
+
+  async loginWithOtp(
+    email: string,
+    otp: string,
+    ipAddress?: string | null,
+    deviceInfo?: string | null,
+  ) {
+    const trimmedEmail = email.toLowerCase().trim();
+    const user = await this.repository.getUserByEmail(trimmedEmail);
+    if (!user) {
+      throw new AuthError(AuthErrorCode.USER_NOT_FOUND, "No account found with this email address.", 404);
+    }
+
+    const redisKey = REDIS_KEYS.otp(`login:${trimmedEmail}`);
+    const storedOtp = await redisAdapter.get(redisKey);
+    if (!storedOtp || storedOtp !== otp) {
+      throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code.", 400);
+    }
+
+    await redisAdapter.delete(redisKey);
+
+    const tokens = generateTokens(
+      { userId: user.id, role: user.role },
+      this.env,
+    );
+    const refreshTokenHash = hashToken(tokens.refreshToken);
+
+    let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    try {
+      const decoded = verifyToken(tokens.refreshToken, this.env);
+      if (decoded && decoded.exp) {
+        expiresAt = new Date(decoded.exp * 1000);
+      }
+    } catch (e) { }
+
+    await this.repository.updateRefreshToken(
+      user.id,
+      refreshTokenHash,
+      expiresAt,
+      ipAddress,
+      deviceInfo,
+    );
+
+    const profile = await this.repository.getDealerProfile(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        displayName: profile?.displayName ?? user.email.split("@")[0],
+        photoUrl: profile?.photoUrl ?? null,
+        onboardingCompleted: !!(
+          profile?.sports?.length && profile?.sellChannels?.length
+        ),
+        sports: (profile?.sports as string[]) ?? [],
+        sellChannels: (profile?.sellChannels as string[]) ?? [],
+      },
+      tokens,
+    };
+  }
+
   async loginUser(
     body: any,
     ipAddress?: string | null,
     deviceInfo?: string | null,
   ) {
+    if (body.otp) {
+      return this.loginWithOtp(body.email, body.otp, ipAddress, deviceInfo);
+    }
+
     const user = await this.repository.getUserByEmail(body.email);
     if (!user || !user.passwordHash) {
       throw AuthError.invalidCredentials();
@@ -241,8 +387,7 @@ export class AuthService {
       };
     }
 
-    const isDev = this.env.NODE_ENV === "development" || process.env.NODE_ENV === "development";
-    const otp = isDev ? "123456" : Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
     // Save to DB fallback
@@ -260,9 +405,9 @@ export class AuthService {
 
     console.log("\n🔐 PASSWORD RESET OTP (REDIS KEY: " + redisKey + ")");
     console.log(`📧 Email: ${cleanEmail}`);
-    console.log(`🔢 OTP: ${otp} ${isDev ? "(DEV MODE: Default 123456)" : ""}`);
+    console.log(`🔢 OTP: ${otp}`);
 
-    if (!isDev && this.emailService) {
+    if (this.emailService) {
       try {
         await this.emailService.sendPasswordReset(
           user.email,
@@ -272,17 +417,14 @@ export class AuthService {
             expiresInMinutes: 15,
           }
         );
-        console.log("✅ Password reset email sent");
+        console.log("✅ Password reset email sent to " + user.email);
       } catch (error) {
         console.error("⚠️ Password reset email delivery issue:", error);
       }
-    } else if (isDev) {
-      console.log("ℹ️ [DEV MODE] Email delivery skipped for development. Use default OTP: 123456");
     }
 
     return {
       message: "If an account exists, an OTP has been sent",
-      ...(isDev && { otp: "123456" }),
     };
   }
 
@@ -313,6 +455,14 @@ export class AuthService {
     const isOtpValid = (redisOtp && redisOtp === body.otp) || (dbOtp && dbOtp === body.otp && !isDbExpired);
 
     if (!isOtpValid) {
+      if (this.emailService && user) {
+        await this.emailService.sendPasswordResetFailed(user.email, {
+          displayName: user.email.split("@")[0],
+          reason: "Invalid or expired verification code",
+        }).catch((err) => {
+          console.error("Failed to send password reset failed email:", err);
+        });
+      }
       throw new Error("Invalid or expired OTP");
     }
 
@@ -322,12 +472,22 @@ export class AuthService {
     // Delete used OTP from Redis
     await redisAdapter.delete(redisKey);
 
+    if (this.emailService && user) {
+      await this.emailService.sendPasswordResetSuccess(user.email, {
+        displayName: user.email.split("@")[0],
+      }).catch((err) => {
+        console.error("Failed to send password reset success email:", err);
+      });
+    }
+
     return { message: "Password reset successfully" };
   }
 
   async loginWithGoogle(
     idToken: string,
     role: "dealer" | "consumer" = "consumer",
+    rawName?: string,
+    userEmailOverride?: string,
     ipAddress?: string | null,
     deviceInfo?: string | null,
   ) {
@@ -342,18 +502,27 @@ export class AuthService {
 
     const payload = ticket.getPayload();
 
-    if (!payload?.email) {
+    if (!payload?.email && !userEmailOverride) {
       throw new Error("Invalid Google token");
     }
 
-    let user = await this.repository.getUserByEmail(payload.email);
+    const email = payload?.email || userEmailOverride!;
+    const displayName = rawName?.trim() || (payload?.name as string) || email.split("@")[0];
+
+    let isNewUser = false;
+    let user = await this.repository.getOAuthUser("google", payload?.sub || "google");
+    if (!user) {
+      user = await this.repository.getUserByEmail(email);
+    }
 
     if (!user) {
+      isNewUser = true;
       user = await this.repository.createOAuthUser({
-        email: payload.email,
+        email,
         provider: "google",
-        providerId: payload.sub!,
+        providerId: payload?.sub || "google",
         role,
+        displayName,
       });
     }
     if (!user) {
@@ -384,7 +553,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        displayName: profile?.displayName ?? user.email.split("@")[0],
+        isNewUser,
+        displayName: profile?.displayName ?? displayName,
         photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
@@ -399,6 +569,8 @@ export class AuthService {
   async loginWithApple(
     idToken: string,
     role: "dealer" | "consumer" = "consumer",
+    rawName?: string,
+    userEmailOverride?: string,
     ipAddress?: string | null,
     deviceInfo?: string | null,
   ) {
@@ -411,18 +583,25 @@ export class AuthService {
       audience: this.env.APPLE_AUDIENCE,
     });
 
-    if (!payload.email) {
-      throw new Error("Invalid Apple token");
+    const appleSub = payload.sub as string;
+    const email = (payload.email as string) || userEmailOverride || `${appleSub}@privaterelay.appleid.com`;
+    const defaultName = email.includes("@") && !email.endsWith("@privaterelay.appleid.com") ? email.split("@")[0] : "Dealer User";
+    const displayName = rawName?.trim() || defaultName;
+
+    let isNewUser = false;
+    let user = await this.repository.getOAuthUser("apple", appleSub);
+    if (!user && (payload.email || userEmailOverride)) {
+      user = await this.repository.getUserByEmail((payload.email as string) || userEmailOverride!);
     }
 
-    let user = await this.repository.getUserByEmail(payload.email as string);
-
     if (!user) {
+      isNewUser = true;
       user = await this.repository.createOAuthUser({
-        email: payload.email as string,
+        email,
         provider: "apple",
-        providerId: payload.sub as string,
+        providerId: appleSub,
         role,
+        displayName,
       });
     }
     if (!user) {
@@ -453,6 +632,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
+        isNewUser,
         displayName: profile?.displayName ?? user.email.split("@")[0],
         photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(

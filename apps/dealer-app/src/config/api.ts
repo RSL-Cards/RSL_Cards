@@ -1,12 +1,30 @@
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+
 /**
  * API Configuration
  *
- * Dev:  http://192.168.10.10:8080  (Wi-Fi / LAN IP)
+ * Dev:  http://10.84.250.61:8080  (Wi-Fi / LAN IP)
  * Prod: https://api.rslcards.com
  */
 
+const getDevBaseUrl = (): string => {
+  const hostUri = Constants.expoConfig?.hostUri;
+  const hostIp = hostUri ? hostUri.split(":")[0] : null;
+
+  if (hostIp && hostIp !== "localhost" && hostIp !== "127.0.0.1") {
+    return `http://${hostIp}:8080`;
+  }
+
+  if (Platform.OS === "android") {
+    return "http://10.0.2.2:8080";
+  }
+
+  return "http://localhost:8080";
+};
+
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://192.168.10.10:8080";
+  process.env.EXPO_PUBLIC_API_URL || getDevBaseUrl();
 
 /**
  * All endpoint paths mapped to the unified backend monorepo.
@@ -18,6 +36,10 @@ export const ENDPOINTS = {
   auth: {
     login: "/v1/auth/login",
     register: "/v1/auth/register",
+    sendOtp: "/v1/auth/send-otp",
+    verifyOtp: "/v1/auth/verify-otp",
+    sendLoginOtp: "/v1/auth/send-login-otp",
+    loginWithOtp: "/v1/auth/login-with-otp",
     logout: "/v1/auth/logout",
     refresh: "/v1/auth/refresh",
     onboarding: "/v1/users/me/onboarding",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -244,7 +244,8 @@ export default function CardDetailScreen() {
   const userId = useAuthStore((s) => s.user?.id ?? "");
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data: card, isLoading, isError } = useInventoryItem(id ?? "");
+  const [selectedGradeKey, setSelectedGradeKey] = useState<string>("RAW");
+  const { data: card, isLoading, isError } = useInventoryItem(id ?? "", selectedGradeKey);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -253,7 +254,6 @@ export default function CardDetailScreen() {
     setRefreshing(false);
   }, [queryClient]);
 
-  const [selectedGradeKey, setSelectedGradeKey] = useState<string>("RAW");
   const [compsSourceTab, setCompsSourceTab] = useState<"ebay_sold" | "ebay_active" | "myslabs_sold" | "myslabs_active">("ebay_sold");
   const [salesVisibleCount, setSalesVisibleCount] = useState(20);
   const [activeVisibleCount, setActiveVisibleCount] = useState(20);
@@ -274,9 +274,13 @@ export default function CardDetailScreen() {
   const [isUpdatingMetrics, setIsUpdatingMetrics] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Initialize selected grade key to card's actual inventory grade on load
+  // Track if initial grade key has been initialized for current card ID
+  const initializedCardIdRef = useRef<string | null>(null);
+
+  // Initialize selected grade key to card's actual inventory grade ONCE on initial load
   useEffect(() => {
-    if (card?.grade_key) {
+    if (card?.grade_key && initializedCardIdRef.current !== id) {
+      initializedCardIdRef.current = id ?? "";
       if (card.grade_key === "RAW") {
         setSelectedGradeKey("RAW");
       } else {
@@ -284,7 +288,7 @@ export default function CardDetailScreen() {
         setSelectedGradeKey(match ? match[0] : "RAW");
       }
     }
-  }, [card]);
+  }, [card, id]);
 
   // Image Edit Handlers
   const handlePickGalleryImage = async () => {
@@ -399,7 +403,7 @@ export default function CardDetailScreen() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !card) {
     return (
       <SafeAreaView
         style={{

@@ -25,7 +25,7 @@ import {
   InventoryCard,
 } from './inventoryUtils'
 import Image from 'next/image'
-import { useDashboardInventoryItemDetails } from '@/hooks/dashboard/useDashboard'
+import { useInventoryItem, inventoryKeys } from '@/hooks/inventory/useInventory'
 import ListingModal from '@/components/listings/ListingModal'
 import QuickSaleModal from './QuickSaleModal'
 
@@ -70,6 +70,48 @@ const gradesList = [
   "9.5",
   "10",
 ]
+
+function safeParseJson(val: any): any[] {
+  if (!val) return []
+  if (Array.isArray(val)) return val
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val)
+      if (Array.isArray(parsed)) return parsed
+      if (parsed && typeof parsed === 'object') return [parsed]
+      return []
+    } catch {
+      return []
+    }
+  }
+  if (typeof val === 'object') return [val]
+  return []
+}
+
+function getCompPrice(item: any): number {
+  if (!item || typeof item !== 'object') return 0
+  if (typeof item.price === 'number' && !isNaN(item.price)) return item.price
+  if (typeof item.soldPrice === 'number' && !isNaN(item.soldPrice)) return item.soldPrice
+  if (typeof item.sold_price === 'number' && !isNaN(item.sold_price)) return item.sold_price
+  if (typeof item.list_price === 'number' && !isNaN(item.list_price)) return item.list_price
+  if (item.soldPrice?.value != null) {
+    const p = parseFloat(String(item.soldPrice.value))
+    if (!isNaN(p)) return p
+  }
+  if (item.price?.value != null) {
+    const p = parseFloat(String(item.price.value))
+    if (!isNaN(p)) return p
+  }
+  if (item.price != null && typeof item.price !== 'object') {
+    const p = parseFloat(String(item.price))
+    if (!isNaN(p)) return p
+  }
+  if (item.sold_price != null && typeof item.sold_price !== 'object') {
+    const p = parseFloat(String(item.sold_price))
+    if (!isNaN(p)) return p
+  }
+  return 0
+}
 
 function calcMedian(prices: number[]): number {
   if (!prices.length) return 0
@@ -131,6 +173,14 @@ function filterCompsByGrade(items: any[], selectedGrade: string): any[] {
   })
 }
 
+function calculateDaysHeld(addedAt?: string | null): number {
+  if (!addedAt) return 0
+  const addedDate = new Date(addedAt)
+  if (isNaN(addedDate.getTime())) return 0
+  const diffTime = Math.abs(new Date().getTime() - addedDate.getTime())
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+}
+
 export default function CardDetailModal({
   card,
   onClose,
@@ -174,11 +224,47 @@ export default function CardDetailModal({
   const [selectedGradeKey, setSelectedGradeKey] = useState<string>(initialGradeKey)
   const [timeRange, setTimeRange] = useState<'30D' | '90D' | '1Y' | 'ALL'>('30D')
 
-  const { data, isLoading, error } = useDashboardInventoryItemDetails(card.id)
+  const { data: fetchedItem, isLoading, error } = useInventoryItem(card.id, selectedGradeKey)
 
-  const detailedCard = data?.item || card
-  const activeListings = data?.activeListings || []
-  const soldComps = data?.soldComps || []
+  const detailedCard = useMemo(() => {
+    const item = (fetchedItem || card) as any
+    if (!item) return card as any
+
+    const photos = Array.isArray(item.photos)
+      ? item.photos
+      : typeof item.photos === 'string'
+      ? safeParseJson(item.photos)
+      : []
+    const imageUrl = item.image_url || (photos.length > 0 ? photos[0] : '') || card.image_url || '/placeholder.png'
+
+    const costBasis = Number(item.cost_basis ?? item.costBasis ?? card.cost_basis ?? 0)
+    const marketValue = Number(item.current_market_value ?? item.currentMarketValue ?? item.market_value ?? item.marketValue ?? card.market_value ?? 0)
+    const unrealizedGain = marketValue - costBasis
+    const daysHeld = item.days_held ?? calculateDaysHeld(item.added_at || item.addedAt || card.added_at)
+
+    return {
+      ...card,
+      ...item,
+      image_url: imageUrl,
+      player_name: item.player_name || item.playerName || card.player_name || 'Unknown Player',
+      year: item.year ?? card.year,
+      set_name: item.set_name || item.setName || card.set_name || 'Unknown Set',
+      grade_key: item.grade_key || item.gradeKey || card.grade_key || 'RAW',
+      grade_company: item.grade_company || item.gradeCompany || card.grade_company,
+      grade_value: item.grade_value || item.gradeValue || card.grade_value,
+      sport: item.sport || card.sport || 'Baseball',
+      cost_basis: costBasis,
+      market_value: marketValue,
+      unrealized_gain: unrealizedGain,
+      status: item.listing_status || item.status || card.status || 'unlisted',
+      days_held: daysHeld,
+      quantity: Number(item.quantity ?? card.quantity ?? 1),
+      card_number: item.card_number || item.cardNumber || card.card_number,
+      variation: item.variation || card.variation,
+      cert_number: item.cert_number || item.certNumber || card.cert_number,
+      notes: item.notes || card.notes,
+    }
+  }, [fetchedItem, card])
 
   // Handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,8 +292,8 @@ export default function CardDetailModal({
         return
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-item-details', card.id] })
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-inventory'] })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.detail(card.id) })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
       setShowImageEditModal(false)
       setSelectedFile(null)
       setFilePreview(null)
@@ -239,8 +325,8 @@ export default function CardDetailModal({
         setSelectedGradeKey('RAW')
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-item-details', card.id] })
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-inventory'] })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.detail(card.id) })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
       setShowGradeEditModal(false)
     } catch (err: any) {
       setGradeError(err.message || 'Failed to update grade')
@@ -268,22 +354,19 @@ export default function CardDetailModal({
       const newGain = market - cost
 
       // Optimistically update React Query details cache for instant UI refresh
-      queryClient.setQueryData(['dashboard-item-details', card.id], (old: any) => {
+      queryClient.setQueryData(inventoryKeys.detail(card.id), (old: any) => {
         if (!old) return old
         return {
           ...old,
-          item: {
-            ...old.item,
-            cost_basis: cost,
-            market_value: market,
-            current_market_value: market,
-            unrealized_gain: newGain,
-          }
+          cost_basis: cost,
+          market_value: market,
+          current_market_value: market,
+          unrealized_gain: newGain,
         }
       })
 
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-item-details', card.id] })
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-inventory'] })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.detail(card.id) })
+      await queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
       setShowMetricsEditModal(false)
     } catch (err: any) {
       setMetricsError(err.message || 'Failed to update cost basis and market value')
@@ -292,77 +375,78 @@ export default function CardDetailModal({
     }
   }
 
-  // Combine raw comps from DB if available
-  const rawEbaySales = useMemo(() => {
-    if (detailedCard.ebay_sales_completed) {
-      try { return JSON.parse(detailedCard.ebay_sales_completed) } catch (e) {}
-    }
-    return soldComps.filter((s: any) => !s.platform || s.platform.toLowerCase() === 'ebay')
-  }, [detailedCard.ebay_sales_completed, soldComps])
+  // Combine raw comps from DB if available (matching mobile app 100%)
+  const rawEbaySales = safeParseJson(detailedCard.ebay_sales_completed)
+  const rawMyslabsSales = safeParseJson(detailedCard.myslabs_sales_completed)
+  const rawEbayActive = safeParseJson(detailedCard.ebay_active_listings)
+  const rawMyslabsActive = safeParseJson(detailedCard.myslabs_active_listings)
 
-  const rawMyslabsSales = useMemo(() => {
-    if (detailedCard.myslabs_sales_completed) {
-      try { return JSON.parse(detailedCard.myslabs_sales_completed) } catch (e) {}
-    }
-    return soldComps.filter((s: any) => s.platform && s.platform.toLowerCase() === 'myslabs')
-  }, [detailedCard.myslabs_sales_completed, soldComps])
+  const allSales = useMemo(() => [...rawEbaySales, ...rawMyslabsSales], [rawEbaySales, rawMyslabsSales])
+  const allActive = useMemo(() => [...rawEbayActive, ...rawMyslabsActive], [rawEbayActive, rawMyslabsActive])
 
-  const rawEbayActive = useMemo(() => {
-    if (detailedCard.ebay_active_listings) {
-      try { return JSON.parse(detailedCard.ebay_active_listings) } catch (e) {}
-    }
-    return activeListings.filter((a: any) => !a.platform || a.platform.toLowerCase() === 'ebay')
-  }, [detailedCard.ebay_active_listings, activeListings])
+  const localEbaySales = useMemo(() => {
+    return allSales.filter((i: any) => i && typeof i === 'object' && (!i.platform || String(i.platform).toLowerCase() === 'ebay')).map((i: any) => ({ ...i, platform: 'eBay' }))
+  }, [allSales])
 
-  const rawMyslabsActive = useMemo(() => {
-    if (detailedCard.myslabs_active_listings) {
-      try { return JSON.parse(detailedCard.myslabs_active_listings) } catch (e) {}
-    }
-    return activeListings.filter((a: any) => a.platform && a.platform.toLowerCase() === 'myslabs')
-  }, [detailedCard.myslabs_active_listings, activeListings])
+  const localMyslabsSales = useMemo(() => {
+    return allSales.filter((i: any) => i && typeof i === 'object' && i.platform && String(i.platform).toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }))
+  }, [allSales])
 
-  const filteredEbaySold = useMemo(() => filterCompsByGrade(rawEbaySales, selectedGradeKey), [rawEbaySales, selectedGradeKey])
-  const filteredMyslabsSold = useMemo(() => filterCompsByGrade(rawMyslabsSales, selectedGradeKey), [rawMyslabsSales, selectedGradeKey])
-  const filteredEbayActive = useMemo(() => filterCompsByGrade(rawEbayActive, selectedGradeKey), [rawEbayActive, selectedGradeKey])
-  const filteredMyslabsActive = useMemo(() => filterCompsByGrade(rawMyslabsActive, selectedGradeKey), [rawMyslabsActive, selectedGradeKey])
+  const localEbayActive = useMemo(() => {
+    return allActive.filter((i: any) => i && typeof i === 'object' && (!i.platform || String(i.platform).toLowerCase() === 'ebay')).map((i: any) => ({ ...i, platform: 'eBay' }))
+  }, [allActive])
+
+  const localMyslabsActive = useMemo(() => {
+    return allActive.filter((i: any) => i && typeof i === 'object' && i.platform && String(i.platform).toLowerCase() === 'myslabs').map((i: any) => ({ ...i, platform: 'MySlabs' }))
+  }, [allActive])
+
+  const filteredEbaySold = useMemo(() => detailedCard.filtered_ebay_sold || filterCompsByGrade(localEbaySales, selectedGradeKey), [detailedCard.filtered_ebay_sold, localEbaySales, selectedGradeKey])
+  const filteredMyslabsSold = useMemo(() => detailedCard.filtered_myslabs_sold || filterCompsByGrade(localMyslabsSales, selectedGradeKey), [detailedCard.filtered_myslabs_sold, localMyslabsSales, selectedGradeKey])
+  const filteredEbayActive = useMemo(() => detailedCard.filtered_ebay_active || filterCompsByGrade(localEbayActive, selectedGradeKey), [detailedCard.filtered_ebay_active, localEbayActive, selectedGradeKey])
+  const filteredMyslabsActive = useMemo(() => detailedCard.filtered_myslabs_active || filterCompsByGrade(localMyslabsActive, selectedGradeKey), [detailedCard.filtered_myslabs_active, localMyslabsActive, selectedGradeKey])
 
   const allFilteredSoldComps = useMemo(() => {
-    return [...filteredEbaySold, ...filteredMyslabsSold].sort((a: any, b: any) => {
-      const da = new Date(a.sold_at || a.soldAt || a.endDate || 0).getTime()
-      const db = new Date(b.sold_at || b.soldAt || b.endDate || 0).getTime()
-      return db - da
-    })
-  }, [filteredEbaySold, filteredMyslabsSold])
+    if (detailedCard.all_filtered_sold_comps) return detailedCard.all_filtered_sold_comps
+    return [...filteredEbaySold, ...filteredMyslabsSold]
+      .filter((s: any) => getCompPrice(s) > 0)
+      .sort((a: any, b: any) => {
+        const da = new Date(a.sold_at || a.soldAt || a.endDate || a.sold_date || 0).getTime()
+        const db = new Date(b.sold_at || b.soldAt || b.endDate || b.sold_date || 0).getTime()
+        return db - da
+      })
+  }, [detailedCard.all_filtered_sold_comps, filteredEbaySold, filteredMyslabsSold])
 
   const allFilteredActiveComps = useMemo(() => {
-    return [...filteredEbayActive, ...filteredMyslabsActive].sort((a: any, b: any) => {
-      const pa = Number(a.list_price || a.price?.value || a.price || 0)
-      const pb = Number(b.list_price || b.price?.value || b.price || 0)
-      return pa - pb
-    })
-  }, [filteredEbayActive, filteredMyslabsActive])
+    if (detailedCard.all_filtered_active_comps) return detailedCard.all_filtered_active_comps
+    return [...filteredEbayActive, ...filteredMyslabsActive]
+      .filter((a: any) => getCompPrice(a) > 0)
+      .sort((a: any, b: any) => getCompPrice(a) - getCompPrice(b))
+  }, [detailedCard.all_filtered_active_comps, filteredEbayActive, filteredMyslabsActive])
 
-  // Selected Grade Metrics (Strictly 0 if no comps for this selected grade!)
-  const gradePrices = useMemo(() => {
-    return allFilteredSoldComps.map((s: any) => Number(s.sold_price || s.soldPrice?.value || s.price || 0)).filter(p => p > 0)
+  const gradeSoldPrices = useMemo(() => {
+    return allFilteredSoldComps.map((s: any) => getCompPrice(s)).filter((p: number) => p > 0)
   }, [allFilteredSoldComps])
 
+  // Server Pre-Computed Grade Metrics
   const medianCompPrice = useMemo(() => {
-    if (gradePrices.length > 0) return calcMedian(gradePrices)
+    if (detailedCard.median_comp_price != null) return Number(detailedCard.median_comp_price)
+    if (gradeSoldPrices.length > 0) return calcMedian(gradeSoldPrices)
     return 0
-  }, [gradePrices])
+  }, [detailedCard.median_comp_price, gradeSoldPrices])
 
   const gradeLowestActive = useMemo(() => {
+    if (detailedCard.grade_lowest_active != null) return Number(detailedCard.grade_lowest_active)
     if (!allFilteredActiveComps.length) return 0
-    const validPrices = allFilteredActiveComps.map((a: any) => Number(a.list_price || a.price?.value || a.price || 0)).filter(p => p > 0)
+    const validPrices = allFilteredActiveComps.map((a: any) => getCompPrice(a)).filter((p: number) => p > 0)
     return validPrices.length > 0 ? Math.min(...validPrices) : 0
-  }, [allFilteredActiveComps])
+  }, [detailedCard.grade_lowest_active, allFilteredActiveComps])
 
   const gradeHighestActive = useMemo(() => {
+    if (detailedCard.grade_highest_active != null) return Number(detailedCard.grade_highest_active)
     if (!allFilteredActiveComps.length) return 0
-    const validPrices = allFilteredActiveComps.map((a: any) => Number(a.list_price || a.price?.value || a.price || 0)).filter(p => p > 0)
+    const validPrices = allFilteredActiveComps.map((a: any) => getCompPrice(a)).filter((p: number) => p > 0)
     return validPrices.length > 0 ? Math.max(...validPrices) : 0
-  }, [allFilteredActiveComps])
+  }, [detailedCard.grade_highest_active, allFilteredActiveComps])
 
   // Price History & Comps Trend Data (Combining Sold Comps & Active Listings for eBay and MySlabs)
   const chartData = useMemo(() => {
@@ -760,8 +844,8 @@ export default function CardDetailModal({
           <div className="rounded-2xl border border-[#252525] bg-[#141414] p-4">
             <span className="text-xs font-semibold text-zinc-400 block mb-1">30D Sold Range</span>
             <span className="font-mono text-xl font-bold text-white block">
-              {gradePrices.length > 0
-                ? `${formatCurrency(Math.min(...gradePrices))} - ${formatCurrency(Math.max(...gradePrices))}`
+              {gradeSoldPrices.length > 0
+                ? `${formatCurrency(Math.min(...gradeSoldPrices))} - ${formatCurrency(Math.max(...gradeSoldPrices))}`
                 : 'N/A'}
             </span>
             <span className="text-[11px] text-zinc-500 mt-1 block">
