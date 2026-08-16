@@ -1,55 +1,57 @@
-name: Deploy to AWS EC2
+name: Deploy Production Backend to AWS App Runner
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  id-token: write # Required for AWS OIDC authentication
+  contents: read  # Required for checkout
+
 jobs:
   deploy:
-    name: Deploy to AWS EC2 Production
+    name: Build & Deploy Production Backend Container
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup SSH Key
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+          audience: sts.amazonaws.com
 
-      - name: Add EC2 Host Key to Known Hosts
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Production Backend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/rsl-backend-prod:latest
+            ${{ steps.login-ecr.outputs.registry }}/rsl-backend-prod:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger App Runner Deployment (Prod)
         run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Sync Code to EC2 via Rsync
-        run: |
-          rsync -avz --delete \
-            --exclude '.env*' \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude 'dist' \
-            --exclude '.next' \
-            --exclude '.expo' \
-            --exclude 'apps/dealer-app/node_modules' \
-            --exclude 'backend/node_modules' \
-            ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/RSL_Cards/
-
-      - name: Rebuild & Restart Docker Containers on EC2
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
-
-      - name: Run Database Migrations on EC2
-        continue-on-error: true
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "docker exec -i rsl-backend-prod bun run db:migrate"
-
-
-      - name: Verify EC2 Container Status
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-            "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-backend-prod'].ServiceArn" --output text)
+          if [ -z "$SERVICE_ARN" ]; then
+            echo "::error::App Runner service 'rsl-backend-prod' not found!"
+            exit 1
+          fi
+          
+          echo "Starting App Runner deployment for service ARN: $SERVICE_ARN"
+          DEPLOYMENT_ID=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" --query "OperationId" --output text)
+          echo "Deployment initiated with Operation ID: $DEPLOYMENT_ID"
