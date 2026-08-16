@@ -2,11 +2,32 @@ import { db } from "../../db/index.js";
 import { inventory, transactions, players, listings, expenses } from "../../db/schema/index.js";
 import { sql, eq, and, gte, desc, sum, count, or, inArray } from "drizzle-orm";
 
+function parseStartDate(dateStr?: string): Date {
+  if (!dateStr) {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  }
+  const parts = dateStr.split("T")[0].split("-").map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+  }
+  return new Date(dateStr);
+}
+
+function parseEndDate(dateStr?: string): Date | null {
+  if (!dateStr) return null;
+  const parts = dateStr.split("T")[0].split("-").map(Number);
+  if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+    return new Date(parts[0], parts[1] - 1, parts[2] + 1, 0, 0, 0, 0);
+  }
+  return new Date(new Date(dateStr).getTime() + 86400000);
+}
+
 export class WebDashboardRepository {
   async getMetrics(userId: string, fromDate?: string, toDate?: string) {
     const now = new Date();
-    const today = fromDate ? new Date(fromDate) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endToday = toDate ? new Date(new Date(toDate).getTime() + 86400000) : null;
+    const today = parseStartDate(fromDate);
+    const endToday = parseEndDate(toDate) || new Date(today.getTime() + 86400000);
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -393,10 +414,11 @@ export class WebDashboardRepository {
   async getRecentTransactions(userId: string, fromDate?: string, toDate?: string) {
     let whereClause = eq(transactions.userId, userId);
     if (fromDate && toDate) {
-      const endTo = new Date(new Date(toDate).getTime() + 86400000);
+      const startFrom = parseStartDate(fromDate);
+      const endTo = parseEndDate(toDate) || new Date(startFrom.getTime() + 86400000);
       whereClause = and(
         eq(transactions.userId, userId),
-        gte(transactions.createdAt, new Date(fromDate)),
+        gte(transactions.createdAt, startFrom),
         sql`${transactions.createdAt} < ${endTo}`
       ) as any;
     }

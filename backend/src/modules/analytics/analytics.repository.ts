@@ -14,13 +14,13 @@ export class AnalyticsRepository {
         COALESCE(SUM(profit) FILTER (WHERE type = 'sell'), 0)         AS net_profit
       FROM transactions
       WHERE user_id = ${userId}
-        AND created_at >= NOW() - INTERVAL '24 hours'
+        AND created_at >= CURRENT_DATE
     `);
     const expenseRows = await db.execute(sql`
       SELECT COALESCE(SUM(amount), 0) as total_expenses
       FROM expenses
       WHERE user_id = ${userId}
-        AND expense_date >= NOW() - INTERVAL '24 hours'
+        AND expense_date >= CURRENT_DATE
     `);
     const inventoryValRows = await db.execute(sql`
       SELECT COALESCE(SUM(cost_basis * quantity), 0) as total_inventory_cost
@@ -59,7 +59,7 @@ export class AnalyticsRepository {
       FROM transactions t
       LEFT JOIN inventory i ON i.id = t.inventory_id
       WHERE t.user_id = ${userId}
-        AND t.created_at >= NOW() - INTERVAL '24 hours'
+        AND t.created_at >= CURRENT_DATE
       
       UNION ALL
       
@@ -70,7 +70,7 @@ export class AnalyticsRepository {
         NULL as card_snapshot
       FROM expenses e
       WHERE e.user_id = ${userId}
-        AND e.expense_date >= NOW() - INTERVAL '24 hours'
+        AND e.expense_date >= CURRENT_DATE
         
       ORDER BY created_at DESC
       LIMIT 20

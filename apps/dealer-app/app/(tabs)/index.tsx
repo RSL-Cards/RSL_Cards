@@ -365,11 +365,11 @@ export default function HomeScreen() {
         )}
 
         {/* ── TODAY'S ACTIVITY ── */}
-        {todayActivity && todayActivity.length > 0 && (
-          <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
-            <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
-              TODAY'S ACTIVITY
-            </Typography>
+        <View style={{ marginHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
+          <Typography variant="label" color={COLORS.zinc500} style={{ marginBottom: SPACING.sm }}>
+            TODAY'S ACTIVITY
+          </Typography>
+          {todayActivity && todayActivity.length > 0 ? (
             <Surface padding="none" variant="elevated">
               {todayActivity.map((tx, i) => (
                 <View
@@ -454,8 +454,30 @@ export default function HomeScreen() {
                 </View>
               ))}
             </Surface>
-          </View>
-        )}
+          ) : (
+            <Surface padding="lg" variant="elevated" style={{ alignItems: "center", justifyContent: "center", paddingVertical: SPACING.xl }}>
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: RADIUS.full,
+                  backgroundColor: COLORS.zinc800,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: SPACING.sm,
+                }}
+              >
+                <Ionicons name="receipt-outline" size={24} color={COLORS.zinc500} />
+              </View>
+              <Typography variant="body" weight="600" color={COLORS.zinc300} style={{ textAlign: "center" }}>
+                No transactions today
+              </Typography>
+              <Typography variant="caption" color={COLORS.zinc500} style={{ textAlign: "center", marginTop: 4 }}>
+                Purchases, sales, trades & expenses will appear here.
+              </Typography>
+            </Surface>
+          )}
+        </View>
       </ScrollView>
 
       <Modal visible={showNotifications} transparent={true} animationType="fade" onRequestClose={() => setShowNotifications(false)}>

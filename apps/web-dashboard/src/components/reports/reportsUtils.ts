@@ -6,10 +6,17 @@ import {
   ReportPeriod,
 } from './reportsTypes'
 
+export const getLocalYMD = (d = new Date()) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const periodDateRanges: Record<Exclude<ReportPeriod, 'Custom'>, DateRange> = {
-  Daily: { from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
-  Weekly: { from: new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
-  Monthly: { from: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] },
+  Daily: { from: getLocalYMD(), to: getLocalYMD() },
+  Weekly: { from: getLocalYMD(new Date(Date.now() - 7*24*60*60*1000)), to: getLocalYMD() },
+  Monthly: { from: getLocalYMD(new Date(Date.now() - 30*24*60*60*1000)), to: getLocalYMD() },
 }
 
 export const marginLabels: Record<string, string> = {

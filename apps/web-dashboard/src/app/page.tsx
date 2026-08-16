@@ -28,12 +28,19 @@ import ActionCenter from '@/components/dashboard/ActionCenter'
 import Link from 'next/link'
 import { Plus, ArrowUpRight } from 'lucide-react'
 
+const getLocalYMD = (d = new Date()) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function DashboardPage() {
   const isHydrated = useAuthStore((state) => state.isHydrated)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
-  const [dateFrom, setDateFrom] = useState(() => new Date().toISOString().split('T')[0])
-  const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0])
+  const [dateFrom, setDateFrom] = useState(() => getLocalYMD())
+  const [dateTo, setDateTo] = useState(() => getLocalYMD())
   const [activePreset, setActivePreset] = useState<'today' | '7d' | '30d' | 'custom'>('today')
   const [isFilterActive, setIsFilterActive] = useState(true)
 
@@ -113,8 +120,8 @@ export default function DashboardPage() {
     } else if (preset === '30d') {
       start.setDate(start.getDate() - 30)
     }
-    setDateFrom(start.toISOString().split('T')[0])
-    setDateTo(end.toISOString().split('T')[0])
+    setDateFrom(getLocalYMD(start))
+    setDateTo(getLocalYMD(end))
     setIsFilterActive(true)
   }
 
