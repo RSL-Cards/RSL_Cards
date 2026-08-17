@@ -1,9 +1,10 @@
-name: Deploy Production Backend to AWS App Runner
+name: Deploy Production Backend to Amazon ECS Fargate
 
 on:
   push:
     branches:
       - main
+      - aws/cdk
 
 permissions:
   id-token: write # Required for AWS OIDC authentication
@@ -44,14 +45,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trigger App Runner Deployment (Prod)
+      - name: Deploy to Amazon ECS Fargate (Prod)
         run: |
-          SERVICE_ARN=$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='rsl-backend-prod'].ServiceArn" --output text)
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "::error::App Runner service 'rsl-backend-prod' not found!"
-            exit 1
-          fi
-          
-          echo "Starting App Runner deployment for service ARN: $SERVICE_ARN"
-          DEPLOYMENT_ID=$(aws apprunner start-deployment --service-arn "$SERVICE_ARN" --query "OperationId" --output text)
-          echo "Deployment initiated with Operation ID: $DEPLOYMENT_ID"
+          echo "Triggering zero-downtime deployment for ECS service rsl-backend-prod..."
+          aws ecs update-service --cluster rsl-cluster-prod --service rsl-backend-prod --force-new-deployment --region us-east-1

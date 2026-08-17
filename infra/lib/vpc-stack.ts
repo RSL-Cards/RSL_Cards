@@ -8,7 +8,6 @@ export interface VpcStackProps extends cdk.StackProps {
 
 export class VpcStack extends cdk.Stack {
   public readonly vpc: ec2.Vpc;
-  public readonly appRunnerSecurityGroup: ec2.SecurityGroup;
   public readonly rdsSecurityGroup: ec2.SecurityGroup;
   public readonly redisSecurityGroup: ec2.SecurityGroup;
 
@@ -41,15 +40,7 @@ export class VpcStack extends cdk.Stack {
       ],
     });
 
-    // 2. Security Group for App Runner VPC Connector (Outbound traffic from app)
-    this.appRunnerSecurityGroup = new ec2.SecurityGroup(this, 'AppRunnerSecurityGroup', {
-      vpc: this.vpc,
-      securityGroupName: `rsl-apprunner-sg-${environmentName}`,
-      description: 'Security group for App Runner VPC Connector egress traffic',
-      allowAllOutbound: true,
-    });
-
-    // 3. Security Group for RDS PostgreSQL Database
+    // 2. Security Group for RDS PostgreSQL Database
     this.rdsSecurityGroup = new ec2.SecurityGroup(this, 'RdsSecurityGroup', {
       vpc: this.vpc,
       securityGroupName: `rsl-rds-sg-${environmentName}`,
@@ -57,27 +48,13 @@ export class VpcStack extends cdk.Stack {
       allowAllOutbound: false,
     });
 
-    // Allow App Runner to communicate with RDS on PostgreSQL port 5432
-    this.rdsSecurityGroup.addIngressRule(
-      this.appRunnerSecurityGroup,
-      ec2.Port.tcp(5432),
-      'Allow PostgreSQL ingress from App Runner VPC Connector'
-    );
-
-    // 4. Security Group for ElastiCache Redis
+    // 3. Security Group for ElastiCache Redis
     this.redisSecurityGroup = new ec2.SecurityGroup(this, 'RedisSecurityGroup', {
       vpc: this.vpc,
       securityGroupName: `rsl-redis-sg-${environmentName}`,
       description: 'Security group for ElastiCache Redis cluster',
       allowAllOutbound: false,
     });
-
-    // Allow App Runner to communicate with Redis on port 6379
-    this.redisSecurityGroup.addIngressRule(
-      this.appRunnerSecurityGroup,
-      ec2.Port.tcp(6379),
-      'Allow Redis ingress from App Runner VPC Connector'
-    );
 
     // Tag all networking resources
     cdk.Tags.of(this).add('Component', 'Networking');

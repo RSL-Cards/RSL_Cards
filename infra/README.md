@@ -2,7 +2,7 @@
 
 This documentation covers the complete, production-ready AWS Infrastructure as Code (IaC) for **RSL Cards** built with **AWS CDK (TypeScript)**.
 
-The infrastructure provisions a containerized **Bun + Elysia** production backend running on **AWS App Runner**, backed by **Amazon RDS PostgreSQL**, **Amazon ElastiCache Redis**, **Amazon S3**, and **AWS Systems Manager (SSM) Parameter Store**.
+The infrastructure provisions a containerized **Bun + Elysia** serverless production backend running on **Amazon ECS Fargate** with an **Application Load Balancer (ALB)**, backed by **Amazon RDS PostgreSQL**, **Amazon ElastiCache Redis**, **Amazon S3**, and **AWS Systems Manager (SSM) Parameter Store**.
 
 ---
 
@@ -20,14 +20,14 @@ The infrastructure provisions a containerized **Bun + Elysia** production backen
                                   |                      |                          |
                                   |                      v (Image Pull)             |
                                   |  +-------------------------------------------+  |
-                                  |  |  AWS App Runner                           |  |
+                                  |  |  Amazon ECS Fargate (Serverless Cluster)   |  |
                                   |  |  (rsl-backend-prod)                      |  |
+                                  |  |  - Application Load Balancer (ALB)        |  |
                                   |  |  - Auto-scaling (1-10 instances)           |  |
-                                  |  |  - SSE / Long-lived connection support    |  |
                                   |  |  - Health check: /health on port 8080      |  |
                                   |  +-------------------+-----------------------+  |
                                   |                      |                          |
-                                  |            (VPC Ingress Connector)              |
+                                  |             (Private VPC Subnets)               |
                                   |                      |                          |
                                   |                      v                          |
                                   |  +-------------------------------------------+  |
@@ -64,13 +64,14 @@ From the root of the repo:
 ```bash
 cd infra
 npm install
-npx cdk bootstrap aws://<YOUR_AWS_ACCOUNT_ID>/us-east-1
+npx cdk bootstrap aws://479474520808/us-east-1
 ```
 
 ### Step 3: Deploy Production CDK Stacks
-Deploy all 7 production stacks (`rsl-prod-vpc`, `rsl-prod-ecr`, `rsl-prod-s3`, `rsl-prod-rds`, `rsl-prod-redis`, `rsl-prod-ssm`, `rsl-prod-apprunner`):
+Deploy all 7 production stacks (`rsl-prod-vpc`, `rsl-prod-ecr`, `rsl-prod-s3`, `rsl-prod-rds`, `rsl-prod-redis`, `rsl-prod-ssm`, `rsl-prod-ecs`):
 ```bash
 cd infra
+npm run build
 npx cdk deploy --all
 ```
 

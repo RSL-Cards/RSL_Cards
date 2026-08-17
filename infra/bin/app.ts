@@ -7,7 +7,7 @@ import { S3Stack } from '../lib/s3-stack';
 import { RdsStack } from '../lib/rds-stack';
 import { RedisStack } from '../lib/redis-stack';
 import { SsmStack } from '../lib/ssm-stack';
-import { AppRunnerStack } from '../lib/apprunner-stack';
+import { EcsStack } from '../lib/ecs-stack';
 
 const app = new cdk.App();
 
@@ -71,22 +71,23 @@ const ssmStack = new SsmStack(app, `${stackPrefix}-ssm`, {
   description: 'Production AWS Systems Manager Parameter Store for runtime secrets and configuration',
 });
 
-// 7. AWS App Runner Application Stack
-const appRunnerStack = new AppRunnerStack(app, `${stackPrefix}-apprunner`, {
+// 7. Amazon ECS Fargate Container Service Stack
+const ecsStack = new EcsStack(app, `${stackPrefix}-ecs`, {
   env,
   environmentName,
   vpc: vpcStack.vpc,
-  securityGroup: vpcStack.appRunnerSecurityGroup,
+  rdsSecurityGroup: vpcStack.rdsSecurityGroup,
+  redisSecurityGroup: vpcStack.redisSecurityGroup,
   ecrRepository: ecrStack.repository,
   s3Bucket: s3Stack.bucket,
-  description: 'Production AWS App Runner Service hosting the Bun/Elysia containerized backend',
+  description: 'Production Amazon ECS Fargate Load-Balanced Serverless Container Service',
 });
-appRunnerStack.addDependency(vpcStack);
-appRunnerStack.addDependency(ecrStack);
-appRunnerStack.addDependency(s3Stack);
-appRunnerStack.addDependency(rdsStack);
-appRunnerStack.addDependency(redisStack);
-appRunnerStack.addDependency(ssmStack);
+ecsStack.addDependency(vpcStack);
+ecsStack.addDependency(ecrStack);
+ecsStack.addDependency(s3Stack);
+ecsStack.addDependency(rdsStack);
+ecsStack.addDependency(redisStack);
+ecsStack.addDependency(ssmStack);
 
 // Global resource tags for production tracking
 cdk.Tags.of(app).add('Project', 'RSL-Cards');
