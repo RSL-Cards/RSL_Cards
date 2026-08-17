@@ -76,39 +76,50 @@ npx cdk deploy --all
 
 ---
 
-## 🔐 Step 4: Configure Production Keys in AWS SSM Parameter Store
+## 🔐 Step 4: Configure Production Secrets in AWS SSM Parameter Store (SecureString)
 
-Go to **AWS Console → Systems Manager → Parameter Store** (Region: `us-east-1`).
+The parameters under `/rsl/prod/config/*` are initialized with placeholders by CDK. Update all sensitive production keys using **`SecureString`** type (encrypted with AWS KMS):
 
-The following parameters under `/rsl/prod/config/*` are initialized with defaults. Update any parameters with your production third-party keys:
-
-| Parameter Path in SSM | Purpose / Action Required |
-| :--- | :--- |
-| `/rsl/prod/config/jwt_private_key` | Production RSA Private Key for JWT signing |
-| `/rsl/prod/config/jwt_public_key` | Production RSA Public Key for JWT verification |
-| `/rsl/prod/config/internal_service_key` | Production Internal Service Secret Key |
-| `/rsl/prod/config/ebay_prod_client_id` | Production eBay App Client ID |
-| `/rsl/prod/config/ebay_prod_client_secret` | Production eBay App Client Secret |
-| `/rsl/prod/config/ebay_prod_ru_name` | Production eBay Redirect Name |
-| `/rsl/prod/config/gemini_api_key` | Production Gemini AI API Key |
-| `/rsl/prod/config/google_client_id` | Production Google OAuth Client ID |
-| `/rsl/prod/config/google_client_secret` | Production Google OAuth Client Secret |
-| `/rsl/prod/config/ximilar_api_key` | Production Ximilar AI Card Scanning API Key |
-| `/rsl/prod/config/resend_api_key` | Production Resend Transactional Email API Key |
-| `/rsl/prod/config/onesignal_app_id` | Production OneSignal App ID |
-| `/rsl/prod/config/onesignal_rest_api_key` | Production OneSignal REST API Key |
+| Parameter Path in SSM | Type | Description / Action Required |
+| :--- | :--- | :--- |
+| `/rsl/prod/config/postgres_password` | `SecureString` | Production PostgreSQL Master Password |
+| `/rsl/prod/config/jwt_private_key` | `SecureString` | Production RSA Private Key for JWT signing |
+| `/rsl/prod/config/jwt_public_key` | `SecureString` | Production RSA Public Key for JWT verification |
+| `/rsl/prod/config/internal_service_key` | `SecureString` | Production Internal Service Key |
+| `/rsl/prod/config/ebay_prod_client_id` | `SecureString` | Production eBay App Client ID |
+| `/rsl/prod/config/ebay_prod_client_secret` | `SecureString` | Production eBay App Client Secret |
+| `/rsl/prod/config/gemini_api_key` | `SecureString` | Production Gemini AI API Key |
+| `/rsl/prod/config/google_client_id` | `SecureString` | Production Google OAuth Client ID |
+| `/rsl/prod/config/google_client_secret` | `SecureString` | Production Google OAuth Client Secret |
+| `/rsl/prod/config/ximilar_api_key` | `SecureString` | Production Ximilar AI Card Scanning API Key |
+| `/rsl/prod/config/resend_api_key` | `SecureString` | Production Resend Transactional Email API Key |
+| `/rsl/prod/config/onesignal_app_id` | `SecureString` | Production OneSignal App ID |
+| `/rsl/prod/config/onesignal_rest_api_key` | `SecureString` | Production OneSignal REST API Key |
 
 > [!IMPORTANT]
-> `DATABASE_URL`, `DATABASE_URL_READ_REPLICA`, `REDIS_URL`, and `S3_BUCKET_NAME` are generated and bound to App Runner **automatically by CDK**. You do not need to enter them manually.
+> `DATABASE_URL`, `DATABASE_URL_READ_REPLICA`, `REDIS_URL`, and `S3_BUCKET_NAME` are generated and bound to App Runner **automatically by CDK**.
 
-#### Command to Update Any SSM Parameter via AWS CLI:
+---
+
+### 🛡️ How to Update any Parameter to `SecureString` (KMS Encrypted)
+
+Run this AWS CLI command for any secret to encrypt it with AWS KMS before storing:
+
 ```bash
 aws ssm put-parameter \
   --name "/rsl/prod/config/resend_api_key" \
-  --value "re_YOUR_PRODUCTION_KEY" \
+  --value "re_YOUR_ACTUAL_RESEND_KEY" \
   --type "SecureString" \
   --overwrite
 ```
+
+Or in **AWS Console → Systems Manager → Parameter Store**:
+1. Click the parameter name (e.g., `/rsl/prod/config/resend_api_key`).
+2. Click **Edit**.
+3. Change **Type** from `String` to **`SecureString`**.
+4. Paste your secret value in **Value** and click **Save changes**.
+
+App Runner natively decrypts `SecureString` parameters using AWS KMS when launching your application container.
 
 ---
 
