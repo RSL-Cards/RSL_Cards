@@ -82,6 +82,8 @@ The parameters under `/rsl/prod/config/*` are initialized with placeholders by C
 
 | Parameter Path in SSM | Type | Description / Action Required |
 | :--- | :--- | :--- |
+| `/rsl/prod/config/database_url` | `SecureString` | PostgreSQL Primary Database Connection URL (Contains DB Password) |
+| `/rsl/prod/config/database_url_read_replica` | `SecureString` | PostgreSQL Read Replica Connection URL (Contains DB Password) |
 | `/rsl/prod/config/postgres_password` | `SecureString` | Production PostgreSQL Master Password |
 | `/rsl/prod/config/jwt_private_key` | `SecureString` | Production RSA Private Key for JWT signing |
 | `/rsl/prod/config/jwt_public_key` | `SecureString` | Production RSA Public Key for JWT verification |
