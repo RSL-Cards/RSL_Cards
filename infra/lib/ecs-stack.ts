@@ -79,15 +79,17 @@ export class EcsStack extends cdk.Stack {
     });
     s3Bucket.grantReadWrite(taskRole);
 
-    // 5. Dynamic SSM Parameter Secret Bindings
+    // 5. Dynamic SSM Parameter Secret Bindings matching user Parameter Store list
     const dynamicSecretKeys = [
       'POSTGRES_PASSWORD', 'DATABASE_URL', 'DATABASE_URL_READ_REPLICA', 'REDIS_URL',
       'JWT_PRIVATE_KEY', 'JWT_PUBLIC_KEY', 'INTERNAL_SERVICE_KEY',
       'EBAY_DEV_ID', 'EBAY_SANDBOX_CLIENT_ID', 'EBAY_SANDBOX_CLIENT_SECRET',
       'EBAY_PROD_CLIENT_ID', 'EBAY_PROD_CLIENT_SECRET', 'GEMINI_API_KEY',
-      'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_CLOUD_API_KEY',
-      'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'XIMILAR_API_KEY',
+      'GOOGLE_CLIENT_ID', 'GOOGLE_IOS_CLIENT_ID', 'GOOGLE_ANDROID_CLIENT_ID',
+      'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY',
       'RESEND_API_KEY', 'ONESIGNAL_APP_ID', 'ONESIGNAL_REST_API_KEY',
+      'SOLD_COMPS_KEY', 'SPORTRADAR_ASSOCIATED_PRESS',
+      'MYSLABS_CLIENT_ID', 'MYSLABS_CLIENT_SECRET',
     ];
 
     const secrets: Record<string, ecs.Secret> = {};
@@ -100,27 +102,37 @@ export class EcsStack extends cdk.Stack {
       secrets[key] = ecs.Secret.fromSsmParameter(ssmParam);
     }
 
-    // Standard static environment variables
+    // Standard static environment variables matching user Parameter Store list
     const environment: Record<string, string> = {
       NODE_ENV: environmentName === 'prod' ? 'production' : 'development',
       LOG_LEVEL: environmentName === 'prod' ? 'warn' : 'debug',
       PORT: '8080',
-      AUTH_SERVICE_PORT: '3000',
-      USER_SERVICE_PORT: '3000',
-      INVENTORY_SERVICE_PORT: '3000',
-      TRANSACTION_SERVICE_PORT: '3000',
-      LISTING_SERVICE_PORT: '3000',
-      CARD_DB_SERVICE_PORT: '3000',
-      AI_NARRATIVE_SERVICE_PORT: '3000',
-      NOTIFICATION_SERVICE_PORT: '3000',
-      ANALYTICS_SERVICE_PORT: '3000',
-      ADMIN_SERVICE_PORT: '3000',
       POSTGRES_USER: 'rsl_user',
       POSTGRES_DB: 'rslcards_prod',
       DB_POOL_MAX: '50',
+      JWT_ACCESS_EXPIRY: '15m',
+      JWT_REFRESH_EXPIRY: '7d',
+      EBAY_ENV: 'production',
+      EBAY_MARKETPLACE_ID: 'EBAY_US',
+      EBAY_PROD_API_URL: 'https://api.ebay.com',
+      EBAY_PROD_AUTH_URL: 'https://auth.ebay.com/oauth2/authorize',
+      EBAY_PROD_RU_NAME: 'Vinay_Golla-VinayGol-RSL-PR-vdownj',
+      EBAY_PROD_TOKEN_URL: 'https://api.ebay.com/identity/v1/oauth2/token',
+      EBAY_SANDBOX_API_URL: 'https://api.sandbox.ebay.com',
+      EBAY_SANDBOX_AUTH_URL: 'https://auth.sandbox.ebay.com/oauth2/authorize',
+      EBAY_SANDBOX_RU_NAME: 'Vinay_Golla-VinayGol-RSL-SB-oslzfy',
+      EBAY_SANDBOX_TOKEN_URL: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
+      APPLE_AUDIENCE: 'com.rslcards.dealer',
+      APPLE_CLIENT_ID: 'com.rslcards.web',
+      APPLE_ISSUER: 'https://appleid.apple.com',
       AWS_REGION: this.region,
       S3_BUCKET_NAME: s3Bucket.bucketName,
+      RESEND_DOMAIN: 'rslcardspro.com',
+      RESEND_FROM_EMAIL: 'noreply@rslcardspro.com',
+      RESEND_FROM_NAME: 'RSL Cards',
       APP_WEB_URL: 'https://rslcardspro.com',
+      NEXT_PUBLIC_APPLE_CLIENT_ID: 'com.rslcards.web',
+      NEXT_PUBLIC_APPLE_REDIRECT_URI: 'https://app.rslcards.com',
     };
 
     // 6. Create Serverless Amazon ECS Fargate Service with Application Load Balancer

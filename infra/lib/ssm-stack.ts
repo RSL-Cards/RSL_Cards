@@ -14,23 +14,12 @@ export class SsmStack extends cdk.Stack {
 
     const { environmentName } = props;
 
-    // Environment configuration placeholder values for SSM Parameter Store
-    // RDS, Redis, and S3 parameters are created dynamically by their respective stacks
-    // Sensitive production keys must be updated in AWS SSM Parameter Store directly
+    // Full environment configuration for SSM Parameter Store
+    // DATABASE_URL, DATABASE_URL_READ_REPLICA, REDIS_URL, and S3_BUCKET_NAME are generated dynamically by RDS, Redis, and S3 stacks
     const defaultEnvVars: Record<string, string> = {
       NODE_ENV: environmentName === 'prod' ? 'production' : 'development',
       LOG_LEVEL: environmentName === 'prod' ? 'warn' : 'debug',
       PORT: '8080',
-      AUTH_SERVICE_PORT: '3000',
-      USER_SERVICE_PORT: '3000',
-      INVENTORY_SERVICE_PORT: '3000',
-      TRANSACTION_SERVICE_PORT: '3000',
-      LISTING_SERVICE_PORT: '3000',
-      CARD_DB_SERVICE_PORT: '3000',
-      AI_NARRATIVE_SERVICE_PORT: '3000',
-      NOTIFICATION_SERVICE_PORT: '3000',
-      ANALYTICS_SERVICE_PORT: '3000',
-      ADMIN_SERVICE_PORT: '3000',
 
       POSTGRES_USER: 'rsl_user',
       POSTGRES_PASSWORD: 'PLACEHOLDER_POSTGRES_PASSWORD',
@@ -43,46 +32,44 @@ export class SsmStack extends cdk.Stack {
       JWT_ACCESS_EXPIRY: '15m',
       JWT_REFRESH_EXPIRY: '7d',
 
+      // MySlabs API Keys
+      MYSLABS_CLIENT_ID: 'AwzoUPZE8eNlWi8vtaOkXTPdCPcHGMkdZeLmoELL',
+      MYSLABS_CLIENT_SECRET: '6wlxK7Jy3QJMOvfiKRiXpfgzdZI9VIeozqcmv0e2D2HZBBt17nHho9hMEHnvM6ygNunbrAbmetIvKSgLpdLNWswrllicF9LtU05KJUnbV4cijNLM6v55Eqq2zCa2TsXC',
+
+      // Google & Apple OAuth
+      GOOGLE_CLIENT_ID: '156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com',
+      GOOGLE_IOS_CLIENT_ID: '156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae.apps.googleusercontent.com',
+      GOOGLE_ANDROID_CLIENT_ID: '156597264526-1cpp7kadv9ifvt708gi1qlfc8l727c1a.apps.googleusercontent.com',
+      APPLE_CLIENT_ID: 'com.rslcards.web',
+      APPLE_AUDIENCE: 'com.rslcards.dealer',
+      APPLE_ISSUER: 'https://appleid.apple.com',
+
+      // eBay Configuration
       EBAY_ENV: 'production',
       EBAY_MARKETPLACE_ID: 'EBAY_US',
-      EBAY_DEV_ID: 'PLACEHOLDER_EBAY_DEV_ID',
-      EBAY_SANDBOX_CLIENT_ID: 'PLACEHOLDER_EBAY_SANDBOX_CLIENT_ID',
-      EBAY_SANDBOX_CLIENT_SECRET: 'PLACEHOLDER_EBAY_SANDBOX_CLIENT_SECRET',
+      EBAY_DEV_ID: '1d1c82da-dce4-416d-b22e-e29a9b2f2609',
+
+      EBAY_SANDBOX_CLIENT_ID: 'VinayGol-RSL-SBX-56c1164ac-f579488b',
+      EBAY_SANDBOX_CLIENT_SECRET: 'SBX-6c1164ac63bf-feaa-4a05-8c78-c55d',
       EBAY_SANDBOX_API_URL: 'https://api.sandbox.ebay.com',
       EBAY_SANDBOX_TOKEN_URL: 'https://api.sandbox.ebay.com/identity/v1/oauth2/token',
       EBAY_SANDBOX_AUTH_URL: 'https://auth.sandbox.ebay.com/oauth2/authorize',
-      EBAY_SANDBOX_RU_NAME: 'PLACEHOLDER_EBAY_SANDBOX_RU_NAME',
-      EBAY_PROD_CLIENT_ID: 'PLACEHOLDER_EBAY_PROD_CLIENT_ID',
-      EBAY_PROD_CLIENT_SECRET: 'PLACEHOLDER_EBAY_PROD_CLIENT_SECRET',
+      EBAY_SANDBOX_RU_NAME: 'Vinay_Golla-VinayGol-RSL-SB-oslzfy',
+
+      EBAY_PROD_CLIENT_ID: 'VinayGol-RSL-PRD-26c1d3885-c948d8b2',
+      EBAY_PROD_CLIENT_SECRET: 'PRD-6c1d38856409-2684-489e-b837-7e35',
       EBAY_PROD_API_URL: 'https://api.ebay.com',
       EBAY_PROD_TOKEN_URL: 'https://api.ebay.com/identity/v1/oauth2/token',
       EBAY_PROD_AUTH_URL: 'https://auth.ebay.com/oauth2/authorize',
-      EBAY_PROD_RU_NAME: 'PLACEHOLDER_EBAY_PROD_RU_NAME',
+      EBAY_PROD_RU_NAME: 'Vinay_Golla-VinayGol-RSL-PR-vdownj',
 
-      VERTEX_AI_PROJECT_ID: 'rsl-cards-prod',
-      VERTEX_AI_LOCATION: 'global',
-      GOOGLE_CLOUD_API_KEY: 'PLACEHOLDER_GOOGLE_CLOUD_API_KEY',
       GEMINI_API_KEY: 'PLACEHOLDER_GEMINI_API_KEY',
-
-      GOOGLE_CLIENT_ID: 'PLACEHOLDER_GOOGLE_CLIENT_ID',
-      GOOGLE_CLIENT_SECRET: 'PLACEHOLDER_GOOGLE_CLIENT_SECRET',
-      GOOGLE_IOS_CLIENT_ID: 'PLACEHOLDER_GOOGLE_IOS_CLIENT_ID',
-      GOOGLE_ANDROID_CLIENT_ID: 'PLACEHOLDER_GOOGLE_ANDROID_CLIENT_ID',
-
-      APPLE_CLIENT_ID: 'com.rslcards.web',
-      APPLE_AUDIENCE: 'com.rslcards.web',
-      APPLE_ISSUER: 'https://appleid.apple.com',
 
       AWS_ACCESS_KEY_ID: 'PLACEHOLDER_AWS_ACCESS_KEY_ID',
       AWS_SECRET_ACCESS_KEY: 'PLACEHOLDER_AWS_SECRET_ACCESS_KEY',
       AWS_REGION: 'us-east-1',
 
-      XIMILAR_API_KEY: 'PLACEHOLDER_XIMILAR_API_KEY',
       SOLD_COMPS_KEY: 'PLACEHOLDER_SOLD_COMPS_KEY',
-
-      MYSLABS_CLIENT_ID: 'PLACEHOLDER_MYSLABS_CLIENT_ID',
-      MYSLABS_CLIENT_SECRET: 'PLACEHOLDER_MYSLABS_CLIENT_SECRET',
-
       SPORTRADAR_ASSOCIATED_PRESS: 'PLACEHOLDER_SPORTRADAR_KEY',
 
       RESEND_API_KEY: 'PLACEHOLDER_RESEND_API_KEY',
@@ -98,7 +85,7 @@ export class SsmStack extends cdk.Stack {
       ONESIGNAL_REST_API_KEY: 'PLACEHOLDER_ONESIGNAL_REST_API_KEY',
     };
 
-    // Populate all parameters into SSM Parameter Store under /rsl/{environmentName}/config/{KEY}
+    // Populate parameters into SSM Parameter Store under /rsl/{environmentName}/config/{KEY}
     for (const [key, value] of Object.entries(defaultEnvVars)) {
       const paramKey = key.toLowerCase();
       this.parameters[key] = new ssm.StringParameter(this, `Param_${key}`, {

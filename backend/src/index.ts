@@ -212,7 +212,7 @@ const app = new Elysia()
       },
       database: {
         status: dbStatus.ok ? "healthy" : "unhealthy",
-        error: dbStatus.ok ? undefined : "Database connection failed",
+        error: dbStatus.ok ? undefined : (dbStatus as any).error?.message || String((dbStatus as any).error || "Database connection failed"),
       },
       redis: redisStatus,
       bullmq: bullMqStatus,
