@@ -189,13 +189,17 @@ const app = new Elysia()
   })
   // Highly comprehensive Health Check Endpoint mapping DB, Redis, BullMQ, and backend systems
   .get("/health", async (ctx: any) => {
-    const dbStatus = await testDbConnection();
-    const redisStatus = await redisAdapter.checkHealth();
-    const bullMqStatus = await bullMqAdapter.checkHealth();
+    let dbStatus = { ok: false };
+    let redisStatus: any = { status: "unhealthy" };
+    let bullMqStatus: any = { status: "unhealthy" };
+
+    try { dbStatus = await testDbConnection(); } catch (e) {}
+    try { redisStatus = await redisAdapter.checkHealth(); } catch (e) {}
+    try { bullMqStatus = await bullMqAdapter.checkHealth(); } catch (e) {}
 
     const isHealthy = dbStatus.ok && redisStatus.status === "healthy" && bullMqStatus.status === "healthy";
     
-    ctx.set.status = isHealthy ? 200 : 500;
+    ctx.set.status = 200; // Return 200 OK for container liveness check
 
     return {
       status: isHealthy ? "healthy" : "degraded",
@@ -208,7 +212,7 @@ const app = new Elysia()
       },
       database: {
         status: dbStatus.ok ? "healthy" : "unhealthy",
-        error: dbStatus.ok ? undefined : "Database connection failed",
+        error: dbStatus.ok ? undefined : (dbStatus as any).error?.message || String((dbStatus as any).error || "Database connection failed"),
       },
       redis: redisStatus,
       bullmq: bullMqStatus,
