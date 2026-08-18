@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - aws/cdk
 
 permissions:
   id-token: write # Required for AWS OIDC authentication
