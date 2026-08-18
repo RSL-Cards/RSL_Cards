@@ -33,6 +33,32 @@ class DbLogWriter implements LogWriter {
 const dbLogger = new DefaultLogger({ writer: new DbLogWriter() });
 export const db = drizzle(pool, { schema, logger: dbLogger });
 
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import fs from "node:fs";
+import path from "node:path";
+
+export async function runMigrations() {
+  try {
+    const possiblePaths = [
+      "/app/packages/shared-db/drizzle",
+      path.resolve(process.cwd(), "../packages/shared-db/drizzle"),
+      path.resolve(process.cwd(), "./packages/shared-db/drizzle"),
+    ];
+
+    const drizzlePath = possiblePaths.find((p) => fs.existsSync(p));
+    if (!drizzlePath) {
+      logger.error("Could not find drizzle migrations directory!");
+      return;
+    }
+
+    logger.info(`[DB] Running migrations from ${drizzlePath}...`);
+    await migrate(db, { migrationsFolder: drizzlePath });
+    logger.info("[DB] Migrations executed successfully!");
+  } catch (error) {
+    logger.error(`[DB] Migration error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export async function testDbConnection() {
   try {
     const client = await pool.connect();

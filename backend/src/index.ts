@@ -3,7 +3,7 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { env } from "./config/index.js";
 import { logger } from "./lib/logger.js";
-import { testDbConnection } from "./db/index.js";
+import { testDbConnection, runMigrations } from "./db/index.js";
 import { redisAdapter } from "./adapters/redis.adapter.js";
 import { bullMqAdapter } from "./adapters/bullmq.adapter.js";
 import { initWorker } from "./worker.js";
@@ -223,7 +223,8 @@ const app = new Elysia()
     hostname: "0.0.0.0"
   });
 
-// Start background worker and scheduled jobs
+// Start background worker, run DB migrations, and scheduled jobs
+runMigrations().catch(err => logger.error(`Migration startup failed: ${err}`));
 initWorker();
 bullMqAdapter.startCronJobs().catch(err => logger.error(`Cron init failed: ${err}`));
 
