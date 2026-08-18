@@ -24,5 +24,6 @@
       "@rsl/shared-utils": ["../packages/shared-utils/src/index.ts"]
     }
   },
-  "include": ["src/**/*", "../packages/**/*"]
+  "include": ["src/**/*", "../packages/*/src/**/*"],
+  "exclude": ["node_modules", "../packages/*/dist"]
 }
