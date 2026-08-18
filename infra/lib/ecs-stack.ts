@@ -1,8 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
+import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
@@ -130,10 +132,17 @@ export class EcsStack extends cdk.Stack {
       RESEND_DOMAIN: 'rslcardspro.com',
       RESEND_FROM_EMAIL: 'noreply@rslcardspro.com',
       RESEND_FROM_NAME: 'RSL Cards',
-      APP_WEB_URL: 'https://rslcardspro.com',
+      APP_WEB_URL: 'https://api.rslcards.com',
       NEXT_PUBLIC_APPLE_CLIENT_ID: 'com.rslcards.web',
       NEXT_PUBLIC_APPLE_REDIRECT_URI: 'https://app.rslcards.com',
     };
+
+    // Reference requested ACM Certificate for HTTPS (Port 443)
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'ApiCertificate',
+      `arn:aws:acm:${this.region}:${this.account}:certificate/887d6a3a-2936-4dd3-be13-3964abaddce8`
+    );
 
     // 6. Create Serverless Amazon ECS Fargate Service with Application Load Balancer
     this.fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'RslFargateService', {
@@ -143,6 +152,8 @@ export class EcsStack extends cdk.Stack {
       memoryLimitMiB: 2048, // 2 GB RAM
       desiredCount: 1,
       publicLoadBalancer: true,
+      protocol: elbv2.ApplicationProtocol.HTTPS,
+      certificate,
       securityGroups: [taskSecurityGroup],
       taskSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
@@ -180,8 +191,8 @@ export class EcsStack extends cdk.Stack {
     cdk.Tags.of(this).add('Component', 'ECSBackend');
 
     new cdk.CfnOutput(this, 'LoadBalancerDnsName', {
-      value: `http://${this.fargateService.loadBalancer.loadBalancerDnsName}`,
-      description: 'Public URL of the ECS Fargate Load Balancer',
+      value: `https://api.rslcards.com`,
+      description: 'Custom Domain URL for the ECS Backend',
       exportName: `rsl-backend-url-${environmentName}`,
     });
   }
