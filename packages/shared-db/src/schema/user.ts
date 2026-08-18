@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const dealerProfiles = pgTable('dealer_profiles', {
@@ -16,6 +16,19 @@ export const dealerProfiles = pgTable('dealer_profiles', {
   rating:           varchar('rating', { length: 5 }).default('0'),   // avg dealer rating
   reviewCount:      integer('review_count').default(0),
   followerCount:    integer('follower_count').default(0),
+  notificationPreferences: jsonb('notification_preferences').$type<{
+    priceSpikes: { push: boolean, email: boolean },
+    inventoryAging: { push: boolean, email: boolean },
+    failedSync: { push: boolean, email: boolean },
+    newSales: { push: boolean, email: boolean },
+    weeklyReport: { push: boolean, email: boolean }
+  }>().default({
+    priceSpikes: { push: true, email: true },
+    inventoryAging: { push: false, email: true },
+    failedSync: { push: true, email: false },
+    newSales: { push: true, email: true },
+    weeklyReport: { push: false, email: true }
+  }),
   createdAt:        timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt:        timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
