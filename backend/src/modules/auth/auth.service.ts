@@ -312,7 +312,7 @@ export class AuthService {
     const incomingHash = hashToken(body.refreshToken);
     const tokenRecord = await this.repository.getRefreshToken(incomingHash);
 
-    if (!tokenRecord || tokenRecord.userId !== user.id) {
+    if (tokenRecord && tokenRecord.userId !== user.id) {
       throw new AuthError(
         AuthErrorCode.INVALID_REFRESH_TOKEN,
         "Invalid refresh token",
