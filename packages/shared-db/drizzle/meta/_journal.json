@@ -127,6 +127,13 @@
       "when": 1787116683798,
       "tag": "0017_past_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787117107312,
+      "tag": "0018_tan_jean_grey",
+      "breakpoints": true
     }
   ]
 }

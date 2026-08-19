@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, decimal, integer, boolean, timestamp, text, pgEnum, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 import { players, cards, cardVariants } from './carddb'
 
@@ -27,15 +27,28 @@ export const inventory = pgTable('inventory', {
   isConsignment:        boolean('is_consignment').default(false),
   ebaySalesCompleted:   text('ebay_sales_completed'),                  // JSON string of raw ebay sales
   ebayActiveListings:   text('ebay_active_listings'),                  // JSON string of raw active listings
+  myslabsSalesCompleted:text('myslabs_sales_completed'),               // JSON string of raw MySlabs sales
+  myslabsActiveListings:text('myslabs_active_listings'),               // JSON string of raw MySlabs active listings
   consignmentOwner:     varchar('consignment_owner', { length: 255 }),
   consignmentCommPct:   decimal('consignment_comm_pct', { precision: 5, scale: 2 }),
   listedPlatforms:      text('listed_platforms').array(),              // ['ebay','whatnot']
   listingStatus:        listingStatusEnum('listing_status').default('unlisted'),
   photos:               text('photos').array(),                        // S3 URLs
   notes:                text('notes'),
+  searchString:         text('search_string'),                         // AI generated search string
   addedAt:              timestamp('added_at', { withTimezone: true }).defaultNow(),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  inventoryUserIdx: index('idx_inventory_user_id').on(t.userId),
+  inventoryCardIdx: index('idx_inventory_card_id').on(t.cardId),
+  inventoryVariantIdx: index('idx_inventory_variant_id').on(t.variantId),
+  inventoryPlayerIdx: index('idx_inventory_player_id').on(t.playerId),
+  inventoryStatusIdx: index('idx_inventory_status').on(t.listingStatus),
+  inventoryGradeIdx: index('idx_inventory_grade_key').on(t.gradeKey),
+  // Composite indexes for fast dashboard queries & pagination
+  inventoryUserStatusIdx: index('idx_inventory_user_status').on(t.userId, t.listingStatus),
+  inventoryUserStatusAddedIdx: index('idx_inventory_user_status_added').on(t.userId, t.listingStatus, t.addedAt),
+}))
 
 export const bulkPurchases = pgTable('bulk_purchases', {
   id:           uuid('id').primaryKey().defaultRandom(),
@@ -45,4 +58,6 @@ export const bulkPurchases = pgTable('bulk_purchases', {
   paymentMethod:varchar('payment_method', { length: 50 }),
   notes:        text('notes'),
   createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  bulkPurchasesUserIdx: index('idx_bulk_purchases_user_id').on(t.userId),
+}))

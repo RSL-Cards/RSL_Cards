@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const featureFlags = pgTable('feature_flags', {
@@ -18,7 +18,10 @@ export const dealerReviews = pgTable('dealer_reviews', {
   comment:    text('comment'),
   isApproved: boolean('is_approved').default(false),
   createdAt:  timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  reviewsDealerIdx: index('idx_dealer_reviews_dealer_id').on(t.dealerId),
+  reviewsReviewerIdx: index('idx_dealer_reviews_reviewer_id').on(t.reviewerId),
+}))
 
 export const auditLogs = pgTable('audit_logs', {
   id:         uuid('id').primaryKey().defaultRandom(),
@@ -30,4 +33,7 @@ export const auditLogs = pgTable('audit_logs', {
   userAgent:  text('user_agent'),
   metadata:   text('metadata'),  // JSON extra context
   createdAt:  timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  auditUserIdx: index('idx_audit_logs_user_id').on(t.userId),
+  auditActionIdx: index('idx_audit_logs_action').on(t.action),
+}))

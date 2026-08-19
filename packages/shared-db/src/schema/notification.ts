@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, boolean, timestamp, pgEnum, index } from 'drizzle-orm/pg-core'
 import { users } from './auth'
 
 export const notifTypeEnum = pgEnum('notif_type', [
@@ -22,7 +22,22 @@ export const notifications = pgTable('notifications', {
   sentAt:    timestamp('sent_at', { withTimezone: true }),
   errorMsg:  text('error_msg'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  notifUserStatusIdx: index('idx_notifications_user_status').on(t.userId, t.status),
+  notifUserCreatedIdx: index('idx_notifications_user_created').on(t.userId, t.createdAt),
+}))
+
+export const userPushTokens = pgTable('user_push_tokens', {
+  id:        uuid('id').primaryKey().defaultRandom(),
+  userId:    uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token:     varchar('token', { length: 255 }).notNull().unique(), // Expo push token or FCM token
+  platform:  varchar('platform', { length: 50 }).notNull(), // 'ios' | 'android' | 'web'
+  isActive:  boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (t) => ({
+  pushTokensUserIdx: index('idx_push_tokens_user_id').on(t.userId),
+}))
 
 export const notificationPreferences = pgTable('notification_preferences', {
   // Same as userPreferences in user service — use user_preferences table there
@@ -54,4 +69,7 @@ export const showAttendees = pgTable('show_attendees', {
   userId:    uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   role:      varchar('role', { length: 20 }).default('attendee'), // dealer | attendee
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-})
+}, (t) => ({
+  attendeesShowIdx: index('idx_attendees_show_id').on(t.showId),
+  attendeesUserIdx: index('idx_attendees_user_id').on(t.userId),
+}))
