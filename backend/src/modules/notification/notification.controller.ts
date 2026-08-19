@@ -30,6 +30,11 @@ export class NotificationController {
       return { error: "Authentication is required for SSE" };
     }
 
+    set.headers["content-type"] = "text/event-stream";
+    set.headers["cache-control"] = "no-cache";
+    set.headers["connection"] = "keep-alive";
+    set.headers["x-accel-buffering"] = "no";
+
     return new Stream((stream) => {
       // Send an initial event so the client knows it connected
       stream.event = "connected";
