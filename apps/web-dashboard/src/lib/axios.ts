@@ -10,10 +10,21 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const state = useAuthStore.getState();
-  const token = state.tokens?.accessToken;
-  const userId = state.user?.id;
-  
+  let token = useAuthStore.getState().tokens?.accessToken;
+  let userId = useAuthStore.getState().user?.id;
+
+  // Robust fallback: read directly from localStorage if Zustand rehydration hasn't completed in memory
+  if ((!token || !userId) && typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('rsl-web-dashboard-auth');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (!token) token = parsed.state?.tokens?.accessToken;
+        if (!userId) userId = parsed.state?.user?.id;
+      }
+    } catch (e) {}
+  }
+
   if (config.headers) {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
