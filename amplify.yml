@@ -9,7 +9,7 @@ applications:
             - cd ../.. && bun install
         build:
           commands:
-            - bun run build
+            - cd ../.. && bun run build --filter=@rsl-cards/web-dashboard
       artifacts:
         baseDirectory: .next
         files:
