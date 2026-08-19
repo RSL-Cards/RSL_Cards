@@ -507,7 +507,8 @@ export class AuthService {
     }
 
     const email = payload?.email || userEmailOverride!;
-    const displayName = rawName?.trim() || (payload?.name as string) || email.split("@")[0];
+    const defaultName = email.includes("@") ? email.split("@")[0] : "User";
+    const displayName = rawName?.trim() || (payload?.name as string) || defaultName;
 
     let isNewUser = false;
     let user = await this.repository.getOAuthUser("google", payload?.sub || "google");
@@ -547,6 +548,12 @@ export class AuthService {
     );
 
     const profile = await this.repository.getDealerProfile(user.id);
+    const resolvedDisplayName =
+      profile?.displayName && profile.displayName !== "Dealer User"
+        ? profile.displayName
+        : user.email.includes("@")
+        ? user.email.split("@")[0]
+        : displayName;
 
     return {
       user: {
@@ -554,7 +561,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         isNewUser,
-        displayName: profile?.displayName ?? displayName,
+        displayName: resolvedDisplayName,
         photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
@@ -585,7 +592,7 @@ export class AuthService {
 
     const appleSub = payload.sub as string;
     const email = (payload.email as string) || userEmailOverride || `${appleSub}@privaterelay.appleid.com`;
-    const defaultName = email.includes("@") && !email.endsWith("@privaterelay.appleid.com") ? email.split("@")[0] : "Dealer User";
+    const defaultName = email.includes("@") ? email.split("@")[0] : "User";
     const displayName = rawName?.trim() || defaultName;
 
     let isNewUser = false;
@@ -626,6 +633,12 @@ export class AuthService {
     );
 
     const profile = await this.repository.getDealerProfile(user.id);
+    const resolvedDisplayName =
+      profile?.displayName && profile.displayName !== "Dealer User"
+        ? profile.displayName
+        : user.email.includes("@")
+        ? user.email.split("@")[0]
+        : displayName;
 
     return {
       user: {
@@ -633,7 +646,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         isNewUser,
-        displayName: profile?.displayName ?? user.email.split("@")[0],
+        displayName: resolvedDisplayName,
         photoUrl: profile?.photoUrl ?? null,
         onboardingCompleted: !!(
           profile?.sports?.length && profile?.sellChannels?.length
