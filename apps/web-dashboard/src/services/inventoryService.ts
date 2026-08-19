@@ -298,12 +298,7 @@ export const inventoryService = {
     formData.append('photo', file)
     const response = await apiClient.post<{ success: boolean; url: string }>(
       `${ENDPOINTS.inventory.list}/${id}/photo`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      formData
     )
     return response.data
   },
