@@ -41,7 +41,17 @@ export class NotificationController {
 
       sseEmitter.on(`notification:${userId}`, listener);
 
+      const heartbeat = setInterval(() => {
+        try {
+          stream.event = "ping";
+          stream.send({ status: "ping" });
+        } catch (e) {
+          clearInterval(heartbeat);
+        }
+      }, 15000);
+
       request.signal.addEventListener("abort", () => {
+        clearInterval(heartbeat);
         sseEmitter.off(`notification:${userId}`, listener);
         stream.close();
       });
