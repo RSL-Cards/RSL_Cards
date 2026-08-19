@@ -215,6 +215,15 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Session expired.'
+
+          // Don't wipe active session tokens if user and accessToken are already present in state
+          const existingUser = get().user
+          const existingTokens = get().tokens
+          if (existingUser && existingTokens?.accessToken) {
+            set({ isLoading: false })
+            return existingTokens
+          }
+
           set({
             user: null,
             tokens: null,

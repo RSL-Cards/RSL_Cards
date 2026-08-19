@@ -71,7 +71,15 @@ export default function OnboardingPage() {
       }
       
       await settingsService.updateOnboarding(payload)
-      await refreshAuth()
+      const currentUser = useAuthStore.getState().user
+      if (currentUser) {
+        useAuthStore.setState({
+          user: { ...currentUser, onboardingCompleted: true },
+        })
+      }
+      try {
+        await refreshAuth()
+      } catch (e) {}
       router.replace('/')
     } catch (err: any) {
       setError(err.message || 'Failed to complete onboarding')
