@@ -33,19 +33,56 @@ export class S3Stack extends cdk.Stack {
       ],
     });
 
-    // 2. Store bucket name in SSM Parameter Store
+    // 2. Automatically store all S3 environment variables in AWS SSM Parameter Store
     this.bucketNameParameter = new ssm.StringParameter(this, 'S3BucketNameParameter', {
       parameterName: `/rsl/${environmentName}/config/s3_bucket_name`,
       stringValue: this.bucket.bucketName,
       description: 'S3 bucket name for backend file storage & uploads',
     });
 
+    new ssm.StringParameter(this, 'S3BucketArnParameter', {
+      parameterName: `/rsl/${environmentName}/config/s3_bucket_arn`,
+      stringValue: this.bucket.bucketArn,
+      description: 'S3 bucket ARN for IAM & storage operations',
+    });
+
+    new ssm.StringParameter(this, 'S3BucketRegionParameter', {
+      parameterName: `/rsl/${environmentName}/config/s3_bucket_region`,
+      stringValue: this.region,
+      description: 'AWS Region for S3 bucket storage',
+    });
+
+    new ssm.StringParameter(this, 'S3BucketDomainNameParameter', {
+      parameterName: `/rsl/${environmentName}/config/s3_bucket_domain_name`,
+      stringValue: this.bucket.bucketDomainName,
+      description: 'S3 bucket regional domain name',
+    });
+
+    new ssm.StringParameter(this, 'S3BucketUrlParameter', {
+      parameterName: `/rsl/${environmentName}/config/s3_bucket_url`,
+      stringValue: `https://${this.bucket.bucketName}.s3.${this.region}.amazonaws.com`,
+      description: 'Base HTTPS URL for S3 bucket public assets',
+    });
+
     cdk.Tags.of(this).add('Component', 'Storage');
 
+    // 3. CloudFormation Outputs
     new cdk.CfnOutput(this, 'BucketNameOutput', {
       value: this.bucket.bucketName,
       description: 'Name of the S3 assets bucket',
       exportName: `rsl-s3-bucket-${environmentName}`,
+    });
+
+    new cdk.CfnOutput(this, 'BucketArnOutput', {
+      value: this.bucket.bucketArn,
+      description: 'ARN of the S3 assets bucket',
+      exportName: `rsl-s3-bucket-arn-${environmentName}`,
+    });
+
+    new cdk.CfnOutput(this, 'BucketUrlOutput', {
+      value: `https://${this.bucket.bucketName}.s3.${this.region}.amazonaws.com`,
+      description: 'Public URL endpoint of the S3 bucket',
+      exportName: `rsl-s3-bucket-url-${environmentName}`,
     });
   }
 }
