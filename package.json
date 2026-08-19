@@ -10,6 +10,14 @@
     "apps/*",
     "backend"
   ],
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "resolutions": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
   "scripts": {
     "dev": "bun --filter @rsl/backend run dev",
     "build": "turbo build",
