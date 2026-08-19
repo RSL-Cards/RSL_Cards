@@ -1,4 +1,5 @@
 import { TransactionService } from "./transaction.service.js";
+import { AuthError } from "../../lib/errors.js";
 
 export class TransactionController {
   constructor(private readonly service: TransactionService) {}
@@ -6,7 +7,7 @@ export class TransactionController {
   private getUserId(request: Request): string {
     const userId = request.headers.get("x-user-id");
     if (!userId) {
-      throw new Error("User ID not found in request headers");
+      throw AuthError.unauthorized("User ID not found in request headers");
     }
     return userId;
   }
