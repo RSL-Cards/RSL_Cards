@@ -9,7 +9,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser \
 COPY package.json bun.lock ./
 COPY packages ./packages
 COPY backend ./backend
-RUN bun install --frozen-lockfile
+RUN bun install
 WORKDIR /app/backend
 RUN bun x tsc --noEmit
 
