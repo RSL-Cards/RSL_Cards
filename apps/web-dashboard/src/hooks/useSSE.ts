@@ -48,9 +48,9 @@ export function useSSE(url: string) {
     };
 
     eventSource.onerror = () => {
-      console.warn("SSE connection closed or interrupted.");
+      console.warn("SSE connection closed or interrupted. Refreshing auth token...");
       eventSource.close();
-      // Optional: implement reconnect with exponential backoff
+      useAuthStore.getState().refreshAuth().catch(() => {});
     };
 
     return () => {
