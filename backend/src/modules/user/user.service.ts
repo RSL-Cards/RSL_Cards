@@ -169,12 +169,22 @@ export class UserService {
     const ext = contentType === "image/png" ? "png" : "jpg";
     const key = `profilepic/${userId}/profile.${ext}`;
 
+    const hasExplicitKeys = Boolean(
+      env.AWS_ACCESS_KEY_ID &&
+      env.AWS_SECRET_ACCESS_KEY &&
+      !env.AWS_ACCESS_KEY_ID.includes("PLACEHOLDER") &&
+      !env.AWS_ACCESS_KEY_ID.includes("test") &&
+      !env.AWS_ACCESS_KEY_ID.includes("dummy")
+    );
+
     const client = new S3Client({
-      region: env.AWS_REGION,
-      credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-      },
+      region: env.AWS_REGION || "us-east-1",
+      credentials: hasExplicitKeys
+        ? {
+            accessKeyId: env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+          }
+        : undefined,
     });
 
     const cmd = new PutObjectCommand({
@@ -184,7 +194,8 @@ export class UserService {
     });
 
     const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 300 });
-    const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${key}`;
+    const regionStr = env.AWS_REGION || "us-east-1";
+    const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${regionStr}.amazonaws.com/${key}`;
 
     return { uploadUrl, publicUrl, key };
   }
