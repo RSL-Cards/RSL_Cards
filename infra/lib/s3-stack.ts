@@ -20,7 +20,13 @@ export class S3Stack extends cdk.Stack {
     this.bucket = new s3.Bucket(this, 'RslAssetsBucket', {
       bucketName: `rsl-assets-${environmentName}-${this.account}-${this.region}`,
       versioned: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      publicReadAccess: true,
+      blockPublicAccess: new s3.BlockPublicAccess({
+        blockPublicAcls: false,
+        blockPublicPolicy: false,
+        ignorePublicAcls: false,
+        restrictPublicBuckets: false,
+      }),
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
       removalPolicy: environmentName === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,

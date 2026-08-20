@@ -975,7 +975,7 @@ export class InventoryRepository {
   async confirmPhotoAdded(inventoryId: string, url: string, userId: string) {
     await db.execute(sql`
       UPDATE inventory
-      SET photos = ARRAY[${url}]::text[],
+      SET photos = array_append(COALESCE(photos, ARRAY[]::text[]), ${url}),
           updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
     `);
