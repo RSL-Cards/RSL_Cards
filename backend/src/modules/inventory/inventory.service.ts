@@ -129,7 +129,34 @@ export class InventoryService {
   }
 
   async confirmPhotoAdded(inventoryId: string, url: string, userId: string) {
-    return this.repository.confirmPhotoAdded(inventoryId, url, userId);
+    const previousPhotos = await this.repository.getExistingPhotos(inventoryId, userId);
+
+    const result = await this.repository.confirmPhotoAdded(inventoryId, url, userId);
+
+    // Automatically remove previous card image(s) from S3 so past images are deleted
+    if (previousPhotos && previousPhotos.length > 0) {
+      const { env } = await import("../../config/index.js");
+      if (env.S3_BUCKET_NAME) {
+        try {
+          const { S3Service } = await import("./s3.service.js");
+          const s3 = new S3Service(env);
+          for (const oldUrl of previousPhotos) {
+            if (oldUrl && oldUrl !== url) {
+              try {
+                const key = new URL(oldUrl).pathname.slice(1);
+                await s3.deleteObject(key);
+              } catch (e) {
+                console.error("Failed to delete old card photo from S3 (non-fatal):", e);
+              }
+            }
+          }
+        } catch (s3Err) {
+          console.error("Failed to initialize S3 for old photo cleanup:", s3Err);
+        }
+      }
+    }
+
+    return result;
   }
 
   async deletePhoto(inventoryId: string, photoIndex: number, userId: string) {

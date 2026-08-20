@@ -972,10 +972,18 @@ export class InventoryRepository {
     return { message: `Get dealer's public inventory for ${dealerId}` };
   }
 
+  async getExistingPhotos(inventoryId: string, userId: string): Promise<string[]> {
+    const result = await db.execute(sql`
+      SELECT photos FROM inventory WHERE id = ${inventoryId} AND user_id = ${userId} LIMIT 1
+    `);
+    if (result.rows.length === 0) return [];
+    return (result.rows[0] as any).photos ?? [];
+  }
+
   async confirmPhotoAdded(inventoryId: string, url: string, userId: string) {
     await db.execute(sql`
       UPDATE inventory
-      SET photos = array_append(COALESCE(photos, ARRAY[]::text[]), ${url}),
+      SET photos = ARRAY[${url}]::text[],
           updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
     `);

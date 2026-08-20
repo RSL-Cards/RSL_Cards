@@ -92,53 +92,40 @@ export default function AccountSettingsSection({
             className={inputClass}
           />
         </label>
-        <label className="text-sm font-medium text-zinc-400">
-          Custom URL
-          <div className="mt-2 flex flex-col gap-2">
-            <div className="flex overflow-hidden rounded-xl border border-[#252525] bg-[#141414] transition focus-within:border-[#E8001C]">
-              <span className="border-r border-[#252525] bg-[#0D0D0D] px-3 py-2 text-sm text-zinc-500">rslcards.com/showcase/</span>
-              <input
-                value={account.customUrl}
-                onChange={(event) => onAccountChange({ ...account, customUrl: event.target.value })}
-                placeholder="your-handle"
-                className="w-full bg-transparent px-3 py-2 text-sm text-white outline-none"
-              />
-            </div>
 
-            {/* Permanent public link — always uses the unique profile ID */}
-            {profileId && (
-              <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-3 py-2.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-0.5">Your Public Link</p>
-                  <p className="text-xs text-zinc-400 truncate font-mono">
-                    rslcards.com/showcase/<span className="text-white">{profileId}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/showcase/${profileId}`)
-                      alert('Link copied to clipboard!')
-                    }}
-                    className="text-xs font-medium text-[#E8001C] hover:text-red-400 transition-colors"
-                  >
-                    Copy Link
-                  </button>
-                  <span className="text-zinc-700">•</span>
-                  <a
-                    href={`/showcase/${profileId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-medium text-zinc-400 hover:text-white transition-colors"
-                  >
-                    Preview Page
-                  </a>
-                </div>
+        {profileId && (
+          <div className="flex flex-col justify-end">
+            <div className="rounded-xl border border-[#252525] bg-[#0D0D0D] px-3 py-2.5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-0.5">Your Public Link</p>
+                <p className="text-xs text-zinc-400 truncate font-mono">
+                  rslcards.com/showcase/<span className="text-white">{profileId}</span>
+                </p>
               </div>
-            )}
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/showcase/${profileId}`)
+                    alert('Link copied to clipboard!')
+                  }}
+                  className="text-xs font-medium text-[#E8001C] hover:text-red-400 transition-colors"
+                >
+                  Copy Link
+                </button>
+                <span className="text-zinc-700">•</span>
+                <a
+                  href={`/showcase/${profileId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                >
+                  Preview Page
+                </a>
+              </div>
+            </div>
           </div>
-        </label>
+        )}
         <label className="text-sm font-medium text-zinc-400">
           Email
           <input
