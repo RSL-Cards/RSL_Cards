@@ -79,9 +79,9 @@ export class InventoryController {
 
   uploadPhotoDirect = async ({ request, params, body }: { request: Request; params: any; body: any }) => {
     const userId = this.getUserId(request);
-    const file = body.photo;
-    if (!file) {
-      throw new Error("photo file is required");
+    const file = body?.photo;
+    if (!file || (typeof file === "object" && !Buffer.isBuffer(file) && !(file instanceof ArrayBuffer) && typeof file.arrayBuffer !== "function" && !file.buffer && !file.data && Object.keys(file).length === 0)) {
+      throw new Error("photo file is required and must not be empty");
     }
 
     const mimeType = file.type || file.mimetype || "image/jpeg";
