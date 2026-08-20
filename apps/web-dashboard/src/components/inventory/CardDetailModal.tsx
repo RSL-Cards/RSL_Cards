@@ -235,7 +235,7 @@ export default function CardDetailModal({
       : typeof item.photos === 'string'
       ? safeParseJson(item.photos)
       : []
-    const imageUrl = item.image_url || (photos.length > 0 ? photos[0] : '') || card.image_url || '/placeholder.png'
+    const imageUrl = (photos.length > 0 ? photos[0] : '') || item.image_url || card.image_url || '/placeholder.png'
 
     const costBasis = Number(item.cost_basis ?? item.costBasis ?? card.cost_basis ?? 0)
     const marketValue = Number(item.current_market_value ?? item.currentMarketValue ?? item.market_value ?? item.marketValue ?? card.market_value ?? 0)
