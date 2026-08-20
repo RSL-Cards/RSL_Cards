@@ -374,7 +374,7 @@ export const initWorker = () => {
                    dp.notification_preferences,
                    up.notify_daily_close_push,
                    up.notify_daily_close_email,
-                   COALESCE(up.timezone, ${"Asia/Kolkata"}) as timezone
+                   COALESCE(up.timezone, ${"America/New_York"}) as timezone
             FROM daily_logs dl
             JOIN users u ON u.id = dl.user_id
             LEFT JOIN dealer_profiles dp ON dp.user_id = dl.user_id
@@ -393,13 +393,13 @@ export const initWorker = () => {
           let notifiedCount = 0;
 
           for (const log of logs) {
-            const userTimezone = log.timezone || "Asia/Kolkata";
+            const userTimezone = log.timezone || "America/New_York";
             let localHour = 23;
             try {
               const hourStr = new Intl.DateTimeFormat("en-US", {
                 timeZone: userTimezone,
-                hour: "numeric",
-                hourCycle: "h23"
+                hour: "2-digit",
+                hour12: false
               }).format(now);
               localHour = parseInt(hourStr, 10);
             } catch (tzErr) {

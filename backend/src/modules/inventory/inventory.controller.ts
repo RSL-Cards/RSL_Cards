@@ -84,15 +84,33 @@ export class InventoryController {
       throw new Error("photo file is required");
     }
 
+    const mimeType = file.type || file.mimetype || "image/jpeg";
+    const fileName = file.name || file.filename || "photo.jpg";
+
     const { publicUrl, key } = await this.service.presignPhotoUpload(
       params.id,
-      file.type || "image/jpeg",
-      file.name || "photo.jpg",
+      mimeType,
+      fileName,
       userId
     );
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer: Buffer;
+    if (Buffer.isBuffer(file)) {
+      buffer = file;
+    } else if (typeof file?.arrayBuffer === "function") {
+      buffer = Buffer.from(await file.arrayBuffer());
+    } else if (file?.buffer && (Buffer.isBuffer(file.buffer) || file.buffer instanceof ArrayBuffer)) {
+      buffer = Buffer.from(file.buffer);
+    } else if (file?.data && (Buffer.isBuffer(file.data) || file.data instanceof ArrayBuffer)) {
+      buffer = Buffer.from(file.data);
+    } else if (typeof file === "string") {
+      const base64Data = file.includes(",") ? file.split(",")[1] : file;
+      buffer = Buffer.from(base64Data, "base64");
+    } else if (file instanceof ArrayBuffer) {
+      buffer = Buffer.from(file);
+    } else {
+      throw new Error("Invalid or unsupported photo file format");
+    }
 
     const { env } = await import("../../config/index.js");
     const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
@@ -109,7 +127,7 @@ export class InventoryController {
         Bucket: env.S3_BUCKET_NAME,
         Key: key,
         Body: buffer,
-        ContentType: file.type || "image/jpeg",
+        ContentType: mimeType,
       })
     );
 

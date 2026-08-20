@@ -197,6 +197,7 @@ export class AuthRepository {
     providerId: string,
     role: "dealer" | "consumer",
     displayName?: string,
+    timezone?: string,
   }) {
     const pwdHash = await hashPassword(data.email.toLowerCase().trim());
     const name = data.displayName || data.email.split("@")[0] || "User";
@@ -226,7 +227,10 @@ export class AuthRepository {
       }
 
       await tx.insert(userPreferences)
-        .values({ userId: user.id });
+        .values({
+          userId: user.id,
+          ...(data.timezone ? { timezone: data.timezone } : {}),
+        });
 
       return user;
     });
