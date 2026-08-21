@@ -14,9 +14,10 @@ export default function Footer() {
         <div>
           <div className="font-black">Navigation</div>
           <div className="mt-4 grid gap-2 text-muted">
-            <a href="#coming-soon">Coming Soon</a>
-            <a href="#features">Features</a>
-            <a href="#about">About Us</a>
+            <a href="/#coming-soon">Coming Soon</a>
+            <a href="/#features">Features</a>
+            <a href="/#about">About Us</a>
+            <a href="/support" className="hover:text-white transition-colors">Support &amp; Help</a>
           </div>
         </div>
         <div></div>
@@ -25,6 +26,7 @@ export default function Footer() {
           <div className="mt-4 grid gap-2 text-muted">
             <a href="/terms&conditions" className="hover:text-white transition-colors">Terms &amp; Conditions</a>
             <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/support" className="hover:text-white transition-colors">Help Center</a>
             <span className="text-xs mt-2 block">© 2026 RSL Cards.</span>
           </div>
         </div>
