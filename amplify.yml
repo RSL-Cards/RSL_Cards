@@ -1,6 +1,7 @@
 version: 1
 applications:
-  - frontend:
+  - appRoot: apps/rsl-website
+    frontend:
       phases:
         preBuild:
           commands:
@@ -8,14 +9,33 @@ applications:
             - bun install
         build:
           commands:
-            - cd apps/web-dashboard && bun run build
+            - bun run build
       artifacts:
-        baseDirectory: apps/web-dashboard/.next
+        baseDirectory: .next
         files:
           - '**/*'
       cache:
         paths:
           - .next/cache/**/*
           - node_modules/**/*
-      buildPath: /
-    appRoot: apps/web-dashboard
+
+  - appRoot: apps/web-dashboard
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm install -g bun
+            - bun install
+        build:
+          commands:
+            - bun run build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - .next/cache/**/*
+          - node_modules/**/*
+
+
