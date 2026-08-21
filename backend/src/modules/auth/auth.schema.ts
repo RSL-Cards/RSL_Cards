@@ -3,7 +3,7 @@ import { z } from "zod";
 export const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
   otp: z.string().length(6).optional(),
 });
 
@@ -66,14 +66,14 @@ export const ResetPasswordSchema = z.object({
 
 export const GoogleOauthSchema = z.object({
   idToken: z.string().min(1),
-  role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
   rawName: z.string().optional(),
   email: z.string().email().optional(),
 });
 
 export const AppleOauthSchema = z.object({
   idToken: z.string().min(1),
-  role: z.enum(["dealer", "consumer"]).optional().default("consumer"),
+  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
   rawName: z.string().optional(),
   email: z.string().email().optional(),
 });

@@ -25,9 +25,7 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [isDealer, setIsDealer] = useState(true);
   const [validationError, setValidationError] = useState("");
-
   const [timerSeconds, setTimerSeconds] = useState(300);
 
   const { mutate: register, isPending: isRegistering, error: registerError } = useRegister();
@@ -93,7 +91,7 @@ export default function RegisterScreen() {
     register({
       email: email.trim().toLowerCase(),
       password,
-      role: isDealer ? "dealer" : "consumer",
+      role: "dealer",
       otp: otp.trim(),
     });
   };
@@ -199,37 +197,6 @@ export default function RegisterScreen() {
                       size={20}
                       color="#888888"
                     />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={{ height: 24 }} />
-                <Text style={styles.label}>ROLE</Text>
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-                  <TouchableOpacity
-                    style={[styles.roleChip, isDealer && styles.roleChipActive]}
-                    onPress={() => setIsDealer(true)}
-                  >
-                    <Text
-                      style={[
-                        styles.roleChipText,
-                        isDealer && styles.roleChipTextActive,
-                      ]}
-                    >
-                      I'm a Dealer
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.roleChip, !isDealer && styles.roleChipActive]}
-                    onPress={() => setIsDealer(false)}
-                  >
-                    <Text
-                      style={[
-                        styles.roleChipText,
-                        !isDealer && styles.roleChipTextActive,
-                      ]}
-                    >
-                      I'm a Collector
-                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -368,17 +335,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   eyeBtn: { position: "absolute", right: 14, zIndex: 1 },
-  roleChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 100,
-    backgroundColor: "#1A1A1A",
-    borderWidth: 1.5,
-    borderColor: "#2A2A2A",
-  },
-  roleChipActive: { backgroundColor: "#0057FF", borderColor: "#0057FF" },
-  roleChipText: { color: "#888888", fontWeight: "600", fontSize: 14 },
-  roleChipTextActive: { color: "white" },
   registerBtn: {
     marginTop: 32,
     backgroundColor: "#E8001C",

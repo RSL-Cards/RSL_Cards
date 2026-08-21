@@ -485,7 +485,7 @@ export class AuthService {
 
   async loginWithGoogle(
     idToken: string,
-    role: "dealer" | "consumer" = "consumer",
+    role: "dealer" | "consumer" = "dealer",
     rawName?: string,
     userEmailOverride?: string,
     ipAddress?: string | null,
@@ -575,7 +575,7 @@ export class AuthService {
 
   async loginWithApple(
     idToken: string,
-    role: "dealer" | "consumer" = "consumer",
+    role: "dealer" | "consumer" = "dealer",
     rawName?: string,
     userEmailOverride?: string,
     ipAddress?: string | null,
