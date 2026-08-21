@@ -123,7 +123,7 @@ export default function SupportPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name || !formData.email || !formData.message) {
       toast.error('Please fill out all required fields.')
@@ -131,13 +131,38 @@ export default function SupportPage() {
     }
 
     setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      toast.success('Support ticket submitted successfully!', {
-        description: 'Our dealer support team will respond to ' + formData.email + ' within 2 hours.'
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/v1/support`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          topic: formData.topic,
+          message: formData.message
+        })
       })
-      setFormData({ name: '', email: '', topic: 'General Question', message: '' })
-    }, 1000)
+
+      const data = await response.json().catch(() => null)
+
+      if (response.ok && data?.success !== false) {
+        toast.success('Support ticket submitted successfully!', {
+          description: 'Details sent to support@rslcards.com. Our team will respond to ' + formData.email + ' shortly.'
+        })
+        setFormData({ name: '', email: '', topic: 'General Question', message: '' })
+      } else {
+        const errorMsg = data?.error?.message || data?.message || 'Failed to send support ticket. Please try again.'
+        toast.error('Submission Error', { description: errorMsg })
+      }
+    } catch (err) {
+      toast.error('Network Error', { description: 'Could not connect to support server. Please check your connection.' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const filteredFaqs = FAQS.filter(faq => {

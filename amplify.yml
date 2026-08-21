@@ -6,7 +6,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - bun install
+            - bun install --force
         build:
           commands:
             - bun run build
@@ -14,10 +14,6 @@ applications:
         baseDirectory: .next
         files:
           - '**/*'
-      cache:
-        paths:
-          - .next/cache/**/*
-          - node_modules/**/*
 
   - appRoot: apps/web-dashboard
     frontend:
@@ -25,7 +21,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - bun install
+            - bun install --force
         build:
           commands:
             - bun run build
@@ -33,7 +29,3 @@ applications:
         baseDirectory: .next
         files:
           - '**/*'
-      cache:
-        paths:
-          - .next/cache/**/*
-          - node_modules/**/*

@@ -18,7 +18,7 @@ import { analyticsModule } from "./modules/analytics/index.js";
 import { adminModule } from "./modules/admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
 import { assistantModule } from "./modules/assistant/index.js";
-import { contactModule } from "./modules/contact/index.js";
+import { contactModule, supportModule } from "./modules/contact/index.js";
 import { webDashboardModule } from "./modules/web-dashboard/index.js";
 import { batchRouter } from "./modules/batch/index.js";
 import { showcaseModule } from "./modules/showcase/index.js";
@@ -178,6 +178,7 @@ const app = new Elysia()
     return "";
   })
   .use(contactModule)
+  .use(supportModule)
   .use(webDashboardModule)
   .use(batchRouter)
   .use(dailyLogsModule)

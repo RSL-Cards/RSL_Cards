@@ -1,13 +1,5 @@
 import { z } from "zod";
 
-export const ContactTopicSchema = z.enum([
-  "inventory",
-  "dealer-demo",
-  "pricing",
-  "support",
-  "partnership",
-]);
-
 export const ContactSubmissionSchema = z.object({
   name: z
     .string({ required_error: "Name is required." })
@@ -19,16 +11,12 @@ export const ContactSubmissionSchema = z.object({
     .trim()
     .email("Enter a valid email address.")
     .max(254, "Email must be 254 characters or fewer."),
-  businessName: z
-    .string({ required_error: "Business type is required." })
-    .trim()
-    .min(2, "Business type is required.")
-    .max(150, "Business type must be 150 characters or fewer."),
-  topic: ContactTopicSchema.default("inventory"),
+  businessName: z.string().optional().nullable(),
+  topic: z.string().default("General Question"),
   message: z
     .string({ required_error: "Message is required." })
     .trim()
-    .min(10, "Message must be at least 10 characters.")
+    .min(5, "Message must be at least 5 characters.")
     .max(5000, "Message must be 5000 characters or fewer."),
 });
 

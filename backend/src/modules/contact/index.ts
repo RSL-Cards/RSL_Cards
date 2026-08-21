@@ -7,5 +7,10 @@ const repository = new ContactRepository();
 const service = new ContactService(repository);
 const controller = new ContactController(service);
 
-export const contactModule = new Elysia({ prefix: "/v1/contact" }).post("/", controller.submit);
+export const contactModule = new Elysia({ prefix: "/v1/contact" })
+  .post("/", controller.submit)
+  .post("/ticket", controller.submit);
 
+export const supportModule = new Elysia({ prefix: "/v1/support" })
+  .post("/", controller.submit)
+  .post("/ticket", controller.submit);
