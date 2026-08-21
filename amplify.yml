@@ -6,7 +6,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - cd ../.. && bun install
+            - bun install
         build:
           commands:
             - bun run build
@@ -25,7 +25,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - cd ../.. && bun install
+            - bun install
         build:
           commands:
             - bun run build
