@@ -1,4 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
 import {
   View,
   ScrollView,
@@ -6,6 +7,7 @@ import {
   Linking,
   StyleSheet,
   Image,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,14 +55,20 @@ const PLATFORM_FEATURES = [
 ];
 
 const QUICK_LINKS = [
-  { icon: "globe-outline" as const, label: "Official Web Portal", sub: "app.rslcards.com", url: "https://rslcardspro.com" },
-  { icon: "mail-outline" as const, label: "Dealer Support", sub: "support@rslcardspro.com", url: "mailto:support@rslcardspro.com" },
-  { icon: "document-text-outline" as const, label: "Terms of Service", sub: "Platform Guidelines", url: "https://rslcardspro.com/terms" },
-  { icon: "shield-checkmark-outline" as const, label: "Privacy Policy", sub: "Data Protection", url: "https://rslcardspro.com/privacy" },
+  { icon: "globe-outline" as const, label: "Official Web Portal", sub: "app.rslcards.com", url: "https://rslcards.com" },
+  { icon: "mail-outline" as const, label: "Dealer Support", sub: "support@rslcards.com", url: "mailto:support@rslcards.com" },
+  { icon: "document-text-outline" as const, label: "Terms & Conditions", sub: "rslcards.com/terms&conditions", url: "https://rslcards.com/terms&conditions" },
+  { icon: "shield-checkmark-outline" as const, label: "Privacy Policy", sub: "rslcards.com/privacy-policy", url: "https://rslcards.com/privacy-policy" },
 ];
 
 export default function AboutScreen() {
   const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 600);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -77,7 +85,18 @@ export default function AboutScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {/* App Hero Badge */}
         <Surface variant="elevated" padding="md" style={styles.heroBox}>
           <Image

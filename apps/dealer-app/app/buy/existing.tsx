@@ -22,7 +22,7 @@ export default function AddExistingCardScreen() {
   const addTab = useDealTabStore((s) => s.addTab);
   const [query, setQuery] = useState("");
 
-  const { data, isLoading } = useInventory({ limit: 100 });
+  const { data, isLoading, refetch, isRefetching } = useInventory({ limit: 100 });
 
   const inventoryItems = data?.items || [];
 
@@ -133,6 +133,8 @@ export default function AddExistingCardScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
+            onRefresh={refetch}
+            refreshing={isRefetching}
           />
         )}
       </View>

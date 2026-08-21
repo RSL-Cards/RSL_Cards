@@ -1,11 +1,18 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from 'react-native'
+import { useState } from 'react'
 import { useRouter } from 'expo-router'
 import { MOCK_TODAY_STATS, MOCK_TRANSACTIONS } from '../../src/constants/mockData'
 import { format } from 'date-fns'
 
 export default function DailyReportScreen() {
   const router = useRouter()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = () => {
+    setRefreshing(true)
+    setTimeout(() => setRefreshing(false), 600)
+  }
 
   const margin = Math.round((MOCK_TODAY_STATS.net_profit / MOCK_TODAY_STATS.total_revenue) * 100)
 
@@ -23,7 +30,18 @@ export default function DailyReportScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#E8001C"
+            colors={["#E8001C"]}
+          />
+        }
+      >
         {/* Hero metric */}
         <View style={styles.heroCard}>
           <Text style={styles.heroLabel}>NET PROFIT TODAY</Text>

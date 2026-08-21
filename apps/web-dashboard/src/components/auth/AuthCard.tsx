@@ -49,6 +49,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [showOtpField, setShowOtpField] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [timerSeconds, setTimerSeconds] = useState(300)
   const [toastError, setToastError] = useState<string | null>(null)
   const [toastSuccess, setToastSuccess] = useState<string | null>(null)
@@ -130,6 +131,12 @@ export default function AuthCard({ mode }: AuthCardProps) {
     clearError()
     setToastError(null)
     setToastSuccess(null)
+
+    if ((isLogin || isRegister) && !acceptedTerms) {
+      showValidationError('You must agree to the Terms & Conditions and Privacy Policy to continue.')
+      return
+    }
+
     setActiveProvider(provider)
 
     try {
@@ -158,6 +165,11 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
     if (!trimmedEmail) {
       showValidationError('Email is required.')
+      return
+    }
+
+    if ((isLogin || isRegister) && !acceptedTerms) {
+      showValidationError('You must agree to the Terms & Conditions and Privacy Policy to continue.')
       return
     }
 
@@ -349,9 +361,11 @@ export default function AuthCard({ mode }: AuthCardProps) {
                 password={password}
                 showOtpField={showOtpField}
                 loginType={isLogin ? loginType : undefined}
+                acceptedTerms={acceptedTerms}
                 onEmailChange={setEmail}
                 onOtpChange={setOtp}
                 onPasswordChange={setPassword}
+                onAcceptedTermsChange={setAcceptedTerms}
               />
 
               {showOtpField && (

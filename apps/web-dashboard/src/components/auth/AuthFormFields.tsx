@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react'
+import { Check, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react'
 import type { AuthMode } from './authTypes'
 
 interface AuthFormFieldsProps {
@@ -10,21 +10,25 @@ interface AuthFormFieldsProps {
   password: string
   showOtpField?: boolean
   loginType?: 'password' | 'otp'
+  acceptedTerms?: boolean
   onEmailChange: (value: string) => void
   onOtpChange: (value: string) => void
   onPasswordChange: (value: string) => void
+  onAcceptedTermsChange?: (value: boolean) => void
 }
 
-      export default function AuthFormFields({
+export default function AuthFormFields({
   email,
   mode,
   otp,
   password,
   showOtpField,
   loginType,
+  acceptedTerms,
   onEmailChange,
   onOtpChange,
   onPasswordChange,
+  onAcceptedTermsChange,
 }: AuthFormFieldsProps) {
   const [showPassword, setShowPassword] = useState(false)
   const isLogin = mode === 'login'
@@ -113,6 +117,45 @@ interface AuthFormFieldsProps {
           >
             Forgot password?
           </Link>
+        </div>
+      )}
+
+      {(isLogin || mode === 'register') && (
+        <div
+          onClick={() => onAcceptedTermsChange?.(!acceptedTerms)}
+          className="group flex items-start gap-3 rounded-xl border border-[#252525] bg-[#141414] p-3.5 transition-all duration-200 hover:border-zinc-700 hover:bg-[#18181B] cursor-pointer select-none"
+        >
+          <div
+            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-200 ${
+              acceptedTerms
+                ? 'border-[#E8001C] bg-[#E8001C] text-white shadow-[0_0_12px_rgba(232,0,28,0.35)]'
+                : 'border-zinc-700 bg-zinc-900/80 group-hover:border-zinc-500'
+            }`}
+          >
+            {acceptedTerms && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+          </div>
+          <span className="text-xs text-zinc-300 leading-relaxed">
+            I agree to the{' '}
+            <a
+              href="https://rslcards.com/terms&conditions"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-white underline decoration-zinc-600 underline-offset-4 transition-colors hover:text-[#E8001C] hover:decoration-[#E8001C]"
+            >
+              Terms &amp; Conditions
+            </a>{' '}
+            and{' '}
+            <a
+              href="https://rslcards.com/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="font-semibold text-white underline decoration-zinc-600 underline-offset-4 transition-colors hover:text-[#E8001C] hover:decoration-[#E8001C]"
+            >
+              Privacy Policy
+            </a>
+          </span>
         </div>
       )}
     </>

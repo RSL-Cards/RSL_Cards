@@ -31,7 +31,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isHydrated) return;
     const inAuthGroup = segments[0] === "(auth)";
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/(auth)/welcome");
+      router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isHydrated, segments]);
 

@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useRegister, useSendOtp, useGoogleAuth } from "../../src/hooks/useAuth";
@@ -25,12 +26,22 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [timerSeconds, setTimerSeconds] = useState(300);
 
   const { mutate: register, isPending: isRegistering, error: registerError } = useRegister();
   const { mutate: sendOtp, isPending: isSendingOtp, error: sendOtpError } = useSendOtp();
   const { promptGoogleSignIn } = useGoogleAuth();
+
+  const handleGoogleSignIn = () => {
+    if (!acceptedTerms) {
+      setValidationError("You must agree to the Terms & Conditions and Privacy Policy.");
+      return;
+    }
+    setValidationError("");
+    promptGoogleSignIn();
+  };
 
   useEffect(() => {
     let interval: any = null;
@@ -67,6 +78,10 @@ export default function RegisterScreen() {
     }
     if (password.length < 8) {
       setValidationError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!acceptedTerms) {
+      setValidationError("You must agree to the Terms & Conditions and Privacy Policy.");
       return;
     }
     setValidationError("");
@@ -200,6 +215,38 @@ export default function RegisterScreen() {
                   </TouchableOpacity>
                 </View>
 
+                <TouchableOpacity
+                  style={styles.termsRow}
+                  onPress={() => setAcceptedTerms(!acceptedTerms)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                    {acceptedTerms && <Ionicons name="checkmark-sharp" size={15} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.termsText}>
+                    I agree to the{" "}
+                    <Text
+                      style={styles.termsLink}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Linking.openURL("https://rslcards.com/terms&conditions");
+                      }}
+                    >
+                      Terms &amp; Conditions
+                    </Text>{" "}
+                    and{" "}
+                    <Text
+                      style={styles.termsLink}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        Linking.openURL("https://rslcards.com/privacy-policy");
+                      }}
+                    >
+                      Privacy Policy
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+
                 {displayError ? (
                   <Text style={styles.errorText}>{displayError}</Text>
                 ) : null}
@@ -229,7 +276,7 @@ export default function RegisterScreen() {
                     borderWidth: 1,
                     borderColor: "#2A2A2A",
                   }}
-                  onPress={() => promptGoogleSignIn()}
+                  onPress={handleGoogleSignIn}
                   activeOpacity={0.85}
                 >
                   <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
@@ -335,6 +382,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   eyeBtn: { position: "absolute", right: 14, zIndex: 1 },
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 18,
+    backgroundColor: "#16161A",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#26262C",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#44444C",
+    backgroundColor: "#1C1C22",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: "#E8001C",
+    borderColor: "#E8001C",
+  },
+  termsText: {
+    color: "#CCCCCC",
+    fontSize: 13,
+    flex: 1,
+    lineHeight: 19,
+  },
+  termsLink: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
   registerBtn: {
     marginTop: 32,
     backgroundColor: "#E8001C",

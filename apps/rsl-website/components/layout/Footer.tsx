@@ -21,7 +21,9 @@ export default function Footer() {
         <div>
           <div className="font-black">Legal</div>
           <div className="mt-4 grid gap-2 text-muted">
-            <span>© 2026 RSL Cards.</span>
+            <a href="/terms&conditions" className="hover:text-white transition-colors">Terms &amp; Conditions</a>
+            <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+            <span className="text-xs mt-2 block">© 2026 RSL Cards.</span>
           </div>
         </div>
       </div>

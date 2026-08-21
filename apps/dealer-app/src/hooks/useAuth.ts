@@ -194,11 +194,13 @@ export function useLogout() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => authService.logout(),
-    onSuccess: () => {
+    mutationFn: async () => {
+      await authService.logout().catch(() => {});
+    },
+    onMutate: async () => {
       queryClient.clear();
       clearAuth();
-      router.replace("/(auth)/welcome");
+      router.replace("/(auth)/login");
     },
   });
 }

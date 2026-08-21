@@ -7,6 +7,7 @@ import {
   Switch,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -123,7 +124,7 @@ export default function NotificationPreferencesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: serverPrefs, isLoading } = useQuery({
+  const { data: serverPrefs, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: fetchPreferences,
   });
@@ -186,7 +187,18 @@ export default function NotificationPreferencesScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         <Typography variant="caption" color={COLORS.zinc500} style={{ marginBottom: SPACING.lg, textAlign: "center" }}>
           Manage your real-time push notifications and automated email reports.
         </Typography>

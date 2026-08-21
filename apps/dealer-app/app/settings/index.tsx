@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -44,7 +45,7 @@ const PAYMENT_TYPES = [
 export default function SettingsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const { data: profile, isLoading } = useProfile();
+  const { data: profile, isLoading, refetch, isRefetching } = useProfile();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadAvatar();
@@ -186,6 +187,14 @@ export default function SettingsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
       >
         {/* Profile section */}
         <Text style={styles.sectionLabel}>PROFILE</Text>
