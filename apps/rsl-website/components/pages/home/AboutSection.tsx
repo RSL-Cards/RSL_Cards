@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 export default function AboutSection() {
   const team = [
     {
@@ -24,8 +26,10 @@ export default function AboutSection() {
     <section id="about" className="bg-black py-24">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="display-title text-3xl text-white sm:text-4xl">Our Mission</h2>
-          <div className="mt-6 space-y-6 text-lg leading-relaxed text-neutral-300 md:text-xl text-left">
+          <h2 className="display-title text-3xl font-black text-white sm:text-5xl">
+            About RSL Cards
+          </h2>
+          <div className="mt-8 space-y-6 text-lg leading-relaxed text-neutral-300">
             <p>
               <span className="font-bold text-white">RSL Cards</span> was created to give sports card dealers a practical platform for managing the day-to-day operations of their businesses. The system is designed to help dealers record activity, manage inventory, monitor listings, and understand profitability through one connected platform.
             </p>
@@ -34,7 +38,7 @@ export default function AboutSection() {
             </p>
           </div>
           <div className="mt-12 flex justify-center">
-            <img src="/team/team.png" alt="RSL Cards Team" className="max-w-full h-auto object-contain rounded-xl" />
+            <Image src="/team/team.png" alt="RSL Cards Team" width={800} height={500} className="max-w-full h-auto object-contain rounded-xl" />
           </div>
         </div>
 
@@ -43,8 +47,8 @@ export default function AboutSection() {
           <div className="grid gap-12 md:grid-cols-3">
             {team.map((member) => (
               <div key={member.name} className="flex flex-col items-center text-center">
-                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-panel border border-white/10 overflow-hidden">
-                  <img src={member.image} alt={member.name} className="h-full w-full object-cover" />
+                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-panel border border-white/10 overflow-hidden relative">
+                  <Image src={member.image} alt={member.name} width={128} height={128} className="h-full w-full object-cover" />
                 </div>
                 <div className="mt-6">
                   <h4 className="text-xl font-black text-white">{member.name}</h4>
