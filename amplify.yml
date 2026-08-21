@@ -6,7 +6,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - bun install
+            - bun install --production=false
         build:
           commands:
             - bun run build
@@ -25,7 +25,7 @@ applications:
         preBuild:
           commands:
             - npm install -g bun
-            - bun install
+            - bun install --production=false
         build:
           commands:
             - bun run build
@@ -37,5 +37,3 @@ applications:
         paths:
           - .next/cache/**/*
           - node_modules/**/*
-
-
