@@ -54,7 +54,7 @@ export function useSSE(url: string) {
     });
 
     eventSource.addEventListener("error", (err) => {
-      console.error("SSE connection error", err);
+      // Silently close without popping red LogBox UI error banner
       eventSource.close();
     });
 

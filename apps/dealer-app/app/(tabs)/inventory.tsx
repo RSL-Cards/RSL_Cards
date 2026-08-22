@@ -123,7 +123,8 @@ function InventoryCard({ item, onDelete }: { item: any; onDelete: (item: any) =>
   const router = useRouter();
   const queryClient = useQueryClient();
   const costBasis = parseFloat(item.cost_basis ?? "0");
-  const marketValue = parseFloat(item.current_market_value ?? "0");
+  const maxActive = parseFloat(item.grade_highest_active ?? item.max_active_listing_price ?? "0");
+  const marketValue = maxActive > 0 ? maxActive : parseFloat(item.current_market_value ?? "0");
   const unrealizedGain = marketValue > 0 ? marketValue - costBasis : 0;
   const unrealizedGainPct =
     costBasis > 0 && marketValue > 0

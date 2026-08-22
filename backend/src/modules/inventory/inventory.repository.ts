@@ -110,6 +110,21 @@ function filterCompsByGradeServer(items: any[], selectedGrade: string): any[] {
   });
 }
 
+function calculateMaxActiveListingPrice(item: any, selectedGrade?: string): number {
+  const ebayActive = parseJsonArray(item.ebay_active_listings);
+  const myslabsActive = parseJsonArray(item.myslabs_active_listings);
+  const allActive = [...ebayActive, ...myslabsActive];
+  if (!allActive.length) return 0;
+
+  const targetGrade = selectedGrade || item.grade_key || "RAW";
+  const filteredActive = filterCompsByGradeServer(allActive, targetGrade);
+  const activePrices = (filteredActive.length > 0 ? filteredActive : allActive)
+    .map((a: any) => extractCompPrice(a))
+    .filter((p) => p > 0);
+
+  return activePrices.length > 0 ? Math.max(...activePrices) : 0;
+}
+
 export class InventoryRepository {
   async getInventory(query: any, userId: string) {
     const {
@@ -149,8 +164,18 @@ export class InventoryRepository {
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
     `);
 
+    const items = (result.rows as any[]).map((row) => {
+      const maxActive = calculateMaxActiveListingPrice(row);
+      const computedMarketVal = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+      return {
+        ...row,
+        current_market_value: computedMarketVal,
+        grade_highest_active: maxActive,
+      };
+    });
+
     return {
-      items: result.rows,
+      items,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -396,6 +421,10 @@ export class InventoryRepository {
     item.verified_sales_count = gradePrices.length;
     item.grade_lowest_active = gradeLowestActive;
     item.grade_highest_active = gradeHighestActive;
+
+    if (gradeHighestActive > 0) {
+      item.current_market_value = gradeHighestActive;
+    }
     item.filtered_ebay_sold = sortedEbaySales;
     item.filtered_myslabs_sold = sortedMyslabsSales;
     item.filtered_ebay_active = sortedEbayActive;
@@ -477,7 +506,6 @@ export class InventoryRepository {
 
     const cleanCertNumber = certNumber && certNumber !== "" ? certNumber : null;
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
-    const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
     const cleanQuantity = quantity && quantity !== "" ? Number(quantity) : 1;
 
     let finalPhotosList = Array.isArray(photos) ? photos : [];
@@ -559,6 +587,25 @@ export class InventoryRepository {
     if (!cleanEbayActiveListings && body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
       cleanEbayActiveListings = JSON.stringify(body.comps.activeListings);
     }
+
+    // Auto-calculate current_market_value from Max Active Listing Price for this card grade
+    let computedMarketValue = 0;
+    const allActiveListings = [
+      ...parseJsonArray(cleanEbayActiveListings),
+      ...parseJsonArray(cleanMyslabsActiveListings)
+    ];
+    if (allActiveListings.length > 0) {
+      const activeForGrade = filterCompsByGradeServer(allActiveListings, gradeKey);
+      const targetActiveListings = activeForGrade.length > 0 ? activeForGrade : allActiveListings;
+      const prices = targetActiveListings.map((i: any) => extractCompPrice(i)).filter((p: number) => p > 0);
+      if (prices.length > 0) {
+        computedMarketValue = Math.max(...prices);
+      }
+    }
+
+    const cleanCurrentMarketValue = computedMarketValue > 0 
+      ? computedMarketValue 
+      : (currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null);
 
 
 

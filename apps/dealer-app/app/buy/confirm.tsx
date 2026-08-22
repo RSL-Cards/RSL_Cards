@@ -124,6 +124,17 @@ export default function BuyConfirmScreen() {
       ? `${card.grading.company}_${card.grading.grade}`
       : "RAW";
 
+    const activeListings = activeTab?.activeListings || comps?.activeListings || [];
+    let maxActivePrice: number | undefined = undefined;
+    if (Array.isArray(activeListings) && activeListings.length > 0) {
+      const pList = activeListings
+        .map((item: any) => parseFloat(item.price?.value ?? item.price ?? item.list_price ?? "0"))
+        .filter((p: number) => p > 0);
+      if (pList.length > 0) {
+        maxActivePrice = Math.max(...pList);
+      }
+    }
+
     const payload = {
       cardId: cardId || undefined,
       variantId: variantId || undefined,
@@ -139,7 +150,7 @@ export default function BuyConfirmScreen() {
       gradeKey,
       certNumber: card?.grading?.cert_number ?? undefined,
       costBasis: price || 0,
-      currentMarketValue: activeTab?.targetPrice ?? (avgComp ? parseFloat(avgComp) : undefined),
+      currentMarketValue: maxActivePrice ?? (avgComp ? parseFloat(avgComp) : activeTab?.targetPrice),
       notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
       ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
       ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,

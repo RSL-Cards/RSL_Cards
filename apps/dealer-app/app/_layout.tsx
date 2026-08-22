@@ -2,7 +2,9 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { View, LogBox } from "react-native";
+
+LogBox.ignoreAllLogs();
 import { QueryProvider } from "../src/providers/QueryProvider";
 import Toast from "react-native-toast-message";
 import { useAuthStore } from "../src/stores/authStore";
