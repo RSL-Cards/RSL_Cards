@@ -2,6 +2,8 @@
 
 A state-of-the-art, high-performance web and mobile platform for sports card cataloging, computerized AI scanning, and multi-channel marketplace e-commerce synchronization.
 
+> 📖 **Deploying New Features?** See the step-by-step [Deployment & Release Guide](file:///Users/vinay/RSL_Cards/RSL/DEPLOYMENT_GUIDE.md) for Backend AWS ECS, Database, iOS TestFlight, and Android Google Play releases.
+
 Under the new unified architecture, the legacy architecture of ten separate Node.js/Fastify microservices has been fully consolidated into a single, high-throughput **Bun JS + Elysia + Drizzle ORM** backend monorepo. This consolidation delivers ultra-low latency, simplified deployments, unified containerization, and a clean domain-driven module structure.
 
 ---

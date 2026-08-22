@@ -172,6 +172,21 @@ const app = new Elysia()
     const url = new URL(request.url);
     return Response.redirect(`/v1/users/ebay/callback${url.search}`, 302);
   })
+  .get("/.well-known/assetlinks.json", ({ set }: any) => {
+    set.headers["content-type"] = "application/json";
+    return [
+      {
+        relation: ["delegate_permission/common.handle_all_urls"],
+        target: {
+          namespace: "android_app",
+          package_name: "com.rslcards.dealer",
+          "sha256_cert_fingerprints": [
+            "42:DD:82:AD:EF:EE:9E:22:85:A1:45:12:04:1F:EC:EF:66:C6:F7:DE:5E:4C:1D:27:2C:34:E8:90:5D:60:AC:58"
+          ]
+        }
+      }
+    ];
+  })
   .get("/", () => ({ status: "ok", service: "RSL Cards API", version: "1.0.0" }))
   .get("/favicon.ico", ({ set }) => {
     set.status = 204;

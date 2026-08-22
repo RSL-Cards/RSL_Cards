@@ -11,6 +11,8 @@ coverage
 .DS_Store
 .pnpm-store/
 .expo/
+*.bundle
+index.android.bundle
 
 # Web Next.js / Builds
 .next
