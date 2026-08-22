@@ -219,6 +219,30 @@ export const initWorker = () => {
         }
 
         await delay(1500); // Avoid rate limits
+
+        // Calculate max active listing price for this variant & grade, and update inventory rows
+        if (item.variant_id) {
+          try {
+            const maxActiveRes = await db.execute(sql`
+              SELECT MAX(price)::numeric as max_active
+              FROM platform_active_listings
+              WHERE variant_id = ${item.variant_id}
+                AND (grade_key = ${fetchParams.grade_key} OR grade_key IS NULL)
+            `);
+            const maxActive = parseFloat(String((maxActiveRes.rows[0] as any)?.max_active || "0"));
+            if (maxActive > 0) {
+              await db.execute(sql`
+                UPDATE inventory
+                SET grade_highest_active = ${maxActive}, updated_at = NOW()
+                WHERE variant_id = ${item.variant_id}
+                  AND (grade_key = ${fetchParams.grade_key} OR grade_key IS NULL OR grade_key = 'RAW')
+              `);
+              logger.info(`[WORKER] Updated grade_highest_active=$${maxActive} for variant ${item.variant_id} (Grade: ${fetchParams.grade_key})`);
+            }
+          } catch (maxErr: any) {
+            logger.error(`[WORKER] Error calculating max active listing price for variant ${item.variant_id}: ${maxErr.message}`);
+          }
+        }
         
         // Dynamically trigger Price Spikes Check for this variant
         const queue = bullMqAdapter.getQueue();

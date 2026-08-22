@@ -45,9 +45,28 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
       {cards.map((card) => {
         const gradeCfg = getGradeConfig(card.grade_key, card)
         const cost = card.cost_basis || 0
-        const market = card.market_value || 0
-        const unrealizedGain = card.unrealized_gain ?? (market - cost)
-        const unrealizedGainPct = cost > 0 && market > 0 ? Math.round((unrealizedGain / cost) * 100) : 0
+        const maxActive = Number(card.highest_active || 0)
+        const effectiveMarket = maxActive > 0 ? maxActive : Number(card.market_value || cost)
+        const unrealizedGain = effectiveMarket - cost
+        const unrealizedGainPct = cost > 0 && effectiveMarket > 0 ? Math.round((unrealizedGain / cost) * 100) : 0
+
+        const activeRangeText = (() => {
+          const low = Number(card.lowest_active || 0)
+          const high = Number(card.highest_active || 0)
+          if (low > 0 && high > 0) return low === high ? formatCurrency(high) : `${formatCurrency(low)} - ${formatCurrency(high)}`
+          if (high > 0) return formatCurrency(high)
+          if (low > 0) return `${formatCurrency(low)}+`
+          return 'N/A'
+        })()
+
+        const soldRangeText = (() => {
+          const low = Number(card.lowest_sold || 0)
+          const high = Number(card.highest_sold || 0)
+          if (low > 0 && high > 0) return low === high ? formatCurrency(high) : `${formatCurrency(low)} - ${formatCurrency(high)}`
+          if (high > 0) return formatCurrency(high)
+          if (low > 0) return `${formatCurrency(low)}+`
+          return 'N/A'
+        })()
 
         return (
           <div
@@ -132,13 +151,25 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#252525] bg-[#141414] px-4 py-3 lg:min-w-40 lg:text-right">
-                    <div className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                      Your Target Price
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="rounded-xl border border-[#252525] bg-[#141414] px-4 py-2 text-right min-w-36">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                        Your Target Price
+                      </div>
+                      <div className="mt-0.5 font-mono text-lg font-bold text-white">
+                        {formatCurrency(card.market_value)}
+                      </div>
                     </div>
-                    <div className="mt-1 font-mono text-2xl font-bold text-white">
-                      {formatCurrency(card.market_value)}
-                    </div>
+                    {maxActive > 0 && (
+                      <div className="rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2 text-right min-w-36">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                          Max Active Comp
+                        </div>
+                        <div className="mt-0.5 font-mono text-lg font-bold text-amber-300">
+                          {formatCurrency(maxActive)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -161,7 +192,7 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                         )}
                         {unrealizedGain >= 0 ? '+' : ''}{formatCurrency(unrealizedGain)}
                       </div>
-                      {market > 0 && (
+                      {effectiveMarket > 0 && (
                         <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono font-bold border ${unrealizedGain >= 0 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30'}`}>
                           {unrealizedGainPct >= 0 ? '+' : ''}{unrealizedGainPct}%
                         </span>
@@ -189,21 +220,13 @@ export default function InventoryCardGrid({ cards, onCardDetail }: Props) {
                   <div className="flex justify-between items-center bg-[#141414] px-3.5 py-2 rounded-lg border border-[#252525] text-xs">
                     <span className="font-semibold text-zinc-400 uppercase tracking-wide text-[10px]">Active Range</span>
                     <span className="font-mono text-white font-bold">
-                      {card.lowest_active && card.highest_active 
-                        ? `${formatCurrency(card.lowest_active)} - ${formatCurrency(card.highest_active)}` 
-                        : card.lowest_active 
-                          ? `${formatCurrency(card.lowest_active)}+` 
-                          : 'N/A'}
+                      {activeRangeText}
                     </span>
                   </div>
                   <div className="flex justify-between items-center bg-[#141414] px-3.5 py-2 rounded-lg border border-[#252525] text-xs">
                     <span className="font-semibold text-zinc-400 uppercase tracking-wide text-[10px]">Sold Range (30D)</span>
                     <span className="font-mono text-white font-bold">
-                      {card.lowest_sold && card.highest_sold 
-                        ? `${formatCurrency(card.lowest_sold)} - ${formatCurrency(card.highest_sold)}` 
-                        : card.lowest_sold 
-                          ? `${formatCurrency(card.lowest_sold)}+` 
-                          : 'N/A'}
+                      {soldRangeText}
                     </span>
                   </div>
                 </div>

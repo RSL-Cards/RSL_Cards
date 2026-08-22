@@ -602,7 +602,7 @@ export default function CardDetailModal({
             </p>
 
             {/* Quick Metrics Cards */}
-            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-5 gap-3">
               {/* Cost Basis Card */}
               <div className="relative group rounded-xl border border-[#252525] bg-[#141414] p-3 transition-colors hover:border-[#333]">
                 <div className="flex items-center justify-between">
@@ -626,7 +626,7 @@ export default function CardDetailModal({
               {/* Target Market Card */}
               <div className="relative group rounded-xl border border-blue-500/40 bg-blue-500/15 p-3 transition-colors hover:border-blue-500/60">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider block">Target Market</span>
+                  <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider block">Your Target</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -643,13 +643,28 @@ export default function CardDetailModal({
                 <span className="font-mono text-lg font-bold text-white block mt-0.5">{formatCurrency(detailedCard.market_value)}</span>
               </div>
 
-              {/* Unrealized P&L Card */}
-              <div className="rounded-xl border border-[#252525] bg-[#141414] p-3">
-                <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Unrealized P&amp;L</span>
-                <span className={`font-mono text-lg font-bold block mt-0.5 ${detailedCard.unrealized_gain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {detailedCard.unrealized_gain >= 0 ? '+' : ''}{formatCurrency(detailedCard.unrealized_gain)}
+              {/* Max Active Comp Card */}
+              <div className="rounded-xl border border-amber-500/40 bg-amber-500/15 p-3">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">Max Active Comp</span>
+                <span className="font-mono text-lg font-bold text-amber-300 block mt-0.5">
+                  {gradeHighestActive > 0 ? formatCurrency(gradeHighestActive) : 'N/A'}
                 </span>
               </div>
+
+              {/* Unrealized P&L Card */}
+              {(() => {
+                const effectiveVal = gradeHighestActive > 0 ? gradeHighestActive : Number(detailedCard.market_value || 0)
+                const costVal = Number(detailedCard.cost_basis || 0)
+                const gainVal = effectiveVal - costVal
+                return (
+                  <div className="rounded-xl border border-[#252525] bg-[#141414] p-3">
+                    <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Unrealized P&amp;L</span>
+                    <span className={`font-mono text-lg font-bold block mt-0.5 ${gainVal >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {gainVal >= 0 ? '+' : ''}{formatCurrency(gainVal)}
+                    </span>
+                  </div>
+                )
+              })()}
 
               {/* Holding Time Card */}
               <div className="rounded-xl border border-[#252525] bg-[#141414] p-3">

@@ -442,10 +442,11 @@ export default function CardDetailScreen() {
   const costBasis = parseFloat(card.cost_basis ?? "0");
   const marketValue = parseFloat(card.current_market_value ?? "0");
   const maxActiveComp = parseFloat(card.grade_highest_active ?? "0");
-  const unrealizedGain = marketValue > 0 ? marketValue - costBasis : 0;
+  const effectiveMarket = maxActiveComp > 0 ? maxActiveComp : marketValue;
+  const unrealizedGain = effectiveMarket > 0 ? effectiveMarket - costBasis : 0;
   const unrealizedGainPct =
-    costBasis > 0 && marketValue > 0
-      ? Math.round(((marketValue - costBasis) / costBasis) * 100)
+    costBasis > 0 && effectiveMarket > 0
+      ? Math.round(((effectiveMarket - costBasis) / costBasis) * 100)
       : 0;
   const _addedAtStr = card.added_at ? String(card.added_at).replace(' ', 'T') : null;
   const _addedAtRaw = _addedAtStr ? new Date(_addedAtStr) : null;
@@ -681,8 +682,8 @@ export default function CardDetailScreen() {
 
           <View style={styles.statCell}>
             <Text style={styles.statLabel}>Unrealized P&amp;L</Text>
-            <Text style={[styles.statValue, { color: marketValue > 0 ? gainColor : "#555555" }]}>
-              {marketValue > 0
+            <Text style={[styles.statValue, { color: effectiveMarket > 0 ? gainColor : "#555555" }]}>
+              {effectiveMarket > 0
                 ? `${unrealizedGain >= 0 ? "+" : ""}$${unrealizedGain.toFixed(2)} (${unrealizedGainPct >= 0 ? "+" : ""}${unrealizedGainPct}%)`
                 : "—"}
             </Text>
