@@ -373,7 +373,7 @@ export const initWorker = () => {
                    dp.notification_preferences,
                    up.notify_daily_close_push,
                    up.notify_daily_close_email,
-                   COALESCE(up.timezone, ${"America/New_York"}) as timezone
+                   COALESCE(up.timezone, 'Asia/Kolkata') as timezone
             FROM daily_logs dl
             JOIN users u ON u.id = dl.user_id
             LEFT JOIN dealer_profiles dp ON dp.user_id = dl.user_id
@@ -392,7 +392,7 @@ export const initWorker = () => {
           let notifiedCount = 0;
 
           for (const log of logs) {
-            const userTimezone = log.timezone || "America/New_York";
+            const userTimezone = log.timezone || "Asia/Kolkata";
             let localHour = 23;
             try {
               const hourStr = new Intl.DateTimeFormat("en-US", {
@@ -404,6 +404,8 @@ export const initWorker = () => {
             } catch (tzErr) {
               logger.warn(`[WORKER] Invalid timezone ${userTimezone} for user ${log.user_id}, falling back to hour check.`);
             }
+
+            logger.info(`[WORKER_DAILY_LOG] Evaluating Log "${log.name}" (ID: ${log.id}, User: ${log.user_id}): Timezone=${userTimezone}, Computed Local Hour=${localHour}:00`);
 
             // Only trigger notification when local hour in user's timezone is 23 (11:00 PM), unless force: true
             if (!job.data?.force && localHour !== 23) {

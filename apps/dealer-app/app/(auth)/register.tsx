@@ -13,7 +13,7 @@ import {
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useRegister, useSendOtp, useGoogleAuth } from "../../src/hooks/useAuth";
+import { useRegister, useSendOtp, useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
@@ -33,6 +33,7 @@ export default function RegisterScreen() {
   const { mutate: register, isPending: isRegistering, error: registerError } = useRegister();
   const { mutate: sendOtp, isPending: isSendingOtp, error: sendOtpError } = useSendOtp();
   const { promptGoogleSignIn } = useGoogleAuth();
+  const { signInWithApple } = useAppleAuth();
 
   const handleGoogleSignIn = () => {
     if (!acceptedTerms) {
@@ -41,6 +42,15 @@ export default function RegisterScreen() {
     }
     setValidationError("");
     promptGoogleSignIn();
+  };
+
+  const handleAppleSignIn = () => {
+    if (!acceptedTerms) {
+      setValidationError("You must agree to the Terms & Conditions and Privacy Policy.");
+      return;
+    }
+    setValidationError("");
+    signInWithApple();
   };
 
   useEffect(() => {
@@ -274,7 +284,7 @@ export default function RegisterScreen() {
                     alignItems: "center",
                     justifyContent: "center",
                     borderWidth: 1,
-                    borderColor: "#2A2A2A",
+                    borderColor: "#333333",
                   }}
                   onPress={handleGoogleSignIn}
                   activeOpacity={0.85}
@@ -284,6 +294,29 @@ export default function RegisterScreen() {
                     Sign Up with Google
                   </Text>
                 </TouchableOpacity>
+
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    style={{
+                      marginTop: 12,
+                      backgroundColor: "#1A1A1A",
+                      height: 52,
+                      borderRadius: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1,
+                      borderColor: "#333333",
+                    }}
+                    onPress={handleAppleSignIn}
+                    activeOpacity={0.85}
+                  >
+                    <AntDesign name="apple" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                      Sign Up with Apple
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={styles.form}>

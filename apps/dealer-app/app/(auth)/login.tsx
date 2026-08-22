@@ -13,7 +13,7 @@ import {
   Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useLogin, useSendLoginOtp, useLoginWithOtp, useGoogleAuth } from "../../src/hooks/useAuth";
+import { useLogin, useSendLoginOtp, useLoginWithOtp, useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 
 export default function LoginScreen() {
@@ -33,6 +33,7 @@ export default function LoginScreen() {
   const { mutate: sendLoginOtp, isPending: isPendingSendOtp, error: sendOtpError } = useSendLoginOtp();
   const { mutate: loginWithOtp, isPending: isPendingOtpLogin, error: otpLoginError } = useLoginWithOtp();
   const { promptGoogleSignIn } = useGoogleAuth();
+  const { signInWithApple } = useAppleAuth();
 
   const handleGoogleSignIn = () => {
     if (!acceptedTerms) {
@@ -41,6 +42,15 @@ export default function LoginScreen() {
     }
     setValidationError("");
     promptGoogleSignIn();
+  };
+
+  const handleAppleSignIn = () => {
+    if (!acceptedTerms) {
+      setValidationError("You must agree to the Terms & Conditions and Privacy Policy.");
+      return;
+    }
+    setValidationError("");
+    signInWithApple();
   };
 
   useEffect(() => {
@@ -398,7 +408,7 @@ export default function LoginScreen() {
 
                 <TouchableOpacity
                   style={styles.googleBtn}
-                  onPress={() => promptGoogleSignIn()}
+                  onPress={handleGoogleSignIn}
                   activeOpacity={0.85}
                 >
                   <AntDesign name="google" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
@@ -406,6 +416,19 @@ export default function LoginScreen() {
                     Sign In with Google
                   </Text>
                 </TouchableOpacity>
+
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    style={styles.appleBtn}
+                    onPress={handleAppleSignIn}
+                    activeOpacity={0.85}
+                  >
+                    <AntDesign name="apple" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                      Sign In with Apple
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -546,7 +569,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#2A2A2A",
+    borderColor: "#333333",
+  },
+  appleBtn: {
+    marginTop: 12,
+    backgroundColor: "#1A1A1A",
+    height: 52,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#333333",
   },
   timerRow: {
     flexDirection: "row",

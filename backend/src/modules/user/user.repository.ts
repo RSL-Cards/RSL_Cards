@@ -315,13 +315,16 @@ export class UserRepository {
       `);
     }
 
+    const tzVal = prefs.timezone || prefs.timeZone || null;
+
     // 2. Upsert into user_preferences
     await db.execute(sql`
-      INSERT INTO user_preferences (id, user_id, notify_daily_close_push, notify_daily_close_email, updated_at)
-      VALUES (gen_random_uuid(), ${userId}, ${pushVal}, ${emailVal}, NOW())
+      INSERT INTO user_preferences (id, user_id, notify_daily_close_push, notify_daily_close_email, timezone, updated_at)
+      VALUES (gen_random_uuid(), ${userId}, ${pushVal}, ${emailVal}, COALESCE(${tzVal}, 'Asia/Kolkata'), NOW())
       ON CONFLICT (user_id) DO UPDATE SET
         notify_daily_close_push = ${pushVal},
         notify_daily_close_email = ${emailVal},
+        timezone = COALESCE(${tzVal}, user_preferences.timezone, 'Asia/Kolkata'),
         updated_at = NOW()
     `);
 

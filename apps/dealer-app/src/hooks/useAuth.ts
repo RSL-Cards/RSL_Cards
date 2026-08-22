@@ -115,6 +115,12 @@ export function useLoginWithOtp() {
     mutationFn: (payload: LoginWithOtpPayload) => authService.loginWithOtp(payload),
     onSuccess: (data) => {
       setAuth(data.user);
+      try {
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (userTz) {
+          apiClient.patch("/v1/users/me/notification-preferences", { timezone: userTz }).catch(() => {});
+        }
+      } catch (tzErr) {}
       Toast.show({
         type: "success",
         text1: `Welcome back, ${data.user.displayName}!`,

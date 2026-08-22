@@ -22,6 +22,8 @@ import {
   Inter_900Black,
 } from "@expo-google-fonts/inter";
 
+import { apiClient } from "../src/lib/apiClient";
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrated } = useAuthStore();
   const segments = useSegments();
@@ -38,6 +40,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuthenticated) {
       const user = useAuthStore.getState().user;
+      
+      // Auto-sync device timezone on app load
+      try {
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (userTz) {
+          apiClient.patch("/v1/users/me/notification-preferences", { timezone: userTz })
+            .then(() => console.log(`[TimezoneSync] Successfully synced device timezone: ${userTz}`))
+            .catch((err) => console.error("[TimezoneSync] Failed to sync timezone to backend:", err));
+        }
+      } catch (tzErr) {
+        console.error("[TimezoneSync] Error resolving device timezone:", tzErr);
+      }
+
       import("../src/services/notificationService").then(({ notificationService }) => {
         notificationService.registerForPushNotificationsAsync().catch(console.error);
         if (user?.id) {

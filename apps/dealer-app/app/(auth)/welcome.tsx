@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { AntDesign } from '@expo/vector-icons'
 import { useGoogleAuth, useAppleAuth } from "../../src/hooks/useAuth";
@@ -65,22 +65,26 @@ export default function WelcomeScreen() {
           </View>
         </TouchableOpacity>
 
-        <View style={{ height: 10 }} />
+        {Platform.OS === "ios" && (
+          <>
+            <View style={{ height: 10 }} />
 
-        <TouchableOpacity
-          style={styles.socialBtn}
-          activeOpacity={0.85}
-          onPress={signInWithApple}
-        >
-          <View style={styles.socialInner}>
-            <View style={styles.socialIconWrap}>
-              <AntDesign name="apple" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
-            </View>
-            <Text style={styles.socialBtnText}>
-              Continue with Apple
-            </Text>
-          </View>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.socialBtn}
+              activeOpacity={0.85}
+              onPress={signInWithApple}
+            >
+              <View style={styles.socialInner}>
+                <View style={styles.socialIconWrap}>
+                  <AntDesign name="apple" size={22} color="#FFFFFF" style={{ marginBottom: 2 }} />
+                </View>
+                <Text style={styles.socialBtnText}>
+                  Continue with Apple
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </SafeAreaView>
   )

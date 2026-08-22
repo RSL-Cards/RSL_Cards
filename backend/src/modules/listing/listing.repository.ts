@@ -458,6 +458,14 @@ export class ListingRepository {
         }
       }
 
+      // Clear out previous active listings for this card variant + grade + platform before inserting fresh active listings
+      await db.execute(sql`
+        DELETE FROM platform_active_listings
+        WHERE variant_id = ${effectiveVariantId}
+          AND grade_key = ${gradeKey}
+          AND platform = 'ebay'
+      `);
+
       // Multi-row Bulk Insert for platform_active_listings in chunks of 50
       const activeSummaries = activeData.itemSummaries ?? [];
       for (let i = 0; i < activeSummaries.length; i += CHUNK_SIZE) {
@@ -479,7 +487,7 @@ export class ListingRepository {
             INSERT INTO platform_active_listings
               (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
             VALUES ${sql.join(valueSqls, sql`, `)}
-            ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
+            ON CONFLICT (content_hash) DO UPDATE SET price = EXCLUDED.price, last_seen_at = NOW()
           `);
         }
       }
@@ -838,6 +846,14 @@ export class ListingRepository {
         `);
       }
 
+      // Clear out previous active listings for this card variant + grade + platform before inserting fresh active listings
+      await db.execute(sql`
+        DELETE FROM platform_active_listings
+        WHERE variant_id = ${effectiveVariantId}
+          AND grade_key = ${gradeKey}
+          AND platform = 'myslabs'
+      `);
+
       for (const item of activeData.items ?? []) {
         const itemGrade = item.grade ? String(item.grade) : "RAW";
         const contentHash = createHash("sha256")
@@ -850,7 +866,7 @@ export class ListingRepository {
             (id, variant_id, grade_key, platform, price, platform_item_id, title, condition, item_web_url, image_url, content_hash, last_seen_at, created_at)
           VALUES
             (gen_random_uuid(), ${effectiveVariantId}, ${itemGrade}, 'myslabs', ${item.price}, ${item.id.toString()}, ${t500(item.title)}, ${item.grade ? `Grade ${item.grade}` : "Slabbed"}, ${t500(item.slab_link || `https://myslabs.com/slab/view/${item.id}`)}, ${t500(item.slab_image_1)}, ${contentHash}, NOW(), NOW())
-          ON CONFLICT (content_hash) DO UPDATE SET last_seen_at = NOW()
+          ON CONFLICT (content_hash) DO UPDATE SET price = EXCLUDED.price, last_seen_at = NOW()
         `);
       }
     }
