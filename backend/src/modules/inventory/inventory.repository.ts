@@ -186,17 +186,34 @@ export class InventoryRepository {
 
   async getInventorySummary(userId: string) {
     const result = await db.execute(sql`
-      SELECT 
-        COUNT(*) as total_cards,
-        COALESCE(SUM(cost_basis * quantity), 0) as total_cost_basis,
-        COALESCE(SUM(current_market_value * quantity), 0) as total_market_value,
-        COALESCE(SUM((COALESCE(current_market_value, 0) - cost_basis) * quantity), 0) as total_unrealized_gain
-      FROM inventory 
+      SELECT * FROM inventory 
       WHERE user_id = ${userId}
         AND listing_status IN ('unlisted', 'listed')
     `);
 
-    return result.rows[0];
+    let totalCards = 0;
+    let totalCost = 0;
+    let totalMarket = 0;
+
+    for (const row of result.rows as any[]) {
+      const qty = Number(row.quantity || 1);
+      const cost = parseFloat(row.cost_basis || "0");
+      const maxActive = calculateMaxActiveListingPrice(row);
+      const market = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+
+      totalCards += qty;
+      totalCost += cost * qty;
+      totalMarket += market * qty;
+    }
+
+    const totalGain = totalMarket - totalCost;
+
+    return {
+      total_cards: totalCards,
+      total_cost_basis: totalCost,
+      total_market_value: totalMarket,
+      total_unrealized_gain: totalGain,
+    };
   }
 
   async getInventoryAgingAlerts(userId: string) {

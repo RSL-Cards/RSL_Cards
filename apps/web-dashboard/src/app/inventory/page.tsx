@@ -199,6 +199,9 @@ export default function InventoryPage() {
           totalCards={countsData?.totalCards || 0}
           listedCards={countsData?.listedCards || 0}
           unlistedCards={countsData?.unlistedCards || 0}
+          totalCostBasis={countsData?.totalCostBasis || 0}
+          currentMarketValue={countsData?.currentMarketValue || 0}
+          unrealizedGain={countsData?.unrealizedGain || 0}
         />
 
         {/* Active / History Tab Switcher */}

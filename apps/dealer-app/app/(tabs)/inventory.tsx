@@ -372,10 +372,25 @@ function InventoryScreen() {
     );
   };
 
-  const totalCards = Number(summary?.total_cards ?? 0);
-  const totalCost = parseFloat(summary?.total_cost_basis ?? "0");
-  const totalMarket = parseFloat(summary?.total_market_value ?? "0");
-  const totalGain = parseFloat(summary?.total_unrealized_gain ?? "0");
+  let calculatedTotalCost = 0;
+  let calculatedTotalMarket = 0;
+
+  if (selectedStatus === "active" && Array.isArray(allItems) && allItems.length > 0) {
+    allItems.forEach((item: any) => {
+      const qty = Number(item.quantity || 1);
+      const cost = parseFloat(item.cost_basis || "0");
+      const maxActive = parseFloat(item.grade_highest_active ?? item.max_active_listing_price ?? "0");
+      const market = maxActive > 0 ? maxActive : parseFloat(item.current_market_value || "0");
+
+      calculatedTotalCost += cost * qty;
+      calculatedTotalMarket += market * qty;
+    });
+  }
+
+  const totalCards = Number(summary?.total_cards ?? allItems.length);
+  const totalCost = calculatedTotalCost > 0 ? calculatedTotalCost : parseFloat(summary?.total_cost_basis ?? "0");
+  const totalMarket = calculatedTotalMarket > 0 ? calculatedTotalMarket : parseFloat(summary?.total_market_value ?? "0");
+  const totalGain = totalMarket - totalCost;
   const totalGainPct =
     totalCost > 0 ? Math.round((totalGain / totalCost) * 100) : 0;
   const gainColor = totalGain >= 0 ? COLORS.success : COLORS.destructive;

@@ -322,7 +322,7 @@ export class WebDashboardRepository {
   }
 
   async getInventoryCounts(userId: string) {
-    const result = await db.execute(sql`
+    const countsResult = await db.execute(sql`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE listing_status = 'listed') as listed,
@@ -330,7 +330,42 @@ export class WebDashboardRepository {
       FROM inventory
       WHERE user_id = ${userId} AND listing_status IN ('unlisted', 'listed')
     `);
-    return result.rows[0];
+
+    const invRows = await db.execute(sql`
+      SELECT 
+        i.*,
+        (
+          SELECT MAX(price) FROM platform_active_listings 
+          WHERE variant_id = i.variant_id AND grade_key = i.grade_key
+        ) as highest_active
+      FROM inventory i
+      WHERE i.user_id = ${userId} AND i.listing_status IN ('unlisted', 'listed')
+    `);
+
+    let totalCostBasis = 0;
+    let totalMarketValue = 0;
+
+    for (const row of invRows.rows as any[]) {
+      const qty = Number(row.quantity || 1);
+      const cost = parseFloat(row.cost_basis || "0");
+      const maxActive = parseFloat(row.highest_active || "0");
+      const market = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+
+      totalCostBasis += cost * qty;
+      totalMarketValue += market * qty;
+    }
+
+    const unrealizedGain = totalMarketValue - totalCostBasis;
+    const row = countsResult.rows[0] as any;
+
+    return {
+      total: row?.total || 0,
+      listed: row?.listed || 0,
+      unlisted: row?.unlisted || 0,
+      totalCostBasis,
+      totalMarketValue,
+      unrealizedGain,
+    };
   }
 
   async getInventoryItemDetails(userId: string, inventoryId: string) {

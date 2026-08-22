@@ -172,7 +172,10 @@ export class WebDashboardService {
     return {
       totalCards: Number(counts.total || 0),
       listedCards: Number(counts.listed || 0),
-      unlistedCards: Number(counts.unlisted || 0)
+      unlistedCards: Number(counts.unlisted || 0),
+      totalCostBasis: Number(counts.totalCostBasis || 0),
+      currentMarketValue: Number(counts.totalMarketValue || 0),
+      unrealizedGain: Number(counts.unrealizedGain || 0),
     };
   }
 
