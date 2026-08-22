@@ -192,8 +192,10 @@ export class WebDashboardService {
       const filteredActiveComps = filterCompsByGrade(allActiveComps, item.grade_key);
       const activeSource = filteredActiveComps.length > 0 ? filteredActiveComps : allActiveComps;
       const activePrices = activeSource.map(extractCompPrice).filter(p => p > 0);
-      if (item.highest_active) activePrices.push(Number(item.highest_active));
-      if (item.lowest_active) activePrices.push(Number(item.lowest_active));
+      if (activePrices.length === 0) {
+        if (item.highest_active) activePrices.push(Number(item.highest_active));
+        if (item.lowest_active) activePrices.push(Number(item.lowest_active));
+      }
 
       const lowestActive = activePrices.length > 0 ? Math.min(...activePrices) : 0;
       const highestActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
@@ -202,8 +204,10 @@ export class WebDashboardService {
       const filteredSoldComps = filterCompsByGrade(allSoldComps, item.grade_key);
       const soldSource = filteredSoldComps.length > 0 ? filteredSoldComps : allSoldComps;
       const soldPrices = soldSource.map(extractCompPrice).filter(p => p > 0);
-      if (item.highest_sold) soldPrices.push(Number(item.highest_sold));
-      if (item.lowest_sold) soldPrices.push(Number(item.lowest_sold));
+      if (soldPrices.length === 0) {
+        if (item.highest_sold) soldPrices.push(Number(item.highest_sold));
+        if (item.lowest_sold) soldPrices.push(Number(item.lowest_sold));
+      }
 
       const lowestSold = soldPrices.length > 0 ? Math.min(...soldPrices) : 0;
       const highestSold = soldPrices.length > 0 ? Math.max(...soldPrices) : 0;
