@@ -1,6 +1,35 @@
 import { WebDashboardRepository } from "./web-dashboard.repository.js";
 import { TOP_MOVERS, AI_INSIGHTS } from "./mockData.js";
 
+function parseCompsArray(raw: any): any[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
+function extractCompPrice(comp: any): number {
+  if (!comp || typeof comp !== "object") return 0;
+  if (typeof comp.price === "number" && !isNaN(comp.price)) return comp.price;
+  if (typeof comp.soldPrice === "number" && !isNaN(comp.soldPrice)) return comp.soldPrice;
+  if (typeof comp.sold_price === "number" && !isNaN(comp.sold_price)) return comp.sold_price;
+  if (typeof comp.list_price === "number" && !isNaN(comp.list_price)) return comp.list_price;
+  if (comp.price?.value != null) {
+    const p = parseFloat(String(comp.price.value));
+    if (!isNaN(p)) return p;
+  }
+  if (comp.soldPrice?.value != null) {
+    const p = parseFloat(String(comp.soldPrice.value));
+    if (!isNaN(p)) return p;
+  }
+  return 0;
+}
+
 export class WebDashboardService {
   constructor(private readonly repository: WebDashboardRepository) {}
 
@@ -113,7 +142,34 @@ export class WebDashboardService {
     const formattedItems = items.map((item: any) => {
       const daysHeld = Math.floor((Date.now() - new Date(item.added_at || new Date()).getTime()) / (1000 * 60 * 60 * 24));
       const cost = Number(item.cost_basis || 0);
-      const gain = Number(item.unrealized_gain || 0);
+
+      const rawEbaySales = parseCompsArray(item.ebay_sales_completed);
+      const rawMyslabsSales = parseCompsArray(item.myslabs_sales_completed);
+      const rawEbayActive = parseCompsArray(item.ebay_active_listings);
+      const rawMyslabsActive = parseCompsArray(item.myslabs_active_listings);
+
+      const allActiveComps = [...rawEbayActive, ...rawMyslabsActive];
+      const activePrices = allActiveComps.map(extractCompPrice).filter(p => p > 0);
+      if (item.highest_active) activePrices.push(Number(item.highest_active));
+      if (item.lowest_active) activePrices.push(Number(item.lowest_active));
+
+      const lowestActive = activePrices.length > 0 ? Math.min(...activePrices) : 0;
+      const highestActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
+
+      const allSoldComps = [...rawEbaySales, ...rawMyslabsSales];
+      const soldPrices = allSoldComps.map(extractCompPrice).filter(p => p > 0);
+      if (item.highest_sold) soldPrices.push(Number(item.highest_sold));
+      if (item.lowest_sold) soldPrices.push(Number(item.lowest_sold));
+
+      const lowestSold = soldPrices.length > 0 ? Math.min(...soldPrices) : 0;
+      const highestSold = soldPrices.length > 0 ? Math.max(...soldPrices) : 0;
+
+      const compAvg = soldPrices.length > 0
+        ? Math.round(soldPrices.reduce((a, b) => a + b, 0) / soldPrices.length)
+        : (Number(item.comp_avg || 0) > 0 ? Number(item.comp_avg) : 0);
+
+      const targetPrice = Number(item.market_value || cost);
+      const gain = targetPrice > 0 ? targetPrice - cost : 0;
       const pct = cost > 0 ? (gain / cost) * 100 : 0;
       
       return {
@@ -125,17 +181,17 @@ export class WebDashboardService {
         grade_key: item.grade_key || 'RAW',
         sport: item.sport || '',
         cost_basis: cost,
-        market_value: Number(item.market_value || cost),
+        market_value: targetPrice,
         unrealized_gain: gain,
         unrealized_gain_pct: pct,
         status: item.status,
         days_held: daysHeld,
-        comp_avg: Number(item.comp_avg || 0),
+        comp_avg: compAvg,
         comp_trend: Number(item.comp_trend || 0),
-        lowest_active: Number(item.lowest_active || 0),
-        highest_active: Number(item.highest_active || 0),
-        lowest_sold: Number(item.lowest_sold || 0),
-        highest_sold: Number(item.highest_sold || 0),
+        lowest_active: lowestActive,
+        highest_active: highestActive,
+        lowest_sold: lowestSold,
+        highest_sold: highestSold,
         platforms_listed: item.platforms_listed || [],
       };
     });
