@@ -150,7 +150,7 @@ export default function BuyConfirmScreen() {
       gradeKey,
       certNumber: card?.grading?.cert_number ?? undefined,
       costBasis: price || 0,
-      currentMarketValue: maxActivePrice ?? (avgComp ? parseFloat(avgComp) : activeTab?.targetPrice),
+      currentMarketValue: activeTab?.targetPrice ?? (avgComp ? parseFloat(avgComp) : undefined),
       notes: paymentMethod ? `Paid via ${paymentMethod}` : undefined,
       ebaySalesCompleted: activeTab?.recentSales ? JSON.stringify(activeTab.recentSales) : undefined,
       ebayActiveListings: activeTab?.activeListings ? JSON.stringify(activeTab.activeListings) : undefined,

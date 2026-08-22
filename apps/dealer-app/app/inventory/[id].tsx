@@ -441,6 +441,7 @@ export default function CardDetailScreen() {
 
   const costBasis = parseFloat(card.cost_basis ?? "0");
   const marketValue = parseFloat(card.current_market_value ?? "0");
+  const maxActiveComp = parseFloat(card.grade_highest_active ?? "0");
   const unrealizedGain = marketValue > 0 ? marketValue - costBasis : 0;
   const unrealizedGainPct =
     costBasis > 0 && marketValue > 0
@@ -663,6 +664,13 @@ export default function CardDetailScreen() {
               {marketValue > 0 ? `$${marketValue.toFixed(2)}` : "—"}
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.statCell}>
+            <Text style={styles.statLabel}>Max Active Comp</Text>
+            <Text style={[styles.statValue, { color: maxActiveComp > 0 ? "#FFD700" : "#555555" }]}>
+              {maxActiveComp > 0 ? `$${maxActiveComp.toFixed(2)}` : "—"}
+            </Text>
+          </View>
 
           <View style={styles.statCell}>
             <Text style={styles.statLabel}>Days Held</Text>

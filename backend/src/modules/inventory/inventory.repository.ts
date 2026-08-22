@@ -421,10 +421,6 @@ export class InventoryRepository {
     item.verified_sales_count = gradePrices.length;
     item.grade_lowest_active = gradeLowestActive;
     item.grade_highest_active = gradeHighestActive;
-
-    if (gradeHighestActive > 0) {
-      item.current_market_value = gradeHighestActive;
-    }
     item.filtered_ebay_sold = sortedEbaySales;
     item.filtered_myslabs_sold = sortedMyslabsSales;
     item.filtered_ebay_active = sortedEbayActive;
@@ -588,24 +584,8 @@ export class InventoryRepository {
       cleanEbayActiveListings = JSON.stringify(body.comps.activeListings);
     }
 
-    // Auto-calculate current_market_value from Max Active Listing Price for this card grade
-    let computedMarketValue = 0;
-    const allActiveListings = [
-      ...parseJsonArray(cleanEbayActiveListings),
-      ...parseJsonArray(cleanMyslabsActiveListings)
-    ];
-    if (allActiveListings.length > 0) {
-      const activeForGrade = filterCompsByGradeServer(allActiveListings, gradeKey);
-      const targetActiveListings = activeForGrade.length > 0 ? activeForGrade : allActiveListings;
-      const prices = targetActiveListings.map((i: any) => extractCompPrice(i)).filter((p: number) => p > 0);
-      if (prices.length > 0) {
-        computedMarketValue = Math.max(...prices);
-      }
-    }
-
-    const cleanCurrentMarketValue = computedMarketValue > 0 
-      ? computedMarketValue 
-      : (currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null);
+    // Preserve user target price as cleanCurrentMarketValue
+    const cleanCurrentMarketValue = currentMarketValue && currentMarketValue !== "" ? Number(currentMarketValue) : null;
 
 
 
