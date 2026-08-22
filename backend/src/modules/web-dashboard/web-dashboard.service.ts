@@ -30,6 +30,46 @@ function extractCompPrice(comp: any): number {
   return 0;
 }
 
+function parseGradeValue(gradeKey: string): string {
+  if (!gradeKey || gradeKey.toUpperCase() === "RAW") return "RAW";
+  const numMatch = gradeKey.match(/(\d+(?:\.\d+)?)/);
+  return numMatch ? numMatch[1] : "RAW";
+}
+
+function filterCompsByGrade(items: any[], targetGrade: string): any[] {
+  if (!Array.isArray(items) || !items.length) return [];
+  const targetNum = parseGradeValue(targetGrade);
+
+  return items.filter(item => {
+    if (!item || typeof item !== "object") return false;
+    const title = String(item.title || "").toUpperCase();
+    const condition = String(item.condition || "").toUpperCase();
+    const itemGradeKey = String(item.grade_key || item.gradeKey || "");
+
+    if (itemGradeKey) {
+      const itemNum = parseGradeValue(itemGradeKey);
+      if (itemNum === targetNum) return true;
+    }
+
+    if (targetNum === "RAW") {
+      if (condition === "GRADED" || condition === "SLABBED" || condition === "SLAB") return false;
+      return !/\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+    } else {
+      if (condition === "UNGRADED" || condition === "RAW") return false;
+      if (/\b(READY|RAW|LOT|NOT\s+(?:PSA|BGS|SGC|CGC|CSG))\b/i.test(title)) return false;
+      const hasGradingCompany = /\b(PSA|BGS|SGC|CGC|CSG|BECKETT|GRADED|SLAB|SLABBED)\b/i.test(title);
+      if (!hasGradingCompany) return false;
+
+      if (targetNum === "9") return /\b9\b/.test(title) && !/\b9\.5\b/.test(title);
+      if (targetNum === "9.5") return /\b9\.5\b/.test(title);
+      if (targetNum === "10") return /\b10\b/.test(title);
+
+      const escapedGrade = targetNum.replace(".", "\\.");
+      return new RegExp(`\\b${escapedGrade}\\b`).test(title);
+    }
+  });
+}
+
 export class WebDashboardService {
   constructor(private readonly repository: WebDashboardRepository) {}
 
@@ -149,7 +189,9 @@ export class WebDashboardService {
       const rawMyslabsActive = parseCompsArray(item.myslabs_active_listings);
 
       const allActiveComps = [...rawEbayActive, ...rawMyslabsActive];
-      const activePrices = allActiveComps.map(extractCompPrice).filter(p => p > 0);
+      const filteredActiveComps = filterCompsByGrade(allActiveComps, item.grade_key);
+      const activeSource = filteredActiveComps.length > 0 ? filteredActiveComps : allActiveComps;
+      const activePrices = activeSource.map(extractCompPrice).filter(p => p > 0);
       if (item.highest_active) activePrices.push(Number(item.highest_active));
       if (item.lowest_active) activePrices.push(Number(item.lowest_active));
 
@@ -157,7 +199,9 @@ export class WebDashboardService {
       const highestActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
 
       const allSoldComps = [...rawEbaySales, ...rawMyslabsSales];
-      const soldPrices = allSoldComps.map(extractCompPrice).filter(p => p > 0);
+      const filteredSoldComps = filterCompsByGrade(allSoldComps, item.grade_key);
+      const soldSource = filteredSoldComps.length > 0 ? filteredSoldComps : allSoldComps;
+      const soldPrices = soldSource.map(extractCompPrice).filter(p => p > 0);
       if (item.highest_sold) soldPrices.push(Number(item.highest_sold));
       if (item.lowest_sold) soldPrices.push(Number(item.lowest_sold));
 
