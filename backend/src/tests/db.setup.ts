@@ -1,7 +1,14 @@
-import { db } from "../db/index.js";
+import { db, runMigrations } from "../db/index.js";
 import { sql } from "drizzle-orm";
 
+let migrationsRan = false;
+
 export async function truncateAllTables() {
+  if (!migrationsRan) {
+    await runMigrations();
+    migrationsRan = true;
+  }
+
   // Disable foreign key checks, truncate all, enable checks
   await db.execute(sql`
     DO $$ DECLARE
