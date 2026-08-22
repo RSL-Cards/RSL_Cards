@@ -40,6 +40,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, isHydrated, segments]);
 
   useEffect(() => {
+    // Safely request push notification permissions after UI mounts
+    import("../src/services/notificationService").then(({ notificationService }) => {
+      notificationService.initOneSignalPermissions().catch(console.error);
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       const user = useAuthStore.getState().user;
       
