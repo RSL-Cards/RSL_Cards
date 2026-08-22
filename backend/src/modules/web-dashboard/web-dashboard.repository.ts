@@ -351,7 +351,36 @@ export class WebDashboardRepository {
     for (const row of invRows.rows as any[]) {
       const qty = Number(row.quantity || 1);
       const cost = parseFloat(row.cost_basis || "0");
-      const maxActive = parseFloat(row.highest_active || "0");
+      
+      const activePrices: number[] = [];
+      if (row.highest_active && Number(row.highest_active) > 0) {
+        activePrices.push(Number(row.highest_active));
+      }
+
+      const parseJsonList = (raw: any) => {
+        if (!raw) return [];
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === "string") {
+          try {
+            const p = JSON.parse(raw);
+            if (Array.isArray(p)) return p;
+          } catch {}
+        }
+        return [];
+      };
+
+      const allActive = [...parseJsonList(row.ebay_active_listings), ...parseJsonList(row.myslabs_active_listings)];
+      for (const item of allActive) {
+        if (!item || typeof item !== "object") continue;
+        let p = 0;
+        if (typeof item.price === "number" && !isNaN(item.price)) p = item.price;
+        else if (item.price?.value != null && !isNaN(parseFloat(String(item.price.value)))) p = parseFloat(String(item.price.value));
+        else if (item.price != null && typeof item.price !== "object" && !isNaN(parseFloat(String(item.price)))) p = parseFloat(String(item.price));
+        else if (typeof item.list_price === "number" && !isNaN(item.list_price)) p = item.list_price;
+        if (p > 0) activePrices.push(p);
+      }
+
+      const maxActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
       const market = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
 
       totalCostBasis += cost * qty;
