@@ -158,7 +158,7 @@ export default function BuyConfirmScreen() {
       myslabsActiveListings: activeTab?.myslabsActiveListings ? JSON.stringify(activeTab.myslabsActiveListings) : undefined,
       photos: (activeTab?.isExisting && activeTab?.cardData?.photos && activeTab.cardData.photos.length > 0)
         ? activeTab.cardData.photos
-        : (capturedPhoto ? undefined : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined)),
+        : (capturedPhoto ? [capturedPhoto] : (activeTab?.bestMatchImageUrl ? [activeTab.bestMatchImageUrl] : undefined)),
       channel,
       paymentMethod: paymentMethod ?? null,
       dealRating,

@@ -507,15 +507,12 @@ export class InventoryRepository {
     let finalPhotosList = Array.isArray(photos) ? photos : [];
 
     if (finalPhotosList.length === 0) {
-      let sourceImageUrl = null;
-      if (body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
+      let sourceImageUrl = body.uploadedImageUrl || body.capturedPhoto || (body.photos && body.photos[0] ? body.photos[0] : null);
+      if (!sourceImageUrl && body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
         const match = body.comps.activeListings.find((item: any) => item.image?.imageUrl || item.imageUrl);
         if (match) {
           sourceImageUrl = match.image?.imageUrl || match.imageUrl;
         }
-      }
-      if (!sourceImageUrl && body.uploadedImageUrl) {
-        sourceImageUrl = body.uploadedImageUrl;
       }
 
       if (sourceImageUrl) {
@@ -526,13 +523,27 @@ export class InventoryRepository {
             finalPhotosList = [sourceImageUrl];
           } else {
             try {
-              const fetchRes = await fetch(sourceImageUrl);
-              if (fetchRes.ok) {
-                const arrayBuf = await fetchRes.arrayBuffer();
-                const buffer = Buffer.from(arrayBuf);
-                const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
-                const ext = contentType.includes("png") ? "png" : "jpg";
-                const key = `cardimages/${userId}/imported/${randomUUID()}.${ext}`;
+              let buffer: Buffer;
+              let contentType = "image/jpeg";
+              let ext = "jpg";
+
+              if (sourceImageUrl.startsWith("data:") || !sourceImageUrl.startsWith("http")) {
+                const base64Data = sourceImageUrl.includes(",") ? sourceImageUrl.split(",")[1] : sourceImageUrl;
+                buffer = Buffer.from(base64Data, "base64");
+              } else {
+                const fetchRes = await fetch(sourceImageUrl);
+                if (fetchRes.ok) {
+                  const arrayBuf = await fetchRes.arrayBuffer();
+                  buffer = Buffer.from(arrayBuf);
+                  contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+                  ext = contentType.includes("png") ? "png" : "jpg";
+                } else {
+                  buffer = Buffer.alloc(0);
+                }
+              }
+
+              if (buffer && buffer.length > 0) {
+                const key = `cardimages/${userId}/captured/${randomUUID()}.${ext}`;
                 const client = new S3Client({
                   region: env.AWS_REGION || "us-east-1",
                   credentials: {
@@ -552,7 +563,7 @@ export class InventoryRepository {
                 finalPhotosList = [publicUrl];
               }
             } catch (err: any) {
-              console.warn("Failed to download/upload dynamic card photo:", err.message);
+              console.warn("Failed to upload card photo:", err.message);
             }
           }
         }
