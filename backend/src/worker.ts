@@ -55,24 +55,23 @@ export const initWorker = () => {
           `);
           const activeDailyLogsCount = Number(activeLogsRes.rows[0]?.active_count || 0);
 
-          // Fetch all unique card variants in inventory along with stored search_string
+          // Fetch all unique card variants in database catalog along with stored search_string
           const variantsResult = await db.execute(sql`
             SELECT DISTINCT
-              i.variant_id,
+              cv.id as variant_id,
               c.year,
               c.set_name,
               c.card_number,
               p.name as player_name,
               cv.name as variant_name,
-              COALESCE(i.search_string, cv.search_string) as search_string
-            FROM inventory i
-            JOIN card_variants cv ON i.variant_id = cv.id
+              cv.search_string
+            FROM card_variants cv
             JOIN cards c ON cv.card_id = c.id
             JOIN players p ON c.player_id = p.id
-            WHERE i.variant_id IS NOT NULL
+            WHERE cv.id IS NOT NULL
           `);
           const variants = variantsResult.rows as any[];
-          logger.info(`[WORKER] Found ${variants.length} unique card variants in inventory.`);
+          logger.info(`[WORKER] Found ${variants.length} total card variants in database catalog.`);
 
           // Standard grades matching the Buy Flow (RAW, 10, 9.5, 9, 8, 7, 6, 5)
           const STANDARD_GRADES = ["RAW", "10", "9.5", "9", "8", "7", "6", "5"];
@@ -133,7 +132,7 @@ export const initWorker = () => {
             totalActiveStored: 0,
             activeDailyLogsCount,
             startTime: new Date().toISOString(),
-            targetEmail: "gollavinay13@gmail.com",
+            targetEmail: "support@rslcards.com",
             failedItems: [],
           };
           await redis.set(`comp_batch:${batchId}`, JSON.stringify(initialBatchData), "EX", 86400);
@@ -142,7 +141,7 @@ export const initWorker = () => {
 
           if (totalEnqueued === 0) {
             const { emailService } = await import("./modules/email/index.js");
-            await emailService.sendCompRefreshReport("gollavinay13@gmail.com", {
+            await emailService.sendCompRefreshReport("support@rslcards.com", {
               batchId,
               totalEnqueued: 0,
               processedCount: 0,
