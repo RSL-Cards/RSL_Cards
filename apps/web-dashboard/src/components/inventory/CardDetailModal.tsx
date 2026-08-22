@@ -1063,74 +1063,31 @@ export default function CardDetailModal({
               </button>
             </div>
 
-            {/* Mode Switcher */}
-            <div className="flex items-center gap-2 bg-[#141414] p-1 rounded-xl border border-[#252525] mb-4">
-              <button
-                type="button"
-                onClick={() => setImageMode('upload')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  imageMode === 'upload' ? 'bg-[#252525] text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Upload className="h-3.5 w-3.5 text-blue-400" />
-                <span>Upload Local File</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setImageMode('url')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                  imageMode === 'url' ? 'bg-[#252525] text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-emerald-400" />
-                <span>Paste Web URL</span>
-              </button>
-            </div>
-
             <div className="space-y-4">
-              {imageMode === 'upload' ? (
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Choose Image File from Computer</label>
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#333] hover:border-blue-500 bg-[#141414] hover:bg-[#1A1A1A] rounded-xl cursor-pointer transition-colors p-4 text-center group">
-                    <Upload className="h-8 w-8 text-zinc-500 group-hover:text-blue-400 transition-colors mb-2" />
-                    <span className="text-xs font-semibold text-zinc-300 group-hover:text-white">
-                      {selectedFile ? selectedFile.name : 'Click to select JPG / PNG image file'}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 mt-1">Replaces existing image in card DB</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Direct Image Web URL</label>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Choose Image File to Upload</label>
+                <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-[#333] hover:border-blue-500 bg-[#141414] hover:bg-[#1A1A1A] rounded-xl cursor-pointer transition-colors p-4 text-center group">
+                  <Upload className="h-8 w-8 text-zinc-500 group-hover:text-blue-400 transition-colors mb-2" />
+                  <span className="text-xs font-semibold text-zinc-300 group-hover:text-white">
+                    {selectedFile ? selectedFile.name : 'Click to select image file (JPG, PNG, WEBP)'}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 mt-1">Replaces existing image in card DB</span>
                   <input
-                    type="url"
-                    value={newImageUrl}
-                    onChange={(e) => {
-                      setNewImageUrl(e.target.value)
-                      setImageError('')
-                    }}
-                    placeholder="https://example.com/card-image.jpg"
-                    className="w-full rounded-xl border border-[#252525] bg-[#141414] px-3.5 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
                   />
-                </div>
-              )}
+                </label>
+              </div>
 
               {/* Preview Container */}
-              {Boolean(imageMode === 'upload' ? filePreview : (newImageUrl && newImageUrl.trim())) && (
+              {Boolean(filePreview) && (
                 <div className="relative h-44 w-full overflow-hidden rounded-xl border border-[#252525] bg-[#141414] p-2 flex flex-col items-center justify-center">
                   <img
-                    src={(imageMode === 'upload' ? filePreview : newImageUrl.trim()) || ''}
+                    src={filePreview || ''}
                     alt="New Card Preview"
                     className="h-full w-full object-contain"
-                    onError={() => {
-                      if (imageMode === 'url') setImageError('Invalid image URL format')
-                    }}
                   />
                 </div>
               )}
@@ -1150,7 +1107,7 @@ export default function CardDetailModal({
                 <button
                   type="button"
                   onClick={handleSaveImage}
-                  disabled={isUpdatingImage || (imageMode === 'upload' ? !selectedFile : !newImageUrl.trim())}
+                  disabled={isUpdatingImage || !selectedFile}
                   className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg transition-colors disabled:opacity-50"
                 >
                   {isUpdatingImage ? 'Uploading & Replacing...' : 'Save & Replace Image'}

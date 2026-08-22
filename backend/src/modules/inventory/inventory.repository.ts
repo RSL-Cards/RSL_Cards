@@ -521,68 +521,77 @@ export class InventoryRepository {
     const cleanCostBasis = costBasis && costBasis !== "" ? Number(costBasis) : 0;
     const cleanQuantity = quantity && quantity !== "" ? Number(quantity) : 1;
 
-    let finalPhotosList = Array.isArray(photos) ? photos : [];
+    let finalPhotosList: string[] = [];
+    let candidatePhotos: string[] = [];
 
-    if (finalPhotosList.length === 0) {
-      let sourceImageUrl = body.uploadedImageUrl || body.capturedPhoto || (body.photos && body.photos[0] ? body.photos[0] : null);
+    if (Array.isArray(photos) && photos.length > 0) {
+      candidatePhotos = photos;
+    } else {
+      let sourceImageUrl = body.uploadedImageUrl || body.capturedPhoto || null;
       if (!sourceImageUrl && body.comps?.activeListings && Array.isArray(body.comps.activeListings) && body.comps.activeListings.length > 0) {
         const match = body.comps.activeListings.find((item: any) => item.image?.imageUrl || item.imageUrl);
         if (match) {
           sourceImageUrl = match.image?.imageUrl || match.imageUrl;
         }
       }
-
       if (sourceImageUrl) {
-        const { env } = await import("../../config/index.js");
-        if (env.S3_BUCKET_NAME) {
-          const bucketDomain = `${env.S3_BUCKET_NAME}.s3`;
-          if (sourceImageUrl.includes(bucketDomain)) {
-            finalPhotosList = [sourceImageUrl];
-          } else {
-            try {
-              let buffer: Buffer;
-              let contentType = "image/jpeg";
-              let ext = "jpg";
+        candidatePhotos = [sourceImageUrl];
+      }
+    }
 
-              if (sourceImageUrl.startsWith("data:") || !sourceImageUrl.startsWith("http")) {
-                const base64Data = sourceImageUrl.includes(",") ? sourceImageUrl.split(",")[1] : sourceImageUrl;
-                buffer = Buffer.from(base64Data, "base64");
-              } else {
-                const fetchRes = await fetch(sourceImageUrl);
-                if (fetchRes.ok) {
-                  const arrayBuf = await fetchRes.arrayBuffer();
-                  buffer = Buffer.from(arrayBuf);
-                  contentType = fetchRes.headers.get("content-type") || "image/jpeg";
-                  ext = contentType.includes("png") ? "png" : "jpg";
-                } else {
-                  buffer = Buffer.alloc(0);
-                }
-              }
+    const { env } = await import("../../config/index.js");
+    for (const photoStr of candidatePhotos) {
+      if (!photoStr) continue;
+      const bucketDomain = env.S3_BUCKET_NAME ? `${env.S3_BUCKET_NAME}.s3` : "";
+      if (bucketDomain && photoStr.includes(bucketDomain)) {
+        finalPhotosList.push(photoStr);
+        continue;
+      }
 
-              if (buffer && buffer.length > 0) {
-                const key = `cardimages/${userId}/captured/${randomUUID()}.${ext}`;
-                const client = new S3Client({
-                  region: env.AWS_REGION || "us-east-1",
-                  credentials: {
-                    accessKeyId: env.AWS_ACCESS_KEY_ID || "",
-                    secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
-                  },
-                });
-                await client.send(
-                  new PutObjectCommand({
-                    Bucket: env.S3_BUCKET_NAME,
-                    Key: key,
-                    Body: buffer,
-                    ContentType: contentType,
-                  })
-                );
-                const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
-                finalPhotosList = [publicUrl];
-              }
-            } catch (err: any) {
-              console.warn("Failed to upload card photo:", err.message);
-            }
+      try {
+        let buffer: Buffer | null = null;
+        let contentType = "image/jpeg";
+        let ext = "jpg";
+
+        if (photoStr.startsWith("data:") || photoStr.startsWith("file:") || !photoStr.startsWith("http")) {
+          const base64Data = photoStr.includes(",") ? photoStr.split(",")[1] : photoStr;
+          buffer = Buffer.from(base64Data, "base64");
+        } else {
+          const fetchRes = await fetch(photoStr);
+          if (fetchRes.ok) {
+            const arrayBuf = await fetchRes.arrayBuffer();
+            buffer = Buffer.from(arrayBuf);
+            contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+            ext = contentType.includes("png") ? "png" : "jpg";
           }
+        }
+
+        if (buffer && buffer.length > 0 && env.S3_BUCKET_NAME) {
+          const key = `cardimages/${userId}/captured/${randomUUID()}.${ext}`;
+          const client = new S3Client({
+            region: env.AWS_REGION || "us-east-1",
+            credentials: {
+              accessKeyId: env.AWS_ACCESS_KEY_ID || "",
+              secretAccessKey: env.AWS_SECRET_ACCESS_KEY || "",
+            },
+          });
+          await client.send(
+            new PutObjectCommand({
+              Bucket: env.S3_BUCKET_NAME,
+              Key: key,
+              Body: buffer,
+              ContentType: contentType,
+            })
+          );
+          const publicUrl = `https://${env.S3_BUCKET_NAME}.s3.${env.AWS_REGION || "us-east-1"}.amazonaws.com/${key}`;
+          finalPhotosList.push(publicUrl);
+        } else if (photoStr.startsWith("http")) {
+          finalPhotosList.push(photoStr);
+        }
+      } catch (err: any) {
+        console.warn("Failed to upload card photo to S3:", err.message);
+        if (photoStr.startsWith("http")) {
+          finalPhotosList.push(photoStr);
         }
       }
     }

@@ -291,6 +291,37 @@ export default function CardDetailScreen() {
   }, [card, id]);
 
   // Image Edit Handlers
+  const handleTakeCameraPhoto = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Please allow camera access to take a card photo.");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: "images",
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setIsUpdatingImage(true);
+        const uploaded = await inventoryService.uploadPhotoDirect(id ?? "", result.assets[0].uri);
+        
+        queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
+          if (!old) return old;
+          return { ...old, photos: [uploaded.url] };
+        });
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
+        setShowImageModal(false);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to upload photo");
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
+
   const handlePickGalleryImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -317,24 +348,6 @@ export default function CardDetailScreen() {
       }
     } catch (err: any) {
       Alert.alert("Error", err.message || "Failed to upload photo");
-    } finally {
-      setIsUpdatingImage(false);
-    }
-  };
-
-  const handleSaveImageUrl = async () => {
-    if (!imageUrlInput.trim()) return;
-    setIsUpdatingImage(true);
-    try {
-      await inventoryService.updateItem(id ?? "", { photos: [imageUrlInput.trim()] });
-      queryClient.setQueryData([...QUERY_KEYS.inventory(userId), "item", id], (old: any) => {
-        if (!old) return old;
-        return { ...old, photos: [imageUrlInput.trim()] };
-      });
-      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventory(userId) });
-      setShowImageModal(false);
-    } catch (err: any) {
-      Alert.alert("Error", err.message || "Failed to update image URL");
     } finally {
       setIsUpdatingImage(false);
     }
@@ -1089,41 +1102,29 @@ export default function CardDetailScreen() {
             </View>
 
             <TouchableOpacity
-              onPress={handlePickGalleryImage}
+              onPress={handleTakeCameraPhoto}
               disabled={isUpdatingImage}
-              style={modalStyles.actionBtn}
+              style={[modalStyles.actionBtn, { backgroundColor: "#0057FF", marginBottom: 12 }]}
             >
-              <Ionicons name="images-outline" size={18} color="#FFF" />
-              <Text style={modalStyles.actionBtnText}>Pick Photo from Device Gallery</Text>
+              <Ionicons name="camera-outline" size={18} color="#FFF" />
+              <Text style={modalStyles.actionBtnText}>Take Photo with Camera</Text>
             </TouchableOpacity>
 
-            <Text style={modalStyles.orText}>OR PASTE DIRECT WEB URL</Text>
+            <TouchableOpacity
+              onPress={handlePickGalleryImage}
+              disabled={isUpdatingImage}
+              style={[modalStyles.actionBtn, { backgroundColor: "#1C1C1E" }]}
+            >
+              <Ionicons name="images-outline" size={18} color="#FFF" />
+              <Text style={modalStyles.actionBtnText}>Upload from Device Gallery</Text>
+            </TouchableOpacity>
 
-            <TextInput
-              style={modalStyles.input}
-              placeholder="https://example.com/photo.jpg"
-              placeholderTextColor="#555"
-              value={imageUrlInput}
-              onChangeText={setImageUrlInput}
-              autoCapitalize="none"
-            />
-
-            <View style={modalStyles.btnRow}>
+            <View style={[modalStyles.btnRow, { marginTop: 20 }]}>
               <TouchableOpacity
                 onPress={() => setShowImageModal(false)}
                 style={modalStyles.cancelBtn}
               >
                 <Text style={modalStyles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSaveImageUrl}
-                disabled={isUpdatingImage || !imageUrlInput.trim()}
-                style={[modalStyles.saveBtn, { opacity: isUpdatingImage || !imageUrlInput.trim() ? 0.5 : 1 }]}
-              >
-                <Text style={modalStyles.saveBtnText}>
-                  {isUpdatingImage ? "Saving..." : "Save Image"}
-                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>
