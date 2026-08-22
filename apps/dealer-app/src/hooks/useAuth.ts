@@ -305,9 +305,9 @@ export function useGoogleAuth() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com",
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae.apps.googleusercontent.com",
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "156597264526-1cpp7kadv9ifvt708gi1qlfc8l727c1a.apps.googleusercontent.com",
   });
 
   const handleBackendGoogleLogin = async (idToken: string) => {
@@ -348,7 +348,9 @@ export function useGoogleAuth() {
     try {
       const gs = initGoogleSignin();
       if (gs && gs.signIn) {
-        await gs.hasPlayServices();
+        if (Platform.OS === "android" && gs.hasPlayServices) {
+          await gs.hasPlayServices();
+        }
         const res = await gs.signIn();
         const idToken = res.data?.idToken || res.idToken;
         if (idToken) {
@@ -356,7 +358,7 @@ export function useGoogleAuth() {
         }
       }
     } catch (error: any) {
-      console.log("[GoogleAuth] Native GoogleSignin unavailable/failed, using AuthSession fallback:", error);
+      console.warn("[GoogleAuth] Native GoogleSignin error:", error?.message || error);
     }
 
     if (promptAsync) {
