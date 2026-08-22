@@ -24,24 +24,32 @@ let isOneSignalInitialized = false;
 
 function initOneSignal() {
   if (isOneSignalInitialized) return;
+  if (Constants.appOwnership === "expo") {
+    return;
+  }
   try {
-    const { OneSignal } = require('react-native-onesignal');
+    const mod = require("react-native-onesignal");
+    const OneSignal = mod?.OneSignal || mod?.default;
     const onesignalAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || "2c9e1cd7-bffb-4952-86bd-34b109d6aba7";
-    if (onesignalAppId) {
+    if (OneSignal && typeof OneSignal.initialize === "function" && onesignalAppId) {
       OneSignal.initialize(onesignalAppId);
       isOneSignalInitialized = true;
     }
   } catch (e: any) {
-    console.warn("OneSignal initialization skipped:", e?.message);
+    console.warn("[OneSignal] Skipped:", e?.message);
   }
 }
 
 export const notificationService = {
   async initOneSignalPermissions() {
     initOneSignal();
+    if (!isOneSignalInitialized) return;
     try {
-      const { OneSignal } = require('react-native-onesignal');
-      OneSignal.Notifications.requestPermission(true);
+      const mod = require("react-native-onesignal");
+      const OneSignal = mod?.OneSignal || mod?.default;
+      if (OneSignal?.Notifications?.requestPermission) {
+        OneSignal.Notifications.requestPermission(true);
+      }
     } catch (e) {}
   },
 
@@ -49,8 +57,11 @@ export const notificationService = {
     initOneSignal();
     if (!isOneSignalInitialized) return;
     try {
-      const { OneSignal } = require('react-native-onesignal');
-      OneSignal.login(userId);
+      const mod = require("react-native-onesignal");
+      const OneSignal = mod?.OneSignal || mod?.default;
+      if (OneSignal?.login) {
+        OneSignal.login(userId);
+      }
     } catch (e) {}
   },
   async registerToken(token: string, platform: string, timezone?: string): Promise<{ success: boolean }> {
