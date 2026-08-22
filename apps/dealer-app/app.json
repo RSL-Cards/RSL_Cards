@@ -27,7 +27,10 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Allow RSL Cards to access your location for local dealer card show discovery.",
+        "NSCameraUsageDescription": "Allow RSL Cards to access your camera to scan sports cards.",
+        "NSPhotoLibraryUsageDescription": "Allow RSL Cards to access your photo library to select card images."
       }
     },
     "android": {
