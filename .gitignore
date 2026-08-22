@@ -13,6 +13,10 @@ coverage
 .expo/
 *.bundle
 index.android.bundle
+*.aab
+*.apk
+*.keystore
+*.jks
 
 # Web Next.js / Builds
 .next
