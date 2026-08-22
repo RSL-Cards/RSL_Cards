@@ -1048,7 +1048,6 @@ export class InventoryRepository {
     await db.execute(sql`
       UPDATE inventory
       SET photos = ARRAY[${url}]::text[],
-          image_url = ${url},
           updated_at = NOW()
       WHERE id = ${inventoryId} AND user_id = ${userId}
     `);
