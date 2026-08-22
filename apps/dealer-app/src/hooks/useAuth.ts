@@ -26,17 +26,21 @@ import * as AuthSession from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
 
 let GoogleSignin: any = null;
-try {
-  const mod = require("@react-native-google-signin/google-signin");
-  GoogleSignin = mod.GoogleSignin;
-  if (GoogleSignin?.configure) {
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-      iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    });
+function initGoogleSignin() {
+  if (GoogleSignin) return GoogleSignin;
+  try {
+    const mod = require("@react-native-google-signin/google-signin");
+    GoogleSignin = mod.GoogleSignin;
+    if (GoogleSignin?.configure) {
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com",
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae.apps.googleusercontent.com",
+      });
+    }
+  } catch (e) {
+    console.warn("[GoogleAuth] Native GoogleSignin module error:", e);
   }
-} catch (e) {
-  console.warn("[GoogleAuth] Native GoogleSignin module not available in Expo Go.");
+  return GoogleSignin;
 }
 
 WebBrowser.maybeCompleteAuthSession();
@@ -342,9 +346,10 @@ export function useGoogleAuth() {
 
   const promptGoogleSignIn = async () => {
     try {
-      if (GoogleSignin && GoogleSignin.signIn) {
-        await GoogleSignin.hasPlayServices();
-        const res = await GoogleSignin.signIn();
+      const gs = initGoogleSignin();
+      if (gs && gs.signIn) {
+        await gs.hasPlayServices();
+        const res = await gs.signIn();
         const idToken = res.data?.idToken || res.idToken;
         if (idToken) {
           return handleBackendGoogleLogin(idToken);
