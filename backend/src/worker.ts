@@ -96,7 +96,6 @@ export const initWorker = () => {
 
           const batchId = `comp_batch_${Date.now()}`;
           const queue = bullMqAdapter.getQueue();
-          let delayMs = 0;
           let totalEnqueued = 0;
 
           const itemsToEnqueue: any[] = [];
@@ -120,22 +119,24 @@ export const initWorker = () => {
 
           totalEnqueued = itemsToEnqueue.length;
 
-          // Initialize Batch Metadata in Redis
+          // Initialize Batch Metadata in Redis using Atomic Hash
           const redis = redisAdapter.getClient();
-          const initialBatchData = {
+          const hashKey = `comp_batch_hash:${batchId}`;
+          const startTimeIso = new Date().toISOString();
+
+          await redis.hset(hashKey, {
             batchId,
-            totalEnqueued,
-            processedCount: 0,
-            successCount: 0,
-            failedCount: 0,
-            totalSoldStored: 0,
-            totalActiveStored: 0,
-            activeDailyLogsCount,
-            startTime: new Date().toISOString(),
+            totalEnqueued: String(totalEnqueued),
+            processedCount: "0",
+            successCount: "0",
+            failedCount: "0",
+            totalSoldStored: "0",
+            totalActiveStored: "0",
+            activeDailyLogsCount: String(activeDailyLogsCount),
+            startTime: startTimeIso,
             targetEmail: "support@rslcards.com",
-            failedItems: [],
-          };
-          await redis.set(`comp_batch:${batchId}`, JSON.stringify(initialBatchData), "EX", 86400);
+          });
+          await redis.expire(hashKey, 86400);
 
           logger.info(`[WORKER] Initialized comp batch ${batchId} with ${totalEnqueued} total items enqueued.`);
 
@@ -158,12 +159,20 @@ export const initWorker = () => {
             return { success: true, processed: 0 };
           }
 
-          for (const item of itemsToEnqueue) {
-            await queue.add("refresh_single_comp", { item, batchId }, { delay: delayMs });
-            delayMs += 5000;
+          // Use Queue.addBulk with a 300ms staggered delay for fast, non-blocking queueing
+          const bulkJobs = itemsToEnqueue.map((item, index) => ({
+            name: "refresh_single_comp",
+            data: { item, batchId },
+            opts: { delay: index * 300 },
+          }));
+
+          const CHUNK_SIZE = 500;
+          for (let i = 0; i < bulkJobs.length; i += CHUNK_SIZE) {
+            const chunk = bulkJobs.slice(i, i + CHUNK_SIZE);
+            await queue.addBulk(chunk);
           }
 
-          logger.info(`[WORKER] Completed spawner job for batch ${batchId}. Enqueued ${totalEnqueued} comp refreshes across all grades.`);
+          logger.info(`[WORKER] Completed spawner job for batch ${batchId}. Bulk enqueued ${totalEnqueued} comp refreshes across all grades.`);
           return { success: true, processed: totalEnqueued, batchId };
         } catch (error: any) {
           logger.error(`[WORKER] Failed to process refresh_all_comps: ${error.message}`);
@@ -199,123 +208,232 @@ export const initWorker = () => {
         let errorMessage = "";
 
         try {
-          const ebayRes = await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
-          soldStored += ebayRes?.last30Days?.items?.length || 0;
-          activeStored += ebayRes?.activeListings?.length || 0;
-        } catch (err: any) {
-          isSuccess = false;
-          errorMessage = `eBay: ${err.message}`;
-          logger.error(`[WORKER] Error fetching eBay comps: ${err.message}`);
-        }
-        
-        await delay(1500); // Avoid rate limits
-        try { 
-          const myslabsRes = await listingRepo.myslabsSold(fetchParams, myslabsService);
-          soldStored += myslabsRes?.last30Days?.items?.length || 0;
-          activeStored += myslabsRes?.activeListings?.length || 0;
-        } catch (err: any) { 
-          if (!errorMessage) errorMessage = `MySlabs: ${err.message}`;
-          logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); 
-        }
-
-        await delay(1500); // Avoid rate limits
-
-        // Calculate max active listing price for this variant & grade, and update inventory rows
-        if (item.variant_id) {
           try {
-            const maxActiveRes = await db.execute(sql`
-              SELECT MAX(price)::numeric as max_active
-              FROM platform_active_listings
-              WHERE variant_id = ${item.variant_id}
-                AND (grade_key = ${fetchParams.grade_key} OR grade_key IS NULL)
-            `);
-            const maxActive = parseFloat(String((maxActiveRes.rows[0] as any)?.max_active || "0"));
-            if (maxActive > 0) {
+            const ebayRes = await listingRepo.ebaySold(fetchParams, ebayService, soldCompsService);
+            soldStored += ebayRes?.last30Days?.items?.length || 0;
+            activeStored += ebayRes?.activeListings?.length || 0;
+          } catch (err: any) {
+            isSuccess = false;
+            errorMessage = `eBay: ${err.message}`;
+            logger.error(`[WORKER] Error fetching eBay comps: ${err.message}`);
+          }
+          
+          await delay(1500); // Avoid rate limits
+
+          try { 
+            const myslabsRes = await listingRepo.myslabsSold(fetchParams, myslabsService);
+            soldStored += myslabsRes?.last30Days?.items?.length || 0;
+            activeStored += myslabsRes?.activeListings?.length || 0;
+          } catch (err: any) { 
+            if (!errorMessage) errorMessage = `MySlabs: ${err.message}`;
+            logger.error(`[WORKER] Error fetching MySlabs comps: ${err.message}`); 
+          }
+
+          await delay(1500); // Avoid rate limits
+
+          // Sync fresh comp snapshots, market values & JSON comp arrays directly to inventory rows
+          if (item.variant_id) {
+            try {
+              const snapRes = await db.execute(sql`
+                SELECT avg_sold_price, lowest_active, last_sold_price
+                FROM card_comp_snapshots
+                WHERE variant_id = ${item.variant_id}
+                  AND grade_key = ${fetchParams.grade_key}
+                ORDER BY fetched_at DESC LIMIT 1
+              `);
+
+              const activeListingsRes = await db.execute(sql`
+                SELECT platform_item_id, price, title, condition, item_web_url, image_url, platform, grade_key
+                FROM platform_active_listings
+                WHERE variant_id = ${item.variant_id}
+                ORDER BY price ASC LIMIT 50
+              `);
+
+              const soldListingsRes = await db.execute(sql`
+                SELECT platform_item_id, sold_price, title, condition, sold_at, platform, grade_key
+                FROM platform_sold_listings
+                WHERE variant_id = ${item.variant_id}
+                ORDER BY sold_at DESC LIMIT 50
+              `);
+
+              const ebayActive = activeListingsRes.rows
+                .filter((r: any) => !r.platform || String(r.platform).toLowerCase() === 'ebay')
+                .map((r: any) => ({
+                  itemId: r.platform_item_id,
+                  title: r.title,
+                  condition: r.condition,
+                  grade_key: r.grade_key,
+                  price: { value: r.price },
+                  itemWebUrl: r.item_web_url,
+                  image: { imageUrl: r.image_url },
+                  platform: 'eBay'
+                }));
+
+              const myslabsActive = activeListingsRes.rows
+                .filter((r: any) => r.platform && String(r.platform).toLowerCase() === 'myslabs')
+                .map((r: any) => ({
+                  itemId: r.platform_item_id,
+                  title: r.title,
+                  condition: r.condition,
+                  grade_key: r.grade_key,
+                  price: { value: r.price },
+                  itemWebUrl: r.item_web_url,
+                  image: { imageUrl: r.image_url },
+                  platform: 'MySlabs'
+                }));
+
+              const ebaySold = soldListingsRes.rows
+                .filter((r: any) => !r.platform || String(r.platform).toLowerCase() === 'ebay')
+                .map((r: any) => ({
+                  itemId: r.platform_item_id,
+                  title: r.title,
+                  condition: r.condition,
+                  grade_key: r.grade_key,
+                  soldPrice: { value: r.sold_price },
+                  endDate: r.sold_at,
+                  platform: 'eBay'
+                }));
+
+              const myslabsSold = soldListingsRes.rows
+                .filter((r: any) => r.platform && String(r.platform).toLowerCase() === 'myslabs')
+                .map((r: any) => ({
+                  itemId: r.platform_item_id,
+                  title: r.title,
+                  condition: r.condition,
+                  grade_key: r.grade_key,
+                  soldPrice: { value: r.sold_price },
+                  endDate: r.sold_at,
+                  platform: 'MySlabs'
+                }));
+
+              let newMarketVal = 0;
+              if (snapRes.rows.length > 0) {
+                const snap = snapRes.rows[0] as any;
+                const avgPrice = parseFloat(String(snap.avg_sold_price || "0"));
+                const lowestActive = parseFloat(String(snap.lowest_active || "0"));
+                const lastSold = parseFloat(String(snap.last_sold_price || "0"));
+                newMarketVal = lowestActive > 0 ? lowestActive : (avgPrice > 0 ? avgPrice : lastSold);
+              }
+
               await db.execute(sql`
                 UPDATE inventory
-                SET grade_highest_active = ${maxActive}, updated_at = NOW()
+                SET 
+                  current_market_value = CASE WHEN ${newMarketVal} > 0 THEN ${newMarketVal} ELSE current_market_value END,
+                  unrealized_gain = CASE WHEN ${newMarketVal} > 0 THEN (${newMarketVal} - cost_basis) * COALESCE(quantity, 1) ELSE unrealized_gain END,
+                  ebay_active_listings = CASE WHEN ${ebayActive.length > 0} THEN ${JSON.stringify(ebayActive)} ELSE ebay_active_listings END,
+                  ebay_sales_completed = CASE WHEN ${ebaySold.length > 0} THEN ${JSON.stringify(ebaySold)} ELSE ebay_sales_completed END,
+                  myslabs_active_listings = CASE WHEN ${myslabsActive.length > 0} THEN ${JSON.stringify(myslabsActive)} ELSE myslabs_active_listings END,
+                  myslabs_sales_completed = CASE WHEN ${myslabsSold.length > 0} THEN ${JSON.stringify(myslabsSold)} ELSE myslabs_sales_completed END,
+                  updated_at = NOW()
                 WHERE variant_id = ${item.variant_id}
-                  AND (grade_key = ${fetchParams.grade_key} OR grade_key IS NULL OR grade_key = 'RAW')
+                  AND (grade_key = ${fetchParams.grade_key} OR grade_key IS NULL)
               `);
-              logger.info(`[WORKER] Updated grade_highest_active=$${maxActive} for variant ${item.variant_id} (Grade: ${fetchParams.grade_key})`);
-            }
-          } catch (maxErr: any) {
-            logger.error(`[WORKER] Error calculating max active listing price for variant ${item.variant_id}: ${maxErr.message}`);
-          }
-        }
-        
-        // Dynamically trigger Price Spikes Check for this variant
-        const queue = bullMqAdapter.getQueue();
-        await queue.add("check_price_spikes", {
-          variant_id: item.variant_id,
-          grade_key: fetchParams.grade_key,
-          item,
-        });
 
-        // Atomic Batch Progress Tracking in Redis
-        if (batchId) {
+              logger.info(`[WORKER] Synced market value ($${newMarketVal}) & comps to inventory for variant ${item.variant_id} (${fetchParams.grade_key})`);
+            } catch (syncErr: any) {
+              logger.error(`[WORKER] Error syncing comps to inventory for variant ${item.variant_id}: ${syncErr.message}`);
+            }
+          }
+          
+          // Dynamically trigger Price Spikes Check for this variant
           try {
-            const redis = redisAdapter.getClient();
-            const key = `comp_batch:${batchId}`;
-            const raw = await redis.get(key);
-            if (raw) {
-              const bData = JSON.parse(raw);
-              bData.processedCount = (bData.processedCount || 0) + 1;
+            const queue = bullMqAdapter.getQueue();
+            await queue.add("check_price_spikes", {
+              variant_id: item.variant_id,
+              grade_key: fetchParams.grade_key,
+              item,
+            });
+          } catch (spikeErr: any) {
+            logger.error(`[WORKER] Error triggering check_price_spikes: ${spikeErr.message}`);
+          }
+        } catch (topErr: any) {
+          isSuccess = false;
+          errorMessage = topErr.message;
+          logger.error(`[WORKER] Unhandled error processing refresh_single_comp: ${topErr.message}`);
+        } finally {
+          // Guaranteed Atomic Batch Progress Tracking in Redis
+          if (batchId) {
+            try {
+              const redis = redisAdapter.getClient();
+              const hashKey = `comp_batch_hash:${batchId}`;
+
+              const pCount = await redis.hincrby(hashKey, "processedCount", 1);
               if (isSuccess) {
-                bData.successCount = (bData.successCount || 0) + 1;
+                await redis.hincrby(hashKey, "successCount", 1);
               } else {
-                bData.failedCount = (bData.failedCount || 0) + 1;
-                if (!bData.failedItems) bData.failedItems = [];
-                bData.failedItems.push({
-                  itemName: `${item.year || ''} ${item.player_name || ''} ${item.set_name || ''}`.trim(),
-                  gradeKey: item.grade_key || 'RAW',
-                  error: errorMessage || 'API fetch error',
-                });
+                await redis.hincrby(hashKey, "failedCount", 1);
+                if (errorMessage) {
+                  const failedItemJson = JSON.stringify({
+                    itemName: `${item.year || ''} ${item.player_name || ''} ${item.set_name || ''}`.trim(),
+                    gradeKey: item.grade_key || 'RAW',
+                    error: errorMessage || 'API fetch error',
+                  });
+                  await redis.rpush(`comp_batch_failed:${batchId}`, failedItemJson);
+                }
               }
 
-              bData.totalSoldStored = (bData.totalSoldStored || 0) + soldStored;
-              bData.totalActiveStored = (bData.totalActiveStored || 0) + activeStored;
+              if (soldStored > 0) await redis.hincrby(hashKey, "totalSoldStored", soldStored);
+              if (activeStored > 0) await redis.hincrby(hashKey, "totalActiveStored", activeStored);
+              await redis.expire(hashKey, 86400);
 
-              await redis.set(key, JSON.stringify(bData), "EX", 86400);
+              const totalEnqueuedStr = await redis.hget(hashKey, "totalEnqueued");
+              const totalEnqueued = parseInt(totalEnqueuedStr || "0", 10);
 
               logger.info(
-                `[WORKER] Batch ${batchId} progress: ${bData.processedCount}/${bData.totalEnqueued} processed.`
+                `[WORKER] Batch ${batchId} progress: ${pCount}/${totalEnqueued} processed.`
               );
 
-              // IF ALL ENQUEUED JOBS FINISHED: SEND SINGLE SUMMARY EMAIL REPORT TO ADMIN
-              if (bData.processedCount >= bData.totalEnqueued) {
-                const endTime = new Date();
-                const startTimeDate = new Date(bData.startTime);
-                const durationSeconds = Math.max(1, Math.round((endTime.getTime() - startTimeDate.getTime()) / 1000));
+              // Guaranteed single report email delivery on batch completion
+              const emailSentKey = `comp_batch_email_sent:${batchId}`;
+              const alreadySent = await redis.get(emailSentKey);
 
-                logger.info(
-                  `[WORKER] 📧 Batch ${batchId} COMPLETED! Sending single report email to ${bData.targetEmail}...`
-                );
+              if (!alreadySent && totalEnqueued > 0 && pCount >= totalEnqueued) {
+                const isLockAcquired = await redis.set(emailSentKey, "1", "EX", 86400, "NX");
+                if (isLockAcquired) {
+                  const hashData = await redis.hgetall(hashKey);
+                  const failedItemsRaw = await redis.lrange(`comp_batch_failed:${batchId}`, 0, -1);
+                  const failedItems = failedItemsRaw.map((str) => {
+                    try { return JSON.parse(str); } catch { return { itemName: "Unknown", gradeKey: "", error: str }; }
+                  });
 
-                const { emailService } = await import("./modules/email/index.js");
-                await emailService.sendCompRefreshReport(bData.targetEmail, {
-                  batchId: bData.batchId,
-                  totalEnqueued: bData.totalEnqueued,
-                  processedCount: bData.processedCount,
-                  successCount: bData.successCount,
-                  failedCount: bData.failedCount,
-                  totalSoldStored: bData.totalSoldStored,
-                  totalActiveStored: bData.totalActiveStored,
-                  activeDailyLogsCount: bData.activeDailyLogsCount || 0,
-                  startTime: startTimeDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
-                  endTime: endTime.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
-                  durationSeconds,
-                  failedItems: bData.failedItems || [],
-                });
-                logger.info(`[WORKER] ✅ Admin report email sent successfully to ${bData.targetEmail}!`);
+                  const endTime = new Date();
+                  const startTimeDate = new Date(hashData.startTime || Date.now());
+                  const durationSeconds = Math.max(1, Math.round((endTime.getTime() - startTimeDate.getTime()) / 1000));
+
+                  const targetEmail = hashData.targetEmail || "support@rslcards.com";
+                  logger.info(
+                    `[WORKER] 📧 Batch ${batchId} COMPLETED! Sending single report email to ${targetEmail}...`
+                  );
+
+                  try {
+                    const { emailService } = await import("./modules/email/index.js");
+                    await emailService.sendCompRefreshReport(targetEmail, {
+                      batchId,
+                      totalEnqueued: parseInt(hashData.totalEnqueued || "0", 10),
+                      processedCount: parseInt(hashData.processedCount || "0", 10),
+                      successCount: parseInt(hashData.successCount || "0", 10),
+                      failedCount: parseInt(hashData.failedCount || "0", 10),
+                      totalSoldStored: parseInt(hashData.totalSoldStored || "0", 10),
+                      totalActiveStored: parseInt(hashData.totalActiveStored || "0", 10),
+                      activeDailyLogsCount: parseInt(hashData.activeDailyLogsCount || "0", 10),
+                      startTime: startTimeDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+                      endTime: endTime.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+                      durationSeconds,
+                      failedItems,
+                    });
+                    logger.info(`[WORKER] ✅ Admin report email sent successfully to ${targetEmail}!`);
+                  } catch (emailErr: any) {
+                    logger.error(`[WORKER] ❌ Failed to send comp refresh report email: ${emailErr.message}`);
+                  }
+                }
               }
+            } catch (batchErr: any) {
+              logger.error(`[WORKER] Error updating batch progress for ${batchId}: ${batchErr.message}`);
             }
-          } catch (batchErr: any) {
-            logger.error(`[WORKER] Error updating batch progress for ${batchId}: ${batchErr.message}`);
           }
-        }
 
-        return { success: true, processed: item.variant_id };
+          return { success: isSuccess, processed: item.variant_id };
+        }
       }
 
       else if (job.name === "check_price_spikes") {
