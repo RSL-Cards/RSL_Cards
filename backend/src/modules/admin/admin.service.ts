@@ -1,4 +1,6 @@
 import { AdminRepository } from "./admin.repository.js";
+import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
+import { BULLMQ_CONFIG } from "../../config/redisKeys.js";
 
 export class AdminService {
   constructor(private readonly repository: AdminRepository) {}
@@ -16,4 +18,8 @@ export class AdminService {
   async patchFeatureFlag(key: string, body: any) { return this.repository.patchFeatureFlag(key, body); }
   async getAuditLogs() { return this.repository.getAuditLogs(); }
   async getStats() { return this.repository.getStats(); }
+  async triggerCompRefresh() {
+    const job = await bullMqAdapter.addJob(BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS, {});
+    return { success: true, message: "Comp refresh batch triggered successfully", jobId: job.id };
+  }
 }

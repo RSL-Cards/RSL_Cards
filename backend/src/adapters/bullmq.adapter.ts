@@ -81,38 +81,71 @@ export class BullMqAdapter {
 
   async startCronJobs(): Promise<void> {
     try {
-      await this.queue.add(BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS, {}, {
-        repeat: {
-          every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
-        },
-        jobId: `${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}_cron` // prevent duplicates
-      });
-      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}' cron job to run every 12 hours`);
+      logger.info("🕒 Synchronizing BullMQ repeatable cron jobs...");
 
-      await this.queue.add(BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING, {}, {
-        repeat: {
-          every: 12 * 60 * 60 * 1000 // 12 hours in milliseconds
-        },
-        jobId: `${BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING}_cron`
-      });
-      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING}' cron job to run every 12 hours`);
+      // Clean up stale repeatable jobs to avoid duplicates or frozen static jobId schedules
+      try {
+        const existingRepeatable = await this.queue.getRepeatableJobs();
+        for (const rJob of existingRepeatable) {
+          await this.queue.removeRepeatableByKey(rJob.key);
+          logger.info(`🧹 Cleaned up existing repeatable job key: ${rJob.key}`);
+        }
+      } catch (cleanErr: any) {
+        logger.warn(`⚠️ Could not clean existing repeatable jobs: ${cleanErr.message}`);
+      }
 
-      await this.queue.add(BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS, {}, {
-        repeat: {
-          pattern: "0 * * * *" // Hourly check for worldwide 11:00 PM local time
-        },
-        jobId: `${BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS}_cron`
-      });
-      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS}' cron job to run hourly for global 11:00 PM local time checks`);
+      await this.queue.add(
+        BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS,
+        {},
+        {
+          repeat: {
+            every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+          },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        }
+      );
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}' repeatable job to run every 12 hours`);
 
-      await this.queue.add(BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT, {}, {
-        repeat: {
-          pattern: "0 9 * * 0", // 9:00 AM US Eastern Time every Sunday
-          tz: "America/New_York"
-        },
-        jobId: `${BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT}_cron`
-      });
-      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT}' cron job to run every Sunday at 9:00 AM EST`);
+      await this.queue.add(
+        BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING,
+        {},
+        {
+          repeat: {
+            every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+          },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        }
+      );
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING}' repeatable job to run every 12 hours`);
+
+      await this.queue.add(
+        BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS,
+        {},
+        {
+          repeat: {
+            pattern: "0 * * * *", // Hourly check for worldwide 11:00 PM local time
+          },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        }
+      );
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.NOTIFY_CLOSE_DAILY_LOGS}' repeatable job to run hourly for global 11:00 PM local time checks`);
+
+      await this.queue.add(
+        BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT,
+        {},
+        {
+          repeat: {
+            pattern: "0 9 * * 0", // 9:00 AM US Eastern Time every Sunday
+            tz: "America/New_York",
+          },
+          removeOnComplete: 50,
+          removeOnFail: 100,
+        }
+      );
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.SEND_WEEKLY_PERFORMANCE_REPORT}' repeatable job to run every Sunday at 9:00 AM EST`);
     } catch (err: any) {
       logger.error(`❌ Failed to schedule cron jobs: ${err.message}`);
     }

@@ -16,4 +16,5 @@ export class AdminController {
   patchFeatureFlag = async ({ params, body }: { params: any; body: any }) => { return await this.service.patchFeatureFlag(params.key, body); };
   getAuditLogs = async () => { return await this.service.getAuditLogs(); };
   getStats = async () => { return await this.service.getStats(); };
+  triggerCompRefresh = async () => { return await this.service.triggerCompRefresh(); };
 }

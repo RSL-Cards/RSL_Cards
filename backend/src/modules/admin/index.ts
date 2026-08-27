@@ -23,4 +23,5 @@ export const adminModule = new Elysia({ prefix: "/v1/admin" })
   .get("/feature-flags", controller.getFeatureFlags)
   .patch("/feature-flags/:key", controller.patchFeatureFlag)
   .get("/audit-logs", controller.getAuditLogs)
-  .get("/stats", controller.getStats);
+  .get("/stats", controller.getStats)
+  .post("/comps/refresh", controller.triggerCompRefresh);
