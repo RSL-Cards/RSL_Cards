@@ -43,6 +43,8 @@ function initGoogleSignin() {
   return GoogleSignin;
 }
 
+initGoogleSignin();
+
 WebBrowser.maybeCompleteAuthSession();
 function getErrorMessage(error: unknown, fallback: string): string {
   return (
