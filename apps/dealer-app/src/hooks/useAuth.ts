@@ -28,9 +28,12 @@ import * as Google from "expo-auth-session/providers/google";
 let GoogleSignin: any = null;
 function initGoogleSignin() {
   if (GoogleSignin) return GoogleSignin;
+  if (Constants.appOwnership === "expo") {
+    return null;
+  }
   try {
     const mod = require("@react-native-google-signin/google-signin");
-    GoogleSignin = mod.GoogleSignin;
+    GoogleSignin = mod?.GoogleSignin || mod?.default;
     if (GoogleSignin?.configure) {
       GoogleSignin.configure({
         webClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com",
