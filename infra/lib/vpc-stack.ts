@@ -20,7 +20,7 @@ export class VpcStack extends cdk.Stack {
     this.vpc = new ec2.Vpc(this, 'RslVpc', {
       vpcName: `rsl-vpc-${environmentName}`,
       maxAzs: 2,
-      natGateways: 1, // Single NAT Gateway to optimize cost while allowing outbound Internet egress
+      natGateways: 0, // Bypassed NAT Gateway standing fee ($1.08/day) - ECS task egresses via Public Subnet Internet Gateway
       subnetConfiguration: [
         {
           cidrMask: 24,

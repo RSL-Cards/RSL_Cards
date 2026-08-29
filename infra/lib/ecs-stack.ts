@@ -6,6 +6,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
@@ -27,11 +28,11 @@ export class EcsStack extends cdk.Stack {
 
     const { vpc, rdsSecurityGroup, redisSecurityGroup, ecrRepository, s3Bucket, environmentName } = props;
 
-    // 1. Create ECS Cluster inside VPC
+    // 1. Create ECS Cluster inside VPC (Container Insights disabled to eliminate custom metric fees)
     const cluster = new ecs.Cluster(this, 'RslEcsCluster', {
       vpc,
       clusterName: `rsl-cluster-${environmentName}`,
-      containerInsights: true,
+      containerInsights: false,
     });
 
     // 2. Create Security Group for ECS Fargate Tasks
@@ -148,15 +149,16 @@ export class EcsStack extends cdk.Stack {
     this.fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'RslFargateService', {
       cluster,
       serviceName: `rsl-backend-${environmentName}`,
-      cpu: 512, // 0.5 vCPU (right-sized for performance & cost optimization)
-      memoryLimitMiB: 1024, // 1.0 GB RAM
+      cpu: 256, // 0.25 vCPU (cost-optimized)
+      memoryLimitMiB: 512, // 0.5 GB RAM (cost-optimized)
       desiredCount: 1,
       publicLoadBalancer: true,
       protocol: elbv2.ApplicationProtocol.HTTPS,
       certificate,
       securityGroups: [taskSecurityGroup],
+      assignPublicIp: true,
       taskSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+        subnetType: ec2.SubnetType.PUBLIC,
       },
       taskImageOptions: {
         image: ecs.ContainerImage.fromEcrRepository(ecrRepository, 'latest'),
@@ -165,7 +167,10 @@ export class EcsStack extends cdk.Stack {
         taskRole,
         environment,
         secrets,
-        logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: 'rsl-backend' }),
+        logDriver: ecs.LogDrivers.awsLogs({
+          streamPrefix: 'rsl-backend',
+          logRetention: logs.RetentionDays.TWO_WEEKS,
+        }),
       },
     });
 
