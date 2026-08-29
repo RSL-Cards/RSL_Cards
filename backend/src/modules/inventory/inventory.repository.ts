@@ -166,7 +166,7 @@ export class InventoryRepository {
 
     const items = (result.rows as any[]).map((row) => {
       const maxActive = calculateMaxActiveListingPrice(row);
-      const computedMarketVal = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+      const computedMarketVal = parseFloat(row.current_market_value || "0");
       return {
         ...row,
         current_market_value: computedMarketVal,
@@ -198,8 +198,7 @@ export class InventoryRepository {
     for (const row of result.rows as any[]) {
       const qty = Number(row.quantity || 1);
       const cost = parseFloat(row.cost_basis || "0");
-      const maxActive = calculateMaxActiveListingPrice(row);
-      const market = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+      const market = parseFloat(row.current_market_value || "0");
 
       totalCards += qty;
       totalCost += cost * qty;
@@ -425,10 +424,18 @@ export class InventoryRepository {
     const allFilteredActiveComps = [...sortedEbayActive, ...sortedMyslabsActive]
       .sort((a: any, b: any) => extractCompPrice(a) - extractCompPrice(b));
 
-    const gradePrices = allFilteredSoldComps.map((s: any) => extractCompPrice(s)).filter((p) => p > 0);
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const soldLast90Days = allFilteredSoldComps.filter((s: any) => {
+      const d = s.endDate ?? s.sold_date ?? s.sold_at;
+      if (!d) return true;
+      return new Date(d).getTime() >= ninetyDaysAgo.getTime();
+    });
+
+    const targetSoldComps = soldLast90Days.length > 0 ? soldLast90Days : allFilteredSoldComps;
+    const gradePrices = targetSoldComps.map((s: any) => extractCompPrice(s)).filter((p: number) => p > 0);
     const medianCompPrice = gradePrices.length > 0 ? calculateMedianPrice(gradePrices) : 0;
 
-    const activePrices = allFilteredActiveComps.map((a: any) => extractCompPrice(a)).filter((p) => p > 0);
+    const activePrices = allFilteredActiveComps.map((a: any) => extractCompPrice(a)).filter((p: number) => p > 0);
     const gradeLowestActive = activePrices.length > 0 ? Math.min(...activePrices) : 0;
     const gradeHighestActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
 

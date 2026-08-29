@@ -51,7 +51,7 @@ export const initWorker = () => {
         try {
           // Query active daily logs count for system metrics report
           const activeLogsRes = await db.execute(sql`
-            SELECT COUNT(*)::int as active_count FROM daily_logs WHERE status = 'active'
+            SELECT COUNT(*)::int as active_count FROM daily_logs WHERE status = 'open'
           `);
           const activeDailyLogsCount = Number(activeLogsRes.rows[0]?.active_count || 0);
 
@@ -310,16 +310,18 @@ export const initWorker = () => {
               if (snapRes.rows.length > 0) {
                 const snap = snapRes.rows[0] as any;
                 const avgPrice = parseFloat(String(snap.avg_sold_price || "0"));
-                const lowestActive = parseFloat(String(snap.lowest_active || "0"));
                 const lastSold = parseFloat(String(snap.last_sold_price || "0"));
-                newMarketVal = lowestActive > 0 ? lowestActive : (avgPrice > 0 ? avgPrice : lastSold);
+                const lowestActive = parseFloat(String(snap.lowest_active || "0"));
+                newMarketVal = avgPrice > 0 ? avgPrice : (lastSold > 0 ? lastSold : lowestActive);
               }
+
+              const marketValNum = Number(newMarketVal.toFixed(2));
 
               await db.execute(sql`
                 UPDATE inventory
                 SET 
-                  current_market_value = CASE WHEN ${newMarketVal} > 0 THEN ${newMarketVal} ELSE current_market_value END,
-                  unrealized_gain = CASE WHEN ${newMarketVal} > 0 THEN (${newMarketVal} - cost_basis) * COALESCE(quantity, 1) ELSE unrealized_gain END,
+                  current_market_value = CASE WHEN ${marketValNum}::numeric > 0 THEN ${marketValNum}::numeric ELSE current_market_value END,
+                  unrealized_gain = CASE WHEN ${marketValNum}::numeric > 0 THEN (${marketValNum}::numeric - cost_basis) * COALESCE(quantity, 1) ELSE unrealized_gain END,
                   ebay_active_listings = CASE WHEN ${ebayActive.length > 0} THEN ${JSON.stringify(ebayActive)} ELSE ebay_active_listings END,
                   ebay_sales_completed = CASE WHEN ${ebaySold.length > 0} THEN ${JSON.stringify(ebaySold)} ELSE ebay_sales_completed END,
                   myslabs_active_listings = CASE WHEN ${myslabsActive.length > 0} THEN ${JSON.stringify(myslabsActive)} ELSE myslabs_active_listings END,

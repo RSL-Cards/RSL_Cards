@@ -401,7 +401,14 @@ export class ListingRepository {
     console.log(`[EBAY_SOLD_COMPS] 📊 Total Items Across All Pages: ${soldData.items?.length || 0}`);
     console.log(`======================================================\n`);
 
-    const prices = soldData.items
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const soldItems90d = (soldData.items || []).filter((i) => {
+      if (!i.endedAt) return true;
+      return new Date(i.endedAt).getTime() >= ninetyDaysAgo.getTime();
+    });
+    const targetSoldItems = soldItems90d.length > 0 ? soldItems90d : (soldData.items || []);
+
+    const prices = targetSoldItems
       .map((i) => parseFloat(i.soldPrice))
       .filter((p) => p > 0);
     const activePrices = (activeData.itemSummaries ?? [])
@@ -807,7 +814,15 @@ export class ListingRepository {
     console.log(`[MYSLABS_ACTIVE_SEARCH] 📦 Data Array (JSON):`, JSON.stringify(activeData.items || []));
     console.log(`======================================================\n`);
 
-    const prices = soldData.items.map((i) => i.price).filter((p) => p > 0);
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const soldItems90d = (soldData.items || []).filter((i: any) => {
+      const d = i.endedAt ?? i.sold_date ?? i.updated_date;
+      if (!d) return true;
+      return new Date(d).getTime() >= ninetyDaysAgo.getTime();
+    });
+    const targetSoldItems = soldItems90d.length > 0 ? soldItems90d : (soldData.items || []);
+
+    const prices = targetSoldItems.map((i) => i.price).filter((p) => p > 0);
     const activePrices = activeData.items.map((i) => i.price).filter((p) => p > 0);
 
     const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;

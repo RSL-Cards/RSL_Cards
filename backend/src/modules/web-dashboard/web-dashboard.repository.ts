@@ -380,8 +380,7 @@ export class WebDashboardRepository {
         if (p > 0) activePrices.push(p);
       }
 
-      const maxActive = activePrices.length > 0 ? Math.max(...activePrices) : 0;
-      const market = maxActive > 0 ? maxActive : parseFloat(row.current_market_value || "0");
+      const market = parseFloat(row.current_market_value || "0");
 
       totalCostBasis += cost * qty;
       totalMarketValue += market * qty;
