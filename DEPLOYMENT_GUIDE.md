@@ -43,7 +43,7 @@ cd apps/web-dashboard && npx tsc --noEmit
 
 ## 2. ⚡ Backend API & AWS ECS Deployment
 
-The backend service is hosted on **AWS ECS Cluster** (`rsl-cluster-prod` / `rsl-backend-prod`).
+The backend service is hosted on **AWS ECS Cluster** (`rsl-cluster-prod` / `rsl-backend-prod`) running serverless Fargate tasks right-sized at `0.25 vCPU` and `512 MB RAM` with direct Internet Gateway routing ($25/mo AWS cost).
 
 ### Option A: Automatic CI/CD Deployment (Recommended)
 Pushing to the `main` branch automatically triggers the GitHub Actions AWS deployment pipeline:

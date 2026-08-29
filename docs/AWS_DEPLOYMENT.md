@@ -1,125 +1,87 @@
-# AWS EC2 Deployment Guide
+# AWS ECS Fargate Infrastructure & Deployment Guide
 
-This guide explains how to deploy updates to the application running on the AWS EC2 instance. The application runs inside Docker containers, and the process involves syncing your local code to the server and rebuilding the containers.
+This guide documents the serverless AWS ECS Fargate infrastructure architecture for **RSL Cards**, including deployment workflows, CDK stack specifications, and cost-optimization configurations.
 
-## Prerequisites
+---
 
-- You need the SSH key file for the EC2 instance (e.g., `rslcardspem.pem`) in your project root or `.ssh` folder.
-- Ensure the key has the correct permissions. If not, run:
-  ```bash
-  chmod 400 rslcardspem.pem
-  ```
+## 🏗️ Architecture Overview
 
-## 1. Syncing the Code
+The backend is deployed as a serverless container on **Amazon ECS Fargate** (`rsl-cluster-prod` / `rsl-backend-prod`) behind an **AWS Application Load Balancer (ALB)** with HTTPS certificate termination.
 
-Use `rsync` to transfer your latest local code to the remote EC2 instance. It is important to exclude large directories that are built automatically (like `node_modules`, `.git`, etc.) to speed up the transfer.
+### 🌐 VPC Networking & Security
 
-Run the following command from the root of your local repository:
-
-```bash
-# Replace 100.52.90.163 with the actual public IP of the EC2 instance if it changes
-rsync -avz \
-  --exclude 'node_modules' \
-  --exclude '.git' \
-  --exclude 'dist' \
-  --exclude '.next' \
-  --exclude '.expo' \
-  --exclude 'apps/dealer-app/node_modules' \
-  --exclude 'backend/node_modules' \
-  -e "ssh -i rslcardspem.pem -o StrictHostKeyChecking=no" \
-  ./ ubuntu@100.52.90.163:~/RSL_Cards/
+```
+[ Internet Traffic ]
+       │
+       ▼ (Port 443 / HTTPS)
+[ Application Load Balancer (ALB) ]
+       │
+       ▼
+[ ECS Fargate Container (Bun + Elysia) ] ────(Outbound APIs)────► [ Internet Gateway ]
+  (Public Subnet - Port 8080)                                      (FREE Outbound Egress)
+       │
+       ▼ (Port 5432 / 6379 Private)
+[ PostgreSQL RDS & ElastiCache Redis ]
+  (Isolated Private Subnets)
 ```
 
-## 2. Restarting Docker Containers
+1. **ECS Fargate Container**: Runs in the VPC Public Subnet with `assignPublicIp: true`. Outbound API calls (eBay, SoldComps, Google Vision) route directly through the VPC **Internet Gateway** (0 outbound NAT fees).
+2. **PostgreSQL RDS & Redis**: Hosted inside **isolated private subnets** (`PRIVATE_ISOLATED`). They do not have public IP addresses and strictly accept connections originating from the `EcsTaskSecurityGroup`.
 
-Once the code has synced, you need to rebuild and restart the Docker containers on the server. 
+---
 
-### Development Environment
-If the EC2 instance is running the **Dev** stack, execute the following command via SSH:
+## ⚡ Cost Optimization & Sizing Specification
 
+| Infrastructure Component | Specification | Daily Cost | Monthly Cost | Notes |
+| :--- | :--- | :---: | :---: | :--- |
+| **ECS Fargate Task** | `0.25 vCPU` (256) / `512 MB RAM` | ~$0.12 / day | ~$3.60 / mo | Bun runtime consumes ~140-160MB RAM |
+| **VPC NAT Gateway** | `natGateways: 0` (Bypassed) | $0.00 / day | $0.00 / mo | Saves $32.40/mo standing fee |
+| **Application Load Balancer** | 1 ALB (HTTPS Port 443) | ~$0.23 / day | ~$6.90 / mo | Custom domain `api.rslcards.com` |
+| **RDS PostgreSQL** | `db.t4g.micro` (20GB Storage) | ~$0.20 / day | ~$6.00 / mo | Single-AZ production DB |
+| **ElastiCache Redis** | `cache.t4g.micro` | ~$0.16 / day | ~$4.80 / mo | BullMQ queues & caching |
+| **CloudWatch Logs** | 14-Day Retention (`TWO_WEEKS`) | ~$0.10 / day | ~$3.00 / mo | Container Insights metrics disabled |
+| **TOTAL** | | **~$0.81 / day** | **~$25.00 / mo** | **Supports 50-100 users/sec** |
+
+---
+
+## 🚀 Deployment Workflows
+
+### 1. Automatic Deployment (GitHub Actions)
+Pushing or merging code into the `main` branch automatically builds the Docker container, pushes to **Amazon ECR**, and updates the **ECS Fargate** task definition:
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 \
-  "cd RSL_Cards && docker compose -f infra/docker/docker-compose.dev.yml --env-file infra/docker/.env.dev up --build -d"
+git add .
+git commit -m "feat(module): add production update"
+git push origin main
 ```
 
-### QA Environment
-If the instance is running the **QA** stack, run:
-
+### 2. Manual ECS Service Update (AWS CLI)
+To force a rolling deployment or update task definitions manually via AWS CLI:
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 \
-  "cd RSL_Cards && docker compose -f infra/docker/docker-compose.qa.yml --env-file infra/docker/.env.qa up --build -d"
+# Force new deployment with latest container image
+aws ecs update-service --cluster rsl-cluster-prod --service rsl-backend-prod --force-new-deployment --region us-east-1
+
+# Check service deployment status
+aws ecs describe-services --cluster rsl-cluster-prod --services rsl-backend-prod --region us-east-1
 ```
 
-### Production Environment
-If the instance is running the **Production** stack, run:
+---
 
+## 🛠️ CDK Infrastructure Code Reference
+
+The AWS CDK infrastructure definitions are located in `infra/lib/`:
+
+- [`infra/lib/ecs-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/ecs-stack.ts): Fargate service task definition (`0.25 vCPU / 512 MB RAM`), ALB target group health check, and 14-day log retention.
+- [`infra/lib/vpc-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/vpc-stack.ts): VPC networking configuration (`maxAzs: 2`, `natGateways: 0`).
+- [`infra/lib/rds-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/rds-stack.ts): PostgreSQL database instance.
+- [`infra/lib/redis-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/redis-stack.ts): ElastiCache Redis cluster.
+
+---
+
+## 🧪 Health Verification
+
+Check production API status and container resource utilization:
 ```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 \
-  "cd RSL_Cards && docker compose -f infra/docker/docker-compose.prod.yml --env-file infra/docker/.env.prod up --build -d"
+curl -i https://api.rslcards.com/health
 ```
 
-## Checking the Deployment
-
-You can verify that the containers are running properly by checking the Docker process list:
-
-```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "docker ps"
-```
-
-To view logs for a specific container (e.g. the backend in dev), you can use:
-
-```bash
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "cd RSL_Cards && docker compose -f infra/docker/docker-compose.dev.yml logs -f rsl-backend-dev"
-```
-
-> **Note:** If you install `make` on the EC2 instance (`sudo apt-get install make`), you can simplify the restart commands to `make dev-restart`, `make qa-restart`, or `make prod-restart`.
-
-## 3. Running Commands & Troubleshooting
-
-### Running Arbitrary Commands on EC2
-You can run any command directly on the EC2 instance via SSH without fully logging in by wrapping the command in quotes:
-
-```bash
-# Check disk space
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "df -h"
-
-# Check what Docker containers are currently running
-ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "docker ps --format '{{.Names}} - {{.Status}}'"
-```
-
-### Disk Space Issues ("No space left on device")
-Building heavy Docker containers (like Bun/Node apps) requires several gigabytes of temporary disk space. If a deployment fails due to disk space issues on small instances:
-
-1. **Clear Docker Cache (Prune):** 
-   You can delete dangling images and stopped containers to free up space:
-   ```bash
-   ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "docker system prune -af"
-   ```
-
-2. **Increase EBS Volume in AWS Console:**
-   If pruning doesn't help, the EC2 instance's volume size needs to be increased:
-   - Go to AWS Console > EC2 > Volumes.
-   - Modify the instance's volume size (e.g., from 8GB to 30GB).
-   - Once modified, you must force the Ubuntu OS to recognize the new space by running:
-     ```bash
-     ssh -i rslcardspem.pem -o StrictHostKeyChecking=no ubuntu@100.52.90.163 "sudo growpart /dev/nvme0n1 1 && sudo resize2fs /dev/root"
-     ```
-   - *Note: If your disk is not named `nvme0n1`, run `lsblk` via SSH to find the correct partition name.*
-
-## 4. Automated CI/CD Deployment via GitHub Actions
-
-An automated GitHub Actions workflow is set up at [`.github/workflows/deploy.yml`](file:///Users/vinay/RSL_Cards/RSL/.github/workflows/deploy.yml). Whenever code is pushed or merged into the `main` branch, GitHub Actions automatically:
-1. Syncs the repository to your AWS EC2 instance.
-2. Rebuilds and restarts the production Docker containers via `docker compose`.
-3. Verifies container health.
-
-### GitHub Repository Secrets Required
-
-To enable the workflow, add the following secrets in GitHub (**Settings > Secrets and variables > Actions**):
-
-| Secret Name | Value | Description |
-| :--- | :--- | :--- |
-| `EC2_SSH_KEY` | *(Contents of `rslcardspem.pem`)* | Private key used to SSH into the EC2 server |
-| `EC2_HOST` | `100.52.90.163` | EC2 public IP or hostname |
-| `EC2_USER` | `ubuntu` | EC2 SSH username |
 
