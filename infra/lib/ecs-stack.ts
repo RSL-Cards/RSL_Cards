@@ -148,8 +148,8 @@ export class EcsStack extends cdk.Stack {
     this.fargateService = new ecsPatterns.ApplicationLoadBalancedFargateService(this, 'RslFargateService', {
       cluster,
       serviceName: `rsl-backend-${environmentName}`,
-      cpu: 1024, // 1 vCPU
-      memoryLimitMiB: 2048, // 2 GB RAM
+      cpu: 512, // 0.5 vCPU (right-sized for performance & cost optimization)
+      memoryLimitMiB: 1024, // 1.0 GB RAM
       desiredCount: 1,
       publicLoadBalancer: true,
       protocol: elbv2.ApplicationProtocol.HTTPS,
