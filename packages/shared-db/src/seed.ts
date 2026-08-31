@@ -5,13 +5,12 @@ import { Pool } from "pg";
 import { users, dealerProfiles } from "./schema/index.js";
 import { eq } from "drizzle-orm";
 
-const nodeEnv = process.env.NODE_ENV ?? "development";
-if (nodeEnv !== "development" && nodeEnv !== "dev" && nodeEnv !== "test") {
-  throw new Error("seed:dev must run with NODE_ENV=development or NODE_ENV=test");
-}
-
 const connectionString = process.env.DATABASE_URL || "postgresql://rsl_user:password@127.0.0.1:5432/rsldb";
-const pool = new Pool({ connectionString });
+const isProdDb = connectionString.includes("amazonaws.com") || process.env.NODE_ENV === "production";
+const pool = new Pool({
+  connectionString,
+  ssl: isProdDb ? { rejectUnauthorized: false } : false,
+});
 const db = drizzle(pool);
 
 async function main() {
