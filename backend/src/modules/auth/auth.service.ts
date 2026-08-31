@@ -232,11 +232,12 @@ export class AuthService {
     ipAddress?: string | null,
     deviceInfo?: string | null,
   ) {
+    const trimmedEmail = (body.email || '').toLowerCase().trim();
     if (body.otp) {
-      return this.loginWithOtp(body.email, body.otp, ipAddress, deviceInfo);
+      return this.loginWithOtp(trimmedEmail, body.otp, ipAddress, deviceInfo);
     }
 
-    const user = await this.repository.getUserByEmail(body.email);
+    const user = await this.repository.getUserByEmail(trimmedEmail);
     if (!user || !user.passwordHash) {
       throw AuthError.invalidCredentials();
     }

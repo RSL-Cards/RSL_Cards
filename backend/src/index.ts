@@ -49,9 +49,9 @@ function getApiTaskName(method: string, path: string) {
 
 const app = new Elysia()
   // @ts-ignore
-  .use(cors())
+  .use(cors() as any)
   // @ts-ignore
-  .use(swagger())
+  .use(swagger() as any)
   .use(errorMiddleware)
   // Advanced HTTP Request & Response Observability & Trace Logging Middleware
   .onRequest((ctx: any) => {

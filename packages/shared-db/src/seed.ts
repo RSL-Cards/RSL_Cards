@@ -15,6 +15,8 @@ const pool = new Pool({ connectionString });
 const db = drizzle(pool);
 
 async function main() {
+  const passwordHash = bcrypt.hashSync("Test1234!", 10);
+
   // Check if superadmin user already exists
   const existingSuperAdmin = await db
     .select({ id: users.id })
@@ -22,32 +24,51 @@ async function main() {
     .where(eq(users.email, "superadmin@rsl.test"))
     .limit(1);
 
+  let superAdminId: string;
+
   if (existingSuperAdmin.length > 0) {
-    console.log("[SEED] Super-admin user (superadmin@rsl.test) already exists. Skipping seed execution.");
-    await pool.end();
-    return;
+    superAdminId = existingSuperAdmin[0].id;
+    await db
+      .update(users)
+      .set({
+        passwordHash,
+        role: "super-admin" as any,
+        isEmailVerified: true,
+        isActive: true,
+      })
+      .where(eq(users.id, superAdminId));
+    console.log("[SEED] Updated existing super-admin user (superadmin@rsl.test / Test1234!).");
+  } else {
+    const [superAdmin] = await db
+      .insert(users)
+      .values({
+        email: "superadmin@rsl.test",
+        passwordHash,
+        role: "super-admin" as any,
+        isEmailVerified: true,
+        isActive: true,
+      })
+      .returning({ id: users.id });
+
+    superAdminId = superAdmin.id;
+    console.log("[SEED] Created new super-admin user (superadmin@rsl.test / Test1234!).");
   }
 
-  // Create super-admin if user does not exist
-  const passwordHash = bcrypt.hashSync("Test1234!", 10);
-  const [superAdmin] = await db
-    .insert(users)
-    .values({
-      email: "superadmin@rsl.test",
-      passwordHash,
-      role: "super-admin" as any,
-      isEmailVerified: true,
-      isActive: true,
-    })
-    .returning({ id: users.id });
-
   // Ensure dealerProfile exists for Super Admin
-  await db.insert(dealerProfiles).values({
-    userId: superAdmin.id,
-    displayName: "Super Admin",
-  });
+  const existingProfile = await db
+    .select({ id: dealerProfiles.id })
+    .from(dealerProfiles)
+    .where(eq(dealerProfiles.userId, superAdminId))
+    .limit(1);
 
-  console.log("[SEED] Created super-admin user (superadmin@rsl.test / Test1234!).");
+  if (existingProfile.length === 0) {
+    await db.insert(dealerProfiles).values({
+      userId: superAdminId,
+      displayName: "Super Admin",
+    });
+  }
+
+  console.log("[SEED] Super-Admin credentials ready (superadmin@rsl.test / Test1234!).");
   await pool.end();
 }
 

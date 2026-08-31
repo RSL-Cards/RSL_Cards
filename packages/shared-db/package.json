@@ -16,7 +16,7 @@
     "migrate:qa": "bun x drizzle-kit migrate --config drizzle.qa.config.ts",
     "migrate:prod": "bun x drizzle-kit migrate --config drizzle.prod.config.ts",
     "migrate:test": "bun x drizzle-kit migrate --config drizzle.test.config.ts",
-    "seed:dev": "tsx src/seed.ts",
+    "seed:dev": "bun src/seed.ts",
     "studio": "bun x drizzle-kit studio --config drizzle.dev.config.ts"
   },
   "dependencies": {

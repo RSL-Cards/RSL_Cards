@@ -1,12 +1,12 @@
-const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080'
+const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://api.rslcards.com'
 
-// If running in a browser on an HTTPS page (like Vercel) and the target URL is plain HTTP (insecure),
-// automatically route through Next.js /api/proxy rewrite to avoid browser Mixed Content blocking!
+// API Base URL config:
+// 1. If running locally on localhost/127.0.0.1, target local backend http://localhost:8080.
+// 2. In production environments (e.g. Vercel, AWS), target configured URL (https://api.rslcards.com).
 export const API_BASE_URL =
   typeof window !== 'undefined' &&
-    window.location.protocol === 'https:' &&
-    configuredUrl.startsWith('http://')
-    ? '/api/proxy'
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8080'
     : configuredUrl
 
 export const ENDPOINTS = {
