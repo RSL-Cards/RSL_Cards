@@ -10,9 +10,9 @@
     "test:docker": "docker compose -f ../infra/docker/docker-compose.dev.yml run --rm backend-test",
     "lint": "bun x eslint .",
     "type-check": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate --config drizzle.dev.config.ts",
-    "db:migrate": "drizzle-kit migrate --config drizzle.dev.config.ts",
-    "db:seed": "bun src/db/seed.ts"
+    "db:generate": "bun run --cwd ../packages/shared-db generate:dev",
+    "db:migrate": "bun run --cwd ../packages/shared-db migrate:dev",
+    "db:seed": "bun run --cwd ../packages/shared-db seed:dev"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",

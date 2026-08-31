@@ -126,9 +126,10 @@ export class AuthService {
         role: newUser.role,
         displayName,
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          newUser.role === "admin" ||
+          newUser.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
@@ -215,9 +216,10 @@ export class AuthService {
         role: user.role,
         displayName: profile?.displayName ?? user.email.split("@")[0],
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          user.role === "admin" ||
+          user.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
@@ -278,9 +280,10 @@ export class AuthService {
         role: user.role,
         displayName: profile?.displayName ?? user.email.split("@")[0],
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          user.role === "admin" ||
+          user.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
@@ -351,9 +354,10 @@ export class AuthService {
         role: user.role,
         displayName: profile?.displayName ?? user.email.split("@")[0],
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          user.role === "admin" ||
+          user.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
@@ -563,9 +567,10 @@ export class AuthService {
         isNewUser,
         displayName: resolvedDisplayName,
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          user.role === "admin" ||
+          user.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },
@@ -648,9 +653,10 @@ export class AuthService {
         isNewUser,
         displayName: resolvedDisplayName,
         photoUrl: profile?.photoUrl ?? null,
-        onboardingCompleted: !!(
-          profile?.sports?.length && profile?.sellChannels?.length
-        ),
+        onboardingCompleted:
+          user.role === "admin" ||
+          user.role === "super-admin" ||
+          !!(profile?.sports?.length && profile?.sellChannels?.length),
         sports: (profile?.sports as string[]) ?? [],
         sellChannels: (profile?.sellChannels as string[]) ?? [],
       },

@@ -37,15 +37,11 @@ export const ENDPOINTS = {
     me: "/v1/users/me",
     onboarding: "/v1/users/me/onboarding",
     avatar: "/v1/users/me/avatar",
-
     paymentMethods: "/v1/users/me/payment-methods",
-
     connectedPlatforms: "/v1/users/me/connected-platforms",
     customers: '/v1/users/me/customers',
-
     ebayCallback: '/v1/users/ebay/callback',
-    notificationPreferences:
-      "/v1/users/me/notification-preferences",
+    notificationPreferences: "/v1/users/me/notification-preferences",
   },
   webDashboard: {
     metrics: '/v1/web-dashboard/metrics',
@@ -64,9 +60,29 @@ export const ENDPOINTS = {
     portfolioSnapshot: '/v1/web-dashboard/portfolio-snapshot',
     transactionsPassbook: '/v1/web-dashboard/transactions/passbook',
   },
+  transactions: {
+    base: '/v1/transactions',
+    stats: '/v1/transactions/stats',
+  },
+  listings: {
+    base: '/v1/listings',
+  },
+  customers: {
+    base: '/v1/customers',
+    favorite: (id: string) => `/v1/customers/${id}/favorite`,
+  },
+  settings: {
+    profile: '/v1/settings/profile',
+    platforms: '/v1/settings/platforms',
+    onboarding: '/v1/settings/onboarding',
+    paymentMethods: '/v1/settings/payment-methods',
+    ebaysync: '/v1/settings/ebay-sync',
+  },
   dailyLogs: {
     active: '/v1/daily-logs/active',
     create: '/v1/daily-logs/',
+    base: '/v1/daily-logs',
+    log: (id: string) => `/v1/daily-logs/${id}`,
     close: (id: string) => `/v1/daily-logs/${id}/close`,
     transactions: (id: string) => `/v1/daily-logs/${id}/transactions`,
   },
@@ -74,4 +90,19 @@ export const ENDPOINTS = {
     expenses: '/v1/analytics/expenses',
     expense: (id: string) => `/v1/analytics/expenses/${id}`,
   },
+  superAdmin: {
+    dashboard: '/v1/super-admin/dashboard',
+    usersMetrics: '/v1/super-admin/users/metrics',
+    usersList: (page = 1, limit = 10, search = '') =>
+      `/v1/super-admin/users/list?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+    cardsDashboard: '/v1/super-admin/cards/dashboard',
+    cardsInventory: (page = 1, limit = 10, search = '') =>
+      `/v1/super-admin/cards/inventory?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+    users: '/v1/super-admin/users',
+    dealers: '/v1/super-admin/dealers',
+    cards: '/v1/super-admin/cards',
+    settings: '/v1/super-admin/settings',
+  },
 } as const
+
+export const SUPER_ADMIN_ENDPOINTS = ENDPOINTS.superAdmin

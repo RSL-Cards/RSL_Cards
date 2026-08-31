@@ -14,7 +14,7 @@ function getAuth(request: Request) {
 }
 
 export const requireDealer = new Elysia({ name: "require-dealer" })
-  .onBeforeHandle(({ request }) => {
+  .onBeforeHandle({ as: "scoped" }, ({ request }) => {
     const { role } = getAuth(request);
     if (role !== "dealer") {
       throw new ForbiddenError("Forbidden: Dealer access required");
@@ -22,7 +22,7 @@ export const requireDealer = new Elysia({ name: "require-dealer" })
   });
 
 export const requireConsumer = new Elysia({ name: "require-consumer" })
-  .onBeforeHandle(({ request }) => {
+  .onBeforeHandle({ as: "scoped" }, ({ request }) => {
     const { role } = getAuth(request);
     if (role !== "consumer") {
       throw new ForbiddenError("Forbidden: Consumer access required");
@@ -30,9 +30,17 @@ export const requireConsumer = new Elysia({ name: "require-consumer" })
   });
 
 export const requireAdmin = new Elysia({ name: "require-admin" })
-  .onBeforeHandle(({ request }) => {
+  .onBeforeHandle({ as: "scoped" }, ({ request }) => {
     const { role } = getAuth(request);
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "super-admin") {
       throw new ForbiddenError("Forbidden: Admin access required");
+    }
+  });
+
+export const requireSuperAdmin = new Elysia({ name: "require-super-admin" })
+  .onBeforeHandle({ as: "scoped" }, ({ request }) => {
+    const { role } = getAuth(request);
+    if (role !== "super-admin") {
+      throw new ForbiddenError("Forbidden: Super-admin access required");
     }
   });

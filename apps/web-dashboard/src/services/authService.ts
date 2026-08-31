@@ -4,7 +4,7 @@ import { apiClient } from '@/lib/axios'
 export interface AuthUser {
   id: string
   email: string
-  role: 'dealer' | 'consumer'
+  role: 'dealer' | 'consumer' | 'admin' | 'super-admin'
   displayName: string
   onboardingCompleted: boolean
   sports?: string[]
@@ -40,7 +40,7 @@ export interface LoginWithOtpPayload {
 export interface RegisterPayload {
   email: string
   password: string
-  role?: 'dealer' | 'consumer'
+  role?: 'dealer' | 'consumer' | 'admin' | 'super-admin'
   otp?: string
 }
 
@@ -65,7 +65,7 @@ export interface ResetPasswordPayload {
 
 export interface OAuthPayload {
   idToken: string
-  role?: 'dealer' | 'consumer'
+  role?: 'dealer' | 'consumer' | 'admin' | 'super-admin'
 }
 
 export interface AuthMessageResponse {

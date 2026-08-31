@@ -32,7 +32,9 @@ export default function Shell({ children }: ShellProps) {
     if (isHydrated) {
       if (!isAuthenticated) {
         router.replace('/login')
-      } else if (user && !user.onboardingCompleted) {
+      } else if (user && user.role === 'super-admin') {
+        router.replace('/super-admin/dashboard')
+      } else if (user && user.role !== 'admin' && !user.onboardingCompleted) {
         router.replace('/onboarding')
       }
     }

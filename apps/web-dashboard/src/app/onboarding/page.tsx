@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, ChevronRight, Loader2 } from 'lucide-react'
 import { settingsService } from '@/services/settingServices'
@@ -26,7 +26,13 @@ const PAYMENT_TYPES = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { refreshAuth } = useAuthStore()
+  const { refreshAuth, user } = useAuthStore()
+
+  useEffect(() => {
+    if (user?.role === 'super-admin') {
+      router.replace('/super-admin/dashboard')
+    }
+  }, [user, router])
   
   const [step, setStep] = useState(1)
   const [selectedSports, setSelectedSports] = useState<string[]>([])

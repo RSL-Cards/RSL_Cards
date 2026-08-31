@@ -8,7 +8,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["dealer", "consumer", "admin"]);
+export const roleEnum = pgEnum("role", ["dealer", "consumer", "admin", "super-admin"]);
 export const oauthProviderEnum = pgEnum("oauth_provider", ["google", "apple"]);
 
 export const users = pgTable("users", {

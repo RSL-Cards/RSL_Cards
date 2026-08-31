@@ -176,6 +176,14 @@ jobs:
             -----END PUBLIC KEY-----
         continue-on-error: true
 
+      - name: Seed database (If super-admin does not exist)
+        run: bun run db:seed
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://rsl_user:password@localhost:5432/rsldb_test
+        continue-on-error: true
+
       - name: Run tests
         run: bun test --sequence
         working-directory: backend

@@ -13,7 +13,7 @@ export type UserRow = {
   id: string;
   email: string;
   passwordHash: string | null;
-  role: "dealer" | "consumer" | "admin";
+  role: "dealer" | "consumer" | "admin" | "super-admin";
   oauthProvider?: "google" | "apple" | null;
   oauthId?: string | null;
 };

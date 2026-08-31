@@ -113,7 +113,9 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
   useEffect(() => {
     if (isHydrated && isAuthenticated && user) {
-      if (!user.onboardingCompleted) {
+      if (user.role === 'super-admin') {
+        router.replace('/super-admin/dashboard')
+      } else if (!user.onboardingCompleted) {
         router.replace('/onboarding')
       } else {
         router.replace('/')

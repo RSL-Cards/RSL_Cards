@@ -16,6 +16,7 @@ import { aiNarrativeModule } from "./modules/ai-narrative/index.js";
 import { notificationModule } from "./modules/notification/index.js";
 import { analyticsModule } from "./modules/analytics/index.js";
 import { adminModule } from "./modules/admin/index.js";
+import { superAdminModule } from "./modules/super-admin/index.js";
 import { listingModule } from "./modules/listing/index.js";
 import { assistantModule } from "./modules/assistant/index.js";
 import { contactModule, supportModule } from "./modules/contact/index.js";
@@ -165,6 +166,7 @@ const app = new Elysia()
   .use(notificationModule)
   .use(analyticsModule)
   .use(adminModule)
+  .use(superAdminModule)
   .use(listingModule)
   .use(assistantModule)
   // Handle root-level eBay callback (from eBay developer portal RuName)
