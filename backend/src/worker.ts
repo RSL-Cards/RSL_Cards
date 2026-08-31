@@ -55,8 +55,8 @@ export const initWorker = () => {
           `);
           const activeDailyLogsCount = Number(activeLogsRes.rows[0]?.active_count || 0);
 
-          // Fetch all unique card variants in database catalog along with stored search_string
-          const variantsResult = await db.execute(sql`
+          // Fetch all active inventory card variants & specific grades that exist in dealer inventory
+          const invResult = await db.execute(sql`
             SELECT DISTINCT
               cv.id as variant_id,
               c.year,
@@ -64,60 +64,34 @@ export const initWorker = () => {
               c.card_number,
               p.name as player_name,
               cv.name as variant_name,
-              cv.search_string
-            FROM card_variants cv
+              cv.search_string,
+              i.grade_key,
+              i.grade_company,
+              i.grade_value
+            FROM inventory i
+            JOIN card_variants cv ON i.variant_id = cv.id
             JOIN cards c ON cv.card_id = c.id
             JOIN players p ON c.player_id = p.id
-            WHERE cv.id IS NOT NULL
+            WHERE i.listing_status IN ('unlisted', 'listed')
+              AND cv.id IS NOT NULL
           `);
-          const variants = variantsResult.rows as any[];
-          logger.info(`[WORKER] Found ${variants.length} total card variants in database catalog.`);
-
-          // Standard grades matching the Buy Flow (RAW, 10, 9.5, 9, 8, 7, 6, 5)
-          const STANDARD_GRADES = ["RAW", "10", "9.5", "9", "8", "7", "6", "5"];
-
-          // Fetch all existing grade keys in inventory per variant to ensure custom grades are included
-          const invGradesResult = await db.execute(sql`
-            SELECT DISTINCT variant_id, grade_key, grade_company, grade_value
-            FROM inventory
-            WHERE variant_id IS NOT NULL
-          `);
-          const invGradesMap = new Map<string, Array<{ grade_key: string; grade_company?: string; grade_value?: string }>>();
-          for (const row of invGradesResult.rows as any[]) {
-            if (!invGradesMap.has(row.variant_id)) {
-              invGradesMap.set(row.variant_id, []);
-            }
-            invGradesMap.get(row.variant_id)!.push({
-              grade_key: row.grade_key,
-              grade_company: row.grade_company,
-              grade_value: row.grade_value,
-            });
-          }
+          const itemsToEnqueue = (invResult.rows as any[]).map((row) => ({
+            variant_id: row.variant_id,
+            year: row.year,
+            set_name: row.set_name,
+            card_number: row.card_number,
+            player_name: row.player_name,
+            variant_name: row.variant_name,
+            search_string: row.search_string,
+            grade_key: row.grade_key || "RAW",
+            grade_company: row.grade_company || (row.grade_key && row.grade_key !== "RAW" ? "PSA" : null),
+            grade_value: row.grade_value || (row.grade_key && row.grade_key !== "RAW" ? row.grade_key : null),
+          }));
 
           const batchId = `comp_batch_${Date.now()}`;
           const queue = bullMqAdapter.getQueue();
-          let totalEnqueued = 0;
-
-          const itemsToEnqueue: any[] = [];
-          for (const variant of variants) {
-            const customGrades = invGradesMap.get(variant.variant_id) || [];
-            const gradeSet = new Set<string>(STANDARD_GRADES);
-            for (const cg of customGrades) {
-              if (cg.grade_key) gradeSet.add(cg.grade_key);
-            }
-
-            for (const gradeKey of gradeSet) {
-              const matchedCustom = customGrades.find(cg => cg.grade_key === gradeKey);
-              itemsToEnqueue.push({
-                ...variant,
-                grade_key: gradeKey,
-                grade_company: matchedCustom?.grade_company || (gradeKey === "RAW" ? null : "PSA"),
-                grade_value: matchedCustom?.grade_value || (gradeKey === "RAW" ? null : gradeKey),
-              });
-            }
-          }
-
-          totalEnqueued = itemsToEnqueue.length;
+          const totalEnqueued = itemsToEnqueue.length;
+          logger.info(`[WORKER] Found ${totalEnqueued} active inventory card/grade items to refresh.`);
 
           // Initialize Batch Metadata in Redis using Atomic Hash
           const redis = redisAdapter.getClient();
