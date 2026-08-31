@@ -16,7 +16,7 @@ function getAuth(request: Request) {
 export const requireDealer = new Elysia({ name: "require-dealer" })
   .onBeforeHandle({ as: "scoped" }, ({ request }) => {
     const { role } = getAuth(request);
-    if (role !== "dealer") {
+    if (role !== "dealer" && role !== "admin" && role !== "super-admin") {
       throw new ForbiddenError("Forbidden: Dealer access required");
     }
   });
@@ -24,7 +24,7 @@ export const requireDealer = new Elysia({ name: "require-dealer" })
 export const requireConsumer = new Elysia({ name: "require-consumer" })
   .onBeforeHandle({ as: "scoped" }, ({ request }) => {
     const { role } = getAuth(request);
-    if (role !== "consumer") {
+    if (role !== "consumer" && role !== "admin" && role !== "super-admin") {
       throw new ForbiddenError("Forbidden: Consumer access required");
     }
   });
