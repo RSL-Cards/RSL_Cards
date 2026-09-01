@@ -99,13 +99,13 @@ export class BullMqAdapter {
         {},
         {
           repeat: {
-            every: 12 * 60 * 60 * 1000, // 12 hours in milliseconds
+            pattern: "0 0 * * *", // Every night at 12:00 AM (Midnight)
           },
           removeOnComplete: 50,
           removeOnFail: 100,
         }
       );
-      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}' repeatable job to run every 12 hours`);
+      logger.info(`🕒 Scheduled '${BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS}' repeatable job to run every night at 12:00 AM Midnight`);
 
       await this.queue.add(
         BULLMQ_CONFIG.JOBS.CHECK_INVENTORY_AGING,
