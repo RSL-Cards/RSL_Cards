@@ -49,11 +49,16 @@ export const initWorker = () => {
       if (job.name === BULLMQ_CONFIG.JOBS.REFRESH_ALL_COMPS) {
         logger.info(`[WORKER] Running refresh_all_comps job (ID: ${job.id})`);
         try {
-          // Query active daily logs count for system metrics report
+          // Query active daily logs count and total active inventory cards for system metrics report
           const activeLogsRes = await db.execute(sql`
             SELECT COUNT(*)::int as active_count FROM daily_logs WHERE status = 'open'
           `);
           const activeDailyLogsCount = Number(activeLogsRes.rows[0]?.active_count || 0);
+
+          const totalInvRes = await db.execute(sql`
+            SELECT COUNT(*)::int as total_count FROM inventory WHERE listing_status IN ('unlisted', 'listed')
+          `);
+          const totalInventoryCardsCount = Number(totalInvRes.rows[0]?.total_count || 0);
 
           // Fetch all active inventory card variants & specific grades that exist in dealer inventory
           const invResult = await db.execute(sql`
@@ -91,7 +96,7 @@ export const initWorker = () => {
           const batchId = `comp_batch_${Date.now()}`;
           const queue = bullMqAdapter.getQueue();
           const totalEnqueued = itemsToEnqueue.length;
-          logger.info(`[WORKER] Found ${totalEnqueued} active inventory card/grade items to refresh.`);
+          logger.info(`[WORKER] Found ${totalEnqueued} active inventory card/grade items to refresh across ${totalInventoryCardsCount} total inventory cards.`);
 
           // Initialize Batch Metadata in Redis using Atomic Hash
           const redis = redisAdapter.getClient();
@@ -100,6 +105,7 @@ export const initWorker = () => {
 
           await redis.hset(hashKey, {
             batchId,
+            totalInventoryCardsCount: String(totalInventoryCardsCount),
             totalEnqueued: String(totalEnqueued),
             processedCount: "0",
             successCount: "0",
@@ -385,6 +391,7 @@ export const initWorker = () => {
                     const { emailService } = await import("./modules/email/index.js");
                     await emailService.sendCompRefreshReport(targetEmail, {
                       batchId,
+                      totalInventoryCardsCount: parseInt(hashData.totalInventoryCardsCount || "0", 10),
                       totalEnqueued: parseInt(hashData.totalEnqueued || "0", 10),
                       processedCount: parseInt(hashData.processedCount || "0", 10),
                       successCount: parseInt(hashData.successCount || "0", 10),

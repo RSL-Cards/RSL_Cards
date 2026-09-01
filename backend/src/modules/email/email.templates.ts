@@ -48,6 +48,7 @@ type NotificationAlertInput = {
 
 export type CompRefreshReportInput = {
   batchId: string;
+  totalInventoryCardsCount?: number;
   totalEnqueued: number;
   processedCount: number;
   successCount: number;
@@ -293,25 +294,27 @@ export const emailTemplates = {
   },
 
   compRefreshReport(input: CompRefreshReportInput): EmailTemplateResult {
-    const subject = `📊 RSL Cards Admin Report: REFRESH_ALL_COMPS Completed (${input.successCount}/${input.totalEnqueued} Cards Success)`;
+    const totalInvCards = input.totalInventoryCardsCount ?? input.totalEnqueued;
+    const subject = `📊 RSL Cards Comp Refresh Report: ${input.successCount}/${input.totalEnqueued} Variants Updated (${totalInvCards} Inventory Cards)`;
 
-    const text = `RSL Cards Admin Report - Comp Refresh Completed\n
+    const text = `RSL Cards Admin Report - Comp Refresh Execution
 Batch ID: ${input.batchId}
 Start Time: ${input.startTime}
 End Time: ${input.endTime}
 Duration: ${input.durationSeconds} seconds
 
 SUMMARY METRICS:
-- Total Cards Checked: ${input.totalEnqueued}
-- Successful Persistence: ${input.successCount}
+- Total Inventory Cards in DB: ${totalInvCards}
+- Unique Card/Grade Variations Evaluated: ${input.totalEnqueued}
+- Successful Refreshes: ${input.successCount}
 - Failed / Errors: ${input.failedCount}
 - Total Sold Listings Stored: ${input.totalSoldStored}
 - Total Active Listings Stored: ${input.totalActiveStored}
 - System Active Daily Logs: ${input.activeDailyLogsCount}
 ${
   input.failedItems && input.failedItems.length > 0
-    ? `\nFAILED ITEMS:\n${input.failedItems.map((f: { itemName: string; gradeKey: string; error: string }) => `- ${f.itemName} (${f.gradeKey}): ${f.error}`).join("\n")}`
-    : "\nAll card comps refreshed successfully with 0 errors!"
+    ? `\nFAILED / ERROR ITEMS (${input.failedItems.length}):\n${input.failedItems.map((f: { itemName: string; gradeKey: string; error: string }) => `- ${f.itemName} (${f.gradeKey}): ${f.error}`).join("\n")}`
+    : "\n🎉 All card comps refreshed successfully with 0 errors!"
 }
 
 Thanks,
@@ -319,7 +322,7 @@ RSL Cards System Worker`;
 
     const html = baseTemplate(
       "RSL Cards - Comp Refresh & System Report",
-      `Batch ${input.batchId} completed: ${input.successCount}/${input.totalEnqueued} cards updated`,
+      `Batch ${input.batchId} completed: ${input.successCount}/${input.totalEnqueued} variants updated across ${totalInvCards} active inventory cards`,
       `
         <div style="background:#0F172A;border-radius:12px;padding:20px;color:#F8FAFC;margin-bottom:24px;">
           <h2 style="margin:0 0 8px;font-size:20px;color:#38BDF8;">📊 Comp Refresh & System Execution Report</h2>
@@ -329,26 +332,43 @@ RSL Cards System Worker`;
           </p>
         </div>
 
-        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:24px;">
+        <!-- 3-Column Key Metrics Banner -->
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
           <tr>
-            <td width="50%" style="padding-right:8px;vertical-align:top;">
-              <div style="background:#F1F5F9;border-radius:10px;padding:16px;border:1px solid #E2E8F0;">
-                <div style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;">Cards Evaluated</div>
-                <div style="font-size:26px;font-weight:900;color:#0F172A;margin-top:4px;">${input.totalEnqueued}</div>
-                <div style="font-size:12px;color:#16A34A;margin-top:4px;">✅ ${input.successCount} Successful</div>
-                ${input.failedCount > 0 ? `<div style="font-size:12px;color:#DC2626;margin-top:2px;">❌ ${input.failedCount} Failed</div>` : ''}
+            <td width="33.3%" style="padding-right:6px;vertical-align:top;">
+              <div style="background:#F1F5F9;border-radius:10px;padding:14px;border:1px solid #E2E8F0;">
+                <div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Inventory Cards</div>
+                <div style="font-size:24px;font-weight:900;color:#0F172A;margin-top:2px;">${totalInvCards}</div>
+                <div style="font-size:11px;color:#64748B;margin-top:2px;">Active in DB</div>
               </div>
             </td>
-            <td width="50%" style="padding-left:8px;vertical-align:top;">
-              <div style="background:#F1F5F9;border-radius:10px;padding:16px;border:1px solid #E2E8F0;">
-                <div style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;">Data Stored in DB</div>
-                <div style="font-size:26px;font-weight:900;color:#2563EB;margin-top:4px;">${(input.totalSoldStored + input.totalActiveStored).toLocaleString()}</div>
-                <div style="font-size:12px;color:#475569;margin-top:4px;">🛒 Sold Listings: <strong>${input.totalSoldStored.toLocaleString()}</strong></div>
-                <div style="font-size:12px;color:#475569;margin-top:2px;">🏷️ Active Listings: <strong>${input.totalActiveStored.toLocaleString()}</strong></div>
+            <td width="33.3%" style="padding-left:3px;padding-right:3px;vertical-align:top;">
+              <div style="background:#F1F5F9;border-radius:10px;padding:14px;border:1px solid #E2E8F0;">
+                <div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;">Unique Variants</div>
+                <div style="font-size:24px;font-weight:900;color:#2563EB;margin-top:2px;">${input.totalEnqueued}</div>
+                <div style="font-size:11px;color:#16A34A;margin-top:2px;">✅ ${input.successCount} Succeeded</div>
+              </div>
+            </td>
+            <td width="33.3%" style="padding-left:6px;vertical-align:top;">
+              <div style="background:${input.failedCount > 0 ? '#FEF2F2' : '#F0FDF4'};border-radius:10px;padding:14px;border:1px solid ${input.failedCount > 0 ? '#FECACA' : '#BBF7D0'};">
+                <div style="font-size:11px;color:${input.failedCount > 0 ? '#991B1B' : '#166534'};font-weight:700;text-transform:uppercase;">Errors Gotten</div>
+                <div style="font-size:24px;font-weight:900;color:${input.failedCount > 0 ? '#DC2626' : '#16A34A'};margin-top:2px;">${input.failedCount}</div>
+                <div style="font-size:11px;color:${input.failedCount > 0 ? '#DC2626' : '#16A34A'};margin-top:2px;">${input.failedCount > 0 ? '❌ Action Required' : '🎉 Zero Errors'}</div>
               </div>
             </td>
           </tr>
         </table>
+
+        <!-- Listings Stored Card -->
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:20px;">
+          <div style="font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px;">💾 Data Stored in Database</div>
+          <div style="font-size:22px;font-weight:800;color:#1E293B;">${(input.totalSoldStored + input.totalActiveStored).toLocaleString()} Total Listings</div>
+          <div style="font-size:12px;color:#475569;margin-top:6px;display:flex;gap:16px;">
+            <span>🛒 Sold Listings: <strong style="color:#0F172A;">${input.totalSoldStored.toLocaleString()}</strong></span>
+            &nbsp;•&nbsp;
+            <span>🏷️ Active Listings: <strong style="color:#0F172A;">${input.totalActiveStored.toLocaleString()}</strong></span>
+          </div>
+        </div>
 
         <div style="background:#EFF6FF;border-left:4px solid #3B82F6;padding:14px;border-radius:6px;margin-bottom:24px;">
           <div style="font-weight:700;color:#1E40AF;font-size:13px;">📋 System Active Logs Status</div>
@@ -358,22 +378,21 @@ RSL Cards System Worker`;
         ${
           input.failedItems && input.failedItems.length > 0
             ? `
-              <h3 style="font-size:16px;color:#DC2626;margin:0 0 12px;">Failed Card Refreshes (${input.failedItems.length})</h3>
+              <h3 style="font-size:16px;color:#DC2626;margin:0 0 12px;">Failed / Error Items (${input.failedItems.length})</h3>
               <table width="100%" cellspacing="0" cellpadding="8" style="border-collapse:collapse;font-size:12px;border:1px solid #E2E8F0;">
                 <thead>
-                  <tr style="background:#F8FAFC;text-align:left;">
-                    <th style="border-bottom:1px solid #E2E8F0;">Card</th>
-                    <th style="border-bottom:1px solid #E2E8F0;">Grade</th>
-                    <th style="border-bottom:1px solid #E2E8F0;">Error</th>
+                  <tr style="background:#FEF2F2;text-align:left;color:#991B1B;">
+                    <th style="border-bottom:1px solid #FECACA;">Card Name</th>
+                    <th style="border-bottom:1px solid #FECACA;">Grade Key</th>
+                    <th style="border-bottom:1px solid #FECACA;">Error Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${input.failedItems
-                    .slice(0, 20)
                     .map(
                       (f: { itemName: string; gradeKey: string; error: string }) => `
                         <tr>
-                          <td style="border-bottom:1px solid #F1F5F9;">${escapeHtml(f.itemName)}</td>
+                          <td style="border-bottom:1px solid #F1F5F9;font-weight:600;">${escapeHtml(f.itemName)}</td>
                           <td style="border-bottom:1px solid #F1F5F9;">${escapeHtml(f.gradeKey)}</td>
                           <td style="border-bottom:1px solid #F1F5F9;color:#DC2626;">${escapeHtml(f.error)}</td>
                         </tr>
@@ -383,7 +402,7 @@ RSL Cards System Worker`;
                 </tbody>
               </table>
             `
-            : `<div style="background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:12px;border-radius:8px;font-weight:600;font-size:13px;text-align:center;">🎉 All card variants were refreshed and stored successfully!</div>`
+            : `<div style="background:#F0FDF4;border:1px solid #BBF7D0;color:#166534;padding:14px;border-radius:8px;font-weight:600;font-size:13px;text-align:center;">🎉 All card variants were refreshed and stored successfully with zero errors!</div>`
         }
       `
     );
