@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ShieldCheck, X } from 'lucide-react'
@@ -12,15 +13,26 @@ interface SuperAdminSidebarProps {
 
 export default function SuperAdminSidebar({ mobileOpen = false, setMobileOpen }: SuperAdminSidebarProps) {
   const pathname = usePathname()
+  const [imgError, setImgError] = useState(false)
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-zinc-950 border-r border-zinc-800/60 w-64 p-4 text-white">
       {/* Brand Header */}
       <div className="flex items-center justify-between px-2 py-4 border-b border-zinc-800/80 mb-6">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/30">
-            <ShieldCheck className="h-5 w-5 text-white" />
-          </div>
+          {!imgError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={process.env.NEXT_PUBLIC_LOGO_URL || '/rslicon.jpeg'}
+              alt="RSL Cards Logo"
+              onError={() => setImgError(true)}
+              className="h-9 w-9 rounded-xl bg-zinc-900 object-contain p-0.5 shadow-md ring-1 ring-red-500/30 transition-transform hover:scale-105"
+            />
+          ) : (
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/30">
+              <ShieldCheck className="h-5 w-5 text-white" />
+            </div>
+          )}
           <div>
             <h1 className="font-bold text-base tracking-wide text-white flex items-center gap-1.5">
               RSL Cards
