@@ -997,13 +997,13 @@ export class SuperAdminRepository {
         SELECT COUNT(*)::int AS total 
         FROM transactions tx
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
-        LEFT JOIN players p ON p.id = COALESCE(tx.player_id, inv.player_id)
+        LEFT JOIN players p ON p.id = inv.player_id
         WHERE tx.user_id = ${dealerId}
           AND tx.type = 'sell'
           AND (
-            tx.title ILIKE ${searchPattern}
+            tx.player_name ILIKE ${searchPattern}
             OR p.name ILIKE ${searchPattern}
-            OR tx.platform ILIKE ${searchPattern}
+            OR tx.channel::text ILIKE ${searchPattern}
           );
       `;
 
@@ -1012,27 +1012,27 @@ export class SuperAdminRepository {
           tx.id AS transaction_id,
           tx.user_id,
           tx.inventory_id,
-          COALESCE(tx.title, p.name, 'Sold Card') AS title,
-          COALESCE(p.name, 'Unknown Player') AS player_name,
+          COALESCE(tx.player_name, p.name, 'Sold Card') AS title,
+          COALESCE(tx.player_name, p.name, 'Unknown Player') AS player_name,
           inv.year,
           inv.set_name,
-          COALESCE(inv.grade_key, 'RAW') AS grade_key,
+          COALESCE(tx.grade_key, inv.grade_key, 'RAW') AS grade_key,
           tx.price AS sold_price,
           COALESCE(tx.cost_basis, inv.cost_basis, 0) AS cost_basis,
           COALESCE(tx.profit, (tx.price - COALESCE(tx.cost_basis, inv.cost_basis, 0))) AS profit,
-          tx.platform,
+          COALESCE(tx.channel::text, 'In-Person') AS platform,
           tx.created_at AS sold_at,
           inv.photos,
           inv.ebay_sales_completed
         FROM transactions tx
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
-        LEFT JOIN players p ON p.id = COALESCE(tx.player_id, inv.player_id)
+        LEFT JOIN players p ON p.id = inv.player_id
         WHERE tx.user_id = ${dealerId}
           AND tx.type = 'sell'
           AND (
-            tx.title ILIKE ${searchPattern}
+            tx.player_name ILIKE ${searchPattern}
             OR p.name ILIKE ${searchPattern}
-            OR tx.platform ILIKE ${searchPattern}
+            OR tx.channel::text ILIKE ${searchPattern}
           )
         ORDER BY tx.created_at DESC
         LIMIT ${safeLimit} OFFSET ${offset};
@@ -1049,21 +1049,21 @@ export class SuperAdminRepository {
           tx.id AS transaction_id,
           tx.user_id,
           tx.inventory_id,
-          COALESCE(tx.title, p.name, 'Sold Card') AS title,
-          COALESCE(p.name, 'Unknown Player') AS player_name,
+          COALESCE(tx.player_name, p.name, 'Sold Card') AS title,
+          COALESCE(tx.player_name, p.name, 'Unknown Player') AS player_name,
           inv.year,
           inv.set_name,
-          COALESCE(inv.grade_key, 'RAW') AS grade_key,
+          COALESCE(tx.grade_key, inv.grade_key, 'RAW') AS grade_key,
           tx.price AS sold_price,
           COALESCE(tx.cost_basis, inv.cost_basis, 0) AS cost_basis,
           COALESCE(tx.profit, (tx.price - COALESCE(tx.cost_basis, inv.cost_basis, 0))) AS profit,
-          tx.platform,
+          COALESCE(tx.channel::text, 'In-Person') AS platform,
           tx.created_at AS sold_at,
           inv.photos,
           inv.ebay_sales_completed
         FROM transactions tx
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
-        LEFT JOIN players p ON p.id = COALESCE(tx.player_id, inv.player_id)
+        LEFT JOIN players p ON p.id = inv.player_id
         WHERE tx.user_id = ${dealerId} AND tx.type = 'sell'
         ORDER BY tx.created_at DESC
         LIMIT ${safeLimit} OFFSET ${offset};
