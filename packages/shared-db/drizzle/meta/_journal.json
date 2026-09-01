@@ -169,6 +169,13 @@
       "when": 1788240000000,
       "tag": "0023_add_super_admin_users_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788250000000,
+      "tag": "0024_add_super_admin_dealers_idx",
+      "breakpoints": true
     }
   ]
 }

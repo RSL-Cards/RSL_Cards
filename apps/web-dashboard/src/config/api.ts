@@ -98,6 +98,14 @@ export const ENDPOINTS = {
     cardsDashboard: '/v1/super-admin/cards/dashboard',
     cardsInventory: (page = 1, limit = 10, search = '') =>
       `/v1/super-admin/cards/inventory?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+    dealersMetrics: '/v1/super-admin/dealers/metrics',
+    dealersList: (page = 1, limit = 10, search = '') =>
+      `/v1/super-admin/dealers/list?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+    dealerDetail: (dealerId: string) => `/v1/super-admin/dealers/${dealerId}`,
+    dealerInventory: (dealerId: string, page = 1, limit = 10, search = '') =>
+      `/v1/super-admin/dealers/${dealerId}/inventory?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
+    dealerSoldCards: (dealerId: string, page = 1, limit = 10, search = '') =>
+      `/v1/super-admin/dealers/${dealerId}/sold?page=${page}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ''}`,
     users: '/v1/super-admin/users',
     dealers: '/v1/super-admin/dealers',
     cards: '/v1/super-admin/cards',

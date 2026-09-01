@@ -23,6 +23,26 @@ export class SuperAdminService {
     return await this.repository.getCardsInventory(page, limit, search);
   }
 
+  async getDealersMetrics(refresh = false) {
+    return await this.repository.getDealersMetrics(refresh);
+  }
+
+  async getDealersList(page = 1, limit = 10, search = "") {
+    return await this.repository.getDealersList(page, limit, search);
+  }
+
+  async getDealerDetail(dealerId: string) {
+    return await this.repository.getDealerDetail(dealerId);
+  }
+
+  async getDealerInventory(dealerId: string, page = 1, limit = 10, search = "") {
+    return await this.repository.getDealerInventory(dealerId, page, limit, search);
+  }
+
+  async getDealerSoldCards(dealerId: string, page = 1, limit = 10, search = "") {
+    return await this.repository.getDealerSoldCards(dealerId, page, limit, search);
+  }
+
   async getUsers() {
     return await this.repository.getUsers();
   }
