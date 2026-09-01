@@ -470,6 +470,7 @@ export class SuperAdminRepository {
       total_dealers: number;
       active_dealers: number;
       total_inventory_cards: number;
+      total_sold_cards: number;
       total_inventory_value: string;
       total_sales_volume: string;
     }>(sql`
@@ -477,18 +478,25 @@ export class SuperAdminRepository {
         (SELECT COUNT(*)::int FROM users WHERE role = 'dealer') AS total_dealers,
         (SELECT COUNT(DISTINCT user_id)::int FROM inventory WHERE listing_status IN ('listed', 'unlisted')) AS active_dealers,
         (SELECT COUNT(*)::int FROM inventory i JOIN users u ON u.id = i.user_id WHERE u.role = 'dealer' AND i.listing_status IN ('listed', 'unlisted')) AS total_inventory_cards,
+        (SELECT COUNT(*)::int FROM transactions t JOIN users u ON u.id = t.user_id WHERE u.role = 'dealer' AND t.type::text = 'sell') AS total_sold_cards,
         (SELECT COALESCE(SUM(CASE WHEN current_market_value > 0 THEN current_market_value ELSE cost_basis END), 0)::text FROM inventory i JOIN users u ON u.id = i.user_id WHERE u.role = 'dealer' AND i.listing_status IN ('listed', 'unlisted')) AS total_inventory_value,
-        (SELECT COALESCE(SUM(price), 0)::text FROM transactions t JOIN users u ON u.id = t.user_id WHERE u.role = 'dealer' AND t.type = 'sell') AS total_sales_volume;
+        (SELECT COALESCE(SUM(price), 0)::text FROM transactions t JOIN users u ON u.id = t.user_id WHERE u.role = 'dealer' AND t.type::text = 'sell') AS total_sales_volume;
     `);
 
     const queryDurationMs = Number((performance.now() - startTime).toFixed(2));
     const row = metricsResult.rows[0];
 
+    const invCount = Number(row?.total_inventory_cards ?? 0);
+    const soldCount = Number(row?.total_sold_cards ?? 0);
+    const totalCards = invCount + soldCount;
+
     return {
       metrics: {
         totalDealers: Number(row?.total_dealers ?? 0),
         activeDealers: Number(row?.active_dealers ?? 0),
-        totalInventoryCards: Number(row?.total_inventory_cards ?? 0),
+        totalCards,
+        totalInventoryCards: invCount,
+        totalSoldCards: soldCount,
         totalInventoryValue: Number(row?.total_inventory_value ?? 0),
         totalSalesVolume: Number(row?.total_sales_volume ?? 0),
       },
@@ -999,7 +1007,7 @@ export class SuperAdminRepository {
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
         LEFT JOIN players p ON p.id = inv.player_id
         WHERE tx.user_id = ${dealerId}
-          AND tx.type = 'sell'
+          AND tx.type::text = 'sell'
           AND (
             tx.player_name ILIKE ${searchPattern}
             OR p.name ILIKE ${searchPattern}
@@ -1017,18 +1025,19 @@ export class SuperAdminRepository {
           inv.year,
           inv.set_name,
           COALESCE(tx.grade_key, inv.grade_key, 'RAW') AS grade_key,
-          tx.price AS sold_price,
-          COALESCE(tx.cost_basis, inv.cost_basis, 0) AS cost_basis,
-          COALESCE(tx.profit, (tx.price - COALESCE(tx.cost_basis, inv.cost_basis, 0))) AS profit,
+          tx.price::text AS sold_price,
+          COALESCE(tx.cost_basis, inv.cost_basis, 0)::text AS cost_basis,
+          COALESCE(tx.profit, 0)::text AS profit,
           COALESCE(tx.channel::text, 'In-Person') AS platform,
           tx.created_at AS sold_at,
+          tx.card_snapshot,
           inv.photos,
           inv.ebay_sales_completed
         FROM transactions tx
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
         LEFT JOIN players p ON p.id = inv.player_id
         WHERE tx.user_id = ${dealerId}
-          AND tx.type = 'sell'
+          AND tx.type::text = 'sell'
           AND (
             tx.player_name ILIKE ${searchPattern}
             OR p.name ILIKE ${searchPattern}
@@ -1041,7 +1050,7 @@ export class SuperAdminRepository {
       countQuery = sql`
         SELECT COUNT(*)::int AS total 
         FROM transactions 
-        WHERE user_id = ${dealerId} AND type = 'sell';
+        WHERE user_id = ${dealerId} AND type::text = 'sell';
       `;
 
       dataQuery = sql`
@@ -1054,17 +1063,18 @@ export class SuperAdminRepository {
           inv.year,
           inv.set_name,
           COALESCE(tx.grade_key, inv.grade_key, 'RAW') AS grade_key,
-          tx.price AS sold_price,
-          COALESCE(tx.cost_basis, inv.cost_basis, 0) AS cost_basis,
-          COALESCE(tx.profit, (tx.price - COALESCE(tx.cost_basis, inv.cost_basis, 0))) AS profit,
+          tx.price::text AS sold_price,
+          COALESCE(tx.cost_basis, inv.cost_basis, 0)::text AS cost_basis,
+          COALESCE(tx.profit, 0)::text AS profit,
           COALESCE(tx.channel::text, 'In-Person') AS platform,
           tx.created_at AS sold_at,
+          tx.card_snapshot,
           inv.photos,
           inv.ebay_sales_completed
         FROM transactions tx
         LEFT JOIN inventory inv ON inv.id = tx.inventory_id
         LEFT JOIN players p ON p.id = inv.player_id
-        WHERE tx.user_id = ${dealerId} AND tx.type = 'sell'
+        WHERE tx.user_id = ${dealerId} AND tx.type::text = 'sell'
         ORDER BY tx.created_at DESC
         LIMIT ${safeLimit} OFFSET ${offset};
       `;
@@ -1087,6 +1097,7 @@ export class SuperAdminRepository {
       profit: string;
       platform: string | null;
       sold_at: string;
+      card_snapshot: string | null;
       photos: string[] | null;
       ebay_sales_completed: string | null;
     }>(dataQuery);
@@ -1098,15 +1109,19 @@ export class SuperAdminRepository {
       let imageUrl: string | null = null;
       if (row.photos && Array.isArray(row.photos) && row.photos.length > 0) {
         imageUrl = row.photos[0];
-      } else if (row.ebay_sales_completed) {
+      } else if (row.card_snapshot) {
+        try {
+          const snapshot = typeof row.card_snapshot === "string" ? JSON.parse(row.card_snapshot) : row.card_snapshot;
+          imageUrl = snapshot.imageUrl || snapshot.image_url || snapshot.photos?.[0] || null;
+        } catch {}
+      }
+      if (!imageUrl && row.ebay_sales_completed) {
         try {
           const parsed = JSON.parse(row.ebay_sales_completed);
           if (Array.isArray(parsed) && parsed.length > 0) {
             imageUrl = parsed[0]?.image?.imageUrl || parsed[0]?.image_url || null;
           }
-        } catch {
-          // ignore parse error
-        }
+        } catch {}
       }
 
       return {

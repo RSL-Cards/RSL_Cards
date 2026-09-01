@@ -126,7 +126,9 @@ export interface SuperAdminDealersMetricsData {
   metrics: {
     totalDealers: number
     activeDealers: number
+    totalCards?: number
     totalInventoryCards: number
+    totalSoldCards?: number
     totalInventoryValue: number
     totalSalesVolume: number
   }
@@ -149,6 +151,7 @@ export interface SuperAdminDealerItem {
   createdAt: string
   lastLoginAt: string | null
   metrics: {
+    totalCards?: number
     inventoryCount: number
     inventoryValue: number
     soldCount: number
@@ -186,6 +189,7 @@ export interface SuperAdminDealerDetailResponse {
     createdAt: string
     lastLoginAt: string | null
     metrics: {
+      totalCards?: number
       inventoryCount: number
       inventoryValue: number
       soldCount: number

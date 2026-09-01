@@ -189,13 +189,15 @@ export default function SuperAdminDealersPage() {
 
           <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 shadow-sm">
             <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">Active Cards</span>
+              <span className="text-xs font-semibold uppercase tracking-wider">Total Cards</span>
               <Package className="h-4 w-4 text-purple-400" />
             </div>
             <div className="text-2xl font-extrabold text-white mt-2">
-              {isMetricsLoading ? '...' : metrics.totalInventoryCards.toLocaleString()}
+              {isMetricsLoading ? '...' : (metrics.totalCards ?? (metrics.totalInventoryCards + (metrics.totalSoldCards ?? 0))).toLocaleString()}
             </div>
-            <p className="text-xs text-zinc-400 mt-1 font-medium">Total unlisted & listed cards</p>
+            <p className="text-xs text-purple-400 mt-1 font-medium">
+              {metrics.totalInventoryCards} active • {metrics.totalSoldCards ?? 0} sold cards
+            </p>
           </div>
 
           <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-5 shadow-sm">
@@ -435,30 +437,41 @@ export default function SuperAdminDealersPage() {
 
             {/* Modal Metrics Banner */}
             {dealerDetailData && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-zinc-950/40 border-b border-zinc-800/60 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-zinc-950/40 border-b border-zinc-800/60 text-xs">
                 <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
-                  <div className="text-zinc-400 font-medium">Inventory Cards</div>
+                  <div className="text-zinc-400 font-medium">Total Cards</div>
+                  <div className="text-lg font-extrabold text-purple-400 mt-0.5 font-mono">
+                    {dealerDetailData.dealer.metrics.totalCards ?? (dealerDetailData.dealer.metrics.inventoryCount + dealerDetailData.dealer.metrics.soldCount)}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">Active + Sold</div>
+                </div>
+                <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
+                  <div className="text-zinc-400 font-medium">Active Inventory</div>
                   <div className="text-lg font-extrabold text-white mt-0.5 font-mono">
                     {dealerDetailData.dealer.metrics.inventoryCount}
                   </div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">Unlisted & Listed</div>
                 </div>
                 <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
                   <div className="text-zinc-400 font-medium">Portfolio Value</div>
                   <div className="text-lg font-extrabold text-emerald-400 mt-0.5 font-mono">
                     {formatCurrency(dealerDetailData.dealer.metrics.inventoryValue)}
                   </div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">Market Value</div>
                 </div>
                 <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
                   <div className="text-zinc-400 font-medium">Sold Cards</div>
                   <div className="text-lg font-extrabold text-white mt-0.5 font-mono">
                     {dealerDetailData.dealer.metrics.soldCount}
                   </div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">Completed Sales</div>
                 </div>
                 <div className="bg-zinc-900/60 border border-zinc-800/60 rounded-xl p-3">
                   <div className="text-zinc-400 font-medium">Total Revenue</div>
                   <div className="text-lg font-extrabold text-amber-400 mt-0.5 font-mono">
                     {formatCurrency(dealerDetailData.dealer.metrics.totalSalesVolume)}
                   </div>
+                  <div className="text-[10px] text-zinc-500 font-mono mt-0.5">Sales Revenue</div>
                 </div>
               </div>
             )}
