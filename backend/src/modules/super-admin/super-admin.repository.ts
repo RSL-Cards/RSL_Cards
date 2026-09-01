@@ -536,7 +536,7 @@ export class SuperAdminRepository {
           dp.display_name,
           dp.photo_url,
           dp.phone,
-          dp.location,
+          NULL AS location,
           (
             SELECT COUNT(*)::int 
             FROM inventory inv 
@@ -582,7 +582,7 @@ export class SuperAdminRepository {
           dp.display_name,
           dp.photo_url,
           dp.phone,
-          dp.location,
+          NULL AS location,
           (
             SELECT COUNT(*)::int 
             FROM inventory inv 
@@ -702,7 +702,7 @@ export class SuperAdminRepository {
         dp.display_name,
         dp.photo_url,
         dp.phone,
-        dp.location,
+        NULL AS location,
         (
           SELECT COUNT(*)::int 
           FROM inventory inv 
