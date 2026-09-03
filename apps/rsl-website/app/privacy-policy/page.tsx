@@ -168,20 +168,48 @@ export default function PrivacyPolicyPage() {
           <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 lg:p-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0057FF] text-xs font-black text-white">6</span>
-              Security &amp; Data Rights
+              Security &amp; Data Encryption
             </h2>
             <p>
-              All network communication is encrypted using TLS 1.3 / HTTPS. Account tokens and sensitive data are encrypted at rest (AES-256) and stored securely on mobile devices using iOS Keychain and Android Keystore (via Expo SecureStore).
-            </p>
-            <p className="mt-3">
-              You have the right to access, export, or request the deletion of your account and associated data at any time by contacting our support team or deleting your account from Settings.
+              All network communication is encrypted using TLS 1.3 / HTTPS. Account tokens and sensitive credentials are encrypted at rest (AES-256) and stored securely on mobile devices using iOS Keychain and Android Keystore (via Expo SecureStore).
             </p>
           </section>
 
-          {/* Section 7: Contact Us */}
+          {/* Section 7: Account Deletion & Right to Erasure (Apple Guideline 5.1.1v) */}
           <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 lg:p-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0057FF] text-xs font-black text-white">7</span>
+              Account Deletion &amp; Data Erasure (Apple Guideline 5.1.1v)
+            </h2>
+            <p>
+              You have the full right to delete your RSL Cards account and all associated data at any time directly within the mobile application or by submitting a deletion request to our privacy team.
+            </p>
+
+            <div className="mt-4 bg-[#18181B] border border-white/5 p-5 rounded-xl space-y-3">
+              <h3 className="font-bold text-white text-sm">How to Delete Your Account In-App:</h3>
+              <ol className="list-decimal list-inside space-y-2 text-xs text-neutral-300 pl-1">
+                <li>Open the <strong className="text-white">RSL Cards Pro</strong> mobile app.</li>
+                <li>Tap the <strong className="text-white">More</strong> tab in the bottom navigation and select <strong className="text-white">Account Settings &amp; Profile</strong> (or tap Edit on your profile card).</li>
+                <li>Scroll to the <strong className="text-white">Account Actions</strong> section at the bottom.</li>
+                <li>Tap <strong className="text-red-400">Delete Account</strong>.</li>
+                <li>Confirm deletion in the confirmation dialog.</li>
+              </ol>
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-xs text-red-400 leading-relaxed font-semibold">
+                  ⚠️ What happens when you delete your account: All inventory listings, sales &amp; buy ledgers, card show logs, connected marketplace tokens (e.g. eBay), push notification tokens, and authentication credentials are permanently and irreversibly purged from our database immediately.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-xs text-neutral-300">
+              You can also request manual account and data deletion by emailing <a href="mailto:support@rslcards.com?subject=Account%20Deletion%20Request" className="text-blue-400 underline font-medium">support@rslcards.com</a> with the subject line &quot;Account Deletion Request&quot; from your registered email address.
+            </p>
+          </section>
+
+          {/* Section 8: Contact Us */}
+          <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 lg:p-8">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0057FF] text-xs font-black text-white">8</span>
               Contact Us &amp; Privacy Officer
             </h2>
             <p>

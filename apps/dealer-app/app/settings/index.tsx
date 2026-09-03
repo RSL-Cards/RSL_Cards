@@ -18,6 +18,7 @@ import {
   useProfile,
   useUpdateProfile,
   useUploadAvatar,
+  useDeleteAccount,
 } from "../../src/hooks/useProfile";
 import { useAuthStore } from "../../src/stores/authStore";
 import Toast from "react-native-toast-message";
@@ -26,6 +27,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import RSLLoader from "../../src/components/RSLLoader";
 import { Surface } from "../../src/components/ui/Surface";
+import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
 
 const SPORTS = [
   "Football",
@@ -49,7 +51,31 @@ export default function SettingsScreen() {
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
     useUploadAvatar();
+  const { mutate: deleteAccount, isPending: isDeletingAccount } =
+    useDeleteAccount();
   const [localUri, setLocalUri] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDeleteAccount = () => {
+    deleteAccount(undefined, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+        Toast.show({
+          type: "success",
+          text1: "Account Deleted",
+          text2: "Your account and data have been permanently removed.",
+        });
+        router.replace("/(auth)/login");
+      },
+      onError: (err: any) => {
+        Toast.show({
+          type: "error",
+          text1: "Deletion Failed",
+          text2: err?.message || "Could not delete account. Please try again.",
+        });
+      },
+    });
+  };
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -348,6 +374,31 @@ export default function SettingsScreen() {
             </View>
           ))}
         </View>
+
+        {/* Account Actions / Deletion */}
+        <Text style={styles.sectionLabel}>ACCOUNT ACTIONS</Text>
+        <View style={[styles.sectionCard, styles.dangerCard]}>
+          <Typography variant="body" weight="700" color={COLORS.destructive}>
+            Permanent Account Deletion
+          </Typography>
+          <Typography
+            variant="caption"
+            color={COLORS.zinc400}
+            style={{ marginTop: 4, marginBottom: 14, lineHeight: 18 }}
+          >
+            Deleting your account permanently removes your dealer profile, inventory items, sales records, comps history, and personal data. This cannot be undone.
+          </Typography>
+          <TouchableOpacity
+            style={styles.deleteAccountBtn}
+            onPress={() => setShowDeleteModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="trash-outline" size={16} color={COLORS.destructive} style={{ marginRight: 6 }} />
+            <Typography variant="caption" weight="800" color={COLORS.destructive}>
+              Delete Account
+            </Typography>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Save button */}
@@ -365,6 +416,19 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Delete Account Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showDeleteModal}
+        title="Delete Account?"
+        message="Are you sure you want to delete your account? All your inventory cards, transactions, daily logs, and dealer settings will be permanently erased. This action is irreversible."
+        confirmText={isDeletingAccount ? "Deleting..." : "Permanently Delete"}
+        cancelText="Cancel"
+        iconName="trash-outline"
+        variant="danger"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => !isDeletingAccount && setShowDeleteModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -479,4 +543,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   saveBtnText: { color: COLORS.text, fontWeight: "700", fontSize: 16 },
+  dangerCard: {
+    borderColor: "rgba(232, 0, 28, 0.3)",
+    backgroundColor: "rgba(232, 0, 28, 0.05)",
+  },
+  deleteAccountBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(232, 0, 28, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 0, 28, 0.4)",
+    borderRadius: RADIUS.md,
+    height: 44,
+  },
 });

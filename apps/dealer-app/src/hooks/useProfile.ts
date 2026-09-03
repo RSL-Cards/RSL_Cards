@@ -190,3 +190,23 @@ export function useRefetchOnFocus() {
     }, [queryClient, userId]),
   );
 }
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  return useMutation({
+    mutationFn: async () => {
+      const { userService } = await import("../services/userService");
+      return await userService.deleteAccount();
+    },
+    onSuccess: async () => {
+      try {
+        const { tokenStorage } = await import("../lib/tokenStorage");
+        await tokenStorage.clearTokens();
+      } catch {}
+      queryClient.clear();
+      clearAuth();
+    },
+  });
+}

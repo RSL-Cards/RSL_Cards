@@ -1,5 +1,26 @@
-import { eq, and, sql } from "drizzle-orm";
-import { dealerProfiles, paymentMethods, platformConnections, users } from "../../db/schema/index.js";
+import { eq, and, or, sql } from "drizzle-orm";
+import {
+  dealerProfiles,
+  consumerProfiles,
+  paymentMethods,
+  platformConnections,
+  userPreferences,
+  customers,
+  dealerFollowers,
+  users,
+  refreshTokens,
+  deviceTokens,
+  inventory,
+  bulkPurchases,
+  transactions,
+  tradeItems,
+  offlineSyncQueue,
+  dailyLogs,
+  notifications,
+  userPushTokens,
+  showAttendees,
+  batchJobs,
+} from "../../db/schema/index.js";
 import { db } from "../../db/index.js";
 
 export interface OnboardingPayload {
@@ -371,6 +392,100 @@ export class UserRepository {
   }
 
   async deleteMe(userId: string) {
-    return { message: `Delete account (GDPR right to erasure) for ${userId}` };
+    await db.transaction(async (tx: any) => {
+      // 1. Delete transactions and trade items
+      const userTxRows = await tx
+        .select({ id: (transactions as any).id })
+        .from(transactions as any)
+        .where(eq((transactions as any).userId, userId));
+
+      for (const row of userTxRows) {
+        await tx
+          .delete(tradeItems as any)
+          .where(eq((tradeItems as any).transactionId, row.id));
+      }
+
+      await tx
+        .delete(transactions as any)
+        .where(eq((transactions as any).userId, userId));
+      await tx
+        .delete(offlineSyncQueue as any)
+        .where(eq((offlineSyncQueue as any).userId, userId));
+
+      // 2. Delete daily logs
+      await tx
+        .delete(dailyLogs as any)
+        .where(eq((dailyLogs as any).userId, userId));
+
+      // 3. Delete inventory & bulk purchases
+      await tx
+        .delete(inventory as any)
+        .where(eq((inventory as any).userId, userId));
+      await tx
+        .delete(bulkPurchases as any)
+        .where(eq((bulkPurchases as any).userId, userId));
+
+      // 4. Delete notifications & user push tokens
+      await tx
+        .delete(notifications as any)
+        .where(eq((notifications as any).userId, userId));
+      await tx
+        .delete(userPushTokens as any)
+        .where(eq((userPushTokens as any).userId, userId));
+
+      // 5. Delete batch scan jobs
+      await tx
+        .delete(batchJobs as any)
+        .where(eq((batchJobs as any).userId, userId));
+
+      // 6. Delete profiles, payments, connections, preferences, customers, followers, show attendees
+      await tx
+        .delete(dealerProfiles as any)
+        .where(eq((dealerProfiles as any).userId, userId));
+      await tx
+        .delete(consumerProfiles as any)
+        .where(eq((consumerProfiles as any).userId, userId));
+      await tx
+        .delete(paymentMethods as any)
+        .where(eq((paymentMethods as any).userId, userId));
+      await tx
+        .delete(platformConnections as any)
+        .where(eq((platformConnections as any).userId, userId));
+      await tx
+        .delete(userPreferences as any)
+        .where(eq((userPreferences as any).userId, userId));
+      await tx
+        .delete(customers as any)
+        .where(eq((customers as any).userId, userId));
+      await tx
+        .delete(dealerFollowers as any)
+        .where(
+          or(
+            eq((dealerFollowers as any).dealerId, userId),
+            eq((dealerFollowers as any).followerId, userId),
+          ),
+        );
+      await tx
+        .delete(showAttendees as any)
+        .where(eq((showAttendees as any).userId, userId));
+
+      // 7. Delete refresh tokens & device tokens
+      await tx
+        .delete(refreshTokens as any)
+        .where(eq((refreshTokens as any).userId, userId));
+      await tx
+        .delete(deviceTokens as any)
+        .where(eq((deviceTokens as any).userId, userId));
+
+      // 8. Delete user record
+      await tx
+        .delete(users as any)
+        .where(eq((users as any).id, userId));
+    });
+
+    return {
+      success: true,
+      message: "Your account and all associated data have been permanently deleted.",
+    };
   }
 }

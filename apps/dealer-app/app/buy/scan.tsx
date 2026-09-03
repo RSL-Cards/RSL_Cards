@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   FlatList,
+  Linking,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -124,15 +125,30 @@ export default function BuyScanScreen() {
       <View style={styles.scanContent}>
         {!permission?.granted ? (
           <View style={styles.permissionContainer}>
+            <View style={styles.permissionIconCircle}>
+              <Ionicons name="camera-outline" size={40} color="#0057FF" />
+            </View>
+            <Text style={styles.permissionTitle}>Camera Access</Text>
             <Text style={styles.permissionText}>
-              Camera permission needed to scan cards
+              RSL Cards Pro uses your camera to scan raw and graded sports cards, barcodes, and slabs for real-time market pricing and valuation.
             </Text>
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={requestPermission}
-            >
-              <Text style={styles.primaryBtnText}>Grant Permission</Text>
-            </TouchableOpacity>
+            {permission && !permission.granted && !permission.canAskAgain ? (
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={() => Linking.openSettings()}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>Open Settings</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={requestPermission}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryBtnText}>Continue</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
           <>
@@ -371,13 +387,32 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
+  },
+  permissionIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(0, 87, 255, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0, 87, 255, 0.25)",
+  },
+  permissionTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 10,
+    textAlign: "center",
   },
   permissionText: {
-    color: "#888888",
-    fontSize: 16,
+    color: "#AAAAAA",
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 28,
   },
   scanningOverlay: {
     ...StyleSheet.absoluteFillObject,

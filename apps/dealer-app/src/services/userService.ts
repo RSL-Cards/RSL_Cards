@@ -30,4 +30,11 @@ export const userService = {
     );
     return data;
   },
+
+  async deleteAccount(): Promise<{ success: true; message: string }> {
+    const { data } = await apiClient.delete<{ success: true; message: string }>(
+      ENDPOINTS.users.me
+    );
+    return data;
+  },
 };

@@ -301,6 +301,11 @@ function MoreScreen() {
         <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>SUPPORT & SETTINGS</Typography>
         <SectionCard>
           <SettingsRow
+            icon="person-circle-outline"
+            label="Account Settings & Profile"
+            onPress={() => router.push("/settings")}
+          />
+          <SettingsRow
             icon="notifications-outline"
             label="Notification Preferences"
             onPress={() => router.push("/notifications/preferences")}
