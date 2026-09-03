@@ -175,11 +175,11 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* Section 7: Account Deletion & Right to Erasure (Apple Guideline 5.1.1v) */}
+          {/* Section 7: Account Deletion & Data Erasure */}
           <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 lg:p-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0057FF] text-xs font-black text-white">7</span>
-              Account Deletion &amp; Data Erasure (Apple Guideline 5.1.1v)
+              Account Deletion &amp; Data Erasure
             </h2>
             <p>
               You have the full right to delete your RSL Cards account and all associated data at any time directly within the mobile application or by submitting a deletion request to our privacy team.
