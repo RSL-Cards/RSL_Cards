@@ -18,6 +18,10 @@ index.android.bundle
 *.keystore
 *.jks
 
+# Native directories (managed workflow)
+android/
+ios/
+
 # Web Next.js / Builds
 .next
 out
