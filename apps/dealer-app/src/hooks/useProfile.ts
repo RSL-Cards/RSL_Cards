@@ -3,7 +3,8 @@ import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 import { useAuthStore } from "../stores/authStore";
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 
 export interface PaymentMethod {
   id: string;
@@ -192,6 +193,7 @@ export function useRefetchOnFocus() {
 }
 
 export function useDeleteAccount() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
@@ -200,13 +202,42 @@ export function useDeleteAccount() {
       const { userService } = await import("../services/userService");
       return await userService.deleteAccount();
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      Toast.show({
+        type: "success",
+        text1: "Account Deleted",
+        text2: data?.message || "Your account and data have been permanently removed.",
+        visibilityTime: 4000,
+      });
+
       try {
         const { tokenStorage } = await import("../lib/tokenStorage");
         await tokenStorage.clearTokens();
       } catch {}
-      queryClient.clear();
+
       clearAuth();
+      queryClient.clear();
+      router.replace("/(auth)/login");
+
+      setTimeout(() => {
+        Toast.show({
+          type: "success",
+          text1: "Account Deleted",
+          text2: data?.message || "Your account and data have been permanently removed.",
+          visibilityTime: 4000,
+        });
+      }, 350);
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Could not delete account. Please try again.";
+      Toast.show({
+        type: "error",
+        text1: "Deletion Failed",
+        text2: message,
+      });
     },
   });
 }

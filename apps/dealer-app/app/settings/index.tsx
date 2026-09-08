@@ -57,24 +57,8 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleDeleteAccount = () => {
-    deleteAccount(undefined, {
-      onSuccess: () => {
-        setShowDeleteModal(false);
-        Toast.show({
-          type: "success",
-          text1: "Account Deleted",
-          text2: "Your account and data have been permanently removed.",
-        });
-        router.replace("/(auth)/login");
-      },
-      onError: (err: any) => {
-        Toast.show({
-          type: "error",
-          text1: "Deletion Failed",
-          text2: err?.message || "Could not delete account. Please try again.",
-        });
-      },
-    });
+    setShowDeleteModal(false);
+    deleteAccount();
   };
 
   const handlePickAvatar = async () => {
