@@ -28,11 +28,13 @@ import {
   useFetchOnFocus,
   useUploadAvatar,
   useProfile,
+  useDeleteAccount,
 } from "../../src/hooks/useProfile";
 import { COLORS, SPACING, RADIUS, SHADOWS } from "../../src/constants/theme";
 import { Typography } from "../../src/components/ui/Typography";
 import { Surface } from "../../src/components/ui/Surface";
 import { CustomAlertModal } from "../../src/components/ui/CustomAlertModal";
+import Toast from "react-native-toast-message";
 
 const EBAY_AUTH_URL = process.env.EXPO_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize';
 const EBAY_CLIENT_ID = process.env.EXPO_PUBLIC_EBAY_CLIENT_ID;
@@ -96,6 +98,30 @@ function MoreScreen() {
   const [showEbayModal, setShowEbayModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDisconnectEbayModal, setShowDisconnectEbayModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { mutate: deleteAccount, isPending: isDeletingAccount } = useDeleteAccount();
+
+  const handleDeleteAccount = () => {
+    deleteAccount(undefined, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+        Toast.show({
+          type: "success",
+          text1: "Account Deleted",
+          text2: "Your account and data have been permanently removed.",
+        });
+        router.replace("/(auth)/login");
+      },
+      onError: (err: any) => {
+        Toast.show({
+          type: "error",
+          text1: "Deletion Failed",
+          text2: err?.message || "Could not delete account. Please try again.",
+        });
+      },
+    });
+  };
+
   const queryClient = useQueryClient();
 
   const { data: connectedPlatforms = [] } = useQuery({
@@ -323,6 +349,18 @@ function MoreScreen() {
           <SettingsRow icon="phone-portrait-outline" label="Version" value="1.0.0" isLast />
         </SectionCard>
 
+        {/* Account Actions */}
+        <Typography variant="label" color={COLORS.zinc500} style={styles.sectionLabel}>ACCOUNT ACTIONS</Typography>
+        <SectionCard>
+          <SettingsRow
+            icon="trash-outline"
+            label="Delete Account"
+            onPress={() => setShowDeleteModal(true)}
+            accentColor={COLORS.destructive}
+            isLast
+          />
+        </SectionCard>
+
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutBtn}
@@ -429,6 +467,19 @@ function MoreScreen() {
           disconnectMutation.mutate('ebay');
         }}
         onCancel={() => setShowDisconnectEbayModal(false)}
+      />
+
+      {/* Delete Account Custom Alert Modal */}
+      <CustomAlertModal
+        visible={showDeleteModal}
+        title="Delete Account?"
+        message="Are you sure you want to delete your account? All your inventory cards, transactions, daily logs, and dealer settings will be permanently erased. This action is irreversible."
+        confirmText={isDeletingAccount ? "Deleting..." : "Permanently Delete"}
+        cancelText="Cancel"
+        iconName="trash-outline"
+        variant="danger"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => !isDeletingAccount && setShowDeleteModal(false)}
       />
     </SafeAreaView>
   );

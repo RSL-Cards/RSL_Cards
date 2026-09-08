@@ -42,6 +42,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Safely request push notification permissions after UI mounts
     import("../src/services/notificationService").then(({ notificationService }) => {
+      notificationService.requestNotificationPermissions().catch(console.error);
       notificationService.initOneSignalPermissions().catch(console.error);
     }).catch(console.error);
   }, []);

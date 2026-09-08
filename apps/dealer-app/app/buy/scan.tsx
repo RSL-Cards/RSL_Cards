@@ -1,5 +1,5 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -42,6 +42,15 @@ export default function BuyScanScreen() {
 
   const { mutate: batchScanMulti, isPending: isBatchScanning } = useBatchScanMulti();
   const { mutate: batchUpload, isPending: isUploading } = useBatchUpload();
+
+  // Auto-request camera permission on mount so system dialog displays natively without pre-prompt gate
+  useEffect(() => {
+    if (!permission) {
+      requestPermission();
+    } else if (!permission.granted && permission.canAskAgain && permission.status === "undetermined") {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
   const handleCapture = async () => {
     if (!cameraRef.current) return;
@@ -130,7 +139,7 @@ export default function BuyScanScreen() {
             </View>
             <Text style={styles.permissionTitle}>Camera Access</Text>
             <Text style={styles.permissionText}>
-              RSL Cards Pro uses your camera to scan raw and graded sports cards, barcodes, and slabs for real-time market pricing and valuation.
+              Camera access is needed to scan sports cards, barcodes, and slabs for real-time market valuation.
             </Text>
             {permission && !permission.granted && !permission.canAskAgain ? (
               <TouchableOpacity
@@ -149,6 +158,13 @@ export default function BuyScanScreen() {
                 <Text style={styles.primaryBtnText}>Continue</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.simulateBtn}
+              onPress={handleSimulateScan}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.simulateText}>Continue with Sample Card</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>

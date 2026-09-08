@@ -73,52 +73,67 @@ export const notificationService = {
     return data;
   },
 
-  async registerForPushNotificationsAsync(): Promise<string | undefined> {
+  async requestNotificationPermissions(): Promise<boolean> {
     if (!Notifications) {
       console.warn("Push notifications are disabled in this environment");
+      return false;
+    }
+
+    try {
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "RSL Card Notifications",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#0057FF",
+        });
+      }
+
+      const settings = (await Notifications.getPermissionsAsync()) as any;
+      let isGranted = settings.granted;
+
+      if (!isGranted && settings.canAskAgain !== false) {
+        const requestResult = (await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        })) as any;
+        isGranted = requestResult?.granted;
+      }
+
+      return !!isGranted;
+    } catch (err: any) {
+      console.warn("Failed to request notification permissions:", err?.message);
+      return false;
+    }
+  },
+
+  async registerForPushNotificationsAsync(): Promise<string | undefined> {
+    const isGranted = await this.requestNotificationPermissions();
+    if (!isGranted) {
+      console.warn("Notification permission not granted");
       return;
     }
 
     if (!Device.isDevice) {
-      console.warn("Must use physical device for Push Notifications");
-      return;
-    }
-
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
-    }
-
-    const settings = await Notifications.getPermissionsAsync() as any;
-    let isGranted = settings.granted;
-
-    if (!isGranted) {
-      const requestResult = await Notifications.requestPermissionsAsync() as any;
-      isGranted = requestResult.granted;
-    }
-
-    if (!isGranted) {
-      console.warn("Failed to get push token for push notification!");
+      console.log("[Notifications] Simulator detected: Permissions granted, push token registration requires physical device.");
       return;
     }
 
     const projectId = Constants.expoConfig?.extra?.eas?.projectId || "62fd97df-6476-4894-9c0c-242103e88a85";
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    
-    // Register token with backend
     try {
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      
+      // Register token with backend
       const platform = Platform.OS; // 'ios' | 'android'
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
       await this.registerToken(token, platform, userTimezone);
       console.log("Registered token successfully with backend:", token, userTimezone);
+      return token;
     } catch (err: any) {
       console.error("Failed to register token with backend:", err.message);
     }
-
-    return token;
   }
 };
