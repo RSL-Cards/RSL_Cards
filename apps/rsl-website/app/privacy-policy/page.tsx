@@ -144,23 +144,34 @@ export default function PrivacyPolicyPage() {
             </ul>
           </section>
 
-          {/* Section 5: Data Protection & Sharing */}
+          {/* Section 5: Data Protection, Third-Party AI Services & Data Sharing */}
           <section className="bg-[#111111] border border-white/10 rounded-2xl p-6 lg:p-8">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0057FF] text-xs font-black text-white">5</span>
-              Data Protection &amp; Third-Party Sharing
+              Data Protection &amp; Third-Party AI Services (Apple Guidelines 5.1.1 &amp; 5.1.2)
             </h2>
             <p className="font-bold text-[#00C853] text-base mb-2">
               ✓ We NEVER sell your personal data, inventory lists, or financial ledgers to third parties.
             </p>
             <p>
-              We share information strictly with trusted infrastructure and service partners necessary to run our software:
+              We share information strictly with trusted infrastructure and service partners necessary to deliver application features, subject to strict contractual confidentiality and data security terms:
             </p>
-            <ul className="list-disc list-inside mt-3 space-y-2 text-neutral-300 pl-2">
-              <li><strong className="text-white">Cloud Infrastructure &amp; Database:</strong> Secure encrypted databases (PostgreSQL/Supabase) and Redis caching servers.</li>
-              <li><strong className="text-white">AI Processing:</strong> Google Gemini / Vertex AI for processing computer vision scans and assistant queries.</li>
-              <li><strong className="text-white">Marketplace APIs:</strong> eBay API when you explicitly connect your eBay seller account.</li>
-              <li><strong className="text-white">Notification Services:</strong> OneSignal &amp; Expo Push for alert delivery.</li>
+            <ul className="list-disc list-inside mt-3 space-y-3 text-neutral-300 pl-2">
+              <li>
+                <strong className="text-white">Third-Party AI Service (Google Gemini AI):</strong>
+                <p className="text-xs text-neutral-300 mt-1 pl-4 leading-relaxed">
+                  When you use the RSL Assistant or AI card scanner, your queries, card scan image data, and inventory lookup terms are processed via Google Gemini AI models.
+                  <br />
+                  • <strong className="text-white">No Public AI Model Training:</strong> In accordance with Google AI data privacy commitments, customer data transmitted through the API is strictly used to generate real-time responses and is <strong>never used to train, retrain, or improve foundational or public AI models</strong>.
+                  <br />
+                  • <strong className="text-white">Data Encryption:</strong> All data transmitted to and from Google Gemini AI is encrypted in transit using TLS 1.3 and at rest with AES-256 encryption.
+                  <br />
+                  • <strong className="text-white">User Consent:</strong> Users are presented with an in-app disclosure and must grant explicit permission before sending queries to the AI service.
+                </p>
+              </li>
+              <li><strong className="text-white">Cloud Infrastructure &amp; Database:</strong> Secure encrypted databases (PostgreSQL/Supabase) and Redis caching servers for storing user accounts, inventory records, and transaction ledgers.</li>
+              <li><strong className="text-white">Marketplace APIs (eBay):</strong> eBay REST API only when you explicitly connect your eBay seller account for listing and sales synchronization.</li>
+              <li><strong className="text-white">Notification Services:</strong> OneSignal &amp; Expo Push for delivering authorized operational alerts (price spikes, daily log reminders).</li>
             </ul>
           </section>
 

@@ -10,10 +10,15 @@ import {
   Platform,
   FlatList,
   ActivityIndicator,
-  Alert
+  Alert,
+  Linking,
+  ScrollView
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiClient as api } from "../../lib/apiClient";
+
+export const AI_CONSENT_STORAGE_KEY = "@rsl_ai_data_consent_accepted";
 
 let Voice: any = null;
 try {
@@ -74,6 +79,26 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const [hasConsented, setHasConsented] = useState<boolean | null>(null);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      AsyncStorage.getItem(AI_CONSENT_STORAGE_KEY).then((value) => {
+        setHasConsented(value === "true");
+      });
+    }
+  }, [visible]);
+
+  const handleAgreeConsent = async () => {
+    try {
+      await AsyncStorage.setItem(AI_CONSENT_STORAGE_KEY, "true");
+      setHasConsented(true);
+      setShowPrivacyNotice(false);
+    } catch {
+      setHasConsented(true);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -242,6 +267,15 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
             </View>
             
             <View style={styles.headerRight}>
+              {hasConsented && (
+                <TouchableOpacity 
+                  onPress={() => setShowPrivacyNotice(true)} 
+                  style={styles.actionBtn}
+                  accessibilityLabel="AI Data Privacy Info"
+                >
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#818cf8" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={handleClearChat} style={styles.actionBtn}>
                 <Ionicons name="trash-outline" size={20} color="#a1a1aa" />
               </TouchableOpacity>
@@ -251,56 +285,165 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
             </View>
           </View>
 
-          {/* Chat List */}
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.chatList}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            ListHeaderComponent={(
-              messages.length <= 2 ? (
-                <View style={styles.suggestionsContainer}>
-                  <Text style={styles.suggestionsHeader}>Recommended Questions & Tools</Text>
-                  <View style={styles.suggestionsList}>
-                    {SUGGESTIONS.map((sug, i) => (
-                      <TouchableOpacity key={i} style={styles.suggestionPill} onPress={() => handleSend(sug.text)}>
-                        <Text style={styles.suggestionLabel}>{sug.label}</Text>
-                        <Text style={styles.suggestionText} numberOfLines={1}>{sug.text}</Text>
-                      </TouchableOpacity>
-                    ))}
+          {hasConsented === null ? (
+            <View style={styles.loadingConsent}>
+              <ActivityIndicator size="large" color="#6366f1" />
+            </View>
+          ) : !hasConsented || showPrivacyNotice ? (
+            <View style={styles.consentContainer}>
+              <View style={styles.consentHeader}>
+                <View style={styles.consentIconBadge}>
+                  <Ionicons name="sparkles" size={28} color="#6366f1" />
+                </View>
+                <Text style={styles.consentTitle}>AI-Powered Assistant</Text>
+                <Text style={styles.consentSubtitle}>Data Privacy & Third-Party AI Notice</Text>
+              </View>
+
+              <ScrollView style={styles.consentScroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.disclosureCard}>
+                  <View style={styles.disclosureRow}>
+                    <View style={styles.rowIconCircle}>
+                      <Ionicons name="document-text-outline" size={18} color="#818cf8" />
+                    </View>
+                    <View style={styles.rowTextWrap}>
+                      <Text style={styles.rowHeading}>1. What Data Will Be Sent</Text>
+                      <Text style={styles.rowBody}>
+                        When you ask questions or look up cards, your text queries, voice inputs, and inventory search terms are sent to generate answers, market comps, and sales insights.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.disclosureDivider} />
+
+                  <View style={styles.disclosureRow}>
+                    <View style={styles.rowIconCircle}>
+                      <Ionicons name="cloud-outline" size={18} color="#818cf8" />
+                    </View>
+                    <View style={styles.rowTextWrap}>
+                      <Text style={styles.rowHeading}>2. Third-Party AI Service Provider</Text>
+                      <Text style={styles.rowBody}>
+                        Queries are processed by <Text style={{ color: "#fff", fontWeight: "700" }}>Google Gemini AI (Google)</Text> using secure AI infrastructure.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.disclosureDivider} />
+
+                  <View style={styles.disclosureRow}>
+                    <View style={styles.rowIconCircle}>
+                      <Ionicons name="shield-checkmark-outline" size={18} color="#34d399" />
+                    </View>
+                    <View style={styles.rowTextWrap}>
+                      <Text style={styles.rowHeading}>3. Privacy & Data Protection</Text>
+                      <Text style={styles.rowBody}>
+                        Data is encrypted in transit and at rest. Under Google AI data privacy terms, <Text style={{ color: "#34d399", fontWeight: "700" }}>your queries and personal data are never used to train public AI models</Text>.
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              ) : null
-            )}
-            ListFooterComponent={isLoading ? (
-              <View style={[styles.messageBubble, styles.modelBubble]}>
-                <TypingIndicator />
-              </View>
-            ) : null}
-          />
 
-          {/* Input Area */}
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Ask about stock, profits, comps..."
-              placeholderTextColor="#71717a"
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={() => handleSend()}
-              returnKeyType="send"
-            />
-            
-            <TouchableOpacity 
-              onPress={() => handleSend()} 
-              style={[styles.sendBtn, (!inputText.trim() || isLoading) && { opacity: 0.4 }]}
-              disabled={!inputText.trim() || isLoading}
-            >
-              <Ionicons name="send" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity 
+                  style={styles.policyLinkCard}
+                  onPress={() => Linking.openURL("https://rslcards.com/privacy-policy")}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="shield-outline" size={16} color="#818cf8" />
+                  <Text style={styles.policyLinkText}>View full RSL Cards Privacy Policy</Text>
+                  <Ionicons name="open-outline" size={14} color="#818cf8" />
+                </TouchableOpacity>
+              </ScrollView>
+
+              <View style={styles.consentActions}>
+                {!hasConsented ? (
+                  <>
+                    <TouchableOpacity 
+                      style={styles.declineButton} 
+                      onPress={onClose}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.declineButtonText}>Decline</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.agreeButton} 
+                      onPress={handleAgreeConsent}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.agreeButtonText}>Agree & Continue</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.agreeButton} 
+                    onPress={() => setShowPrivacyNotice(false)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.agreeButtonText}>Close Notice</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ) : (
+            <>
+              {/* Chat List */}
+              <FlatList
+                ref={flatListRef}
+                data={messages}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.chatList}
+                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                ListHeaderComponent={(
+                  messages.length <= 2 ? (
+                    <View style={styles.suggestionsContainer}>
+                      <Text style={styles.suggestionsHeader}>Recommended Questions & Tools</Text>
+                      <View style={styles.suggestionsList}>
+                        {SUGGESTIONS.map((sug, i) => (
+                          <TouchableOpacity key={i} style={styles.suggestionPill} onPress={() => handleSend(sug.text)}>
+                            <Text style={styles.suggestionLabel}>{sug.label}</Text>
+                            <Text style={styles.suggestionText} numberOfLines={1}>{sug.text}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null
+                )}
+                ListFooterComponent={isLoading ? (
+                  <View style={[styles.messageBubble, styles.modelBubble]}>
+                    <TypingIndicator />
+                  </View>
+                ) : null}
+              />
+
+              {/* Input Area */}
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ask about stock, profits, comps..."
+                  placeholderTextColor="#71717a"
+                  value={inputText}
+                  onChangeText={setInputText}
+                  onSubmitEditing={() => handleSend()}
+                  returnKeyType="send"
+                />
+                
+                <TouchableOpacity 
+                  onPress={() => handleSend()} 
+                  style={[styles.sendBtn, (!inputText.trim() || isLoading) && { opacity: 0.4 }]}
+                  disabled={!inputText.trim() || isLoading}
+                >
+                  <Ionicons name="send" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* AI Privacy Disclaimer footer */}
+              <View style={styles.privacyDisclaimerRow}>
+                <Ionicons name="shield-checkmark" size={12} color="#818cf8" />
+                <Text style={styles.privacyDisclaimerText}>
+                  Powered by Google Gemini AI • Data is never used for model training
+                </Text>
+              </View>
+            </>
+          )}
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -503,5 +646,151 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingConsent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  consentContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "space-between",
+  },
+  consentHeader: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  consentIconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  consentTitle: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  consentSubtitle: {
+    color: "#a1a1aa",
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  consentScroll: {
+    flex: 1,
+  },
+  disclosureCard: {
+    backgroundColor: "#18181b",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#27272a",
+    padding: 16,
+    marginBottom: 14,
+  },
+  disclosureRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  rowIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#27272a",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  rowTextWrap: {
+    flex: 1,
+  },
+  rowHeading: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  rowBody: {
+    color: "#a1a1aa",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  disclosureDivider: {
+    height: 1,
+    backgroundColor: "#27272a",
+    marginVertical: 14,
+  },
+  policyLinkCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(99, 102, 241, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(99, 102, 241, 0.2)",
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  policyLinkText: {
+    color: "#818cf8",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  consentActions: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#27272a",
+  },
+  declineButton: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: "#27272a",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  declineButtonText: {
+    color: "#d4d4d8",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  agreeButton: {
+    flex: 2,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: "#6366f1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  agreeButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  privacyDisclaimerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    backgroundColor: "#18181b",
+    borderTopWidth: 1,
+    borderTopColor: "#27272a",
+  },
+  privacyDisclaimerText: {
+    color: "#71717a",
+    fontSize: 10,
+    fontWeight: "500",
   },
 });

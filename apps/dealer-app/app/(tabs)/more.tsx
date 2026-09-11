@@ -330,7 +330,12 @@ function MoreScreen() {
             label="Privacy & Terms"
             onPress={() => router.push("/about")}
           />
-          <SettingsRow icon="phone-portrait-outline" label="Version" value="1.0.0" isLast />
+          <SettingsRow 
+            icon="phone-portrait-outline" 
+            label="Version" 
+            value="1.0.0" 
+            isLast 
+          />
         </SectionCard>
 
         {/* Account Actions */}

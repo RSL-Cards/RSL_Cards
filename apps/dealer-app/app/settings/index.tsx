@@ -252,7 +252,7 @@ export default function SettingsScreen() {
                 {profile?.displayName ?? user?.email}
               </Typography>
               <Typography variant="caption" color={COLORS.zinc400} style={{ marginTop: 2 }}>
-                {(profile?.subscriptionPlan ?? "free").toUpperCase()} plan
+                {(user?.role ?? "dealer").toUpperCase()} Account
               </Typography>
               <Typography variant="caption" color={COLORS.zinc500} style={{ marginTop: 4 }}>
                 Tap photo to change
