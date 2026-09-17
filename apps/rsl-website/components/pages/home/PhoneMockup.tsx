@@ -82,9 +82,8 @@ export default function PhoneMockup() {
         {/* STEP 0: HOME SCREEN */}
         <div className={`absolute inset-0 flex flex-col bg-[#09090b] transition-opacity duration-500 ${step === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
           <div className="flex items-center justify-between px-5 pt-10 pb-3 border-b border-[#27272a]">
-            <div className="flex items-center gap-2">
-              <img src="/rslicon.jpeg" alt="RSL Logo" className="w-9 h-9 rounded-lg object-contain" />
-              <span className="text-zinc-400 text-xs italic font-medium">PRO</span>
+            <div className="flex items-center">
+              <img src="/rsl-logo.jpeg" alt="RSL Cards Logo" className="h-7 w-auto object-contain" />
             </div>
             <div className="flex items-center gap-3">
               <div className="relative p-1">

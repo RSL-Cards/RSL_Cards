@@ -5,9 +5,14 @@ export default function Footer() {
     <footer className="border-t border-line bg-black px-5 py-12 lg:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-4">
         <div>
-          <div className="flex items-center gap-3">
-            <Image src="/rslicon.jpeg" alt="RSL Cards Logo" width={32} height={32} className="h-8 w-8 rounded-md object-contain" />
-            <div className="text-2xl font-black">RSL CARDS</div>
+          <div className="flex items-center">
+            <Image 
+              src="/rsl-logo.jpeg" 
+              alt="RSL Cards Logo" 
+              width={140} 
+              height={50} 
+              className="h-12 w-auto object-contain -ml-1" 
+            />
           </div>
           <p className="mt-2 text-muted">rslcards.com</p>
         </div>

@@ -19,11 +19,15 @@ export default function Header() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur-xl">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3">
-          <Image src="/rslicon.jpeg" alt="RSL Cards Logo" width={40} height={40} className="h-10 w-10 rounded-md object-contain" />
-          <span className="text-sm font-black uppercase tracking-[0.22em] text-white">
-            Cards
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image 
+            src="/rsl-logo.jpeg" 
+            alt="RSL Cards Logo" 
+            width={120} 
+            height={44} 
+            className="h-11 w-auto object-contain" 
+            priority
+          />
         </Link>
 
         {/* Desktop Navigation */}
