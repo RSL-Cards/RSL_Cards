@@ -1,29 +1,34 @@
-import { ArrowRight, Layers, TrendingUp, DollarSign, PieChart, QrCode, CheckCircle2, Sparkles } from 'lucide-react'
+import { ArrowRight, Layers, TrendingUp, DollarSign, PieChart, QrCode, CheckCircle2, Sparkles, Repeat, WifiOff, ShieldCheck } from 'lucide-react'
 
 const features = [
   {
-    title: 'Inventory & Operations',
-    description: 'Organize cards, purchases, sales, and show activity in one place.',
+    title: 'Inventory & Cost Basis',
+    description: 'Track sports cards & TCG (Pokémon, One Piece, Magic) with exact cost basis, purchase sources, aging stock alerts, and target sale prices.',
     icon: Layers,
   },
   {
-    title: 'Digital Dealer Showcase',
-    description: 'Share your live digital showcase link or table QR code so buyers browse your active inventory on their phones at card shows.',
-    icon: QrCode,
+    title: 'Dealer-to-Dealer Transactions',
+    description: 'Run complex multi-card trades, cash + trade splits, wholesale lot transfers, and dealer-to-dealer trade night ledgers in seconds.',
+    icon: Repeat,
   },
   {
-    title: 'Player & Market Insights',
-    description: 'Connect verified player performance, news, and market movement to relevant inventory.',
-    icon: TrendingUp,
-  },
-  {
-    title: 'Buying & Selling Context',
-    description: 'Use instant comps and market information to support more informed pricing decisions.',
+    title: 'Instant Comps & Market Value',
+    description: 'Live sold comps across eBay completed, 130point, and Myslabs for both graded slabs (PSA, BGS, CGC, SGC) and raw cards.',
     icon: DollarSign,
   },
   {
-    title: 'Dealer Dashboard & Reporting',
-    description: 'Get full visibility into your activity, inventory value, transaction history, and profitability.',
+    title: 'Offline Show Floor Engine',
+    description: 'Operate with zero WiFi or cell signal at crowded convention centers. Log buys, sells, and trades with automatic cloud sync when signal returns.',
+    icon: WifiOff,
+  },
+  {
+    title: 'Digital Table Showcase',
+    description: 'Place a custom QR code on your showcase so buyers browse your active inventory, grades, and asking prices directly on their phones.',
+    icon: QrCode,
+  },
+  {
+    title: 'Daily Show Logs & Accounting',
+    description: 'Track starting cash drawers, Money In, Money Out, expenses, and net profit margins for clean, tax-ready show-day accounting.',
     icon: PieChart,
   },
 ]
@@ -33,11 +38,14 @@ export default function FeaturesSection() {
     <section id="features" className="border-b border-line bg-ink py-24">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="mb-16 md:text-center">
+          <div className="mb-3 inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.2em] text-rslRed">
+            The Operating System for Dealers
+          </div>
           <h2 className="display-title text-3xl text-white sm:text-4xl md:text-5xl">
-            Everything you need for the show floor
+            Everything you need for the show floor &amp; shop
           </h2>
           <p className="mt-4 text-lg text-neutral-400 md:mx-auto md:max-w-2xl">
-            RSL Cards is a connected system. From the mobile app in your pocket to the full dealer dashboard and live public showcase.
+            RSL Cards is the unified operating system for card dealers. Sports cards, TCG singles, show tables, and dealer-to-dealer transactions—all connected in real-time.
           </p>
         </div>
 
@@ -62,7 +70,7 @@ export default function FeaturesSection() {
               Let Buyers Browse Your Entire Table Inventory Digitally
             </h3>
             <p className="mt-4 text-base text-neutral-300 leading-relaxed">
-              Never miss a deal when your table is crowded. Place your custom QR code on your card show display so collectors can scan and browse your active inventory, PSA/BGS grades, and asking prices directly on their smartphones.
+              Never miss a deal when your table is crowded. Place your custom QR code on your card show display so collectors can scan and browse your active sports and TCG inventory, PSA/BGS/CGC grades, and asking prices directly on their smartphones.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <span className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl">
@@ -85,7 +93,7 @@ export default function FeaturesSection() {
                   <div>
                     <div className="font-extrabold text-sm text-white flex items-center gap-1.5">
                       Vinay Cards
-                      <span className="bg-[#0057FF]/20 text-[#0057FF] text-[9px] font-black px-1.5 py-0.5 rounded">PRO</span>
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-1.5 py-0.5 rounded">VERIFIED DEALER</span>
                     </div>
                     <div className="text-[11px] text-neutral-400">Dallas Card Show Table #42</div>
                   </div>
@@ -98,13 +106,13 @@ export default function FeaturesSection() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-[#1C1C1E] p-3 rounded-xl border border-white/5">
                   <div className="font-bold text-white text-xs truncate">Messi Prizm WC</div>
-                  <div className="text-[10px] text-amber-400 font-bold mt-0.5">PSA 10</div>
+                  <div className="text-[10px] text-amber-400 font-bold mt-0.5">PSA 10 · Sports</div>
                   <div className="text-sm font-extrabold text-white mt-1">$1,450.00</div>
                 </div>
                 <div className="bg-[#1C1C1E] p-3 rounded-xl border border-white/5">
-                  <div className="font-bold text-white text-xs truncate">Haaland Chrome</div>
-                  <div className="text-[10px] text-amber-400 font-bold mt-0.5">PSA 10</div>
-                  <div className="text-sm font-extrabold text-white mt-1">$850.00</div>
+                  <div className="font-bold text-white text-xs truncate">Charizard 1st Ed</div>
+                  <div className="text-[10px] text-purple-400 font-bold mt-0.5">PSA 9 · TCG</div>
+                  <div className="text-sm font-extrabold text-white mt-1">$4,200.00</div>
                 </div>
               </div>
             </div>

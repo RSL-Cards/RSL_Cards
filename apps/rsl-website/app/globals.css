@@ -80,3 +80,21 @@ a {
   from { transform: translate(-50%, -20px); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
 }
+
+@keyframes loaderShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes loaderPulse {
+  0%, 100% { transform: scale(1); opacity: 0.88; }
+  50% { transform: scale(1.03); opacity: 1; }
+}
+
+.animate-loader-shimmer {
+  animation: loaderShimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-loader-pulse {
+  animation: loaderPulse 2.2s ease-in-out infinite;
+}

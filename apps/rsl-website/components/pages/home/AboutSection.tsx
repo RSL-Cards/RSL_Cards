@@ -31,10 +31,10 @@ export default function AboutSection() {
           </h2>
           <div className="mt-8 space-y-6 text-lg leading-relaxed text-neutral-300">
             <p>
-              <span className="font-bold text-white">RSL Cards</span> was created to give sports card dealers a practical platform for managing the day-to-day operations of their businesses. The system is designed to help dealers record activity, manage inventory, monitor listings, and understand profitability through one connected platform.
+              <span className="font-bold text-white">RSL Cards</span> is the dedicated operating system for card dealers. Built specifically for sports cards, TCG (Pokémon, One Piece, Magic), and show-floor operations, the platform unites inventory management, real-time market comps, dealer-to-dealer trade balancing, and profit accounting into one cohesive platform.
             </p>
             <p>
-              Sports card dealers often operate in fast-moving environments while relying on disconnected tools, spreadsheets, and manual processes. RSL Cards was developed to make those operations simpler, clearer, and easier to manage—whether a dealer is working a card show, selling online, or reviewing the performance of the business.
+              Card dealers operate in fast-moving, high-volume environments—from 500-table convention centers to late-night dealer trade sessions. For years, dealers have had to juggle disconnected spreadsheets, mental math, and spotty convention WiFi. RSL Cards replaces that friction with a professional operating system built for how dealers actually work.
             </p>
           </div>
           <div className="mt-12 flex justify-center">

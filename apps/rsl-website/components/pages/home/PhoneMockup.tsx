@@ -154,6 +154,13 @@ export default function PhoneMockup() {
                   </div>
                 </div>
                 <div className="min-w-[170px] rounded-2xl bg-[#18181b] border border-[#27272a] p-3.5 backdrop-blur-md relative">
+                  <div className="font-semibold text-sm truncate mb-1 text-zinc-100 pr-4">Charizard 1st Ed Base</div>
+                  <div className="text-[11px] text-purple-400 font-medium">TCG · DEALER TRADE</div>
+                  <div className="absolute top-3.5 right-3 text-zinc-500">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </div>
+                </div>
+                <div className="min-w-[170px] rounded-2xl bg-[#18181b] border border-[#27272a] p-3.5 backdrop-blur-md relative">
                   <div className="font-semibold text-sm truncate mb-1 text-zinc-100 pr-4">Haaland Chrome Auto</div>
                   <div className="text-[11px] text-zinc-400 font-medium">Step 1/5 · SELL</div>
                   <div className="absolute top-3.5 right-3 text-zinc-500">
@@ -173,10 +180,24 @@ export default function PhoneMockup() {
                   </div>
                   <div className="flex-1 min-w-0 mr-3">
                     <div className="font-semibold text-sm text-white truncate">Lionel Messi Prizm WC</div>
-                    <div className="text-[11px] text-zinc-500 mt-0.5">Oct 24 · 10:42 AM</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Oct 24 · 10:42 AM · Graded Slab</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-bold text-sm text-white">$1,150.00</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center p-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#8b5cf6]/15 border border-[#8b5cf6]/30 flex items-center justify-center mr-3 shrink-0">
+                    <span className="text-[#8b5cf6] font-black text-xs">TCG</span>
+                  </div>
+                  <div className="flex-1 min-w-0 mr-3">
+                    <div className="font-semibold text-sm text-white truncate">Charizard 1st Ed Base PSA 9</div>
+                    <div className="text-[11px] text-purple-400 mt-0.5 font-medium">Oct 24 · 09:40 AM · Dealer Swap</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="font-bold text-sm text-white">$4,200.00</div>
+                    <div className="text-[10px] font-bold text-[#10b981] mt-0.5">+$650.00</div>
                   </div>
                 </div>
 
@@ -186,7 +207,7 @@ export default function PhoneMockup() {
                   </div>
                   <div className="flex-1 min-w-0 mr-3">
                     <div className="font-semibold text-sm text-white truncate">Haaland Topps Chrome RC</div>
-                    <div className="text-[11px] text-zinc-500 mt-0.5">Oct 24 · 09:15 AM</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">Oct 24 · 09:15 AM · Show Sale</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-bold text-sm text-white">$850.00</div>
@@ -199,11 +220,11 @@ export default function PhoneMockup() {
                     <span className="text-[#10b981] font-black text-xs">TR</span>
                   </div>
                   <div className="flex-1 min-w-0 mr-3">
-                    <div className="font-semibold text-sm text-white truncate">Traded Patrick Mahomes → C.J. Stroud</div>
-                    <div className="text-[11px] text-zinc-500 mt-0.5">Oct 24 · 08:30 AM · Trade</div>
+                    <div className="font-semibold text-sm text-white truncate">Mahomes PSA 10 ⇄ C.J. Stroud + $250</div>
+                    <div className="text-[11px] text-emerald-400 mt-0.5 font-medium">Oct 24 · 08:30 AM · Dealer-to-Dealer</div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="font-bold text-sm text-[#10b981]">Straight Trade</div>
+                    <div className="font-bold text-sm text-[#10b981]">Trade Balanced</div>
                   </div>
                 </div>
               </div>
@@ -288,7 +309,7 @@ export default function PhoneMockup() {
             {/* Tabs */}
             <div className="flex border-b border-[#27272a] mt-1">
               <div className="pb-2.5 border-b-2 border-[#4f46e5] px-2 flex-1 text-center font-bold text-xs text-[#4f46e5]">eBay Sold</div>
-              <div className="pb-2.5 px-2 flex-1 text-center font-bold text-xs text-zinc-500">eBay Active</div>
+              <div className="pb-2.5 px-2 flex-1 text-center font-bold text-xs text-zinc-500">130point · TCG</div>
               <div className="pb-2.5 px-2 flex-1 text-center font-bold text-xs text-zinc-500">MySlabs</div>
             </div>
 
@@ -592,7 +613,7 @@ export default function PhoneMockup() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <div className="font-extrabold text-sm text-white truncate">Vinay K</div>
-                  <span className="bg-[#4f46e5]/15 border border-[#4f46e5]/30 text-[#818cf8] font-extrabold text-[9px] px-1.5 py-0.5 rounded">PRO</span>
+                  <span className="bg-[#4f46e5]/15 border border-[#4f46e5]/30 text-[#818cf8] font-extrabold text-[9px] px-1.5 py-0.5 rounded">DEALER</span>
                 </div>
                 <div className="text-xs text-zinc-500 truncate mt-0.5">dealer@rslcards.com</div>
               </div>
@@ -642,6 +663,19 @@ export default function PhoneMockup() {
                     <span className="font-semibold text-sm text-white">Version</span>
                   </div>
                   <span className="text-xs text-zinc-400 font-medium">1.0.0</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-2.5 px-1">ACCOUNT ACTIONS</div>
+              <div className="bg-[#18181b] border border-[#27272a] rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between h-[52px] px-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#e11d48] text-base">🗑️</span>
+                    <span className="font-semibold text-sm text-[#e11d48]">Delete Account</span>
+                  </div>
+                  <span className="text-zinc-600 text-base">›</span>
                 </div>
               </div>
             </div>

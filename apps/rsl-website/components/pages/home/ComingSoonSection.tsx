@@ -6,30 +6,38 @@ export default function ComingSoonSection() {
       <div className="absolute inset-y-0 right-0 w-[50%] bg-[radial-gradient(circle_at_center,rgba(232,0,28,0.24),transparent_58%)] lg:right-[5%]" />
       <div className="relative mx-auto grid max-w-7xl gap-12 px-5 pb-16 pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-24 lg:pt-20">
         <div className="flex flex-col justify-center">
+          <div className="mb-4 inline-flex w-fit items-center gap-2 border border-rslRed/50 bg-rslRed/10 px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-red-200">
+            Sports Cards · TCG · Dealer Commerce
+          </div>
           <h1 className="display-title max-w-4xl text-4xl leading-tight text-white sm:text-5xl md:text-6xl">
-            Run Smarter Sports Card Business Operations
+            The Operating System for Card Dealers
           </h1>
           <p className="mt-6 max-w-2xl text-xl font-semibold leading-tight text-white md:text-2xl">
-            RSL Cards combines inventory, pricing context, player insights, sales activity, and profitability tools in one platform.
+            TCG cards, sports cards, show-floor sales, and dealer-to-dealer transactions. RSL Cards unifies your inventory, live comps, cash + trade deals, and profit accounting in one connected platform.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
               href="https://app.rslcards.com/login"
               className="inline-flex items-center justify-center bg-rslRed px-8 py-4 text-base font-black transition text-white hover:bg-white hover:!text-black"
             >
               Join Early Access
             </a>
+            <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">
+              ⚡ Zero WiFi Required on Show Floor
+            </span>
           </div>
         </div>
         <PhoneMockup />
       </div>
       
-      {/* Integration Logos */}
+      {/* Integration & Capability Badges */}
       <div className="border-t border-line bg-white text-ink">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 text-sm font-black uppercase tracking-[0.1em] lg:px-8">
-          <span className="opacity-50">PSA Data Integration</span>
-          <span className="opacity-50">Marketplace Sync</span>
-          <span className="opacity-50">Verified Comps</span>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-5 py-5 text-xs sm:text-sm font-black uppercase tracking-[0.12em] lg:px-8">
+          <span className="opacity-70">Sports Cards &amp; TCG</span>
+          <span className="opacity-70">Dealer-to-Dealer Trades</span>
+          <span className="opacity-70">Live Sold Comps</span>
+          <span className="opacity-70">Offline Show Floor Mode</span>
+          <span className="opacity-70">PSA · BGS · CGC Sync</span>
         </div>
       </div>
     </section>

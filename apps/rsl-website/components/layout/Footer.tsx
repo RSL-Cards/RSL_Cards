@@ -14,7 +14,9 @@ export default function Footer() {
               className="h-12 w-auto object-contain -ml-1" 
             />
           </div>
-          <p className="mt-2 text-muted">rslcards.com</p>
+          <p className="mt-2 text-sm font-semibold text-white">The Operating System for Dealers</p>
+          <p className="text-xs text-neutral-400">Sports Cards · TCG · Dealer Commerce</p>
+          <p className="mt-2 text-xs text-muted">rslcards.com</p>
         </div>
         <div>
           <div className="font-black">Navigation</div>
@@ -37,7 +39,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="mx-auto mt-10 max-w-7xl border-t border-line pt-6 text-sm font-bold text-muted">
-        The dealer operating system for the sports card show floor.
+        The operating system for card dealers — sports cards, TCG, and dealer-to-dealer commerce.
       </div>
     </footer>
   )

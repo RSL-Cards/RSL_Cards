@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import PageLoader from "@/components/ui/PageLoader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RSL Cards - The Dealer App for Card Shows",
+  title: "RSL Cards - The Operating System for Card Dealers",
   description:
-    "Scan comps, buy and sell in seconds, track your profit. RSL Cards is built for card shows and multi-channel selling.",
+    "The operating system for card dealers. Sports cards, TCG, dealer-to-dealer transactions, live comps, and show floor inventory management.",
   icons: {
     icon: [
       { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
@@ -32,6 +33,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-full flex flex-col">
+        <PageLoader />
         {children}
         <Toaster
           position="top-right"

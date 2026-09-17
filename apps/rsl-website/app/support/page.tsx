@@ -28,25 +28,25 @@ const TOPICS = [
     id: 'mobile-app',
     icon: Smartphone,
     title: 'Mobile Dealer App',
-    desc: 'AI scanner, comp lookup, quick buy/sell workflows & offline mode.',
+    desc: 'AI scanner for sports & TCG, comp lookup, dealer trade math & offline mode.',
     color: 'from-blue-600/20 to-indigo-600/20',
     borderColor: 'border-blue-500/30',
     badgeColor: 'text-blue-400 bg-blue-500/10'
+  },
+  {
+    id: 'dealer-trades',
+    icon: ShoppingBag,
+    title: 'Dealer-to-Dealer Trades',
+    desc: 'Wholesale trades, multi-card trade equity, cash boot math, and inventory transfers.',
+    color: 'from-purple-600/20 to-pink-600/20',
+    borderColor: 'border-purple-500/30',
+    badgeColor: 'text-purple-400 bg-purple-500/10'
   },
   {
     id: 'showcase',
     icon: QrCode,
     title: 'Dealer Showcase Page',
     desc: 'Live table QR code, public inventory link (app.rslcards.com/showcase/handle).',
-    color: 'from-purple-600/20 to-pink-600/20',
-    borderColor: 'border-purple-500/30',
-    badgeColor: 'text-purple-400 bg-purple-500/10'
-  },
-  {
-    id: 'marketplace',
-    icon: ShoppingBag,
-    title: 'Marketplace Sync',
-    desc: 'eBay connection, active listing sync, and automated cross-posting.',
     color: 'from-emerald-600/20 to-teal-600/20',
     borderColor: 'border-emerald-500/30',
     badgeColor: 'text-emerald-400 bg-emerald-500/10'
@@ -75,12 +75,22 @@ const FAQS = [
   {
     category: 'showcase',
     question: 'How does the Live Dealer Showcase Page work at card shows?',
-    answer: 'Every RSL Cards dealer gets a unique public showcase URL (e.g. app.rslcards.com/showcase/your-handle) and shareable QR code. When collectors visit your show floor table, they can scan the QR code to browse your active card inventory, PSA/BGS grades, and asking prices live on their phones.'
+    answer: 'Every RSL Cards dealer gets a unique public showcase URL (e.g. app.rslcards.com/showcase/your-handle) and shareable QR code. When collectors visit your show floor table, they can scan the QR code to browse your active card inventory, PSA/BGS/CGC grades, and asking prices live on their phones.'
+  },
+  {
+    category: 'mobile-app',
+    question: 'Does RSL Cards support both Sports Cards and TCG (Pokémon, One Piece, MTG)?',
+    answer: 'Yes! RSL Cards is built for all card dealers. Whether you deal in Football, Basketball, Baseball, Soccer, Formula 1, Pokémon, One Piece, Magic: The Gathering, or Lorcana singles and slabs, RSL recognizes and prices them instantly.'
   },
   {
     category: 'mobile-app',
     question: 'How does the RSL AI Scanner work at noisy card show venues?',
-    answer: 'RSL Vision AI uses on-device edge acceleration combined with Google Gemini Vision models to scan physical card slabs, raw cards, and PSA/BGS barcodes. It isolates player names, set years, grade values, and cert numbers in under 1 second even in dim or high-glare convention center lighting.'
+    answer: 'RSL Vision AI uses on-device edge acceleration combined with Google Gemini Vision models to scan physical card slabs, raw cards, and PSA/BGS/CGC barcodes. It isolates player/character names, set years, grade values, and cert numbers in under 1 second even in dim or high-glare convention center lighting.'
+  },
+  {
+    category: 'dealer-trades',
+    question: 'How do Dealer-to-Dealer Transactions and Trade Math work?',
+    answer: 'At trade nights or on the show floor, dealers frequently swap multiple slabs with cash on top. RSL Cards lets you assemble 2-for-3 or multi-card trades, automatically totals live comps on both sides, computes the exact cash difference (boot) to reach your target margin, and moves the acquired cards directly into your active inventory.'
   },
   {
     category: 'mobile-app',
@@ -88,19 +98,9 @@ const FAQS = [
     answer: 'The RSL Cards app features built-in Offline Card Floor Mode. Scans, deal calculations, and inventory entries created offline are saved securely to local device storage and automatically sync to your cloud database the moment connection is restored.'
   },
   {
-    category: 'marketplace',
-    question: 'How do I connect my eBay seller account to sync inventory?',
-    answer: 'Navigate to More > Marketplace Connections in the mobile app or Settings > Integrations in the web dashboard. Click "Connect eBay" to authorize OAuth permissions. Once connected, your active eBay listings will automatically import, and new inventory can be published in one click.'
-  },
-  {
-    category: 'marketplace',
-    question: 'Are eBay sold comps updated in real-time?',
-    answer: 'Yes! RSL Cards fetches live eBay completed/sold listings and Myslabs historical sales every time you scan or search a card, displaying market averages, target buy prices, and profit margin estimates.'
-  },
-  {
     category: 'daily-logs',
     question: 'How do Daily Card Show Logs track cash in and money out?',
-    answer: 'When you start a show day (e.g. Dallas Card Show), open a Daily Log with your starting cash drawer amount. Every Buy, Sell, Trade, or Expense transaction automatically adjusts your Money In, Money Out, and Net Profit tallies. Close your log at the end of the day for clean accounting.'
+    answer: 'When you start a show day (e.g. Dallas Card Show or The National), open a Daily Log with your starting cash drawer amount. Every Buy, Sell, Dealer Trade, or Expense transaction automatically adjusts your Money In, Money Out, and Net Profit tallies. Close your log at the end of the day for clean bookkeeping.'
   },
   {
     category: 'security',
