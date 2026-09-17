@@ -4,6 +4,7 @@ import './globals.css'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { GlobalSSEProvider } from '@/components/layout/GlobalSSEProvider'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import PageLoader from '@/components/ui/PageLoader'
 
 const outfit = Outfit({ 
   subsets: ['latin'], 
@@ -13,7 +14,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: 'RSL Cards - Dealer Dashboard',
-  description: 'The operating system for sports card dealers',
+  description: 'The operating system for card dealers — sports cards, TCG, and dealer-to-dealer transactions',
   icons: {
     icon: [
       { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
@@ -40,6 +41,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className={`${outfit.className} antialiased bg-black text-white selection:bg-[#E8001C] selection:text-white`}>
+        <PageLoader />
         <QueryProvider>
           <GlobalSSEProvider>
             <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
