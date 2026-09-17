@@ -189,23 +189,23 @@ export default function SupportPage() {
             24/7 Dealer Support &amp; Help Center
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white max-w-3xl mx-auto leading-tight">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white max-w-3xl mx-auto leading-tight">
             How can we help your dealership today?
           </h1>
 
-          <p className="mt-4 text-neutral-400 text-base sm:text-lg max-w-2xl mx-auto">
+          <p className="mt-3 sm:mt-4 text-neutral-400 text-sm sm:text-lg max-w-2xl mx-auto">
             Search our knowledge base for instant answers on scanning, eBay sync, card show daily logs, or get in touch with our team.
           </p>
 
           {/* Search Bar */}
-          <div className="mt-8 max-w-xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+          <div className="mt-6 sm:mt-8 max-w-xl mx-auto relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search questions (e.g. scanner, eBay sync, cash logs)..."
+              placeholder="Search questions (scanner, comps, logs)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#111111] border border-white/15 rounded-2xl pl-12 pr-4 py-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] focus:ring-1 focus:ring-[#0057FF] transition-all shadow-xl"
+              className="w-full bg-[#111111] border border-white/15 rounded-2xl pl-11 sm:pl-12 pr-4 py-3.5 sm:py-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] focus:ring-1 focus:ring-[#0057FF] transition-all shadow-xl"
             />
           </div>
         </div>
@@ -385,7 +385,7 @@ export default function SupportPage() {
                     placeholder="e.g. Vinay Kumar"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors"
+                    className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors"
                   />
                 </div>
 
@@ -399,7 +399,7 @@ export default function SupportPage() {
                     placeholder="e.g. dealer@rslcards.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors"
+                    className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors"
                   />
                 </div>
               </div>
@@ -409,11 +409,11 @@ export default function SupportPage() {
                 <select
                   value={formData.topic}
                   onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                  className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-[#0057FF] transition-colors"
+                  className="w-full bg-[#18181B] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#0057FF] transition-colors"
                 >
                   <option value="General Question">General Question</option>
                   <option value="Mobile App & AI Scanner">Mobile App &amp; AI Scanner</option>
-                  <option value="eBay & Marketplace Sync">eBay &amp; Marketplace Sync</option>
+                  <option value="Dealer-to-Dealer Trades">Dealer-to-Dealer Trades</option>
                   <option value="Daily Card Show Logs">Daily Card Show Logs</option>
                   <option value="Account & Security">Account &amp; Security</option>
                   <option value="Bug Report or Feature Request">Bug Report / Feature Request</option>
@@ -430,7 +430,7 @@ export default function SupportPage() {
                   placeholder="Please describe your question or issue in detail..."
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full bg-[#18181B] border border-white/10 rounded-xl p-4 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors resize-none"
+                  className="w-full bg-[#18181B] border border-white/10 rounded-xl p-4 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-[#0057FF] transition-colors resize-none"
                 />
               </div>
 

@@ -61,11 +61,11 @@ export default function PhoneMockup() {
   }, [step])
 
   return (
-    <div className="relative mx-auto w-[330px] sm:w-[360px] h-[680px] rounded-[50px] border-[10px] border-[#222] bg-[#000] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(79,70,229,0.25)] overflow-hidden select-none">
+    <div className="relative mx-auto w-[310px] xs:w-[330px] sm:w-[360px] h-[640px] sm:h-[680px] rounded-[42px] sm:rounded-[50px] border-[8px] sm:border-[10px] border-[#222] bg-[#000] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_40px_rgba(79,70,229,0.25)] overflow-hidden select-none max-w-[calc(100vw-32px)]">
       {/* Phone Hardware Notch / Dynamic Island */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-4 bg-[#111] rounded-full z-[100] flex items-center justify-between px-2.5">
-        <div className="w-2.5 h-2.5 rounded-full bg-[#050505] border border-white/5" />
-        <div className="w-2.5 h-2.5 rounded-full bg-[#070b14] border border-indigo-900/30 flex items-center justify-center">
+      <div className="absolute top-2.5 sm:top-3 left-1/2 -translate-x-1/2 w-24 sm:w-28 h-3.5 sm:h-4 bg-[#111] rounded-full z-[100] flex items-center justify-between px-2 sm:px-2.5">
+        <div className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#050505] border border-white/5" />
+        <div className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#070b14] border border-indigo-900/30 flex items-center justify-center">
           <div className="w-1 h-1 rounded-full bg-[#4f46e5]/80" />
         </div>
       </div>

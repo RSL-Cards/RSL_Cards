@@ -17,7 +17,7 @@ export default function Header() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur-xl">
-      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
+      <nav className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image 
@@ -25,7 +25,7 @@ export default function Header() {
             alt="RSL Cards Logo" 
             width={120} 
             height={44} 
-            className="h-11 w-auto object-contain" 
+            className="h-9 sm:h-11 w-auto object-contain" 
             priority
           />
         </Link>
@@ -56,7 +56,7 @@ export default function Header() {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex h-11 w-11 items-center justify-center border border-white/20 lg:hidden"
+          className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center border border-white/20 rounded-lg lg:hidden text-white"
           aria-label="Toggle navigation menu"
         >
           {isOpen ? (
@@ -69,24 +69,24 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="border-t border-white/10 bg-black lg:hidden">
-          <div className="flex flex-col px-5 py-6">
+        <div className="border-t border-white/10 bg-black/95 backdrop-blur-2xl lg:hidden max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="flex flex-col px-5 py-5">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className="border-b border-white/10 py-4 text-base font-semibold text-neutral-300 transition hover:text-white"
+                className="border-b border-white/10 py-3.5 text-base font-semibold text-neutral-200 transition hover:text-white"
               >
                 {link.label}
               </a>
             ))}
 
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-5 flex flex-col gap-3">
               <a
                 href="https://app.rslcards.com/login"
                 onClick={() => setIsOpen(false)}
-                className="flex h-12 items-center justify-center bg-rslRed font-bold text-white transition hover:bg-white hover:!text-black"
+                className="flex h-12 items-center justify-center bg-rslRed font-bold text-white transition hover:bg-white hover:!text-black rounded-lg text-center"
               >
                 Join Early Access
               </a>

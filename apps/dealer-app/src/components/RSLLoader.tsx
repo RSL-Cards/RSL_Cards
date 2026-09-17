@@ -1,127 +1,118 @@
 import React, { useEffect, useRef } from "react";
-import { View, Image, Animated, StyleSheet } from "react-native";
-import { COLORS } from "../constants/theme";
+import { View, Image, Animated, Text, StyleSheet } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+
+interface RSLLoaderProps {
+  size?: number;
+  label?: string;
+}
 
 /**
- * RSL Logo Loading Animation
- *
- * Logo image fades in first, then "R", "S", "L" letters appear
- * one by one in slow motion with scale. Premium feel, loops.
+ * Professional RSL Cards Loading Component for Mobile
+ * Matches the luxury web and web-dashboard experience with official branding,
+ * ambient glow, shimmering laser progress bar, and micro-typography.
  */
-export default function RSLLoader({ size = 80 }: { size?: number }) {
-  const animLogo = useRef(new Animated.Value(0)).current;
-  const animR = useRef(new Animated.Value(0)).current;
-  const animS = useRef(new Animated.Value(0)).current;
-  const animL = useRef(new Animated.Value(0)).current;
+export default function RSLLoader({ size = 80, label = "THE OPERATING SYSTEM FOR DEALERS" }: RSLLoaderProps) {
+  const animPulse = useRef(new Animated.Value(1)).current;
+  const animShimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const sequence = Animated.sequence([
-      // Reset all
-      Animated.parallel([
-        Animated.timing(animLogo, { toValue: 0, duration: 0, useNativeDriver: true }),
-        Animated.timing(animR, { toValue: 0, duration: 0, useNativeDriver: true }),
-        Animated.timing(animS, { toValue: 0, duration: 0, useNativeDriver: true }),
-        Animated.timing(animL, { toValue: 0, duration: 0, useNativeDriver: true }),
-      ]),
-      // Logo fades in
-      Animated.timing(animLogo, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.delay(200),
-      // R appears
-      Animated.timing(animR, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.delay(300),
-      // S appears
-      Animated.timing(animS, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.delay(300),
-      // L appears
-      Animated.timing(animL, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      // Hold visible
-      Animated.delay(800),
-      // Fade all out
-      Animated.parallel([
-        Animated.timing(animLogo, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(animR, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(animS, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(animL, { toValue: 0, duration: 500, useNativeDriver: true }),
-      ]),
-      Animated.delay(400),
-    ]);
-
-    const loop = Animated.loop(sequence);
-    loop.start();
-
-    return () => loop.stop();
-  }, [animLogo, animR, animS, animL]);
-
-  const renderLetter = (letter: string, anim: Animated.Value, color: string) => {
-    const scale = anim.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0.5, 1.1, 1],
-    });
-    const translateY = anim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [6, 0],
-    });
-    return (
-      <Animated.Text
-        key={letter}
-        style={[
-          styles.letter,
-          {
-            fontSize: size,
-            color,
-            opacity: anim,
-            transform: [{ scale }, { translateY }],
-          },
-        ]}
-      >
-        {letter}
-      </Animated.Text>
+    // 1. Subtle breathing pulse for logo & ambient aura
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animPulse, {
+          toValue: 1.04,
+          duration: 1100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animPulse, {
+          toValue: 0.97,
+          duration: 1100,
+          useNativeDriver: true,
+        }),
+      ])
     );
-  };
 
-  const logoSize = Math.round(size * 1.35);
-  const logoScale = animLogo.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.85, 1.05, 1],
+    // 2. Shimmering laser progress bar loop
+    const shimmerLoop = Animated.loop(
+      Animated.timing(animShimmer, {
+        toValue: 1,
+        duration: 1400,
+        useNativeDriver: true,
+      })
+    );
+
+    pulseLoop.start();
+    shimmerLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+      shimmerLoop.stop();
+    };
+  }, [animPulse, animShimmer]);
+
+  const translateX = animShimmer.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-90, 190],
   });
+
+  const logoWidth = Math.round(size * 1.8);
+  const logoHeight = Math.round(size * 0.65);
 
   return (
     <View style={styles.container}>
+      {/* Ambient Red Radial Halo */}
       <Animated.View
-        style={{
-          opacity: animLogo,
-          transform: [{ scale: logoScale }],
-        }}
+        style={[
+          styles.ambientHalo,
+          {
+            transform: [{ scale: animPulse }],
+          },
+        ]}
+      />
+
+      {/* Centered Official Logo */}
+      <Animated.View
+        style={[
+          styles.logoWrapper,
+          {
+            transform: [{ scale: animPulse }],
+          },
+        ]}
       >
         <Image
-          source={require("../../assets/rslicon.jpeg")}
+          source={require("../../assets/rsl-logo.jpeg")}
           style={{
-            width: logoSize,
-            height: logoSize,
-            borderRadius: 20,
+            width: logoWidth,
+            height: logoHeight,
           }}
+          resizeMode="contain"
         />
       </Animated.View>
-      <View style={styles.row}>
-        {renderLetter("R", animR, "#e11d48")}
-        {renderLetter("S", animS, COLORS.primary)}
-        {renderLetter("L", animL, "#0ea5e9")}
+
+      {/* Glowing Tech Progress Bar */}
+      <View style={styles.track}>
+        <Animated.View
+          style={[
+            styles.shimmerBeam,
+            {
+              transform: [{ translateX }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={["transparent", "#E8001C", "#FFFFFF"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientBeam}
+          />
+        </Animated.View>
+      </View>
+
+      {/* Micro Status Indicator */}
+      <View style={styles.statusRow}>
+        <View style={styles.statusDot} />
+        <Text style={styles.statusText}>{label}</Text>
       </View>
     </View>
   );
@@ -132,15 +123,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 24,
-    gap: 12,
+    position: "relative",
   },
-  row: {
+  ambientHalo: {
+    position: "absolute",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(232, 0, 28, 0.12)",
+  },
+  logoWrapper: {
+    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  track: {
+    width: 170,
+    height: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 9999,
+    overflow: "hidden",
+    position: "relative",
+  },
+  shimmerBeam: {
+    width: 80,
+    height: 3,
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+  },
+  gradientBeam: {
+    flex: 1,
+    borderRadius: 9999,
+  },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 14,
     gap: 6,
   },
-  letter: {
-    fontWeight: "900",
-    letterSpacing: 2,
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#E8001C",
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9CA3AF",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
 });
