@@ -10,7 +10,7 @@ export default function DealerOffline() {
             Built for bad WiFi, packed aisles, and buyers waiting.
           </h2>
           <p className="mt-6 text-lg leading-8 text-neutral-700">
-            Dealers cannot pause a transaction because the venue signal disappeared. RSL Cards Pro
+            Dealers cannot pause a transaction because the venue signal disappeared. RSL Cards
             keeps core workflows available offline and syncs the record when the connection returns.
           </p>
         </div>

@@ -8,13 +8,13 @@ const plans = [
   //   features: ['Card scanning', 'Collection tracker', 'Price alerts', 'Card show finder', 'Market movers feed'],
   // },
   {
-    name: 'RSL Cards Pro Starter',
+    name: 'RSL Cards Starter',
     price: 'Free',
     audience: 'Dealers',
     features: ['BUY/SELL flow', 'Starter transactions', 'Basic inventory', 'Offline mode', 'QR payment codes'],
   },
   {
-    name: 'RSL Cards Pro',
+    name: 'RSL Cards Dealer',
     price: '$[X]/mo',
     audience: 'Power Dealers',
     features: ['Unlimited transactions', 'Multi-channel listing', 'AI Narrative Engine', 'Tax reporting', 'Customer database'],
@@ -37,7 +37,7 @@ export default function PricingHero() {
             Simple pricing. No surprises.
           </h1>
           <p className="mt-6 text-lg leading-8 text-neutral-300">
-            RSL Cards Pro has a free dealer tier with paid plans for more inventory management,
+            RSL Cards has a free dealer tier with paid plans for more inventory management,
             reporting, listing, and team power.
           </p>
         </div>

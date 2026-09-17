@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
               Overview &amp; Scope
             </h2>
             <p>
-              At RSL Cards (&quot;RSL Cards Pro&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), we respect your privacy and are committed to protecting the personal and business data of our sports card dealers and collectors.
+              At RSL Cards (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), we respect your privacy and are committed to protecting the personal and business data of our sports card dealers and collectors.
             </p>
             <p className="mt-3">
               This Privacy Policy explains what information we collect, how it is used, and how your data is protected across both our platforms:
@@ -199,7 +199,7 @@ export default function PrivacyPolicyPage() {
             <div className="mt-4 bg-[#18181B] border border-white/5 p-5 rounded-xl space-y-3">
               <h3 className="font-bold text-white text-sm">How to Delete Your Account In-App:</h3>
               <ol className="list-decimal list-inside space-y-2 text-xs text-neutral-300 pl-1">
-                <li>Open the <strong className="text-white">RSL Cards Pro</strong> mobile app.</li>
+                <li>Open the <strong className="text-white">RSL Cards</strong> mobile app.</li>
                 <li>Tap the <strong className="text-white">More</strong> tab in the bottom navigation and select <strong className="text-white">Account Settings &amp; Profile</strong> (or tap Edit on your profile card).</li>
                 <li>Scroll to the <strong className="text-white">Account Actions</strong> section at the bottom.</li>
                 <li>Tap <strong className="text-red-400">Delete Account</strong>.</li>

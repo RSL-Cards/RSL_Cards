@@ -19,7 +19,7 @@ export default function FeeCalculatorSection() {
             See instantly where you make the most money.
           </h2>
           <p className="mt-6 text-lg leading-8 text-neutral-300">
-            The fee calculator in RSL Cards Pro helps dealers compare platforms before listing.
+            The fee calculator in RSL Cards helps dealers compare platforms before listing.
             This view is built to make platform economics clear instead of hiding them.
           </p>
           <a className="mt-8 inline-flex items-center gap-2 bg-rslRed px-5 py-4 font-black" href="#download">

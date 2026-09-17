@@ -11,7 +11,7 @@ export default function DealerHero() {
             For Sports Card Dealers
           </div>
           <h1 className="display-title max-w-4xl text-4xl leading-tight text-white sm:text-5xl md:text-6xl">
-            RSL Cards Pro was built for how you actually work.
+            RSL Cards was built for how you actually work.
           </h1>
           <p className="mt-6 max-w-2xl text-xl font-semibold leading-tight text-white md:text-2xl">
             Not for retail stores. Not for online-only sellers. For dealers who set up a table at

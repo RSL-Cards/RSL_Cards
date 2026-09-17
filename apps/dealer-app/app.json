@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RSL Cards Pro",
+    "name": "RSL Cards",
     "slug": "rsl",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,12 +39,12 @@
           "NSAllowsArbitraryLoads": true
         },
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "RSL Cards Pro uses your location to discover nearby sports card shows, conventions, and local dealer trade events.",
-        "NSCameraUsageDescription": "RSL Cards Pro uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
-        "NSPhotoLibraryUsageDescription": "RSL Cards Pro accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.",
-        "NSPhotoLibraryAddUsageDescription": "RSL Cards Pro needs permission to save generated card comps, deal receipts, and invoices to your photo library.",
-        "NSMicrophoneUsageDescription": "RSL Cards Pro uses your microphone to enable voice search and hands-free card lookup.",
-        "NSSpeechRecognitionUsageDescription": "RSL Cards Pro uses speech recognition to convert spoken queries into card search terms."
+        "NSLocationWhenInUseUsageDescription": "RSL Cards uses your location to discover nearby sports card shows, conventions, and local dealer trade events.",
+        "NSCameraUsageDescription": "RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
+        "NSPhotoLibraryUsageDescription": "RSL Cards accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.",
+        "NSPhotoLibraryAddUsageDescription": "RSL Cards needs permission to save generated card comps, deal receipts, and invoices to your photo library.",
+        "NSMicrophoneUsageDescription": "RSL Cards uses your microphone to enable voice search and hands-free card lookup.",
+        "NSSpeechRecognitionUsageDescription": "RSL Cards uses speech recognition to convert spoken queries into card search terms."
       }
     },
     "android": {
@@ -77,23 +77,23 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "RSL Cards Pro uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
-          "microphonePermission": "RSL Cards Pro uses your microphone to enable voice search and hands-free card lookup.",
+          "cameraPermission": "RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
+          "microphonePermission": "RSL Cards uses your microphone to enable voice search and hands-free card lookup.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "RSL Cards Pro accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.",
-          "cameraPermission": "RSL Cards Pro uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory."
+          "photosPermission": "RSL Cards accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.",
+          "cameraPermission": "RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory."
         }
       ],
       [
         "@react-native-voice/voice",
         {
-          "microphonePermission": "RSL Cards Pro uses your microphone to enable voice search and hands-free card lookup.",
-          "speechRecognitionPermission": "RSL Cards Pro uses speech recognition to convert spoken queries into card search terms."
+          "microphonePermission": "RSL Cards uses your microphone to enable voice search and hands-free card lookup.",
+          "speechRecognitionPermission": "RSL Cards uses speech recognition to convert spoken queries into card search terms."
         }
       ],
       "expo-font",

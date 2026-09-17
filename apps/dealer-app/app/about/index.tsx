@@ -105,7 +105,7 @@ export default function AboutScreen() {
             resizeMode="contain"
           />
           <Typography variant="h2" weight="900" style={{ letterSpacing: -0.5, marginTop: 10 }}>
-            RSL Cards Pro
+            RSL Cards
           </Typography>
           <Typography variant="body" color={COLORS.zinc400} style={{ marginTop: 4, textAlign: "center" }}>
             The premier sports card dealer platform &amp; marketplace engine.
@@ -126,7 +126,7 @@ export default function AboutScreen() {
           </Typography>
           <Surface variant="elevated" padding="md" style={styles.contentCard}>
             <Typography variant="body" color={COLORS.zinc300} style={{ lineHeight: 22 }}>
-              RSL Cards Pro combines computerized vision scanning, real-time marketplace sales comps, multi-platform e-commerce synchronization, and automated profit ledgering to give dealers a high-speed competitive advantage on the show floor and online.
+              RSL Cards combines computerized vision scanning, real-time marketplace sales comps, multi-platform e-commerce synchronization, and automated profit ledgering to give dealers a high-speed competitive advantage on the show floor and online.
             </Typography>
           </Surface>
         </View>

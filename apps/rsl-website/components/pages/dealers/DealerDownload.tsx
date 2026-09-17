@@ -8,7 +8,7 @@ export default function DealerDownload() {
           Start your next show with a system.
         </h2>
         <p className="mx-auto mt-5 max-w-2xl text-xl font-bold">
-          Download RSL Cards Pro free and run the table with comps, inventory, payment notes, and
+          Download RSL Cards free and run the table with comps, inventory, payment notes, and
           profit tracking in one place.
         </p>
         <div className="mt-8 flex justify-center">

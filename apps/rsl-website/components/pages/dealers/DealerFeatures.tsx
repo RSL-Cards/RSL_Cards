@@ -37,7 +37,7 @@ const deepFeatures = [
     icon: WifiOff,
     title: 'Offline Mode',
     kicker: 'Works with zero signal',
-    text: 'Card shows are noisy, packed, and usually terrible for WiFi. RSL Cards Pro keeps the core dealer workflow available even when your phone has no connection.',
+    text: 'Card shows are noisy, packed, and usually terrible for WiFi. RSL Cards keeps the core dealer workflow available even when your phone has no connection.',
     bullets: ['Offline search and cached comps', 'Local transaction queue', 'Auto-sync when signal returns'],
   },
   {

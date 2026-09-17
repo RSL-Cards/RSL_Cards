@@ -338,9 +338,9 @@ export default function SupportPage() {
                 <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#18181B] border border-white/5">
                   <CheckCircle2 className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-xs font-bold text-white">Pro Dealer Priority</div>
+                    <div className="text-xs font-bold text-white">Dealer Priority</div>
                     <div className="text-xs text-neutral-300 leading-relaxed mt-0.5">
-                      RSL Cards Pro members receive priority ticket queueing and direct technical escalation.
+                      RSL Cards dealer members receive priority ticket queueing and direct technical escalation.
                     </div>
                   </div>
                 </div>

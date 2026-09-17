@@ -47,7 +47,7 @@ export default function CompetitorComparison() {
             No one else built this for card dealers.
           </h2>
           <p className="mt-5 text-lg leading-8 text-neutral-300">
-            RSL Cards Pro combines mobile dealer workflows, offline show-floor tools, AI price
+            RSL Cards combines mobile dealer workflows, offline show-floor tools, AI price
             explanations, and business reporting in one ecosystem.
           </p>
         </div>
@@ -57,7 +57,7 @@ export default function CompetitorComparison() {
             <thead className="bg-black text-sm uppercase tracking-[0.12em] text-muted">
               <tr>
                 <th className="border-b border-line p-4">Feature</th>
-                <th className="border-b border-line p-4 text-white">RSL Cards Pro</th>
+                <th className="border-b border-line p-4 text-white">RSL Cards</th>
                 <th className="border-b border-line p-4">Card Dealer Pro</th>
                 <th className="border-b border-line p-4">CollX</th>
               </tr>

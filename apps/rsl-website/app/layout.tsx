@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RSL Cards - The Dealer App for Card Shows",
   description:
-    "Scan comps, buy and sell in seconds, track your profit. RSL Cards Pro is built for card shows and multi-channel selling.",
+    "Scan comps, buy and sell in seconds, track your profit. RSL Cards is built for card shows and multi-channel selling.",
   icons: {
     icon: [
       { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
