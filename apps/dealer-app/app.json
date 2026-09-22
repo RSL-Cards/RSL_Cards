@@ -14,7 +14,7 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "requireFullScreen": true,
       "bundleIdentifier": "com.rslcards.dealer",
       "infoPlist": {
@@ -23,14 +23,13 @@
           "UIInterfaceOrientationPortrait"
         ],
         "UISupportedInterfaceOrientations~ipad": [
-          "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
+          "UIInterfaceOrientationPortrait"
         ],
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
+              "rslcards",
+              "com.rslcards.dealer",
               "com.googleusercontent.apps.156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae"
             ]
           }

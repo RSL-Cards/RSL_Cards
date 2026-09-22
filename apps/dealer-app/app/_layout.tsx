@@ -33,18 +33,24 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isHydrated) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!isAuthenticated && !inAuthGroup) {
+    const firstSegment = segments[0];
+    const isRootOrAuth = !firstSegment || firstSegment === "index" || firstSegment === "(auth)";
+    if (!isAuthenticated && !isRootOrAuth) {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isHydrated, segments]);
 
   useEffect(() => {
-    // Safely request push notification permissions after UI mounts
-    import("../src/services/notificationService").then(({ notificationService }) => {
-      notificationService.requestNotificationPermissions().catch(console.error);
-      notificationService.initOneSignalPermissions().catch(console.error);
-    }).catch(console.error);
+    // Safely defer push notification permissions until initial UI layout has settled
+    const timer = setTimeout(() => {
+      import("../src/services/notificationService")
+        .then(({ notificationService }) => {
+          notificationService.requestNotificationPermissions().catch(console.error);
+          notificationService.initOneSignalPermissions().catch(console.error);
+        })
+        .catch(console.error);
+    }, 1200);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
