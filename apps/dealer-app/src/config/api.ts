@@ -24,7 +24,7 @@ const getDevBaseUrl = (): string => {
 };
 
 export const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL || getDevBaseUrl()
+  process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? getDevBaseUrl() : "https://api.rslcards.com")
 ).replace(/\/$/, "");
 
 /**
