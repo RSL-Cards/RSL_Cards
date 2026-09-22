@@ -67,7 +67,7 @@ function formatPaymentMethodName(pm?: string | null): string {
       return "PayPal";
     case "stripe":
     case "stripe_card":
-      return "Stripe / Card";
+      return "Credit / Debit Card";
     case "cashapp":
       return "CashApp";
     case "wire":

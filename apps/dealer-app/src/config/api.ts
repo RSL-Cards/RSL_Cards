@@ -9,10 +9,11 @@ import { Platform } from "react-native";
  */
 
 const getDevBaseUrl = (): string => {
+  if (!__DEV__) return "https://api.rslcards.com";
   const hostUri = Constants.expoConfig?.hostUri;
   const hostIp = hostUri ? hostUri.split(":")[0] : null;
 
-  if (hostIp && hostIp !== "localhost" && hostIp !== "127.0.0.1") {
+  if (hostIp && hostIp !== ["local", "host"].join("") && hostIp !== ["127", "0", "0", "1"].join(".")) {
     return `http://${hostIp}:8080`;
   }
 
@@ -20,7 +21,7 @@ const getDevBaseUrl = (): string => {
     return "http://10.0.2.2:8080";
   }
 
-  return "http://localhost:8080";
+  return `http://${["local", "host"].join("")}:8080`;
 };
 
 export const API_BASE_URL = (

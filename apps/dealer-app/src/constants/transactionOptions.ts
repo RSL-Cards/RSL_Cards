@@ -19,7 +19,7 @@ export const PAYMENT_METHODS: PaymentMethodOption[] = [
   { key: "zelle", icon: "card-outline", color: "#6C1CD1", label: "Zelle", lastUsed: false, digital: true },
   { key: "venmo", icon: "wallet-outline", color: "#008CFF", label: "Venmo", lastUsed: true, digital: true },
   { key: "paypal", icon: "logo-paypal", color: "#003087", label: "PayPal", lastUsed: false, digital: true },
-  { key: "card", icon: "card-outline", color: "#7C3AED", label: "Stripe / Card", lastUsed: false, digital: true },
+  { key: "card", icon: "card-outline", color: "#7C3AED", label: "Credit / Debit Card", lastUsed: false, digital: true },
   { key: "cashapp", icon: "logo-usd", color: "#00D632", label: "CashApp", lastUsed: false, digital: true },
   { key: "other", icon: "ellipsis-horizontal-outline", color: "#888888", label: "Wire / Other", lastUsed: false, digital: false },
 ];

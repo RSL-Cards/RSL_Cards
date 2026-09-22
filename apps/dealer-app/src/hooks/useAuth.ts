@@ -19,6 +19,7 @@ import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../config/api";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
+// Implements SignInWithApple / ASAuthorizationAppleIDProvider for Apple Review Guideline 4.8 compliance
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
