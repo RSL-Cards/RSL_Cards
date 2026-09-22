@@ -14,7 +14,6 @@
     "@react-native-community/netinfo": "11.4.1",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@react-native-masked-view/masked-view": "0.3.2",
-    "@react-native-voice/voice": "^3.2.4",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.99.0",
     "@tanstack/react-query-persist-client": "^5.99.0",
@@ -62,15 +61,6 @@
     "metro": "^0.83.1",
     "metro-config": "~0.80.0",
     "typescript": "~5.9.2"
-  },
-  "expo": {
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "exclude": [
-          "@react-native-voice/voice"
-        ]
-      }
-    }
   },
   "private": true
 }

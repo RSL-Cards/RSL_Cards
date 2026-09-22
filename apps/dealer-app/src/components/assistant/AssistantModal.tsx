@@ -20,12 +20,6 @@ import { apiClient as api } from "../../lib/apiClient";
 
 export const AI_CONSENT_STORAGE_KEY = "@rsl_ai_data_consent_accepted";
 
-let Voice: any = null;
-try {
-  Voice = require("@react-native-voice/voice").default;
-} catch (e) {
-  console.warn("Voice module not available.");
-}
 
 interface Message {
   id: string;
@@ -76,7 +70,6 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
     }
   ]);
   const [inputText, setInputText] = useState("");
-  const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const [hasConsented, setHasConsented] = useState<boolean | null>(null);
@@ -97,56 +90,6 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
       setShowPrivacyNotice(false);
     } catch {
       setHasConsented(true);
-    }
-  };
-
-  useEffect(() => {
-    try {
-      if (Voice) {
-        Voice.onSpeechStart = () => setIsListening(true);
-        Voice.onSpeechEnd = () => setIsListening(false);
-        Voice.onSpeechError = (e: any) => {
-          console.error(e);
-          setIsListening(false);
-        };
-        Voice.onSpeechResults = (e: any) => {
-          const text = e.value?.[0] || "";
-          if (text) {
-            setInputText(text);
-            handleSend(text);
-          }
-          setIsListening(false);
-        };
-      }
-    } catch (e) {
-      console.warn("Native Voice module is not available.");
-    }
-
-    return () => {
-      try {
-        if (Voice && Voice.destroy) {
-          Voice.destroy().then(() => {
-            if (Voice.removeAllListeners) Voice.removeAllListeners();
-          }).catch(() => {});
-        }
-      } catch (e) {}
-    };
-  }, []);
-
-  const toggleListening = async () => {
-    try {
-      if (!Voice) throw new Error("Native module missing");
-      
-      if (isListening) {
-        await Voice.stop();
-      } else {
-        await Voice.start("en-US");
-      }
-    } catch (e) {
-      Alert.alert(
-        "Microphone Unavailable",
-        "React Native Voice requires native modules. Please rebuild your dev client to use voice chat."
-      );
     }
   };
 
@@ -308,7 +251,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
                     <View style={styles.rowTextWrap}>
                       <Text style={styles.rowHeading}>1. What Data Will Be Sent</Text>
                       <Text style={styles.rowBody}>
-                        When you ask questions or look up cards, your text queries, voice inputs, and inventory search terms are sent to generate answers, market comps, and sales insights.
+                        When you ask questions or look up cards, your text queries and inventory search terms are sent to generate answers, market comps, and sales insights.
                       </Text>
                     </View>
                   </View>
