@@ -43,6 +43,10 @@
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "156597264526-1cpp7kadv9ifvt708gi1qlfc8l727c1a.apps.googleusercontent.com",
         "EXPO_PUBLIC_ONESIGNAL_APP_ID": "2c9e1cd7-bffb-4952-86bd-34b109d6aba7",
+        "EXPO_PUBLIC_EBAY_ENV": "production",
+        "EXPO_PUBLIC_EBAY_CLIENT_ID": "VinayGol-RSL-PRD-26c1d3885-c948d8b2",
+        "EXPO_PUBLIC_EBAY_AUTH_URL": "https://auth.ebay.com/oauth2/authorize",
+        "EXPO_PUBLIC_EBAY_RU_NAME": "Vinay_Golla-VinayGol-RSL-PR-vdownj",
         "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
       }
     }

@@ -26,6 +26,19 @@ import {
 
 import { apiClient } from "../src/lib/apiClient";
 
+import { Text, TouchableOpacity } from "react-native";
+
+// Global JS error guard to prevent unhandled JS errors from triggering fatal native aborts
+if (typeof ErrorUtils !== "undefined") {
+  const originalHandler = ErrorUtils.getGlobalHandler && ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error, isFatal) => {
+    console.warn("[GlobalErrorHandler] Caught JS error:", error?.message || error, "isFatal:", isFatal);
+    if (!isFatal && originalHandler) {
+      originalHandler(error, isFatal);
+    }
+  });
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrated } = useAuthStore();
   const segments = useSegments();
@@ -39,19 +52,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace("/(auth)/login");
     }
   }, [isAuthenticated, isHydrated, segments]);
-
-  useEffect(() => {
-    // Safely defer push notification permissions until initial UI layout has settled
-    const timer = setTimeout(() => {
-      import("../src/services/notificationService")
-        .then(({ notificationService }) => {
-          notificationService.requestNotificationPermissions().catch(console.error);
-          notificationService.initOneSignalPermissions().catch(console.error);
-        })
-        .catch(console.error);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -81,10 +81,30 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: "#000000", justifyContent: "center", alignItems: "center", padding: 24 }}>
+      <Text style={{ color: "#FFFFFF", fontSize: 20, fontWeight: "bold", marginBottom: 12 }}>
+        RSL Cards
+      </Text>
+      <Text style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", marginBottom: 24, lineHeight: 20 }}>
+        An unexpected error occurred. Please tap below to reload.
+      </Text>
+      <TouchableOpacity
+        onPress={retry}
+        activeOpacity={0.8}
+        style={{ backgroundColor: "#2563eb", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+      >
+        <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 16 }}>Reload App</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function RootLayout() {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const { isAuthenticated } = useAuthStore();
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -93,7 +113,7 @@ export default function RootLayout() {
     Inter_900Black,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

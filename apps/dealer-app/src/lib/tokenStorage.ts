@@ -29,10 +29,24 @@ export const tokenStorage = {
     await AsyncStorage.removeItem(KEYS.USER);
   },
   async getUser(): Promise<any | null> {
-    const raw = await AsyncStorage.getItem(KEYS.USER);
-    return raw ? JSON.parse(raw) : null;
+    try {
+      const raw = await AsyncStorage.getItem(KEYS.USER);
+      if (!raw || raw === "undefined" || raw === "null") return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      console.warn("[tokenStorage] Error reading user:", e);
+      return null;
+    }
   },
   async setUser(user: any): Promise<void> {
-    await AsyncStorage.setItem(KEYS.USER, JSON.stringify(user));
+    try {
+      if (!user) {
+        await AsyncStorage.removeItem(KEYS.USER);
+      } else {
+        await AsyncStorage.setItem(KEYS.USER, JSON.stringify(user));
+      }
+    } catch (e) {
+      console.warn("[tokenStorage] Error saving user:", e);
+    }
   },
 };

@@ -47,8 +47,7 @@ function initGoogleSignin() {
   return GoogleSignin;
 }
 
-initGoogleSignin();
-
+// Lazy initialization - called only when user invokes Google Sign-In
 WebBrowser.maybeCompleteAuthSession();
 function getErrorMessage(error: unknown, fallback: string): string {
   return (
