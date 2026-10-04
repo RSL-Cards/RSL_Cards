@@ -1,6 +1,6 @@
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { batchJobs } from "../../db/schema/batch.js";
+import { batchJobs } from "@rsl/shared-db";
 import { bullMqAdapter } from "../../adapters/bullmq.adapter.js";
 
 export class BatchService {

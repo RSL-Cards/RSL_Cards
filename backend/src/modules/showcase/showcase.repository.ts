@@ -1,8 +1,8 @@
 import { eq, or, and, desc, ne, isNull } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { dealerProfiles } from "../../db/schema/user.js";
-import { inventory } from "../../db/schema/inventory.js";
-import { cards, players } from "../../db/schema/carddb.js";
+import { dealerProfiles } from "@rsl/shared-db";
+import { inventory } from "@rsl/shared-db";
+import { cards, players } from "@rsl/shared-db";
 
 function isValidUUID(uuid: string) {
   return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);

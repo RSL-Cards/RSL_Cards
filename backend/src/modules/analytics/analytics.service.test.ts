@@ -2,7 +2,7 @@ import { expect, test, describe, beforeAll, afterAll } from "bun:test";
 import { AnalyticsService } from "./analytics.service.js";
 import { AnalyticsRepository } from "./analytics.repository.js";
 import { db } from "../../db/index.js";
-import * as schema from "../../db/schema/index.js";
+import * as schema from "@rsl/shared-db";
 import { truncateAllTables } from "../../tests/db.setup.js";
 
 describe("AnalyticsService Integration", () => {

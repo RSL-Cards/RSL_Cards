@@ -1,0 +1,13 @@
+RSL Cards is the ultimate AI-powered inventory, cataloging, and sales platform designed specifically for sports card dealers and collectors. Scan raw and graded cards with computer vision, look up live market comps, manage buy/sell/trade ledgers, publish listings to eBay, and stay on top of your portfolio valuation—all from your phone.
+
+Key features:
+• AI card scanner for raw cards, slabs, and barcodes
+• Real-time price comps and market history
+• Inventory catalog with photos and grades
+• Buy, sell, and trade transaction logging
+• eBay listing sync and deal workflows
+• Push notifications for comps, jobs, and show alerts
+• Secure Sign in with Apple and Google
+
+Support: https://rslcards.com/support
+Privacy Policy: https://rslcards.com/privacy

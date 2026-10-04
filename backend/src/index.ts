@@ -117,7 +117,7 @@ const app = new Elysia()
     }
   })
   .use(showcaseModule)
-  .onBeforeHandle((ctx: any) => {
+  .onBeforeHandle(async (ctx: any) => {
     const request = ctx.request;
     const authHeader = request.headers.get("authorization");
     const traceId = (ctx as any).traceId || "no_trace";
@@ -136,10 +136,10 @@ const app = new Elysia()
 
     if (token) {
       try {
-        const payload = verifyToken(token, env);
+        const payload = await verifyToken(token, env);
         if (payload && payload.userId) {
-          const userId = payload.userId;
-          const userRole = payload.role || "guest";
+          const userId = String(payload.userId);
+          const userRole = String(payload.role || "guest");
           const originalGet = request.headers.get.bind(request.headers);
           (request.headers as any).get = (name: string) => {
             const lower = name.toLowerCase();

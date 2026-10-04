@@ -23,6 +23,8 @@ import { useCardScan, useBarcodeScan } from "../../src/hooks/useCardScan";
 import { useBatchUpload, useBatchScanMulti } from "../../src/hooks/useBatchScan";
 import { ActiveLogIndicator } from "../../src/components/ActiveLogIndicator";
 import RSLLoader from "../../src/components/RSLLoader";
+import { AiConsentModal } from "../../src/components/AiConsentModal";
+import { hasAiConsent } from "../../src/lib/aiConsent";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -42,6 +44,17 @@ export default function BuyScanScreen() {
 
   const { mutate: batchScanMulti, isPending: isBatchScanning } = useBatchScanMulti();
   const { mutate: batchUpload, isPending: isUploading } = useBatchUpload();
+  const [showAiConsent, setShowAiConsent] = useState(false);
+  const pendingAiAction = useRef<null | (() => void)>(null);
+
+  const withAiConsent = async (action: () => void) => {
+    if (await hasAiConsent()) {
+      action();
+      return;
+    }
+    pendingAiAction.current = action;
+    setShowAiConsent(true);
+  };
 
   // Auto-request camera permission on mount so system dialog displays natively without pre-prompt gate
   useEffect(() => {
@@ -69,10 +82,12 @@ export default function BuyScanScreen() {
 
         if (manipResult.base64) {
           if (scanMode === "single") {
-            scanImage(manipResult.base64);
+            await withAiConsent(() => scanImage(manipResult.base64!));
           } else {
-            batchScanMulti(manipResult.base64);
-            router.push("/(tabs)/");
+            await withAiConsent(() => {
+              batchScanMulti(manipResult.base64!);
+              router.push("/(tabs)/");
+            });
           }
         }
       }
@@ -266,6 +281,20 @@ export default function BuyScanScreen() {
           </>
         )}
       </View>
+      <AiConsentModal
+        visible={showAiConsent}
+        title="AI Card Scanner"
+        onDeclined={() => {
+          setShowAiConsent(false);
+          pendingAiAction.current = null;
+        }}
+        onAccepted={() => {
+          setShowAiConsent(false);
+          const action = pendingAiAction.current;
+          pendingAiAction.current = null;
+          action?.();
+        }}
+      />
     </SafeAreaView>
   );
 }

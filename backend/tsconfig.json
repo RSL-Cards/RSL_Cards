@@ -20,8 +20,7 @@
       "@rsl/shared-config": ["../packages/shared-config/src/index.ts"],
       "@rsl/shared-constants": ["../packages/shared-constants/src/index.ts"],
       "@rsl/shared-db": ["../packages/shared-db/src/index.ts"],
-      "@rsl/shared-types": ["../packages/shared-types/src/index.ts"],
-      "@rsl/shared-utils": ["../packages/shared-utils/src/index.ts"]
+      "@rsl/shared-types": ["../packages/shared-types/src/index.ts"]
     }
   },
   "include": ["src/**/*", "../packages/*/src/**/*"],

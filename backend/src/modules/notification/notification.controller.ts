@@ -7,7 +7,7 @@ import { Stream } from "@elysiajs/stream";
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 
-  private getUserId(request: Request): string {
+  private async getUserId(request: Request): Promise<string> {
     const headerUserId = request.headers.get("x-user-id");
     if (headerUserId) return headerUserId;
 
@@ -15,16 +15,16 @@ export class NotificationController {
       const url = new URL(request.url);
       const token = url.searchParams.get("token");
       if (token) {
-        const payload = verifyToken(token, env);
-        if (payload && payload.userId) return payload.userId;
+        const payload = await verifyToken(token, env);
+        if (payload?.userId) return String(payload.userId);
       }
     } catch (e) {}
 
     return "guest";
   }
 
-  streamNotifications = ({ request, set }: { request: Request; set: any }) => {
-    const userId = this.getUserId(request);
+  streamNotifications = async ({ request, set }: { request: Request; set: any }) => {
+    const userId = await this.getUserId(request);
     if (userId === "guest") {
       set.status = 401;
       return { error: "Authentication is required for SSE" };
@@ -36,7 +36,6 @@ export class NotificationController {
     set.headers["x-accel-buffering"] = "no";
 
     return new Stream((stream) => {
-      // Send an initial event so the client knows it connected
       stream.event = "connected";
       stream.send({ status: "connected" });
       
@@ -64,7 +63,7 @@ export class NotificationController {
   };
 
   registerToken = async ({ request, body }: { request: Request; body: any }) => {
-    const userId = this.getUserId(request);
+    const userId = await this.getUserId(request);
     if (userId === "guest") {
       throw new Error("Authentication is required");
     }
@@ -76,19 +75,19 @@ export class NotificationController {
   };
 
   getNotifications = async ({ request }: { request: Request }) => {
-    return await this.service.getNotifications(this.getUserId(request));
+    return await this.service.getNotifications(await this.getUserId(request));
   };
 
   getUnreadCount = async ({ request }: { request: Request }) => {
-    return await this.service.getUnreadCount(this.getUserId(request));
+    return await this.service.getUnreadCount(await this.getUserId(request));
   };
 
   markAllAsRead = async ({ request }: { request: Request }) => {
-    return await this.service.markAllAsRead(this.getUserId(request));
+    return await this.service.markAllAsRead(await this.getUserId(request));
   };
 
   markAsRead = async ({ request, params }: { request: Request; params: any }) => {
-    return await this.service.markAsRead(this.getUserId(request), params.id);
+    return await this.service.markAsRead(await this.getUserId(request), params.id);
   };
 
   getShows = async () => {
@@ -100,11 +99,11 @@ export class NotificationController {
   };
 
   attendShow = async ({ request, params }: { request: Request; params: any }) => {
-    return await this.service.attendShow(this.getUserId(request), params.id);
+    return await this.service.attendShow(await this.getUserId(request), params.id);
   };
 
   leaveShow = async ({ request, params }: { request: Request; params: any }) => {
-    return await this.service.leaveShow(this.getUserId(request), params.id);
+    return await this.service.leaveShow(await this.getUserId(request), params.id);
   };
 
   getShowDealers = async ({ params }: { params: any }) => {

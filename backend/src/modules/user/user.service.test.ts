@@ -4,8 +4,8 @@ import { UserRepository } from "./user.repository.js";
 import { EbayOauthService } from "./ebay.oauth.service.js";
 import { db, closeDb } from "../../db/index.js";
 import { truncateAllTables } from "../../tests/db.setup.js";
-import { users } from "../../db/schema/auth.js";
-import { customers } from "../../db/schema/user.js";
+import { users } from "@rsl/shared-db";
+import { customers } from "@rsl/shared-db";
 
 describe("UserService Integration", () => {
   const mockEbayAuth = {} as unknown as EbayOauthService;

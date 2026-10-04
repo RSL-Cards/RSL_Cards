@@ -7,7 +7,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../../config/index.js";
 import { db } from "../../db/index.js";
-import { inventory } from "../../db/schema/index.js";
+import { inventory } from "@rsl/shared-db";
 
 export class UserService {
   constructor(

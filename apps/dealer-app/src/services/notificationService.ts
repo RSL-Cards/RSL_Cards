@@ -28,11 +28,24 @@ function initOneSignal() {
     return;
   }
   try {
+    // Lazy-require so cold launch never touches OneSignal native code
+    // until AuthGuard explicitly asks after first paint.
     const mod = require("react-native-onesignal");
     const OneSignal = mod?.OneSignal || mod?.default;
-    const onesignalAppId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID || "2c9e1cd7-bffb-4952-86bd-34b109d6aba7";
-    if (OneSignal && typeof OneSignal.initialize === "function" && onesignalAppId) {
+    const onesignalAppId =
+      process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID ||
+      "2c9e1cd7-bffb-4952-86bd-34b109d6aba7";
+    if (
+      OneSignal &&
+      typeof OneSignal.initialize === "function" &&
+      onesignalAppId
+    ) {
       OneSignal.initialize(onesignalAppId);
+      // Never prompt at initialize — permission is requested later
+      // via initOneSignalPermissions / registerForPushNotificationsAsync.
+      if (OneSignal.Notifications?.addEventListener) {
+        // no-op listeners keep SDK calm without prompting
+      }
       isOneSignalInitialized = true;
     }
   } catch (e: any) {
@@ -48,7 +61,7 @@ export const notificationService = {
       const mod = require("react-native-onesignal");
       const OneSignal = mod?.OneSignal || mod?.default;
       if (OneSignal?.Notifications?.requestPermission) {
-        OneSignal.Notifications.requestPermission(true);
+        OneSignal.Notifications.requestPermission(false);
       }
     } catch (e) {}
   },

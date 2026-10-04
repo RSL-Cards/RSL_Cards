@@ -4,8 +4,8 @@ import { AuthRepository } from "./auth.repository.js";
 import { db } from "../../db/index.js";
 import { env } from "../../config/index.js";
 import { truncateAllTables } from "../../tests/db.setup.js";
-import { users } from "../../db/schema/auth.js";
-import { dealerProfiles } from "../../db/schema/user.js";
+import { users } from "@rsl/shared-db";
+import { dealerProfiles } from "@rsl/shared-db";
 import { eq } from "drizzle-orm";
 
 describe("AuthService Integration", () => {

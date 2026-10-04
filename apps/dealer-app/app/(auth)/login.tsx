@@ -197,7 +197,7 @@ export default function LoginScreen() {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="you@example.com"
+                  placeholder="Email address"
                   placeholderTextColor="#555555"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -293,6 +293,19 @@ export default function LoginScreen() {
                     Sign In with Google
                   </Text>
                 </TouchableOpacity>
+
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    style={styles.appleBtn}
+                    onPress={handleAppleSignIn}
+                    activeOpacity={0.85}
+                  >
+                    <AntDesign name="apple" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 15 }}>
+                      Sign In with Apple
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <View style={styles.form}>
@@ -301,7 +314,7 @@ export default function LoginScreen() {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="you@example.com"
+                  placeholder="Email address"
                   placeholderTextColor="#555555"
                   keyboardType="email-address"
                   autoCapitalize="none"

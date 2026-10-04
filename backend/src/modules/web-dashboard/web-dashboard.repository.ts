@@ -1,5 +1,5 @@
 import { db } from "../../db/index.js";
-import { inventory, transactions, players, listings, expenses } from "../../db/schema/index.js";
+import { inventory, transactions, players, listings, expenses } from "@rsl/shared-db";
 import { sql, eq, and, gte, desc, sum, count, or, inArray } from "drizzle-orm";
 
 function parseStartDate(dateStr?: string): Date {

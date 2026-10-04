@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "88U8P648DG.com.rslcards.dealer",
+        "paths": ["*", "/support", "/privacy-policy", "/terms&conditions"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["88U8P648DG.com.rslcards.dealer"]
+  }
+}

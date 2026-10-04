@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>RSL Cards</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.rslcards.dealer</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rslcards</string>
+				<string>com.rslcards.dealer</string>
+				<string>com.googleusercontent.apps.156597264526-vuprt1vot9ku9nr1oos1llu5rnjv2iae</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>39</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>RSL Cards needs permission to save generated card comps, deal receipts, and invoices to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>RSL Cards accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.</string>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>

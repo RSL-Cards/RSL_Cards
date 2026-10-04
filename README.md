@@ -14,7 +14,7 @@ Under the new unified architecture, the legacy architecture of ten separate Node
 - **Web API Framework**: [Elysia Framework](https://elysiajs.com) — a Type-Safe, high-performance Bun-first framework with native Swagger support and strict validation.
 - **Database & Query Builders**: [Drizzle ORM](https://orm.drizzle.team) + PostgreSQL (with transactional read-replicas).
 - **Mobile Application**: Expo (`dealer-app`), React Native, Zustand, TanStack Query.
-- **Web Applications**: Next.js 15 (`company-website`, `web-dashboard`), Tailwind CSS.
+- **Web Applications**: Next.js (`rsl-website`, `web-dashboard`), Tailwind CSS.
 - **Infrastructure**: Nginx (Unified Reverse Proxy Gateway), Redis (Job Queues), Docker.
 
 ---
@@ -61,15 +61,14 @@ All request authorization (`Authorization: Bearer <token>`) is seamlessly interc
 ```text
 ├── apps/
 │   ├── dealer-app/           # React Native Expo Mobile App (Port 8081 / Expo Metro)
-│   ├── company-website/      # Next.js Marketing App (Port 3000)
+│   ├── rsl-website/          # Next.js Marketing App
 │   └── web-dashboard/        # Next.js Admin Dashboard (Port 3011)
 ├── backend/                  # Consolidated Bun + Elysia API Monorepo (Port 3000)
 ├── packages/
 │   ├── shared-config/        # Zod env schema validations & cross-app configurations
 │   ├── shared-constants/     # Enums & standardized statics
 │   ├── shared-db/            # Drizzle schemas, SQL migrations & seeds
-│   ├── shared-types/         # Cross-app data interfaces
-│   └── shared-utils/         # Reusable data formatting
+│   └── shared-types/         # Cross-app data interfaces
 └── infra/
     ├── docker/               # dev/qa/prod docker-compose stack definitions
     └── nginx/                # Unified Reverse Proxy Gateway configurations

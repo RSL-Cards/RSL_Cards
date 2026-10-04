@@ -1,8 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, FlatList } from 'react-native'
 import { useRouter } from 'expo-router'
-import { FlashList } from '@shopify/flash-list'
 import { MOCK_CUSTOMERS } from '../../src/constants/mockData'
 import { formatDistanceToNow } from 'date-fns'
 import { Ionicons } from '@expo/vector-icons'
@@ -42,7 +41,7 @@ export default function CustomersScreen() {
         <Text style={styles.headerTitle}>Customers</Text>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => Alert.alert('New Customer', 'Add customer flow coming soon!')}
+          onPress={() => Alert.alert('New Customer', 'Create a customer from a completed buy or sell deal.')}
         >
           <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
@@ -75,11 +74,10 @@ export default function CustomersScreen() {
       </View>
 
       {/* Customer list */}
-      <FlashList
+      <FlatList
         data={filtered}
         onRefresh={handleRefresh}
         refreshing={refreshing}
-        {...{ estimatedItemSize: 88 } as any}
         keyExtractor={(item: any) => item.id}
         renderItem={({ item }: any) => (
           <TouchableOpacity

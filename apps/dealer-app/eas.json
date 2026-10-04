@@ -38,7 +38,6 @@
     "production": {
       "distribution": "store",
       "autoIncrement": true,
-      "channel": "production",
       "node": "22.14.0",
       "ios": {
         "image": "sdk-54"

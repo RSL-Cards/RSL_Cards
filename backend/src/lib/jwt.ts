@@ -1,4 +1,11 @@
-import jwt from "jsonwebtoken";
+import {
+  SignJWT,
+  jwtVerify,
+  importPKCS8,
+  importSPKI,
+  type JWTPayload,
+  type KeyLike,
+} from "jose";
 import type { Env } from "../config/index.js";
 
 export interface TokenPayload {
@@ -11,12 +18,26 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-function getSecret(env: Env, isSign = false): { secret: string; algorithm: jwt.Algorithm } {
+type KeyMaterial = {
+  key: KeyLike | Uint8Array;
+  algorithm: "HS256" | "RS256";
+};
+
+const textEncoder = new TextEncoder();
+
+async function getKeyMaterial(env: Env, isSign: boolean): Promise<KeyMaterial> {
   if (env.JWT_PRIVATE_KEY && env.JWT_PRIVATE_KEY.includes("BEGIN")) {
-    return {
-      secret: isSign ? env.JWT_PRIVATE_KEY : (env.JWT_PUBLIC_KEY || env.JWT_PRIVATE_KEY),
-      algorithm: "RS256",
-    };
+    if (isSign) {
+      return {
+        key: await importPKCS8(env.JWT_PRIVATE_KEY, "RS256"),
+        algorithm: "RS256",
+      };
+    }
+    const publicOrPrivate = env.JWT_PUBLIC_KEY || env.JWT_PRIVATE_KEY;
+    if (publicOrPrivate.includes("PUBLIC")) {
+      return { key: await importSPKI(publicOrPrivate, "RS256"), algorithm: "RS256" };
+    }
+    return { key: await importPKCS8(publicOrPrivate, "RS256"), algorithm: "RS256" };
   }
 
   const secret =
@@ -24,40 +45,37 @@ function getSecret(env: Env, isSign = false): { secret: string; algorithm: jwt.A
       ? env.JWT_PRIVATE_KEY
       : "development_secret_key";
 
-  return { secret, algorithm: "HS256" };
+  return { key: textEncoder.encode(secret), algorithm: "HS256" };
 }
 
-export function generateTokens(payload: TokenPayload, env: Env): AuthTokens {
-  const { secret, algorithm } = getSecret(env, true);
+function parseExpiry(expiry: string): string {
+  return expiry;
+}
 
-  const accessToken = jwt.sign(
-    { ...payload, type: "access" },
-    secret,
-    {
-      expiresIn: (env.JWT_ACCESS_EXPIRY || "15m") as any,
-      algorithm,
-    },
-  );
+export async function generateTokens(payload: TokenPayload, env: Env): Promise<AuthTokens> {
+  const { key, algorithm } = await getKeyMaterial(env, true);
 
-  const refreshToken = jwt.sign(
-    { userId: payload.userId },
-    secret,
-    {
-      expiresIn: (env.JWT_REFRESH_EXPIRY || "7d") as any,
-      algorithm,
-    },
-  );
+  const accessToken = await new SignJWT({ ...payload, type: "access" })
+    .setProtectedHeader({ alg: algorithm })
+    .setExpirationTime(parseExpiry(env.JWT_ACCESS_EXPIRY || "15m"))
+    .sign(key);
+
+  const refreshToken = await new SignJWT({ userId: payload.userId })
+    .setProtectedHeader({ alg: algorithm })
+    .setExpirationTime(parseExpiry(env.JWT_REFRESH_EXPIRY || "7d"))
+    .sign(key);
 
   return { accessToken, refreshToken };
 }
 
-export function verifyToken(token: string, env: Env): any {
-  const { secret: primarySecret } = getSecret(env, false);
+export async function verifyToken(token: string, env: Env): Promise<JWTPayload> {
+  const { key: primaryKey, algorithm } = await getKeyMaterial(env, false);
 
   try {
-    return jwt.verify(token, primarySecret, {
-      algorithms: primarySecret.includes("BEGIN") ? ["RS256"] : ["HS256"],
+    const { payload } = await jwtVerify(token, primaryKey, {
+      algorithms: [algorithm],
     });
+    return payload;
   } catch (err) {
     const fallbackSecrets = [
       "development_secret_key",
@@ -65,10 +83,13 @@ export function verifyToken(token: string, env: Env): any {
       "PLACEHOLDER_RSA_PUBLIC_KEY_CHANGE_IN_AWS_SSM",
     ];
     for (const secret of fallbackSecrets) {
-      if (secret !== primarySecret) {
-        try {
-          return jwt.verify(token, secret, { algorithms: ["HS256"] });
-        } catch (e) {}
+      try {
+        const { payload } = await jwtVerify(token, textEncoder.encode(secret), {
+          algorithms: ["HS256"],
+        });
+        return payload;
+      } catch {
+        // try next fallback
       }
     }
     throw err;

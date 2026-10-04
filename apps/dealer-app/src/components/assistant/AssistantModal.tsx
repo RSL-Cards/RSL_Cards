@@ -15,11 +15,14 @@ import {
   ScrollView
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiClient as api } from "../../lib/apiClient";
+import {
+  AI_CONSENT_STORAGE_KEY,
+  acceptAiConsent,
+  hasAiConsent,
+} from "../../lib/aiConsent";
 
-export const AI_CONSENT_STORAGE_KEY = "@rsl_ai_data_consent_accepted";
-
+export { AI_CONSENT_STORAGE_KEY };
 
 interface Message {
   id: string;
@@ -77,15 +80,13 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({ visible, onClose
 
   useEffect(() => {
     if (visible) {
-      AsyncStorage.getItem(AI_CONSENT_STORAGE_KEY).then((value) => {
-        setHasConsented(value === "true");
-      });
+      hasAiConsent().then(setHasConsented);
     }
   }, [visible]);
 
   const handleAgreeConsent = async () => {
     try {
-      await AsyncStorage.setItem(AI_CONSENT_STORAGE_KEY, "true");
+      await acceptAiConsent();
       setHasConsented(true);
       setShowPrivacyNotice(false);
     } catch {

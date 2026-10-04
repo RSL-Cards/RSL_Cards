@@ -1,5 +1,5 @@
 import { db } from "../../db/index.js";
-import { dailyLogs, mvDailyLogStats } from "../../db/schema/index.js";
+import { dailyLogs, mvDailyLogStats, expenses } from "@rsl/shared-db";
 import { eq, and, sql } from "drizzle-orm";
 
 export class DailyLogsRepository {
@@ -39,8 +39,8 @@ export class DailyLogsRepository {
 
     const [expenseData] = await db
       .select({ totalExpenses: sql<string>`sum(amount)` })
-      .from(require("../../db/schema/analytics.js").expenses)
-      .where(eq(require("../../db/schema/analytics.js").expenses.dailyLogId, log.id));
+      .from(expenses)
+      .where(eq(expenses.dailyLogId, log.id));
 
     const statsData = stats ? { ...stats } : { moneyIn: "0", moneyOut: "0", profit: "0", cardsBought: 0, cardsSold: 0 };
     const expensesTotal = parseFloat(expenseData?.totalExpenses || "0");

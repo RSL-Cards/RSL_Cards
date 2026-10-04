@@ -1,0 +1,4 @@
+• Fixed App Review launch crash
+• Improved privacy declarations and AI consent
+• Sign in with Apple available wherever Google sign-in is offered
+• Account deletion available in Settings

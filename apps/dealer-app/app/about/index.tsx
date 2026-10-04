@@ -56,7 +56,7 @@ const PLATFORM_FEATURES = [
 
 const QUICK_LINKS = [
   { icon: "globe-outline" as const, label: "Official Web Portal", sub: "app.rslcards.com", url: "https://rslcards.com" },
-  { icon: "mail-outline" as const, label: "Dealer Support", sub: "support@rslcards.com", url: "mailto:support@rslcards.com" },
+  { icon: "mail-outline" as const, label: "Dealer Support", sub: "rslcards.com/support", url: "https://rslcards.com/support" },
   { icon: "document-text-outline" as const, label: "Terms & Conditions", sub: "rslcards.com/terms&conditions", url: "https://rslcards.com/terms&conditions" },
   { icon: "shield-checkmark-outline" as const, label: "Privacy Policy", sub: "rslcards.com/privacy-policy", url: "https://rslcards.com/privacy-policy" },
 ];

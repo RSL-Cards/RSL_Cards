@@ -116,10 +116,3 @@ CREATE UNIQUE INDEX idx_daily_sum_user_date ON daily_summaries(user_id, date);
 CREATE        INDEX idx_tax_records_user    ON tax_records(user_id, tax_year);
 CREATE        INDEX idx_expenses_user       ON expenses(user_id, expense_date);
  
--- ================================================================
--- ADMIN SERVICE INDEXES
--- ================================================================
-CREATE UNIQUE INDEX idx_feature_flags_key   ON feature_flags(key);
-CREATE        INDEX idx_dealer_reviews_dealer ON dealer_reviews(dealer_id, is_approved);
-CREATE        INDEX idx_audit_logs_user     ON audit_logs(user_id, created_at DESC);
-CREATE        INDEX idx_audit_logs_action   ON audit_logs(action, created_at DESC);

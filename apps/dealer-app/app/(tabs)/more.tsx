@@ -371,47 +371,31 @@ function MoreScreen() {
           <Pressable style={modalStyles.content}>
             <View style={modalStyles.header}>
               <Ionicons name="cart" size={26} color="#E53238" />
-              <Text style={modalStyles.title}>eBay Integration (Coming Soon)</Text>
+              <Text style={modalStyles.title}>eBay Connection</Text>
             </View>
 
             <View style={modalStyles.devBadge}>
-              <Text style={modalStyles.devBadgeText}>🛠️ Under Active Development</Text>
+              <Text style={modalStyles.devBadgeText}>Available features</Text>
             </View>
 
             <Text style={modalStyles.subtitle}>
-              We are actively developing native eBay integration! The following features will take place shortly:
+              Connect eBay to pull live sold and active comps used in deal valuation:
             </Text>
 
             <View style={modalStyles.featureList}>
               <View style={modalStyles.featureRow}>
-                <Text style={modalStyles.featureIcon}>📦</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={modalStyles.featureTitle}>Automatic Inventory Sync</Text>
-                  <Text style={modalStyles.featureDesc}>Imports & syncs active eBay listings into RSL Card inventory.</Text>
-                </View>
-              </View>
-
-              <View style={modalStyles.featureRow}>
                 <Text style={modalStyles.featureIcon}>📊</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={modalStyles.featureTitle}>Real-Time Market Comps</Text>
-                  <Text style={modalStyles.featureDesc}>Fetches live eBay active & sold price comps for accurate valuation.</Text>
+                  <Text style={modalStyles.featureTitle}>Live Market Comps</Text>
+                  <Text style={modalStyles.featureDesc}>Fetches eBay sold and active listings to power deal valuation.</Text>
                 </View>
               </View>
 
               <View style={modalStyles.featureRow}>
-                <Text style={modalStyles.featureIcon}>⚡</Text>
+                <Text style={modalStyles.featureIcon}>🔐</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={modalStyles.featureTitle}>One-Click Cross-Posting</Text>
-                  <Text style={modalStyles.featureDesc}>Instantly publish inventory items directly to your eBay store.</Text>
-                </View>
-              </View>
-
-              <View style={modalStyles.featureRow}>
-                <Text style={modalStyles.featureIcon}>💰</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={modalStyles.featureTitle}>Automated Sales & P&L Log</Text>
-                  <Text style={modalStyles.featureDesc}>Automatically tracks completed eBay sales in your daily log.</Text>
+                  <Text style={modalStyles.featureTitle}>Secure OAuth Link</Text>
+                  <Text style={modalStyles.featureDesc}>Connect your eBay account with official OAuth for authorized comps access.</Text>
                 </View>
               </View>
             </View>

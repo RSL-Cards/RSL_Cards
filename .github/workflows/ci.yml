@@ -45,11 +45,6 @@ jobs:
         working-directory: packages/shared-db
         continue-on-error: true
 
-      - name: Build shared utils
-        run: bun run build
-        working-directory: packages/shared-utils
-        continue-on-error: true
-
       - name: Type-check backend
         run: bun run type-check
         working-directory: backend
@@ -116,11 +111,6 @@ jobs:
       - name: Build shared db
         run: bun run build
         working-directory: packages/shared-db
-        continue-on-error: true
-
-      - name: Build shared utils
-        run: bun run build
-        working-directory: packages/shared-utils
         continue-on-error: true
 
       - name: Run migrations

@@ -3,8 +3,8 @@ import { ListingService } from "./listing.service.js";
 import { ListingRepository } from "./listing.repository.js";
 import { db } from "../../db/index.js";
 import { truncateAllTables } from "../../tests/db.setup.js";
-import { users } from "../../db/schema/auth.js";
-import { inventory } from "../../db/schema/inventory.js";
+import { users } from "@rsl/shared-db";
+import { inventory } from "@rsl/shared-db";
 
 describe("ListingService Integration", () => {
   const service = new ListingService(new ListingRepository());

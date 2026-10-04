@@ -3,7 +3,7 @@ import { InventoryService } from "./inventory.service.js";
 import { InventoryRepository } from "./inventory.repository.js";
 import { db, closeDb } from "../../db/index.js";
 import { truncateAllTables } from "../../tests/db.setup.js";
-import { users } from "../../db/schema/auth.js";
+import { users } from "@rsl/shared-db";
 
 describe("InventoryService Integration", () => {
   const service = new InventoryService(new InventoryRepository());

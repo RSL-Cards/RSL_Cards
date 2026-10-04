@@ -90,7 +90,7 @@ export class AuthService {
       role: body.role as any,
     });
 
-    const tokens = generateTokens(
+    const tokens = await generateTokens(
       { userId: newUser.id, role: newUser.role },
       this.env,
     );
@@ -98,7 +98,7 @@ export class AuthService {
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     try {
-      const decoded = verifyToken(tokens.refreshToken, this.env);
+      const decoded = await verifyToken(tokens.refreshToken, this.env);
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
@@ -185,7 +185,7 @@ export class AuthService {
 
     await redisAdapter.delete(redisKey);
 
-    const tokens = generateTokens(
+    const tokens = await generateTokens(
       { userId: user.id, role: user.role },
       this.env,
     );
@@ -193,7 +193,7 @@ export class AuthService {
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     try {
-      const decoded = verifyToken(tokens.refreshToken, this.env);
+      const decoded = await verifyToken(tokens.refreshToken, this.env);
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
@@ -250,7 +250,7 @@ export class AuthService {
       throw AuthError.invalidCredentials();
     }
 
-    const tokens = generateTokens(
+    const tokens = await generateTokens(
       { userId: user.id, role: user.role },
       this.env,
     );
@@ -258,7 +258,7 @@ export class AuthService {
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     try {
-      const decoded = verifyToken(tokens.refreshToken, this.env);
+      const decoded = await verifyToken(tokens.refreshToken, this.env);
       if (decoded && decoded.exp) {
         expiresAt = new Date(decoded.exp * 1000);
       }
@@ -299,7 +299,7 @@ export class AuthService {
   ) {
     let decoded;
     try {
-      decoded = verifyToken(body.refreshToken, this.env);
+      decoded = await verifyToken(body.refreshToken, this.env);
     } catch (err) {
       throw new AuthError(
         AuthErrorCode.INVALID_REFRESH_TOKEN,
@@ -308,7 +308,7 @@ export class AuthService {
       );
     }
 
-    const user = await this.repository.getUserById(decoded.userId);
+    const user = await this.repository.getUserById(String(decoded.userId));
     if (!user) {
       throw new AuthError(AuthErrorCode.USER_NOT_FOUND, "User not found", 404);
     }
@@ -324,7 +324,7 @@ export class AuthService {
       );
     }
 
-    const newTokens = generateTokens(
+    const newTokens = await generateTokens(
       { userId: user.id, role: user.role },
       this.env,
     );
@@ -332,7 +332,7 @@ export class AuthService {
 
     let expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     try {
-      const decodedNew = verifyToken(newTokens.refreshToken, this.env);
+      const decodedNew = await verifyToken(newTokens.refreshToken, this.env);
       if (decodedNew && decodedNew.exp) {
         expiresAt = new Date(decodedNew.exp * 1000);
       }
@@ -371,12 +371,12 @@ export class AuthService {
 
     let decoded;
     try {
-      decoded = verifyToken(body.refreshToken, this.env);
+      decoded = await verifyToken(body.refreshToken, this.env);
     } catch (err) {
       return { success: true };
     }
 
-    await this.repository.updateRefreshToken(decoded.userId, null);
+    await this.repository.updateRefreshToken(String(decoded.userId), null);
     return { success: true };
   }
 
@@ -534,7 +534,7 @@ export class AuthService {
     if (!user) {
       throw new Error("OAuth user creation failed");
     }
-    const tokens = generateTokens(
+    const tokens = await generateTokens(
       {
         userId: user.id,
         role: user.role,
@@ -620,7 +620,7 @@ export class AuthService {
     if (!user) {
       throw new Error("OAuth user creation failed");
     }
-    const tokens = generateTokens(
+    const tokens = await generateTokens(
       {
         userId: user.id,
         role: user.role,

@@ -1,89 +1,97 @@
-import { z } from "zod";
+import { Type, type Static } from "@sinclair/typebox";
 
-export const RegisterSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
-  otp: z.string().length(6).optional(),
+const Email = Type.String({ minLength: 3, maxLength: 254 });
+const Otp = Type.String({ minLength: 6, maxLength: 6 });
+const Role = Type.Union([Type.Literal("dealer"), Type.Literal("consumer")]);
+
+export const RegisterSchema = Type.Object({
+  email: Email,
+  password: Type.String({ minLength: 8 }),
+  role: Type.Optional(Role),
+  otp: Type.Optional(Otp),
 });
 
-export const SendOtpSchema = z.object({
-  email: z.string().email(),
+export const SendOtpSchema = Type.Object({
+  email: Email,
 });
 
-export const VerifyOtpSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().length(6),
+export const VerifyOtpSchema = Type.Object({
+  email: Email,
+  otp: Otp,
 });
 
-export const LoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().optional(),
-  otp: z.string().length(6).optional(),
+export const LoginSchema = Type.Object({
+  email: Email,
+  password: Type.Optional(Type.String()),
+  otp: Type.Optional(Otp),
 });
 
-export const SendLoginOtpSchema = z.object({
-  email: z.string().email(),
+export const SendLoginOtpSchema = Type.Object({
+  email: Email,
 });
 
-export const LoginWithOtpSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().length(6),
+export const LoginWithOtpSchema = Type.Object({
+  email: Email,
+  otp: Otp,
 });
 
-export const RefreshSchema = z.object({
-  refreshToken: z.string(),
+export const RefreshSchema = Type.Object({
+  refreshToken: Type.String({ minLength: 1 }),
 });
 
-export const LogoutSchema = z.object({
-  refreshToken: z.string().optional(),
+export const LogoutSchema = Type.Object({
+  refreshToken: Type.Optional(Type.String()),
 });
 
-export const OnboardingSchema = z.object({
-  sports: z.array(z.string()).min(1),
-  sellChannels: z.array(z.string()).min(1),
-  paymentMethods: z
-    .array(
-      z.object({
-        type: z.enum(["venmo", "cashapp", "zelle", "paypal"]),
-        handle: z.string().min(1),
-        isDefault: z.boolean().optional().default(false),
+export const OnboardingSchema = Type.Object({
+  sports: Type.Array(Type.String(), { minItems: 1 }),
+  sellChannels: Type.Array(Type.String(), { minItems: 1 }),
+  paymentMethods: Type.Optional(
+    Type.Array(
+      Type.Object({
+        type: Type.Union([
+          Type.Literal("venmo"),
+          Type.Literal("cashapp"),
+          Type.Literal("zelle"),
+          Type.Literal("paypal"),
+        ]),
+        handle: Type.String({ minLength: 1 }),
+        isDefault: Type.Optional(Type.Boolean()),
       }),
-    )
-    .optional()
-    .default([]),
+    ),
+  ),
 });
 
-export const ForgotPasswordSchema = z.object({
-  email: z.string().email(),
+export const ForgotPasswordSchema = Type.Object({
+  email: Email,
 });
 
-export const ResetPasswordSchema = z.object({
-  email: z.string().email(),
-  otp: z.string().length(6),
-  newPassword: z.string().min(8),
+export const ResetPasswordSchema = Type.Object({
+  email: Email,
+  otp: Otp,
+  newPassword: Type.String({ minLength: 8 }),
 });
 
-export const GoogleOauthSchema = z.object({
-  idToken: z.string().min(1),
-  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
-  rawName: z.string().optional(),
-  email: z.string().email().optional(),
+export const GoogleOauthSchema = Type.Object({
+  idToken: Type.String({ minLength: 1 }),
+  role: Type.Optional(Role),
+  rawName: Type.Optional(Type.String()),
+  email: Type.Optional(Email),
 });
 
-export const AppleOauthSchema = z.object({
-  idToken: z.string().min(1),
-  role: z.enum(["dealer", "consumer"]).optional().default("dealer"),
-  rawName: z.string().optional(),
-  email: z.string().email().optional(),
+export const AppleOauthSchema = Type.Object({
+  idToken: Type.String({ minLength: 1 }),
+  role: Type.Optional(Role),
+  rawName: Type.Optional(Type.String()),
+  email: Type.Optional(Email),
 });
 
-export type RegisterBody = z.infer<typeof RegisterSchema>;
-export type LoginBody = z.infer<typeof LoginSchema>;
-export type RefreshBody = z.infer<typeof RefreshSchema>;
-export type LogoutBody = z.infer<typeof LogoutSchema>;
-export type OnboardingBody = z.infer<typeof OnboardingSchema>;
-export type ForgotPasswordBody = z.infer<typeof ForgotPasswordSchema>;
-export type ResetPasswordBody = z.infer<typeof ResetPasswordSchema>;
-export type GoogleOauthBody = z.infer<typeof GoogleOauthSchema>;
-export type AppleOauthBody = z.infer<typeof AppleOauthSchema>;
+export type RegisterBody = Static<typeof RegisterSchema> & { role?: "dealer" | "consumer" };
+export type LoginBody = Static<typeof LoginSchema>;
+export type RefreshBody = Static<typeof RefreshSchema>;
+export type LogoutBody = Static<typeof LogoutSchema>;
+export type OnboardingBody = Static<typeof OnboardingSchema>;
+export type ForgotPasswordBody = Static<typeof ForgotPasswordSchema>;
+export type ResetPasswordBody = Static<typeof ResetPasswordSchema>;
+export type GoogleOauthBody = Static<typeof GoogleOauthSchema> & { role?: "dealer" | "consumer" };
+export type AppleOauthBody = Static<typeof AppleOauthSchema> & { role?: "dealer" | "consumer" };

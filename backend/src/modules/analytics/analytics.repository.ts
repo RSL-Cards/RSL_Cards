@@ -1,6 +1,6 @@
 import { sql, and, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { expenses } from "../../db/schema/analytics.js";
+import { expenses } from "@rsl/shared-db";
 
 export class AnalyticsRepository {
   async getDaily(userId: string) {

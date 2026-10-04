@@ -20,7 +20,7 @@ import {
   userPushTokens,
   showAttendees,
   batchJobs,
-} from "../../db/schema/index.js";
+} from "@rsl/shared-db";
 import { db } from "../../db/index.js";
 
 export interface OnboardingPayload {

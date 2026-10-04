@@ -1,5 +1,5 @@
 import { db } from "../../db/index.js";
-import { sportradarNewsArticles, sportradarFetchLog } from "../../db/schema/index.js";
+import { sportradarNewsArticles, sportradarFetchLog } from "@rsl/shared-db";
 import { env } from "../../config/index.js";
 import { logger } from "../../lib/logger.js";
 import { sql, eq } from "drizzle-orm";

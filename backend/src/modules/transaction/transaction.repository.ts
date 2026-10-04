@@ -1,6 +1,6 @@
 import { sql, eq, and } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { transactions, inventory, tradeItems, expenses } from "../../db/schema/index.js";
+import { transactions, inventory, tradeItems, expenses } from "@rsl/shared-db";
 
 export class TransactionRepository {
   async postTransactionsBuy(userId: string, body: any) {

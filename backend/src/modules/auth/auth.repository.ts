@@ -5,7 +5,7 @@ import {
   dealerProfiles,
   consumerProfiles,
   userPreferences,
-} from "../../db/schema/index.js";
+} from "@rsl/shared-db";
 import { db } from "../../db/index.js";
 import { hashPassword } from "../../lib/crypto.js";
 

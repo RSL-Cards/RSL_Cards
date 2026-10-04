@@ -1,5 +1,5 @@
 import { db } from "../../db/index.js";
-import { userPushTokens, notifications } from "../../db/schema/index.js";
+import { userPushTokens, notifications } from "@rsl/shared-db";
 import { eq, and, desc, count } from "drizzle-orm";
 import { logger } from "../../lib/logger.js";
 

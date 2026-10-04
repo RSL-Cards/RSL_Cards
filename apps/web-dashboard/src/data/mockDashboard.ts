@@ -14,84 +14,6 @@ export const DEALER = {
   }
 }
 
-export const METRICS = {
-  today: {
-    revenue: 890,    profit: 182,     margin: 28.4,
-    cards_bought: 4, cards_sold: 3,   total_spent: 640,
-  },
-  week: {
-    revenue: 4280,   profit: 1142,    margin: 26.7,
-    cards_bought: 18,cards_sold: 14,  revenue_change: 12.4,
-  },
-  month: {
-    revenue: 18420,  profit: 4890,    margin: 26.5,
-    cards_bought: 72,cards_sold: 58,  revenue_change: 8.2,
-  },
-  total_inventory_value: 28450,
-  total_cost_basis: 21300,
-  unrealized_gain: 7150,
-  unrealized_gain_pct: 33.6,
-}
-
-export const REVENUE_CHART_DATA = [
-  { date: 'Apr 1', revenue: 880,  profit: 210 },
-  { date: 'Apr 2', revenue: 1200, profit: 340 },
-  { date: 'Apr 3', revenue: 650,  profit: 180 },
-  { date: 'Apr 4', revenue: 980,  profit: 260 },
-  { date: 'Apr 5', revenue: 1450, profit: 420 },
-  { date: 'Apr 6', revenue: 890,  profit: 230 },
-  { date: 'Apr 7', revenue: 720,  profit: 190 },
-  { date: 'Apr 8', revenue: 1100, profit: 290 },
-  { date: 'Apr 9', revenue: 1350, profit: 380 },
-  { date: 'Apr 10',revenue: 960,  profit: 250 },
-  { date: 'Apr 11',revenue: 1200, profit: 320 },
-  { date: 'Apr 12',revenue: 780,  profit: 200 },
-  { date: 'Apr 13',revenue: 1680, profit: 490 },
-  { date: 'Apr 14',revenue: 990,  profit: 260 },
-  { date: 'Apr 15',revenue: 890,  profit: 182 },
-]
-
-export const CHANNEL_DATA = [
-  {
-    channel: 'Card Shows',
-    revenue: 8200,
-    profit: 2460,
-    pct: 44.5,
-    color: '#3B82F6',
-  },
-
-  {
-    channel: 'eBay',
-    revenue: 6800,
-    profit: 1820,
-    pct: 36.9,
-    color: '#60A5FA',
-  },
-
-  {
-    channel: 'Whatnot',
-    revenue: 2100,
-    profit: 490,
-    pct: 11.4,
-    color: '#93C5FD',
-  },
-
-  {
-    channel: 'TCGPlayer',
-    revenue: 980,
-    profit: 220,
-    pct: 5.3,
-    color: '#BFDBFE',
-  },
-
-  {
-    channel: 'Other',
-    revenue: 340,
-    profit: 80,
-    pct: 1.9,
-    color: '#D1D5DB',
-  },
-]
 
 export const INVENTORY_TABLE_DATA = [
   {
@@ -278,28 +200,6 @@ export const AI_INSIGHTS: Array<{
   }
 ]
 
-export const COMP_HISTORY_DATA = [
-  { date: 'Jan 15', price: 310 },
-  { date: 'Jan 22', price: 315 },
-  { date: 'Jan 29', price: 308 },
-  { date: 'Feb 5', price: 322 },
-  { date: 'Feb 12', price: 318 },
-  { date: 'Feb 19', price: 325 },
-  { date: 'Feb 26', price: 331 },
-  { date: 'Mar 5', price: 328 },
-  { date: 'Mar 12', price: 335 },
-  { date: 'Mar 19', price: 338 },
-  { date: 'Mar 26', price: 342 },
-  { date: 'Apr 2', price: 339 },
-  { date: 'Apr 9', price: 341 },
-  { date: 'Apr 15', price: 341 },
-]
-
-export const SPORT_PERFORMANCE_DATA = [
-  { sport: 'Football', profit: 2890, percentage: 59 },
-  { sport: 'Baseball', profit: 1340, percentage: 27 },
-  { sport: 'Basketball', profit: 660, percentage: 14 },
-]
 
 export const CUSTOMER_CONTACTS = [
   {

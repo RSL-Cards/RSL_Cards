@@ -1,0 +1,18 @@
+What's New
+• Fixed a launch crash that blocked App Review (Guideline 2.1)
+• Hardened cold start and disabled unused OTA update recovery
+• Privacy nutrition / PrivacyInfo.xcprivacy aligned with runtime SDKs
+• Sign in with Apple shown with equal prominence alongside Google
+• In-app account deletion remains available under Settings / More
+• AI card scan and assistant require explicit third-party AI consent first
+
+Notes for Review
+Demo account: use the credentials already provided in App Store Connect Review Information (do not rotate during review).
+Backend: https://api.rslcards.com (production) must remain available for the full review window.
+Account deletion: Settings → Delete Account (or More → Delete Account). This permanently deletes the dealer account and associated data via DELETE /v1/users/me.
+Sign in with Apple: available on Welcome, Register, and Sign In (iOS).
+AI features: first use of card scanner or assistant shows a Google Gemini third-party AI consent modal.
+Export compliance: ITSAppUsesNonExemptEncryption = false (standard HTTPS only).
+Location: not requested; location purpose string removed because the app does not access location.
+Universal Links: associated domains applinks:rslcards.com + webcredentials:rslcards.com; AASA hosted at https://rslcards.com/.well-known/apple-app-site-association with Team ID 88U8P648DG.
+Age rating: 2026 questionnaire completed in App Store Connect.

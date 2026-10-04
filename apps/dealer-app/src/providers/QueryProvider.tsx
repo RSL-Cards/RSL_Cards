@@ -19,30 +19,46 @@ const queryClient = new QueryClient({
 function SessionBootstrap({ children }: { children: React.ReactNode }) {
   const setAuth = useAuthStore((s) => s.setAuth);
   const setHydrated = useAuthStore((s) => s.setHydrated);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
   const userId = useAuthStore((s) => s.user?.id);
   const client = useQueryClient();
+  const previousUserId = React.useRef<string | undefined>(undefined);
 
-  // Clear Query Client cache automatically on user session switch or logout to prevent cross-user data leakage
+  // Clear Query Client cache only on real user switches (not initial mount).
   useEffect(() => {
-    client.clear();
+    if (
+      previousUserId.current !== undefined &&
+      previousUserId.current !== userId
+    ) {
+      client.clear();
+    }
+    previousUserId.current = userId;
   }, [userId, client]);
 
   // Initialize offline sync store on bootstrap
   useEffect(() => {
-    import("../stores/syncStore").then(({ useSyncStore }) => {
-      useSyncStore.getState().init(client);
-    });
+    import("../stores/syncStore")
+      .then(({ useSyncStore }) => {
+        useSyncStore.getState().init(client);
+      })
+      .catch(() => {});
   }, [client]);
 
   useEffect(() => {
+    let cancelled = false;
+    const safety = setTimeout(() => {
+      if (!cancelled) setHydrated();
+    }, 4000);
+
     authService
       .restoreSession()
       .then(async (user) => {
+        if (cancelled) return;
         if (user) {
           setAuth(user);
-          // Hydrate latest profile fields (photoUrl etc.) from backend
           try {
             const { data } = await apiClient.get(ENDPOINTS.users.me);
+            if (cancelled) return;
             const merged = {
               ...user,
               photoUrl: data.photoUrl ?? user.photoUrl ?? null,
@@ -50,19 +66,29 @@ function SessionBootstrap({ children }: { children: React.ReactNode }) {
               sports: data.sports ?? user.sports ?? [],
             };
             setAuth(merged);
-            // Persist updated user back to storage
             const { tokenStorage } = await import("../lib/tokenStorage");
             await tokenStorage.setUser(merged);
           } catch {
             // Non-fatal — user is still logged in
           }
+        } else {
+          clearAuth();
         }
         setHydrated();
       })
       .catch(() => {
-        setHydrated();
-      });
-  }, []);
+        if (!cancelled) {
+          clearAuth();
+          setHydrated();
+        }
+      })
+      .finally(() => clearTimeout(safety));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safety);
+    };
+  }, [setAuth, setHydrated, clearAuth]);
 
   return <>{children}</>;
 }

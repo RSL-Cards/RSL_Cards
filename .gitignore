@@ -18,6 +18,9 @@ index.android.bundle
 *.keystore
 *.jks
 
+# Security scan outputs
+reports/
+
 # Native directories (managed workflow)
 android/
 ios/
