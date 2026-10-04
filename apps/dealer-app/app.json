@@ -99,6 +99,7 @@
       ],
       "./plugins/withAndroidComponentFactory",
       "./plugins/withExcludeSupportLib",
+      "./plugins/withDisableUserScriptSandboxing",
       [
         "expo-notifications",
         {
