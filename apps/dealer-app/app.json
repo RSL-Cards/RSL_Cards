@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "rslcards",
     "splash": {
       "image": "./assets/splash.png",
@@ -34,9 +34,6 @@
             ]
           }
         ],
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        },
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "RSL Cards uses your location to discover nearby sports card shows, conventions, and local dealer trade events.",
         "NSCameraUsageDescription": "RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
