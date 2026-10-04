@@ -43,8 +43,8 @@
     "expo-updates": "~29.0.20",
     "expo-web-browser": "~15.0.10",
     "onesignal-expo-plugin": "^2.7.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-onesignal": "^5.5.5",
     "react-native-safe-area-context": "~5.6.0",
@@ -59,6 +59,18 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "typescript": "~5.9.2"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react",
+        "react-dom",
+        "expo",
+        "expo-constants",
+        "expo-file-system",
+        "expo-updates"
+      ]
+    }
   },
   "private": true
 }
