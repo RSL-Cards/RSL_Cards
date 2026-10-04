@@ -364,6 +364,15 @@ export function useGoogleAuth() {
       }
     } catch (error: any) {
       console.warn("[GoogleAuth] Native GoogleSignin error:", error?.message || error);
+      // If user cancelled the dialog, do not pop up another web prompt
+      if (
+        error?.code === "SIGN_IN_CANCELLED" ||
+        error?.code === "12501" ||
+        error?.message?.includes("cancel") ||
+        error?.message?.includes("Canceled")
+      ) {
+        return;
+      }
     }
 
     if (promptAsync) {
