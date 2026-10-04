@@ -19,6 +19,7 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "image": "sdk-54",
       "node": "22.14.0",
       "android": {
         "buildType": "apk"
@@ -36,6 +37,7 @@
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
+      "image": "sdk-54",
       "node": "22.14.0",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.rslcards.com",
