@@ -19,8 +19,10 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "image": "sdk-54",
       "node": "22.14.0",
+      "ios": {
+        "image": "sdk-54"
+      },
       "android": {
         "buildType": "apk"
       },
@@ -37,8 +39,10 @@
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
-      "image": "sdk-54",
       "node": "22.14.0",
+      "ios": {
+        "image": "sdk-54"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.rslcards.com",
         "EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID": "156597264526-1m2tsk1gc5b1v4g05aqsa3fn2i1f5pr8.apps.googleusercontent.com",
