@@ -102,7 +102,8 @@
         "EXUpdatesEnabled": false,
         "NSCameraUsageDescription": "RSL Cards uses the camera to scan raw and graded sports cards, barcodes, and slabs to instantly identify player details, look up real-time pricing comps, and add cards to your inventory.",
         "NSPhotoLibraryUsageDescription": "RSL Cards accesses your photo library to let you upload sports card photos for AI valuation, customize your dealer profile avatar, and attach transaction receipts.",
-        "NSPhotoLibraryAddUsageDescription": "RSL Cards needs permission to save generated card comps, deal receipts, and invoices to your photo library."
+        "NSPhotoLibraryAddUsageDescription": "RSL Cards needs permission to save generated card comps, deal receipts, and invoices to your photo library.",
+        "NSLocationWhenInUseUsageDescription": "RSL Cards uses your approximate location only to detect local card shows, dealer events, and regional pricing comps near you. Location is never tracked in the background or shared with third parties."
       },
       "usesAppleSignIn": true,
       "associatedDomains": [
