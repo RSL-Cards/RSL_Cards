@@ -7,7 +7,13 @@ import Screenshot from '@/components/shared/Screenshot'
 import AskRslSection from '@/components/shared/AskRslSection'
 import ClosingCta from '@/components/shared/ClosingCta'
 import AppStoreBadge from '@/components/shared/AppStoreBadge'
-import { OFFLINE_CAPTURE_VERIFIED } from '@/components/shared/site'
+import {
+  OFFLINE_CAPTURE_VERIFIED,
+  MOBILE_APP_SCREENSHOT,
+  MOBILE_INVENTORY_SCREENSHOT,
+  MOBILE_RECORD_SCREENSHOT,
+  MOBILE_EXPENSE_SCREENSHOT,
+} from '@/components/shared/site'
 
 export const metadata: Metadata = {
   title: 'Mobile App - RSL Cards',
@@ -35,7 +41,7 @@ export default function MobileAppPage() {
             </div>
           </div>
           <div className="flex justify-center">
-            <Screenshot file="mobile-home.png" alt="RSL mobile app home screen" device="phone" />
+            <Screenshot file="mobile-home.png" src={MOBILE_APP_SCREENSHOT} alt="RSL mobile app home screen" device="phone" />
           </div>
         </div>
       </section>
@@ -49,8 +55,8 @@ export default function MobileAppPage() {
             </p>
           </SectionHeading>
           <div className="flex justify-center gap-4 sm:gap-6">
-            <Screenshot file="mobile-buy-sell.png" alt="Buy and sell entry on the RSL mobile app" device="phone" />
-            <Screenshot file="mobile-expense.png" alt="Adding an expense to an open show log" device="phone" />
+            <Screenshot file="mobile-buy-sell.png" src={MOBILE_RECORD_SCREENSHOT} alt="Buy and sell entry on the RSL mobile app" device="phone" />
+            <Screenshot file="mobile-expense.png" src={MOBILE_EXPENSE_SCREENSHOT} alt="Adding an expense to an open show log" device="phone" />
           </div>
         </div>
       </Section>
@@ -58,7 +64,7 @@ export default function MobileAppPage() {
       <Section className="bg-black">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="order-last flex justify-center lg:order-first">
-            <Screenshot file="mobile-inventory.png" alt="Inventory with recorded costs on the RSL mobile app" device="phone" />
+            <Screenshot file="mobile-inventory.png" src={MOBILE_INVENTORY_SCREENSHOT} alt="Inventory with recorded costs on the RSL mobile app" device="phone" />
           </div>
           <SectionHeading title="Know what you have with you.">
             <p>

@@ -1,5 +1,6 @@
 import { Section, SectionHeading } from './Section'
 import Screenshot from './Screenshot'
+import { ASK_RSL_SCREENSHOT } from './site'
 
 // The two confirmed Ask RSL examples. Answers come from a real product screenshot,
 // not written copy, so we never promise coverage the assistant does not have.
@@ -31,7 +32,7 @@ export default function AskRslSection({
           </ul>
         </div>
         <div className="flex justify-center">
-          <Screenshot file="ask-rsl.png" alt="Ask RSL answering a sample question" device="phone" />
+          <Screenshot file="ask-rsl.png" src={ASK_RSL_SCREENSHOT} alt="Ask RSL answering a sample question" device="phone" />
         </div>
       </div>
     </Section>

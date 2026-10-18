@@ -6,7 +6,7 @@ import { Section, SectionHeading } from '@/components/shared/Section'
 import Screenshot from '@/components/shared/Screenshot'
 import AskRslSection from '@/components/shared/AskRslSection'
 import ClosingCta from '@/components/shared/ClosingCta'
-import { WEB_DASHBOARD_SCREENSHOT } from '@/components/shared/site'
+import { WEB_DASHBOARD_SCREENSHOT, WEB_REPORTS_SCREENSHOT } from '@/components/shared/site'
 
 export const metadata: Metadata = {
   title: 'Web App - RSL Cards',
@@ -45,7 +45,7 @@ export default function WebAppPage() {
               monthly, or custom reporting periods to take a closer look at your results.
             </p>
           </SectionHeading>
-          <Screenshot file="web-reports.png" alt="RSL reports screen with revenue, costs, expenses, and profit" device="laptop" />
+          <Screenshot file="web-reports.png" src={WEB_REPORTS_SCREENSHOT} alt="RSL reports screen with revenue, costs, expenses, and profit" device="laptop" />
         </div>
       </Section>
 

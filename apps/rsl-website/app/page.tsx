@@ -7,12 +7,33 @@ import { Section, SectionHeading } from '@/components/shared/Section'
 import Screenshot from '@/components/shared/Screenshot'
 import AskRslSection from '@/components/shared/AskRslSection'
 import ClosingCta from '@/components/shared/ClosingCta'
-import { WEB_DASHBOARD_SCREENSHOT } from '@/components/shared/site'
+import {
+  WEB_DASHBOARD_SCREENSHOT,
+  MOBILE_APP_SCREENSHOT,
+  MOBILE_INVENTORY_SCREENSHOT,
+  WEB_REPORTS_SCREENSHOT,
+  MOBILE_RECORD_SCREENSHOT,
+} from '@/components/shared/site'
 
 const workflow = [
-  { caption: 'Record the deal on mobile.', file: 'workflow-1-mobile-record.png', device: 'phone' as const },
-  { caption: 'Keep track of your inventory and recorded costs.', file: 'workflow-2-mobile-inventory.png', device: 'phone' as const },
-  { caption: 'Review sales, expenses, and profit on the web.', file: 'workflow-3-web-reports.png', device: 'laptop' as const },
+  {
+    caption: 'Record the deal on mobile.',
+    file: 'workflow-1-mobile-record.png',
+    src: MOBILE_RECORD_SCREENSHOT,
+    device: 'phone' as const,
+  },
+  {
+    caption: 'Keep track of your inventory and recorded costs.',
+    file: 'workflow-2-mobile-inventory.png',
+    src: MOBILE_INVENTORY_SCREENSHOT,
+    device: 'phone' as const,
+  },
+  {
+    caption: 'Review sales, expenses, and profit on the web.',
+    file: 'workflow-3-web-reports.png',
+    src: WEB_REPORTS_SCREENSHOT,
+    device: 'laptop' as const,
+  },
 ]
 
 const ways = [
@@ -59,6 +80,7 @@ export default function HomePage() {
             <Screenshot file="hero-web-dashboard.png" src={WEB_DASHBOARD_SCREENSHOT} alt="RSL web dashboard with sample show activity" device="laptop" />
             <Screenshot
               file="hero-mobile-home.png"
+              src={MOBILE_APP_SCREENSHOT}
               alt="RSL mobile app with the same sample activity"
               device="phone"
               className="absolute -bottom-6 right-0 max-w-[34%]! sm:right-2"
@@ -79,7 +101,7 @@ export default function HomePage() {
           {workflow.map((step, i) => (
             <li key={step.file} className="flex flex-col gap-5">
               <div className="flex items-end md:min-h-[570px] justify-center">
-                <Screenshot file={step.file} alt={step.caption} device={step.device} />
+                <Screenshot file={step.file} src={step.src} alt={step.caption} device={step.device} />
               </div>
               <p className="flex gap-3 text-base font-semibold text-white">
                 <span className="text-rslRed">{i + 1}.</span>
