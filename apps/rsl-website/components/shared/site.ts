@@ -3,6 +3,10 @@ export const SUPPORT_EMAIL = 'support@rslcards.com'
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
 
+// Product screenshots hosted in the public assets bucket.
+export const WEB_DASHBOARD_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/RSLCARDS+Dealer+Portal+Dashboard.png'
+
 // Leave unset until the App Store listing URL is verified; the badge is hidden without it.
 export const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || ''
 

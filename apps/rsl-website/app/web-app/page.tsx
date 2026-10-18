@@ -6,6 +6,7 @@ import { Section, SectionHeading } from '@/components/shared/Section'
 import Screenshot from '@/components/shared/Screenshot'
 import AskRslSection from '@/components/shared/AskRslSection'
 import ClosingCta from '@/components/shared/ClosingCta'
+import { WEB_DASHBOARD_SCREENSHOT } from '@/components/shared/site'
 
 export const metadata: Metadata = {
   title: 'Web App - RSL Cards',
@@ -32,7 +33,7 @@ export default function WebAppPage() {
               <CtaRow />
             </div>
           </div>
-          <Screenshot file="web-dashboard.png" alt="RSL web dashboard with representative financial activity" device="laptop" />
+          <Screenshot file="web-dashboard.png" src={WEB_DASHBOARD_SCREENSHOT} alt="RSL web dashboard with representative financial activity" device="laptop" />
         </div>
       </section>
 

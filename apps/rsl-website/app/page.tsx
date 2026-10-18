@@ -7,6 +7,7 @@ import { Section, SectionHeading } from '@/components/shared/Section'
 import Screenshot from '@/components/shared/Screenshot'
 import AskRslSection from '@/components/shared/AskRslSection'
 import ClosingCta from '@/components/shared/ClosingCta'
+import { WEB_DASHBOARD_SCREENSHOT } from '@/components/shared/site'
 
 const workflow = [
   { caption: 'Record the deal on mobile.', file: 'workflow-1-mobile-record.png', device: 'phone' as const },
@@ -55,7 +56,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="relative flex items-end justify-center">
-            <Screenshot file="hero-web-dashboard.png" alt="RSL web dashboard with sample show activity" device="laptop" />
+            <Screenshot file="hero-web-dashboard.png" src={WEB_DASHBOARD_SCREENSHOT} alt="RSL web dashboard with sample show activity" device="laptop" />
             <Screenshot
               file="hero-mobile-home.png"
               alt="RSL mobile app with the same sample activity"
