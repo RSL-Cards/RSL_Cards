@@ -4,9 +4,20 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Shell from '@/components/layout/Shell'
 import { apiClient } from '@/lib/axios'
+import * as XLSX from 'xlsx'
 import { Upload, Image as ImageIcon, FileText, Loader2, CheckCircle, XCircle, ReceiptText, CalendarClock, Store, ShoppingCart, Facebook, MessageCircle, Box, MoreHorizontal, Banknote, Wallet, ArrowRightLeft, CreditCard, Smartphone, RefreshCcw } from 'lucide-react'
 
 type Status = 'idle' | 'uploading' | 'processing' | 'review' | 'saving' | 'success'
+
+// Excel workbooks are binary, so convert every sheet to CSV text before sending it for extraction.
+const readWrittenFile = async (file: File): Promise<string> => {
+  if (!/\.xlsx?$/i.test(file.name)) return file.text()
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+  return workbook.SheetNames
+    .map((name) => XLSX.utils.sheet_to_csv(workbook.Sheets[name], { blankrows: false }))
+    .filter((csv) => csv.trim())
+    .join('\n\n')
+}
 type UploadMode = 'single_image' | 'multiple_images' | 'written_file'
 
 import { PAYMENT_METHODS as CENTRAL_PAYMENT_METHODS, TRANSACTION_CHANNELS as CENTRAL_CHANNELS } from '@/constants/transactionOptions'
@@ -150,7 +161,8 @@ function BulkAddPage() {
       setStatus('uploading')
 
       if (uploadMode === 'written_file') {
-        const text = await files[0].text()
+        const text = await readWrittenFile(files[0])
+        if (!text.trim()) throw new Error('The file is empty.')
         await apiClient.post('/batch/upload', { rawText: text })
         router.push('/tasks?toast=RSL+agent+is+started+task+in+background')
       } else if (uploadMode === 'multiple_images') {
@@ -320,7 +332,7 @@ function BulkAddPage() {
               ref={fileInputRef} 
               onChange={handleFileChange}
               multiple={uploadMode === 'multiple_images'}
-              accept={uploadMode === 'written_file' ? '.csv,.txt' : 'image/*'}
+              accept={uploadMode === 'written_file' ? '.csv,.txt,.xlsx,.xls' : 'image/*'}
             />
 
             {status === 'idle' && (
@@ -344,7 +356,7 @@ function BulkAddPage() {
                 <p className="text-sm text-zinc-400 max-w-md">
                   {uploadMode === 'single_image' && 'Drag and drop a single large image containing multiple cards.'}
                   {uploadMode === 'multiple_images' && 'Select and upload multiple individual card images at once.'}
-                  {uploadMode === 'written_file' && 'Upload a CSV/TXT file with written card details to extract.'}
+                  {uploadMode === 'written_file' && 'Upload a CSV, Excel or TXT file with written card details to extract.'}
                 </p>
                 <div className="mt-6 px-4 py-2 bg-[#141414] border border-[#252525] rounded-lg shadow-sm text-sm font-medium text-white">
                   Select {uploadMode === 'multiple_images' ? 'Files' : 'File'}

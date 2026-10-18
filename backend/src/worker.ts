@@ -998,9 +998,14 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
               set_name: card.set_name,
               variation: card.variation,
               card_number: card.card_number,
-              grade_key: "RAW",
+              grade_company: card.grading?.company,
+              grade_value: card.grading?.grade,
               search_string: card.search_string,
             }, 20);
+            // Inventory stores grades as COMPANY_GRADE (e.g. PSA_10); comps use the bare grade value.
+            const gradeCompany = (card.grading?.company?.trim() || "PSA").toUpperCase();
+            const inventoryGradeKey =
+              fetchParams.grade_key === "RAW" ? "RAW" : `${gradeCompany}_${fetchParams.grade_key}`;
             
             let compsData = null;
             try {
@@ -1012,7 +1017,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
             enrichedCards.push({
               ...card,
               id: generateCardId(card),
-              gradeKey: fetchParams.grade_key,
+              gradeKey: inventoryGradeKey,
               comps: compsData,
               uploadedImageUrl: uploadedImageUrl
             });
