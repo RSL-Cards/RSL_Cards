@@ -3,94 +3,82 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-
-export const navLinks = [
-  { label: 'Coming Soon', href: '/#coming-soon' },
-  { label: 'Features', href: '/#features' },
-  { label: 'About Us', href: '/#about' },
-  { label: 'Support', href: '/support' },
-]
+import { LOGIN_URL, navLinks } from '@/components/shared/site'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur-xl">
-      <nav className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <Image 
-            src="/rsl-logo.jpeg" 
-            alt="RSL Cards Logo" 
-            width={120} 
-            height={44} 
-            className="h-9 sm:h-11 w-auto object-contain" 
+      <nav aria-label="Main" className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-5 lg:px-8">
+        <Link href="/" className="flex shrink-0 items-center" aria-label="RSL Cards home">
+          <Image
+            src="/rsl-logo.jpeg"
+            alt="RSL Cards"
+            width={120}
+            height={44}
+            className="h-9 w-auto object-contain sm:h-11"
             priority
           />
         </Link>
 
-        {/* Desktop Navigation */}
         <div className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-bold text-neutral-300 transition hover:text-white"
+              aria-current={pathname === link.href ? 'page' : undefined}
+              className={`text-sm font-bold transition hover:text-white ${
+                pathname === link.href ? 'text-white' : 'text-neutral-300'
+              }`}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
-        {/* Desktop CTA */}
-        <div className="hidden items-center gap-3 lg:flex">
-          <a
-            href="https://app.rslcards.com/login"
-            className="bg-rslRed px-5 py-3 text-sm font-black transition text-white hover:bg-white hover:!text-black"
-          >
-            Join Early Access
+        <div className="flex items-center gap-2 sm:gap-3">
+          <a href={LOGIN_URL} className="hidden px-3 py-3 text-sm font-bold text-neutral-200 transition hover:text-white lg:inline-block">
+            Log In
           </a>
+          <Link
+            href="/request-access"
+            className="bg-rslRed px-4 py-2.5 text-sm font-black text-white transition hover:bg-white hover:!text-black sm:px-5 sm:py-3"
+          >
+            Request Access
+          </Link>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 text-white sm:h-11 sm:w-11 lg:hidden"
+            aria-label="Toggle navigation menu"
+            aria-expanded={isOpen}
+            aria-controls="mobile-menu"
+          >
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
-
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center border border-white/20 rounded-lg lg:hidden text-white"
-          aria-label="Toggle navigation menu"
-        >
-          {isOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
       </nav>
 
-      {/* Mobile Menu */}
       {isOpen && (
-        <div className="border-t border-white/10 bg-black/95 backdrop-blur-2xl lg:hidden max-h-[calc(100vh-4rem)] overflow-y-auto">
-          <div className="flex flex-col px-5 py-5">
+        <div id="mobile-menu" className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-white/10 bg-black/95 backdrop-blur-2xl lg:hidden">
+          <div className="flex flex-col px-4 py-4 sm:px-5">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
+                aria-current={pathname === link.href ? 'page' : undefined}
                 className="border-b border-white/10 py-3.5 text-base font-semibold text-neutral-200 transition hover:text-white"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
-
-            <div className="mt-5 flex flex-col gap-3">
-              <a
-                href="https://app.rslcards.com/login"
-                onClick={() => setIsOpen(false)}
-                className="flex h-12 items-center justify-center bg-rslRed font-bold text-white transition hover:bg-white hover:!text-black rounded-lg text-center"
-              >
-                Join Early Access
-              </a>
-            </div>
+            <a href={LOGIN_URL} className="py-3.5 text-base font-semibold text-neutral-200 transition hover:text-white">
+              Log In
+            </a>
           </div>
         </div>
       )}
