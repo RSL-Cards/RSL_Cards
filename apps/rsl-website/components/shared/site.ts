@@ -1,0 +1,33 @@
+export const LOGIN_URL = 'https://app.rslcards.com/login'
+export const SUPPORT_EMAIL = 'support@rslcards.com'
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+
+// Product screenshots hosted in the public assets bucket.
+export const WEB_DASHBOARD_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/RSLCARDS+Dealer+Portal+Dashboard.png'
+export const MOBILE_APP_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/RSL+Cards+Pro+Dark+Dashboard.png'
+export const MOBILE_INVENTORY_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/Dark+Mode+Trading+Card+Inventory+Dashboard.png'
+export const WEB_REPORTS_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/Dark+Mode+Dealer+Reports+Dashboard.png'
+export const MOBILE_RECORD_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/Trading+Card+Price+Dashboard.png'
+export const MOBILE_EXPENSE_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/Dark+Mode+Expense+Entry+Screen.png'
+export const ASK_RSL_SCREENSHOT =
+  'https://rsl-assets-prod-479474520808-us-east-1.s3.us-east-1.amazonaws.com/public/rsl-website/Dark+Inventory+Assistant+Chat.png'
+
+// Leave unset until the App Store listing URL is verified; the badge is hidden without it.
+export const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || ''
+
+// Publication gates from the restructure report. Flip only after the workflow is verified.
+export const OFFLINE_CAPTURE_VERIFIED = false
+
+export const navLinks = [
+  { label: 'Web App', href: '/web-app' },
+  { label: 'Mobile App', href: '/mobile-app' },
+  { label: 'About Us', href: '/about' },
+  { label: 'Support', href: '/support' },
+]

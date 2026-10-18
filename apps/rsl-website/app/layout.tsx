@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RSL Cards - The Operating System for Card Dealers",
   description:
-    "The operating system for card dealers. Sports cards, TCG, dealer-to-dealer transactions, live comps, and show floor inventory management.",
+    "Record purchases, sales, and expenses as they happen. RSL keeps your card inventory and reports connected across mobile and web.",
   icons: {
     icon: [
       { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
