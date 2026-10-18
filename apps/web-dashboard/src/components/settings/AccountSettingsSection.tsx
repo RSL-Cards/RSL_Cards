@@ -19,6 +19,7 @@ export default function AccountSettingsSection({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -105,13 +106,18 @@ export default function AccountSettingsSection({
               <div className="flex items-center gap-3 shrink-0">
                 <button
                   type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/showcase/${profileId}`)
-                    alert('Link copied to clipboard!')
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`${window.location.origin}/showcase/${profileId}`)
+                      setLinkCopied(true)
+                      window.setTimeout(() => setLinkCopied(false), 2000)
+                    } catch {
+                      setErrorMsg('Could not copy the link. Please copy it manually.')
+                    }
                   }}
                   className="text-xs font-medium text-[#E8001C] hover:text-red-400 transition-colors"
                 >
-                  Copy Link
+                  {linkCopied ? 'Copied!' : 'Copy Link'}
                 </button>
                 <span className="text-zinc-700">•</span>
                 <a

@@ -1,5 +1,4 @@
 import { WebDashboardRepository } from "./web-dashboard.repository.js";
-import { TOP_MOVERS, AI_INSIGHTS } from "./mockData.js";
 
 function parseCompsArray(raw: any): any[] {
   if (!raw) return [];

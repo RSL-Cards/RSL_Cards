@@ -991,7 +991,13 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           logger.info(`[AI_CARD_SCAN] 🤖 Extracted Card Details from Batch Scan: ${JSON.stringify(validCards)}`);
 
           const enrichedCards = [];
+          // Dealers often have several copies of the same card; each copy needs its own id.
+          const usedIds = new Map<string, number>();
           for (const card of validCards) {
+            const baseId = generateCardId(card);
+            const copyNumber = (usedIds.get(baseId) ?? 0) + 1;
+            usedIds.set(baseId, copyNumber);
+            const cardId = copyNumber === 1 ? baseId : `${baseId}_${copyNumber}`;
             const fetchParams = buildCompsFetchParams({
               player_name: card.player_name,
               year: card.year,
@@ -1016,7 +1022,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
 
             enrichedCards.push({
               ...card,
-              id: generateCardId(card),
+              id: cardId,
               gradeKey: inventoryGradeKey,
               comps: compsData,
               uploadedImageUrl: uploadedImageUrl
@@ -1039,11 +1045,13 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           if (userId) {
             const notifRepo = new NotificationRepository();
             const notifService = new NotificationService(notifRepo);
-            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${cards.length} cards.`, "system", { batchId });
+            const skipped = cards.length - validCards.length;
+            const skippedNote = skipped > 0 ? ` ${skipped} entr${skipped === 1 ? "y was" : "ies were"} skipped because no player name was found.` : "";
+            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${validCards.length} cards.${skippedNote}`, "system", { batchId });
             await sseService.publish(userId, { type: "batch_status", batchId, status: "completed", message: "Task completed successfully" });
           }
           
-          return { success: true, count: cards.length };
+          return { success: true, count: validCards.length };
 
         } catch (error: any) {
           logger.error(`[WORKER] Failed batch job ${batchId}: ${error.message}`);

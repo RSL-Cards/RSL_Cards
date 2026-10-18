@@ -19,10 +19,7 @@ import {
 import { useSettingsStore } from '@/stores/settingStore'
 import Shell from '@/components/layout/Shell'
 import { useDashboardInventoryCounts } from '@/hooks/dashboard/useDashboard'
-import {
-  INVENTORY_TABLE_DATA,
-  PLATFORM_FEE_TABLE,
-} from '@/data/mockDashboard'
+import { PLATFORM_FEE_TABLE } from '@/constants/platformFees'
 
 export default function SettingsPage() {
   const {

@@ -26,8 +26,6 @@ const listingPlatforms = [
   },
 ]
 
-const storageKey = 'rsl_active_listings'
-
 const platformMultiplier = (platform: string) => {
   const multipliers: Record<string, number> = {
     eBay: 1,
@@ -47,9 +45,8 @@ const platformMultiplier = (platform: string) => {
 
 export default function ListingModal({ selectedCards, onClose }: ListingModalProps) {
   const router = useRouter()
-  const { connectedPlatforms, fetchConnectedPlatforms, connectPlatform } = useSettingsStore()
+  const { connectedPlatforms, fetchConnectedPlatforms } = useSettingsStore()
   const [isCheckingConnection, setIsCheckingConnection] = useState(true)
-  const [devConnectedOverride, setDevConnectedOverride] = useState<boolean | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectError, setConnectError] = useState('')
 
@@ -76,6 +73,8 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>('now')
   const [scheduleAt, setScheduleAt] = useState('')
   const [publishMessage, setPublishMessage] = useState('')
+  const [publishError, setPublishError] = useState('')
+  const [isPublishing, setIsPublishing] = useState(false)
 
   const primaryCard = selectedCards[0]
 
@@ -130,35 +129,11 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
   }
 
   const publishListings = async () => {
-    const listings = selectedCards.flatMap((card) =>
-      selectedPlatforms.map((platform) => {
-        const platformConfig = listingPlatforms.find((item) => item.platform === platform)!
-        const price = getPlatformPrice(platform, card)
-        const fee = price * (platformConfig.feePct / 100) + platformConfig.fixedFee
+    setIsPublishing(true)
+    setPublishMessage('')
+    setPublishError('')
 
-        return {
-          id: `${card.id}-${platform}-${Date.now()}`,
-          cardId: card.id,
-          card: `${card.year} ${card.player_name} ${card.set_name} ${formatGrade(card.grade_key)}`,
-          platform,
-          price,
-          views: Math.floor(40 + Math.random() * 260),
-          watchers: Math.floor(3 + Math.random() * 38),
-          offers: Math.floor(Math.random() * 7),
-          daysListed: scheduleMode === 'now' ? 0 : 0,
-          status: scheduleMode === 'now' ? 'Active' : 'Scheduled',
-          net: price - fee - platformConfig.shipping,
-          title: listingTitle,
-          description,
-          specifics,
-          photos: photoNames,
-          scheduleMode,
-          scheduleAt: scheduleMode === 'scheduled' ? scheduleAt : scheduleMode === 'optimal' ? 'RSL optimal window' : 'Now',
-        }
-      })
-    )
-
-    // Also attempt backend API call if online/available
+    const failures: string[] = []
     for (const card of selectedCards) {
       try {
         await apiClient.post('/v1/listings/publish-ebay', {
@@ -170,20 +145,21 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
           platforms: ['ebay'],
         })
       } catch (err) {
-        console.warn('Backend eBay publish warning/mock dev continuation:', err)
+        const reason = err instanceof Error ? err.message : 'Unknown error'
+        failures.push(`${card.year} ${card.player_name}: ${reason}`)
       }
     }
 
-    const existing = JSON.parse(window.localStorage.getItem(storageKey) ?? '[]')
-    window.localStorage.setItem(storageKey, JSON.stringify([...listings, ...existing]))
-    console.log({
-      selectedCards,
-      selectedPlatforms,
-      price: Number(basePrice) || primaryCard?.market_value || 0,
-      listings,
-    })
-    setPublishMessage(`${listings.length} listing${listings.length > 1 ? 's' : ''} published to eBay. Opening Listings page...`)
-    window.setTimeout(() => router.push('/Listings'), 500)
+    setIsPublishing(false)
+    const published = selectedCards.length - failures.length
+    if (failures.length > 0) {
+      setPublishError(
+        `${published} of ${selectedCards.length} listing${selectedCards.length > 1 ? 's' : ''} published. Failed: ${failures.join('; ')}`
+      )
+      return
+    }
+    setPublishMessage(`${published} listing${published > 1 ? 's' : ''} published to eBay. Opening Listings page...`)
+    window.setTimeout(() => router.push('/listings'), 500)
   }
 
   useEffect(() => {
@@ -193,7 +169,7 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
   const storeEbayConnected = connectedPlatforms.some(
     (p) => p.platform.toLowerCase() === 'ebay' && p.isActive
   )
-  const isEbayConnected = devConnectedOverride !== null ? devConnectedOverride : storeEbayConnected
+  const isEbayConnected = storeEbayConnected
 
   const handleConnectEbay = async () => {
     setIsConnecting(true)
@@ -211,26 +187,10 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
         return
       }
 
-      // Fallback/Demo connection when real OAuth env vars not configured locally
-      try {
-        await connectPlatform({ platform: 'ebay', code: 'demo_oauth_code_' + Date.now() })
-        setDevConnectedOverride(true)
-      } catch (apiErr) {
-        setDevConnectedOverride(true)
-      }
+      setConnectError('eBay connection is not configured for this site. Please contact RSL support.')
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : 'Failed to initiate eBay connection.')
     } finally {
-      setIsConnecting(false)
-    }
-  }
-
-  const handleDevSimulateConnect = async () => {
-    setIsConnecting(true)
-    try {
-      await connectPlatform({ platform: 'ebay', code: 'simulated_dev_token' }).catch(() => {})
-    } finally {
-      setDevConnectedOverride(true)
       setIsConnecting(false)
     }
   }
@@ -318,14 +278,6 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={handleDevSimulateConnect}
-                  disabled={isConnecting}
-                  className="w-full sm:w-auto rounded-xl border border-[#252525] bg-[#141414] px-5 py-3 text-sm font-bold text-zinc-300 hover:bg-[#1A1A1A] hover:text-white transition-all shadow-sm"
-                >
-                  Simulate Connection (Demo)
-                </button>
-                <button
-                  type="button"
                   onClick={handleConnectEbay}
                   disabled={isConnecting}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#E8001C] hover:bg-[#CC0018] px-7 py-3 text-sm font-extrabold text-white shadow-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
@@ -365,14 +317,6 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
             </p>
           </div>
           <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setDevConnectedOverride(false)}
-              className="rounded-xl border border-[#252525] bg-[#141414] px-3.5 py-2 text-xs font-bold text-zinc-400 hover:border-red-500/30 hover:bg-red-500/15 hover:text-red-400 transition-all shadow-sm"
-              title="Switch to disconnected state for testing"
-            >
-              Disconnect eBay
-            </button>
             <button
               type="button"
               onClick={onClose}
@@ -703,13 +647,19 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
           <button
             type="button"
             onClick={publishListings}
-            disabled={selectedPlatforms.length === 0 || selectedCards.length === 0}
+            disabled={selectedPlatforms.length === 0 || selectedCards.length === 0 || isPublishing}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-xl bg-[#E8001C] hover:bg-[#CC0018] px-8 py-3 text-sm font-extrabold text-white shadow-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 className="h-4.5 w-4.5" />
-            <span>Publish on eBay</span>
+            <span>{isPublishing ? 'Publishing...' : 'Publish on eBay'}</span>
           </button>
         </div>
+
+        {publishError && (
+          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/15 p-4 text-sm font-bold text-red-400 shadow-sm animate-fade-in">
+            {publishError}
+          </div>
+        )}
 
         {publishMessage && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-4 text-sm font-bold text-emerald-400 flex items-center gap-2.5 shadow-sm animate-fade-in">

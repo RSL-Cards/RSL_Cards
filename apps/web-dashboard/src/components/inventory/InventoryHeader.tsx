@@ -1,10 +1,8 @@
 import { FileSpreadsheet, FileText, Loader2, Plus } from 'lucide-react'
 import Link from 'next/link'
-import { ImportToolMode } from './inventoryUtils'
 
 interface InventoryHeaderProps {
   onAddItem: () => void
-  onOpenImportTool?: (mode: ImportToolMode) => void
   onDownloadExcel?: () => void
   onDownloadPdf?: () => void
   isExportingExcel?: boolean
@@ -13,7 +11,6 @@ interface InventoryHeaderProps {
 
 export default function InventoryHeader({
   onAddItem,
-  onOpenImportTool,
   onDownloadExcel,
   onDownloadPdf,
   isExportingExcel = false,

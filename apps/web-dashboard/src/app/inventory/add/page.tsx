@@ -65,6 +65,7 @@ function BulkAddPage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const saveProgress = useRef<Record<string, { inventoryId?: string; buyRecorded?: boolean }>>({})
 
   // Polling logic
   useEffect(() => {
@@ -76,6 +77,7 @@ function BulkAddPage() {
           if (data.status === 'completed') {
             const results = data.resultsJson || []
             setCards(results)
+            saveProgress.current = {}
             
             // Auto-fill paidPrice from Gemini extraction if available
             const initialPricing: Record<string, any> = {}
@@ -225,6 +227,9 @@ function BulkAddPage() {
     setStatus('saving')
     try {
       for (const card of cardsToSave) {
+        // Skip work that already succeeded, so retrying after an error doesn't create duplicates.
+        const progress = saveProgress.current[card.id] ?? {}
+        if (progress.buyRecorded) continue
         const p = pricing[card.id]
         const payload = {
           playerName: card.player_name,
@@ -242,10 +247,14 @@ function BulkAddPage() {
           comps: card.comps,
           uploadedImageUrl: card.uploadedImageUrl,
         }
-        const res = await apiClient.post('/v1/inventory', payload)
-        
+        let inventoryId = progress.inventoryId
+        if (!inventoryId) {
+          const res = await apiClient.post('/v1/inventory', payload)
+          inventoryId = res.data?.item?.id as string | undefined
+          saveProgress.current[card.id] = { inventoryId }
+        }
+
         // Always create a buy transaction, default to 'other' if not selected
-        const inventoryId = res.data?.item?.id
         if (inventoryId) {
           await apiClient.post('/v1/transactions/buy', {
             inventoryId,
@@ -259,6 +268,7 @@ function BulkAddPage() {
             cardSnapshot: JSON.stringify(card),
           })
         }
+        saveProgress.current[card.id] = { inventoryId, buyRecorded: true }
       }
       setStatus('success')
     } catch (err: any) {
