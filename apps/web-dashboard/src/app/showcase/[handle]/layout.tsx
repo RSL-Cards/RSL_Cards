@@ -7,15 +7,14 @@ export default function ShowcaseLayout({ children }: { children: React.ReactNode
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img 
-              src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
-              alt="RSL Cards Logo" 
-              className="h-10 w-10 rounded-xl bg-[#141414] object-contain p-0.5 shadow-sm ring-1 ring-[#252525] transition-transform hover:scale-105"
+              src={process.env.NEXT_PUBLIC_LOGO_URL || "/rsl-logo.jpeg"} 
+              alt="RSL Cards" 
+              className="h-10 w-auto object-contain"
             />
             {/* Fallback if image fails to load */}
             <div className="hidden h-10 w-10 items-center justify-center rounded-2xl bg-[#E8001C] shadow-md">
               <span className="text-sm font-bold tracking-wider text-white">RSL</span>
             </div>
-            <span className="font-bold text-white tracking-tight text-xl hidden sm:block">RSL Cards</span>
           </div>
           <div className="text-sm font-medium text-zinc-400">
             Dealer Showcase
