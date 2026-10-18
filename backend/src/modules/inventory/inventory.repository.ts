@@ -644,10 +644,11 @@ export class InventoryRepository {
     }
 
     if (!resolvedPlayerId && cleanPlayerName && cleanPlayerName.trim() !== "" && cleanPlayerName.toLowerCase() !== "unknown") {
+      // players.name is unique across sports, so match on name alone and tolerate a
+      // concurrent insert of the same name.
       const existingPlayer = await db.execute(sql`
         SELECT id FROM players
         WHERE LOWER(name) = LOWER(${cleanPlayerName})
-          AND sport = ${cleanSport || "basketball"}
         LIMIT 1
       `);
 
@@ -657,6 +658,7 @@ export class InventoryRepository {
         const insertPlayer = await db.execute(sql`
           INSERT INTO players (id, name, sport, created_at, updated_at)
           VALUES (gen_random_uuid(), ${cleanPlayerName}, ${cleanSport || "basketball"}, NOW(), NOW())
+          ON CONFLICT (name) DO UPDATE SET updated_at = NOW()
           RETURNING id
         `);
         resolvedPlayerId = (insertPlayer.rows[0] as any).id;
