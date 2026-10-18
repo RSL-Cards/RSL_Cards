@@ -26,6 +26,7 @@ import { showcaseModule } from "./modules/showcase/index.js";
 import { dailyLogsModule } from "./modules/daily-logs/index.js";
 
 import { verifyToken } from "./lib/jwt.js";
+import { stripIdentityHeaders, redactForLog, loggablePath } from "./lib/request-security.js";
 import { errorMiddleware } from "./errors/error.middleware.js";
 import { promMetrics, getPrometheusOutput } from "./lib/metrics.js";
 
@@ -47,6 +48,10 @@ function getApiTaskName(method: string, path: string) {
   return `${method} ${resource.toUpperCase()}`;
 }
 
+if (env.NODE_ENV === "production" && (!env.JWT_PRIVATE_KEY || env.JWT_PRIVATE_KEY.includes("PLACEHOLDER"))) {
+  logger.error("[SECURITY] JWT_PRIVATE_KEY is not set: tokens are being signed with the public development secret.");
+}
+
 const app = new Elysia()
   // @ts-ignore
   .use(cors() as any)
@@ -62,13 +67,8 @@ const app = new Elysia()
     (ctx as any).requestStartCpu = startCpu;
     (ctx as any).traceId = traceId;
 
-    let urlPath = "";
-    try {
-      const url = new URL(ctx.request.url);
-      urlPath = `${url.pathname}${url.search}`;
-    } catch {
-      urlPath = ctx.request.url;
-    }
+    stripIdentityHeaders(ctx.request);
+    const urlPath = loggablePath(ctx.request.url);
     (ctx as any).urlPath = urlPath;
 
     if (!urlPath.startsWith("/health") && !urlPath.startsWith("/metrics")) {
@@ -100,7 +100,7 @@ const app = new Elysia()
       let reqStr = "";
       if (ctx.request.method !== "GET" && ctx.body) {
         try {
-          const b = JSON.stringify(ctx.body);
+          const b = JSON.stringify(redactForLog(ctx.body));
           reqStr = b.length > 300 ? ` | Req: ${b.substring(0, 300)}...` : ` | Req: ${b}`;
         } catch (e) {}
       }
@@ -108,7 +108,7 @@ const app = new Elysia()
       let resStr = "";
       if (ctx.response) {
         try {
-          const r = JSON.stringify(ctx.response);
+          const r = JSON.stringify(redactForLog(ctx.response));
           resStr = r.length > 300 ? ` | Res: ${r.substring(0, 300)}...` : ` | Res: ${r}`;
         } catch (e) {}
       }
@@ -137,7 +137,8 @@ const app = new Elysia()
     if (token) {
       try {
         const payload = await verifyToken(token, env);
-        if (payload && payload.userId) {
+        // Refresh tokens carry a userId too but must only be accepted by /auth/refresh.
+        if (payload && payload.userId && payload.type === "access") {
           const userId = String(payload.userId);
           const userRole = String(payload.role || "guest");
           const originalGet = request.headers.get.bind(request.headers);
