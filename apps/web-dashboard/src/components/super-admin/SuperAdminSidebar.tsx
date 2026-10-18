@@ -23,10 +23,10 @@ export default function SuperAdminSidebar({ mobileOpen = false, setMobileOpen }:
           {!imgError ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={process.env.NEXT_PUBLIC_LOGO_URL || '/rslicon.jpeg'}
-              alt="RSL Cards Logo"
+              src={process.env.NEXT_PUBLIC_LOGO_URL || '/rsl-logo.jpeg'}
+              alt="RSL Cards"
               onError={() => setImgError(true)}
-              className="h-9 w-9 rounded-xl bg-zinc-900 object-contain p-0.5 shadow-md ring-1 ring-red-500/30 transition-transform hover:scale-105"
+              className="h-9 w-auto object-contain"
             />
           ) : (
             <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/30">
@@ -34,9 +34,6 @@ export default function SuperAdminSidebar({ mobileOpen = false, setMobileOpen }:
             </div>
           )}
           <div>
-            <h1 className="font-bold text-base tracking-wide text-white flex items-center gap-1.5">
-              RSL Cards
-            </h1>
             <span className="text-[10px] uppercase font-semibold text-red-500 tracking-wider">
               Super Admin
             </span>

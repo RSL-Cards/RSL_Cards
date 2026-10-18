@@ -10,11 +10,10 @@ export default function AuthHeader({ copy }: AuthHeaderProps) {
       <div className="mb-8 lg:hidden">
         <div className="inline-flex items-center gap-2">
           <img 
-            src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
-            alt="RSL Cards Logo" 
-            className="h-10 w-10 rounded-xl bg-[#141414] object-contain p-1 shadow-sm ring-1 ring-[#252525]"
+            src={process.env.NEXT_PUBLIC_LOGO_URL || "/rsl-logo.jpeg"} 
+            alt="RSL Cards" 
+            className="h-10 w-auto object-contain"
           />
-          <span className="font-bold text-white tracking-tight text-lg">RSL Cards</span>
         </div>
       </div>
 

@@ -73,10 +73,10 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
             <div className="flex-shrink-0">
               {!imgError ? (
                 <img 
-                  src={process.env.NEXT_PUBLIC_LOGO_URL || "/rslicon.jpeg"} 
-                  alt="RSL Cards Logo" 
+                  src={process.env.NEXT_PUBLIC_LOGO_URL || "/rsl-logo.jpeg"} 
+                  alt="RSL Cards" 
                   onError={() => setImgError(true)}
-                  className="h-10 w-10 rounded-xl bg-[#141414] object-contain p-0.5 shadow-sm ring-1 ring-[#252525] transition-transform hover:scale-105"
+                  className={`object-contain ${collapsed && !mobileOpen ? 'w-8 h-auto' : 'h-9 w-auto'}`}
                 />
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8001C] via-red-700 to-black shadow-md ring-1 ring-[#E8001C]/30">
@@ -87,10 +87,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarPr
 
             {(!collapsed || mobileOpen) && (
               <div className="flex-1 overflow-hidden">
-                <div className="text-white font-extrabold text-base tracking-tight leading-none">
-                  RSL Cards
-                </div>
-                <div className="text-zinc-500 font-medium text-[11px] tracking-wider uppercase mt-1">
+                <div className="text-zinc-500 font-medium text-[11px] tracking-wider uppercase">
                   Dealer Portal
                 </div>
               </div>
