@@ -39,3 +39,16 @@ docs/AWS_DEPLOYMENT.md
 cdk.out
 infra/**/*.js
 infra/**/*.d.ts
+
+# Local Python virtualenvs
+.venv/
+
+# Keys and certificates must never be committed
+*.pem
+*.p8
+*.p12
+
+# Local artifacts
+dump.rdb
+*.ips
+scratch/
