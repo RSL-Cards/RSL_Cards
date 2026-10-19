@@ -1037,6 +1037,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           await db.update(batchJobs).set({ 
             status: "completed", 
             resultsJson: enrichedCards,
+            imageBase64: null, // the image now lives in S3 (uploadedImageUrl); don't keep megabytes per job in Postgres
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
           
@@ -1055,9 +1056,12 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
 
         } catch (error: any) {
           logger.error(`[WORKER] Failed batch job ${batchId}: ${error.message}`);
+          // BullMQ retries failed jobs; keep the image until the last attempt so a retry can still read it.
+          const isFinalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
           await db.update(batchJobs).set({ 
             status: "failed", 
             error: error.message,
+            ...(isFinalAttempt ? { imageBase64: null } : {}),
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
           
