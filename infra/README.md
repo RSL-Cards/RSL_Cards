@@ -126,6 +126,26 @@ App Runner natively decrypts `SecureString` parameters using AWS KMS when launch
 
 ---
 
+### ⚠️ Secrets never go in `lib/ssm-stack.ts`
+
+`ssm-stack.ts` is committed to git, so it only ever contains `PLACEHOLDER_*` values for secrets. Set real values directly in SSM:
+
+```bash
+aws ssm put-parameter --name /rsl/prod/config/<key> --value '<secret>' --overwrite --region us-east-1
+aws ecs update-service --cluster rsl-cluster-prod --service rsl-backend-prod --force-new-deployment --region us-east-1
+```
+
+CloudFormation only rewrites a parameter when its value in `ssm-stack.ts` changes, so values set by hand survive later `cdk deploy` runs. Every parameter has `DeletionPolicy: Retain`, so removing one from the stack leaves the live value in place.
+
+**Rotating the previously committed secrets.** Earlier versions of `ssm-stack.ts` contained the real eBay (production and sandbox) and MySlabs client secrets, which remain in git history. To rotate them:
+
+1. Generate new secrets in the eBay developer portal and the MySlabs dashboard.
+2. If you run `cdk deploy` for the SSM stack, do it now: it changes those three parameters to placeholders.
+3. Put the new values with `aws ssm put-parameter ... --overwrite` (above) and force a new ECS deployment.
+4. Revoke the old secrets in each portal.
+
+The JWT signing key (`jwt_private_key` / `jwt_public_key`) must be a real RSA key pair in production. While it is a placeholder, the backend signs tokens with a development secret that is public in this repo, and logs `[SECURITY] JWT_PRIVATE_KEY is not set` at startup.
+
 ## 🔑 Step 5: Configure GitHub Actions OIDC Authentication
 
 To enable passwordless, secure deployment from GitHub Actions to AWS:

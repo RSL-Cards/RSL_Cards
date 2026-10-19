@@ -112,7 +112,7 @@ export class EcsStack extends cdk.Stack {
       PORT: '8080',
       POSTGRES_USER: 'rsl_user',
       POSTGRES_DB: 'rslcards_prod',
-      DB_POOL_MAX: '50',
+      DB_POOL_MAX: '8', // up to 10 tasks x 8 stays under db.t4g.micro's ~85 connection limit
       JWT_ACCESS_EXPIRY: '15m',
       JWT_REFRESH_EXPIRY: '7d',
       EBAY_ENV: 'production',
