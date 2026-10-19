@@ -1,3 +1,4 @@
+import { NotImplementedError } from "../../errors/index.js";
 import { eq, and } from "drizzle-orm";
 import {
   users,
@@ -132,7 +133,7 @@ export class AuthRepository {
     return tokenRecord || null;
   }
 
-  async updateUserResetToken(userId: string, otp: string, expiry: Date) {
+  async updateUserResetToken(userId: string, otp: string | null, expiry: Date | null) {
     return await db
       .update(users as any)
       .set({
@@ -168,27 +169,27 @@ export class AuthRepository {
   }
 
   async postAuthVerifyEmail(_body: any, _params: any, _query: any) {
-    return { message: `Verify email with token sent to inbox` };
+    throw new NotImplementedError("Verify email with token sent to inbox");
   }
 
   async postAuth2FaSetup(_body: any, _params: any, _query: any) {
-    return { message: `Generate TOTP QR code for 2FA setup` };
+    throw new NotImplementedError("Generate TOTP QR code for 2FA setup");
   }
 
   async postAuth2FaVerify(_body: any, _params: any, _query: any) {
-    return { message: `Verify TOTP code, enable 2FA on account` };
+    throw new NotImplementedError("Verify TOTP code, enable 2FA on account");
   }
 
   async postAuth2FaDisable(_body: any, _params: any, _query: any) {
-    return { message: `Disable 2FA on account` };
+    throw new NotImplementedError("Disable 2FA on account");
   }
 
   async postAuthDeviceToken(_body: any, _params: any, _query: any) {
-    return { message: `Register FCM device token for push notifications` };
+    throw new NotImplementedError("Register FCM device token for push notifications");
   }
 
   async deleteAuthDeviceToken(_body: any, _params: any, _query: any) {
-    return { message: `Remove FCM token on logout` };
+    throw new NotImplementedError("Remove FCM token on logout");
   }
 
   async createOAuthUser(data: {

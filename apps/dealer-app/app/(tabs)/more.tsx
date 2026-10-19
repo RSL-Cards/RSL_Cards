@@ -127,9 +127,14 @@ function MoreScreen() {
     }
 
     const returnUrl = makeRedirectUri({ path: 'oauth/ebay' });
-    const userId = user?.id || 'current-user';
-    const stateStr = `${userId}___${returnUrl}`;
-    
+    let stateStr: string;
+    try {
+      stateStr = await userService.createEbayOauthState(returnUrl);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Could not start the eBay connection.');
+      return;
+    }
+
     const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')}&state=${encodeURIComponent(stateStr)}`;
     
     try {

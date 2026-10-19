@@ -1,3 +1,4 @@
+import { NotImplementedError } from "../../errors/index.js";
 import { eq, and, or, sql } from "drizzle-orm";
 import {
   dealerProfiles,
@@ -202,15 +203,15 @@ export class UserRepository {
   }
 
   async postUsersMePaymentMethods(_body: any, _params: any, _query: any) {
-    return { message: `Add new payment method` };
+    throw new NotImplementedError("Add new payment method");
   }
 
   async patchUsersMePaymentMethodsId(_body: any, _params: any, _query: any) {
-    return { message: `Update payment method handle or set as default` };
+    throw new NotImplementedError("Update payment method handle or set as default");
   }
 
   async deleteUsersMePaymentMethodsId(_body: any, _params: any, _query: any) {
-    return { message: `Remove payment method` };
+    throw new NotImplementedError("Remove payment method");
   }
 
   async getUsersMeConnectedPlatforms(userId: string) {
@@ -362,11 +363,11 @@ export class UserRepository {
   }
 
   async listDealers() {
-    return { message: `List dealers (filter: near, sport, rating)` };
+    throw new NotImplementedError("List dealers (filter: near, sport, rating)");
   }
 
   async getDealerByUrl(customUrl: string) {
-    return { message: `Get public dealer profile page for ${customUrl}` };
+    throw new NotImplementedError("Get public dealer profile page");
   }
 
   async getCustomers(userId: string) {
@@ -426,7 +427,7 @@ export class UserRepository {
   }
 
   async postUsersMeExport(userId: string) {
-    return { message: `Request data export (GDPR) for ${userId}` };
+    throw new NotImplementedError("Request data export (GDPR)");
   }
 
   async deleteMe(userId: string) {

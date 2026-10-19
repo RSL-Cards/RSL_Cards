@@ -104,16 +104,16 @@ export class NotificationRepository {
             });
             const result = await response.json() as any;
             if (result.errors) {
-              logger.error(`[NOTIF] Expo push failed for token ${t.token}: ${JSON.stringify(result.errors)}`);
+              logger.error(`[NOTIF] Expo push failed for token ${String(t.token).slice(0, 12)}…: ${JSON.stringify(result.errors)}`);
             } else {
-              logger.info(`[NOTIF] Sent Expo push to ${t.token} successfully`);
+              logger.info(`[NOTIF] Sent Expo push to ${String(t.token).slice(0, 12)}… successfully`);
             }
           } catch (e: any) {
             logger.error(`[NOTIF] Failed to send Expo push: ${e.message}`);
           }
         } else {
           // Web FCM / Browser Push placeholder
-          logger.info(`[NOTIF] Sending Web push to token ${t.token} (FCM Web placeholder)`);
+          logger.info(`[NOTIF] Sending Web push to token ${String(t.token).slice(0, 12)}… (FCM Web placeholder)`);
         }
       }
 

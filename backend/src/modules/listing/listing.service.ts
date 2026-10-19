@@ -17,11 +17,11 @@ export class ListingService {
 
   async getListings(userId: string) { return this.repository.getListings(userId); }
   async postListings(userId: string, body: any) { return this.repository.postListings(userId, body); }
-  async getListingsId(id: string) { return this.repository.getListingsId(id); }
-  async patchListingsIdPrice(id: string, body: any) { return this.repository.patchListingsIdPrice(id, body); }
-  async deleteListingsId(id: string) { return this.repository.deleteListingsId(id); }
-  async postListingsIdRelist(id: string) { return this.repository.postListingsIdRelist(id); }
-  async getPriceComparison(inventoryId: string) { return this.repository.getPriceComparison(inventoryId); }
+  async getListingsId(userId: string, id: string) { return this.repository.getListingsId(userId, id); }
+  async patchListingsIdPrice(userId: string, id: string, body: any) { return this.repository.patchListingsIdPrice(userId, id, body); }
+  async deleteListingsId(userId: string, id: string) { return this.repository.deleteListingsId(userId, id); }
+  async postListingsIdRelist(userId: string, id: string) { return this.repository.postListingsIdRelist(userId, id); }
+  async getPriceComparison(userId: string, inventoryId: string) { return this.repository.getPriceComparison(userId, inventoryId); }
   async getFeeCalculator(query: any) { return this.repository.getFeeCalculator(query); }
   async generateContent(body: any) { return this.repository.generateContent(body); }
   async getAnalytics(userId: string) { return this.repository.getAnalytics(userId); }

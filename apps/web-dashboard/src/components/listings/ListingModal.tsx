@@ -6,6 +6,7 @@ import { InventoryCard, formatCurrency, formatGrade } from '@/components/invento
 import { CheckCircle2, Clock, Copy, ImagePlus, Sparkles, Store, X } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingStore'
 import { apiClient } from '@/lib/axios'
+import { buildEbayAuthUrl } from '@/services/ebayConnectService'
 
 interface ListingModalProps {
   selectedCards: InventoryCard[]
@@ -175,14 +176,9 @@ export default function ListingModal({ selectedCards, onClose }: ListingModalPro
     setIsConnecting(true)
     setConnectError('')
     try {
-      const EBAY_AUTH_URL = process.env.NEXT_PUBLIC_EBAY_AUTH_URL
-      const EBAY_CLIENT_ID = process.env.NEXT_PUBLIC_EBAY_CLIENT_ID
-      const EBAY_RU_NAME = process.env.NEXT_PUBLIC_EBAY_RU_NAME
-
-      if (EBAY_AUTH_URL && EBAY_CLIENT_ID && EBAY_RU_NAME) {
-        const returnUrl = window.location.origin + '/settings'
-        const scope = encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')
-        const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${scope}`
+      // Previously this sent no OAuth state at all, so the backend callback rejected it.
+      const authUrl = await buildEbayAuthUrl(window.location.origin + '/settings')
+      if (authUrl) {
         window.location.href = authUrl
         return
       }

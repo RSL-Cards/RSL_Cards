@@ -55,8 +55,9 @@ if (env.NODE_ENV === "production" && (!env.JWT_PRIVATE_KEY || env.JWT_PRIVATE_KE
 const app = new Elysia()
   // @ts-ignore
   .use(cors() as any)
+  // API docs are only served outside production so the full route map isn't public.
   // @ts-ignore
-  .use(swagger() as any)
+  .use((env.NODE_ENV === "production" ? new Elysia() : swagger()) as any)
   .use(errorMiddleware)
   // Advanced HTTP Request & Response Observability & Trace Logging Middleware
   .onRequest((ctx: any) => {
@@ -201,7 +202,11 @@ const app = new Elysia()
   .use(batchRouter)
   .use(dailyLogsModule)
   // Prometheus Metrics Scrape Endpoint
-  .get("/metrics", () => {
+  .get("/metrics", ({ request }: any) => {
+    // In production the scraper must send `Authorization: Bearer <INTERNAL_SERVICE_KEY>`.
+    if (env.NODE_ENV === "production" && request.headers.get("authorization") !== `Bearer ${env.INTERNAL_SERVICE_KEY}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
     return new Response(getPrometheusOutput(), {
       headers: { "Content-Type": "text/plain; version=0.0.4" },
     });
@@ -239,11 +244,18 @@ const app = new Elysia()
   })
   .listen({
     port: env.PORT || 8080,
-    hostname: "0.0.0.0"
+    hostname: "0.0.0.0",
+    // Card scans arrive as base64 images; cap request bodies so one request can't exhaust the 512 MB task.
+    maxRequestBodySize: 25 * 1024 * 1024,
   });
 
 // Start background worker, run DB migrations, and scheduled jobs
-runMigrations().catch(err => logger.error(`Migration startup failed: ${err}`));
+runMigrations().catch((err) => {
+  logger.error(`[DB] Migration error: ${err instanceof Error ? err.message : String(err)}`);
+  // Serving requests against a half-migrated schema corrupts data or fails unpredictably. In production,
+  // exit so ECS keeps the previous healthy task running instead of switching traffic to this one.
+  if (env.NODE_ENV === "production") process.exit(1);
+});
 initWorker();
 bullMqAdapter.startCronJobs().catch(err => logger.error(`Cron init failed: ${err}`));
 
