@@ -70,10 +70,10 @@ aws ecs describe-services --cluster rsl-cluster-prod --services rsl-backend-prod
 
 The AWS CDK infrastructure definitions are located in `infra/lib/`:
 
-- [`infra/lib/ecs-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/ecs-stack.ts): Fargate service task definition (`0.25 vCPU / 512 MB RAM`), ALB target group health check, and 14-day log retention.
-- [`infra/lib/vpc-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/vpc-stack.ts): VPC networking configuration (`maxAzs: 2`, `natGateways: 0`).
-- [`infra/lib/rds-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/rds-stack.ts): PostgreSQL database instance.
-- [`infra/lib/redis-stack.ts`](file:///Users/vinay/RSL_Cards/RSL/infra/lib/redis-stack.ts): ElastiCache Redis cluster.
+- [`infra/lib/ecs-stack.ts`](../infra/lib/ecs-stack.ts): Fargate service task definition (`0.25 vCPU / 512 MB RAM`), ALB target group health check, and 14-day log retention.
+- [`infra/lib/vpc-stack.ts`](../infra/lib/vpc-stack.ts): VPC networking configuration (`maxAzs: 2`, `natGateways: 0`).
+- [`infra/lib/rds-stack.ts`](../infra/lib/rds-stack.ts): PostgreSQL database instance.
+- [`infra/lib/redis-stack.ts`](../infra/lib/redis-stack.ts): ElastiCache Redis cluster.
 
 ---
 

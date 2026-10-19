@@ -25,8 +25,6 @@ export class EbayOauthService {
   async exchangeCodeForTokens(code: string): Promise<EbayTokenResponse> {
     const { clientId, clientSecret, tokenUrl, ruName } = this.config;
     
-    console.log("Token Exchange debug:", { clientId, ruName, tokenUrl, EBAY_ENV: this.env.EBAY_ENV });
-    
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
     const response = await fetch(tokenUrl, {

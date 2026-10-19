@@ -1,3 +1,4 @@
+import { NotImplementedError } from "../../errors/index.js";
 import { eq, and, or, sql } from "drizzle-orm";
 import {
   dealerProfiles,
@@ -22,6 +23,7 @@ import {
   batchJobs,
 } from "@rsl/shared-db";
 import { db } from "../../db/index.js";
+import { BadRequestError, NotFoundError } from "../../errors/index.js";
 
 export interface OnboardingPayload {
   sports: string[];
@@ -201,15 +203,15 @@ export class UserRepository {
   }
 
   async postUsersMePaymentMethods(_body: any, _params: any, _query: any) {
-    return { message: `Add new payment method` };
+    throw new NotImplementedError("Add new payment method");
   }
 
   async patchUsersMePaymentMethodsId(_body: any, _params: any, _query: any) {
-    return { message: `Update payment method handle or set as default` };
+    throw new NotImplementedError("Update payment method handle or set as default");
   }
 
   async deleteUsersMePaymentMethodsId(_body: any, _params: any, _query: any) {
-    return { message: `Remove payment method` };
+    throw new NotImplementedError("Remove payment method");
   }
 
   async getUsersMeConnectedPlatforms(userId: string) {
@@ -361,34 +363,71 @@ export class UserRepository {
   }
 
   async listDealers() {
-    return { message: `List dealers (filter: near, sport, rating)` };
+    throw new NotImplementedError("List dealers (filter: near, sport, rating)");
   }
 
   async getDealerByUrl(customUrl: string) {
-    return { message: `Get public dealer profile page for ${customUrl}` };
+    throw new NotImplementedError("Get public dealer profile page");
   }
 
   async getCustomers(userId: string) {
     const result = await db.execute(sql`
-      SELECT * FROM customers WHERE user_id = ${userId}
+      SELECT * FROM customers WHERE user_id = ${userId} ORDER BY name
     `);
     return result.rows;
   }
 
-  async postCustomer(userId: string, _body: any) {
-    return { message: `Add new customer contact for ${userId}` };
+  // Only these customer fields may be set by the dealer.
+  private pickCustomerFields(body: any) {
+    const fields: Record<string, unknown> = {};
+    for (const key of ["name", "phone", "email", "notes"] as const) {
+      if (typeof body?.[key] === "string") fields[key] = body[key].trim();
+    }
+    if (typeof body?.isFavorite === "boolean") fields.isFavorite = body.isFavorite;
+    return fields;
   }
 
-  async patchCustomer(userId: string, id: string, _body: any) {
-    return { message: `Update customer ${id} for ${userId}` };
+  async postCustomer(userId: string, body: any) {
+    const fields = this.pickCustomerFields(body);
+    if (!fields.name) throw new BadRequestError("Customer name is required");
+    const [customer] = await db
+      .insert(customers)
+      .values({ ...fields, name: fields.name as string, userId })
+      .returning();
+    return customer;
+  }
+
+  async patchCustomer(userId: string, id: string, body: any) {
+    const fields = this.pickCustomerFields(body);
+    if (fields.name === "") throw new BadRequestError("Customer name cannot be empty");
+    if (Object.keys(fields).length === 0) throw new BadRequestError("No customer fields to update");
+    const [customer] = await db
+      .update(customers)
+      .set(fields)
+      .where(and(eq(customers.id, id), eq(customers.userId, userId)))
+      .returning();
+    if (!customer) throw new NotFoundError("Customer not found");
+    return customer;
   }
 
   async deleteCustomer(userId: string, id: string) {
-    return { message: `Delete customer ${id} for ${userId}` };
+    const deleted = await db.transaction(async (tx: any) => {
+      // Keep the dealer's transaction history; just unlink it from the customer.
+      await tx
+        .update(transactions)
+        .set({ customerId: null })
+        .where(and(eq((transactions as any).customerId, id), eq((transactions as any).userId, userId)));
+      return tx
+        .delete(customers)
+        .where(and(eq(customers.id, id), eq(customers.userId, userId)))
+        .returning({ id: customers.id });
+    });
+    if (deleted.length === 0) throw new NotFoundError("Customer not found");
+    return { message: "Customer deleted", id };
   }
 
   async postUsersMeExport(userId: string) {
-    return { message: `Request data export (GDPR) for ${userId}` };
+    throw new NotImplementedError("Request data export (GDPR)");
   }
 
   async deleteMe(userId: string) {

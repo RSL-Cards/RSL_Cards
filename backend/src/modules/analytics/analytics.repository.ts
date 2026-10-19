@@ -1,3 +1,4 @@
+import { NotImplementedError } from "../../errors/index.js";
 import { sql, and, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { expenses } from "@rsl/shared-db";
@@ -232,11 +233,11 @@ export class AnalyticsRepository {
     return { period, channels };
   }
 
-  async getProfitBySport(userId: string) { return { message: "Profit by sport" }; }
-  async getTopCards(userId: string) { return { message: "Top cards" }; }
-  async getInventoryValueTrend(userId: string) { return { message: "Inventory trend" }; }
-  async getPlatformPerformance(userId: string) { return { message: "Platform performance" }; }
-  async getTaxYear(userId: string, year: string) { return { message: `Tax for ${year}` }; }
+  async getProfitBySport(userId: string) { throw new NotImplementedError("Profit by sport"); }
+  async getTopCards(userId: string) { throw new NotImplementedError("Top cards"); }
+  async getInventoryValueTrend(userId: string) { throw new NotImplementedError("Inventory trend"); }
+  async getPlatformPerformance(userId: string) { throw new NotImplementedError("Platform performance"); }
+  async getTaxYear(userId: string, year: string) { throw new NotImplementedError("Tax"); }
   async getExpenses(userId: string) {
     const result = await db.execute(sql`
       SELECT id, daily_log_id as "dailyLogId", category, description, amount::numeric, expense_date as "expenseDate", created_at as "createdAt"
@@ -311,6 +312,6 @@ export class AnalyticsRepository {
 
     return { success: true, id };
   }
-  async getCollection(userId: string) { return { message: "Collection" }; }
-  async getWeeklyRecap(userId: string) { return { message: "Weekly recap" }; }
+  async getCollection(userId: string) { throw new NotImplementedError("Collection"); }
+  async getWeeklyRecap(userId: string) { throw new NotImplementedError("Weekly recap"); }
 }

@@ -10,7 +10,7 @@ This document is a comprehensive guide for monitoring, debugging, and analyzing 
 | :--- | :--- | :--- | :--- |
 | **Grafana Dashboard** | `http://localhost:3001` | `http://<EC2-IP>:3000` | Username: `admin`<br>Password: `admin` |
 | **Prometheus Targets** | `http://localhost:9090` | `http://<EC2-IP>:9090` | *No auth required* |
-| **Backend Metrics API** | `http://localhost:8080/metrics` | `https://api.yourdomain.com/metrics` | *No auth required* |
+| **Backend Metrics API** | `http://localhost:8080/metrics` | `https://api.yourdomain.com/metrics` | Production: `Authorization: Bearer <INTERNAL_SERVICE_KEY>` |
 
 ---
 

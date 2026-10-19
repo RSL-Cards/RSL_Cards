@@ -9,6 +9,12 @@ export interface ConnectedPlatform {
 }
 
 export const userService = {
+  /** Asks the backend for a signed eBay OAuth state tied to the signed-in user. */
+  async createEbayOauthState(returnUrl: string): Promise<string> {
+    const { data } = await apiClient.post<{ state: string }>("/v1/users/me/ebay/oauth-state", { returnUrl });
+    return data.state;
+  },
+
   async getConnectedPlatforms(): Promise<ConnectedPlatform[]> {
     const { data } = await apiClient.get<ConnectedPlatform[]>(
       ENDPOINTS.users.connectedPlatforms

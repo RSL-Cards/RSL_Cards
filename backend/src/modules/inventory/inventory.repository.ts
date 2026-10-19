@@ -1,3 +1,4 @@
+import { NotImplementedError } from "../../errors/index.js";
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { AppError } from "../../errors/app-error.js";
@@ -125,6 +126,18 @@ function calculateMaxActiveListingPrice(item: any, selectedGrade?: string): numb
   return activePrices.length > 0 ? Math.max(...activePrices) : 0;
 }
 
+// Columns the inventory list may be sorted by. Anything else falls back to added_at.
+const INVENTORY_SORT_COLUMNS = new Set([
+  "added_at",
+  "updated_at",
+  "current_market_value",
+  "cost_basis",
+  "year",
+  "set_name",
+  "grade_key",
+  "sport",
+]);
+
 export class InventoryRepository {
   async getInventory(query: any, userId: string) {
     const {
@@ -150,7 +163,7 @@ export class InventoryRepository {
       ${grade ? sql`AND i.grade_key = ${grade}` : sql``}
       ${status === 'all' ? sql`` : status === 'available' ? sql`AND i.listing_status IN ('unlisted', 'listed')` : status ? sql`AND i.listing_status = ${status}` : sql`AND i.listing_status IN ('unlisted', 'listed')`}
       ${searchTerm ? sql`AND (p.name ILIKE ${'%' + searchTerm + '%'} OR i.set_name ILIKE ${'%' + searchTerm + '%'} OR i.card_number ILIKE ${'%' + searchTerm + '%'} OR i.variation ILIKE ${'%' + searchTerm + '%'} OR i.grade_key ILIKE ${'%' + searchTerm + '%'})` : sql``}
-      ORDER BY i.${sql.raw(sort)} DESC
+      ORDER BY i.${sql.raw(INVENTORY_SORT_COLUMNS.has(sort) ? sort : "added_at")} DESC
       LIMIT ${Number(limit)} OFFSET ${offset}
     `);
 
@@ -916,16 +929,16 @@ export class InventoryRepository {
       return { message: "No fields to update" };
     }
 
+    // Column names come from the fixed keys above; every value is sent as a bound parameter.
     const setSql = setEntries.map(([col, val]) => {
       if (col === 'photos') {
         const photosArr = val as string[] | null;
-        const cleanArr = photosArr && photosArr.length > 0 ? `{${photosArr.map((u: string) => `"${u.replace(/"/g, '\\"')}"`).join(",")}}` : null;
-        return sql.raw(`${col} = ${cleanArr ? `'${cleanArr}'::text[]` : 'NULL'}`);
+        return photosArr && photosArr.length > 0
+          ? sql`${sql.identifier(col)} = ARRAY[${sql.join(photosArr.map((url) => sql`${String(url)}`), sql`, `)}]::text[]`
+          : sql`${sql.identifier(col)} = NULL`;
       }
-      if (typeof val === 'string') return sql.raw(`${col} = '${val.replace(/'/g, "''")}'`);
-      if (val === null) return sql.raw(`${col} = NULL`);
-      if (val instanceof Date) return sql.raw(`${col} = '${val.toISOString()}'`);
-      return sql.raw(`${col} = ${val}`);
+      if (typeof val === 'number' && !Number.isFinite(val)) return sql`${sql.identifier(col)} = NULL`;
+      return sql`${sql.identifier(col)} = ${val}`;
     });
 
     await db.execute(sql`
@@ -958,7 +971,7 @@ export class InventoryRepository {
   }
 
   async postInventoryRevalue(userId: string) {
-    return { message: `Trigger manual market value refresh for all cards for ${userId}` };
+    throw new NotImplementedError("Trigger manual market value refresh for all cards");
   }
 
   async postInventoryBulkImport(userId: string, body: any) {
@@ -997,7 +1010,7 @@ export class InventoryRepository {
   }
 
   async getInventoryBulkImportJobId(jobId: string) {
-    return { message: `Poll bulk import job status and progress for ${jobId}` };
+    throw new NotImplementedError("Poll bulk import job status and progress");
   }
 
   async getInventoryExport(userId: string, query?: any) {
@@ -1040,7 +1053,7 @@ export class InventoryRepository {
   }
 
   async getInventoryPublicDealerId(dealerId: string) {
-    return { message: `Get dealer's public inventory for ${dealerId}` };
+    throw new NotImplementedError("Get dealer's public inventory");
   }
 
   async getExistingPhotos(inventoryId: string, userId: string): Promise<string[]> {

@@ -31,7 +31,7 @@ rm -f apps/dealer-app/android/app/src/main/assets/index.android.bundle
 ```
 
 ### 2. Increment Version Code
-In [`apps/dealer-app/app.json`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app.json), increment `versionCode` by 1 (e.g. from `16` to `17`):
+In [`apps/dealer-app/app.json`](../apps/dealer-app/app.json), increment `versionCode` by 1 (e.g. from `16` to `17`):
 ```json
 "android": {
   "versionCode": 17,
@@ -58,7 +58,7 @@ export ANDROID_HOME=/Users/vinay/Library/Android/sdk
 
 ### Output Location:
 The generated `.aab` file will be saved at:
-[`apps/dealer-app/android/app/build/outputs/bundle/release/app-release.aab`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/android/app/build/outputs/bundle/release/app-release.aab)
+[`apps/dealer-app/android/app/build/outputs/bundle/release/app-release.aab`](../apps/dealer-app/android/app/build/outputs/bundle/release/app-release.aab)
 
 ---
 

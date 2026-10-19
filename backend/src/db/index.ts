@@ -37,25 +37,34 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import fs from "node:fs";
 import path from "node:path";
 
+// Arbitrary constant identifying the migration lock among Postgres advisory locks.
+const MIGRATION_LOCK_ID = 727274;
+
+/**
+ * Applies pending migrations. Throws on failure so the caller can refuse to serve traffic on a
+ * half-migrated schema. A Postgres advisory lock stops several tasks from migrating at once.
+ */
 export async function runMigrations() {
+  const possiblePaths = [
+    "/app/packages/shared-db/drizzle",
+    path.resolve(process.cwd(), "../packages/shared-db/drizzle"),
+    path.resolve(process.cwd(), "./packages/shared-db/drizzle"),
+  ];
+
+  const drizzlePath = possiblePaths.find((p) => fs.existsSync(p));
+  if (!drizzlePath) {
+    throw new Error("Could not find drizzle migrations directory!");
+  }
+
+  const lockClient = await pool.connect();
   try {
-    const possiblePaths = [
-      "/app/packages/shared-db/drizzle",
-      path.resolve(process.cwd(), "../packages/shared-db/drizzle"),
-      path.resolve(process.cwd(), "./packages/shared-db/drizzle"),
-    ];
-
-    const drizzlePath = possiblePaths.find((p) => fs.existsSync(p));
-    if (!drizzlePath) {
-      logger.error("Could not find drizzle migrations directory!");
-      return;
-    }
-
+    await lockClient.query("SELECT pg_advisory_lock($1)", [MIGRATION_LOCK_ID]);
     logger.info(`[DB] Running migrations from ${drizzlePath}...`);
     await migrate(db, { migrationsFolder: drizzlePath });
     logger.info("[DB] Migrations executed successfully!");
-  } catch (error) {
-    logger.error(`[DB] Migration error: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    await lockClient.query("SELECT pg_advisory_unlock($1)", [MIGRATION_LOCK_ID]).catch(() => {});
+    lockClient.release();
   }
 }
 

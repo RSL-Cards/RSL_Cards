@@ -1,3 +1,4 @@
+import { NotFoundError } from "../../errors/index.js";
 import { eq, desc } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { batchJobs } from "@rsl/shared-db";
@@ -81,12 +82,13 @@ export class BatchService {
       .from(batchJobs)
       .where(eq(batchJobs.id, jobId));
     if (!jobs.length) {
-      throw new Error("Job not found");
+      throw new NotFoundError("Job not found");
     }
-    const job = jobs[0];
+    const { imageBase64: _image, ...job } = jobs[0];
     if (job.userId !== userId) {
-      throw new Error("Unauthorized");
+      throw new NotFoundError("Job not found");
     }
+    // The raw scan image is large and the dashboard polls this every few seconds, so it's never returned.
     return job;
   }
 }

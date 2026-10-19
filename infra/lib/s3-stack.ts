@@ -34,14 +34,15 @@ export class S3Stack extends cdk.Stack {
       cors: [
         {
           allowedHeaders: ['*'],
-          allowedMethods: [
-            s3.HttpMethods.GET,
-            s3.HttpMethods.PUT,
-            s3.HttpMethods.POST,
-            s3.HttpMethods.DELETE,
-            s3.HttpMethods.HEAD,
+          // Browsers only need to PUT presigned uploads and GET images; mobile apps are not subject to CORS.
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT, s3.HttpMethods.HEAD],
+          allowedOrigins: [
+            'https://rslcards.com',
+            'https://www.rslcards.com',
+            'https://app.rslcards.com',
+            'https://*.amplifyapp.com',
+            ...(environmentName === 'prod' ? [] : ['http://localhost:3000', 'http://localhost:3011']),
           ],
-          allowedOrigins: ['*'],
           exposedHeaders: ['ETag'],
           maxAge: 3000,
         },

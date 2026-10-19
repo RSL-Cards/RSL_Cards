@@ -19,10 +19,8 @@ import {
 import { useSettingsStore } from '@/stores/settingStore'
 import Shell from '@/components/layout/Shell'
 import { useDashboardInventoryCounts } from '@/hooks/dashboard/useDashboard'
-import {
-  INVENTORY_TABLE_DATA,
-  PLATFORM_FEE_TABLE,
-} from '@/data/mockDashboard'
+import { PLATFORM_FEE_TABLE } from '@/constants/platformFees'
+import { buildEbayAuthUrl } from '@/services/ebayConnectService'
 
 export default function SettingsPage() {
   const {
@@ -157,23 +155,19 @@ export default function SettingsPage() {
 
   const [showEbayModal, setShowEbayModal] = useState(false)
 
-  const handleEbayOAuth = () => {
-    const EBAY_AUTH_URL = process.env.NEXT_PUBLIC_EBAY_AUTH_URL || 'https://auth.ebay.com/oauth2/authorize'
-    const EBAY_CLIENT_ID = process.env.NEXT_PUBLIC_EBAY_CLIENT_ID
-    const EBAY_RU_NAME = process.env.NEXT_PUBLIC_EBAY_RU_NAME
-
-    if (!EBAY_CLIENT_ID || !EBAY_RU_NAME) {
-      setSaveMessage('eBay environment variables not configured.')
-      window.setTimeout(() => setSaveMessage(''), 2500)
-      return
+  const handleEbayOAuth = async () => {
+    try {
+      const authUrl = await buildEbayAuthUrl(window.location.origin + '/settings')
+      if (!authUrl) {
+        setSaveMessage('eBay environment variables not configured.')
+        window.setTimeout(() => setSaveMessage(''), 2500)
+        return
+      }
+      window.location.href = authUrl
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : 'Could not start the eBay connection.')
+      window.setTimeout(() => setSaveMessage(''), 4000)
     }
-
-    const returnUrl = window.location.origin + '/settings'
-    const stateStr = profile?.id ? `${profile.id}___${returnUrl}` : ''
-    const scope = encodeURIComponent('https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.account')
-    const authUrl = `${EBAY_AUTH_URL}?client_id=${EBAY_CLIENT_ID}&response_type=code&redirect_uri=${EBAY_RU_NAME}&scope=${scope}&state=${encodeURIComponent(stateStr)}`
-
-    window.location.href = authUrl
   }
 
   const handleConnectPlatform = (platform: string) => {

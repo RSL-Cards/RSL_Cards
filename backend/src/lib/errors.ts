@@ -9,6 +9,7 @@ export enum AuthErrorCode {
   UNAUTHORIZED = "AUTH_UNAUTHORIZED",
   FORBIDDEN = "AUTH_FORBIDDEN",
   INTERNAL_ERROR = "AUTH_INTERNAL_ERROR",
+  RATE_LIMITED = "AUTH_RATE_LIMITED",
 }
 
 export class AuthError extends BaseAppError {

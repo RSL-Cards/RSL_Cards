@@ -41,3 +41,11 @@ export class InternalServerError extends AppError {
     super(message, 500, "INTERNAL_SERVER_ERROR", details, false);
   }
 }
+
+// For endpoints that exist in the route table but have no implementation yet. Returning a 501
+// is honest; a 200 with placeholder text made clients believe the action had worked.
+export class NotImplementedError extends AppError {
+  constructor(feature: string) {
+    super(`${feature} is not available yet`, 501, "NOT_IMPLEMENTED");
+  }
+}

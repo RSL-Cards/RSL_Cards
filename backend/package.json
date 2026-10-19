@@ -30,7 +30,7 @@
     "bullmq": "^5.34.5",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.4",
-    "elysia": "^1.4.29",
+    "elysia": "^1.4.30",
     "google-auth-library": "^9.15.0",
     "ioredis": "^5.4.2",
     "jose": "^5.9.6",

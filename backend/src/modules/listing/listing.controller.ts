@@ -19,24 +19,24 @@ export class ListingController {
     return await this.service.publishEbayListing(this.getUserId(request), body);
   };
 
-  getListing = async ({ params }: { params: any }) => {
-    return await this.service.getListingsId(params.id);
+  getListing = async ({ request, params }: { request: Request; params: any }) => {
+    return await this.service.getListingsId(this.getUserId(request), params.id);
   };
 
-  updatePrice = async ({ params, body }: { params: any; body: any }) => {
-    return await this.service.patchListingsIdPrice(params.id, body);
+  updatePrice = async ({ request, params, body }: { request: Request; params: any; body: any }) => {
+    return await this.service.patchListingsIdPrice(this.getUserId(request), params.id, body);
   };
 
-  deleteListing = async ({ params }: { params: any }) => {
-    return await this.service.deleteListingsId(params.id);
+  deleteListing = async ({ request, params }: { request: Request; params: any }) => {
+    return await this.service.deleteListingsId(this.getUserId(request), params.id);
   };
 
-  relist = async ({ params }: { params: any }) => {
-    return await this.service.postListingsIdRelist(params.id);
+  relist = async ({ request, params }: { request: Request; params: any }) => {
+    return await this.service.postListingsIdRelist(this.getUserId(request), params.id);
   };
 
-  getPriceComparison = async ({ params }: { params: any }) => {
-    return await this.service.getPriceComparison(params.inventoryId);
+  getPriceComparison = async ({ request, params }: { request: Request; params: any }) => {
+    return await this.service.getPriceComparison(this.getUserId(request), params.inventoryId);
   };
 
   feeCalculator = async ({ query }: { query: any }) => {

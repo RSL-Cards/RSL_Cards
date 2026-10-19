@@ -991,16 +991,27 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           logger.info(`[AI_CARD_SCAN] 🤖 Extracted Card Details from Batch Scan: ${JSON.stringify(validCards)}`);
 
           const enrichedCards = [];
+          // Dealers often have several copies of the same card; each copy needs its own id.
+          const usedIds = new Map<string, number>();
           for (const card of validCards) {
+            const baseId = generateCardId(card);
+            const copyNumber = (usedIds.get(baseId) ?? 0) + 1;
+            usedIds.set(baseId, copyNumber);
+            const cardId = copyNumber === 1 ? baseId : `${baseId}_${copyNumber}`;
             const fetchParams = buildCompsFetchParams({
               player_name: card.player_name,
               year: card.year,
               set_name: card.set_name,
               variation: card.variation,
               card_number: card.card_number,
-              grade_key: "RAW",
+              grade_company: card.grading?.company,
+              grade_value: card.grading?.grade,
               search_string: card.search_string,
             }, 20);
+            // Inventory stores grades as COMPANY_GRADE (e.g. PSA_10); comps use the bare grade value.
+            const gradeCompany = (card.grading?.company?.trim() || "PSA").toUpperCase();
+            const inventoryGradeKey =
+              fetchParams.grade_key === "RAW" ? "RAW" : `${gradeCompany}_${fetchParams.grade_key}`;
             
             let compsData = null;
             try {
@@ -1011,8 +1022,8 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
 
             enrichedCards.push({
               ...card,
-              id: generateCardId(card),
-              gradeKey: fetchParams.grade_key,
+              id: cardId,
+              gradeKey: inventoryGradeKey,
               comps: compsData,
               uploadedImageUrl: uploadedImageUrl
             });
@@ -1026,6 +1037,7 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           await db.update(batchJobs).set({ 
             status: "completed", 
             resultsJson: enrichedCards,
+            imageBase64: null, // the image now lives in S3 (uploadedImageUrl); don't keep megabytes per job in Postgres
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
           
@@ -1034,17 +1046,22 @@ Output ONLY the JSON object, do not add markdown block wrappers like \`\`\`json.
           if (userId) {
             const notifRepo = new NotificationRepository();
             const notifService = new NotificationService(notifRepo);
-            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${cards.length} cards.`, "system", { batchId });
+            const skipped = cards.length - validCards.length;
+            const skippedNote = skipped > 0 ? ` ${skipped} entr${skipped === 1 ? "y was" : "ies were"} skipped because no player name was found.` : "";
+            await notifService.sendNotification(userId, "Upload Complete", `Successfully processed ${validCards.length} cards.${skippedNote}`, "system", { batchId });
             await sseService.publish(userId, { type: "batch_status", batchId, status: "completed", message: "Task completed successfully" });
           }
           
-          return { success: true, count: cards.length };
+          return { success: true, count: validCards.length };
 
         } catch (error: any) {
           logger.error(`[WORKER] Failed batch job ${batchId}: ${error.message}`);
+          // BullMQ retries failed jobs; keep the image until the last attempt so a retry can still read it.
+          const isFinalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
           await db.update(batchJobs).set({ 
             status: "failed", 
             error: error.message,
+            ...(isFinalAttempt ? { imageBase64: null } : {}),
             updatedAt: new Date() 
           }).where(eq(batchJobs.id, batchId));
           

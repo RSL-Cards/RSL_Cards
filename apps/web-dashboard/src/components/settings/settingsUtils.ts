@@ -12,7 +12,6 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import { DEALER } from '@/data/mockDashboard'
 import {
   NotificationPreference,
   PlatformMeta,
@@ -60,11 +59,8 @@ export const listingToggleOptions: Array<{
   { key: 'crossPost', label: 'Cross-post connected platforms', icon: ShieldCheck },
 ]
 
-export const initialTeamMembers: TeamMember[] = [
-  { id: 'team-001', name: DEALER.name, email: DEALER.email, role: 'Owner', status: 'Active' },
-  { id: 'team-002', name: 'Maya Chen', email: 'maya.chen@example.com', role: 'Lister', status: 'Active' },
-  { id: 'team-003', name: 'Trevor Wallace', email: 'trevor.wallace@example.com', role: 'Analyst', status: 'Pending' },
-]
+// Team access is not backed by an API yet, so start with no members rather than sample people.
+export const initialTeamMembers: TeamMember[] = []
 
 export const getStatusClass = (status: string) => {
   switch (status) {

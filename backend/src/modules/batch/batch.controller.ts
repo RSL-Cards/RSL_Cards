@@ -1,3 +1,4 @@
+import { UnauthorizedError } from "../../errors/index.js";
 import { BatchService } from "./batch.service.js";
 
 export class BatchController {
@@ -5,7 +6,7 @@ export class BatchController {
 
   uploadFile = async ({ request, body }: any) => {
     const userId = request.headers.get("x-user-id");
-    if (!userId) throw new Error("Missing user ID");
+    if (!userId) throw new UnauthorizedError("Authentication is required");
     const { rawText } = body;
     if (!rawText) throw new Error("Missing rawText");
     return this.service.createFileUploadJob(userId, rawText);
@@ -13,7 +14,7 @@ export class BatchController {
 
   scanMulti = async ({ request, body }: any) => {
     const userId = request.headers.get("x-user-id");
-    if (!userId) throw new Error("Missing user ID");
+    if (!userId) throw new UnauthorizedError("Authentication is required");
     const { image } = body;
     if (!image) throw new Error("Missing image (base64)");
     return this.service.createMultiScanJob(userId, image);
@@ -21,7 +22,7 @@ export class BatchController {
 
   listJobs = async ({ request }: any) => {
     const userId = request.headers.get("x-user-id");
-    if (!userId) throw new Error("Missing user ID");
+    if (!userId) throw new UnauthorizedError("Authentication is required");
 
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get("page") || "1", 10);
@@ -34,7 +35,7 @@ export class BatchController {
 
   getJob = async ({ request, params }: any) => {
     const userId = request.headers.get("x-user-id");
-    if (!userId) throw new Error("Missing user ID");
+    if (!userId) throw new UnauthorizedError("Authentication is required");
     return this.service.getJob(userId, params.id);
   };
 }

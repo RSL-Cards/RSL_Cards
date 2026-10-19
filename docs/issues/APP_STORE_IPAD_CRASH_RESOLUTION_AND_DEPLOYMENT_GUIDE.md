@@ -54,22 +54,22 @@ flowchart TD
 ```
 
 ### Root Cause 1: `supportsTablet: true` with Orientation Mismatch
-- **The Problem:** In [`apps/dealer-app/app.json`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app.json), `"supportsTablet": true` was set, while the top-level orientation was `"orientation": "portrait"`. An earlier commit attempted to satisfy iPad guidelines by adding landscape orientations to `UISupportedInterfaceOrientations~ipad`.
+- **The Problem:** In [`apps/dealer-app/app.json`](../../apps/dealer-app/app.json), `"supportsTablet": true` was set, while the top-level orientation was `"orientation": "portrait"`. An earlier commit attempted to satisfy iPad guidelines by adding landscape orientations to `UISupportedInterfaceOrientations~ipad`.
 - **The Failure:** RSL Cards was built and designed strictly as a portrait mobile smartphone tool for card dealers on show floors. When Apple reviewed the app on an **iPad Air 11-inch (M3)** mounted in landscape on a test stand, UIKit attempted to apply iPad-specific context metrics (`_UIContextMenuPadPlatformMetrics_Glass`) and layout in landscape. This conflicted with Expo's portrait orientation lock, throwing a native assertion error.
 
 ### Root Cause 2: Double-Navigation Race Condition at Startup
-- **The Problem:** In [`apps/dealer-app/app/index.tsx`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app/index.tsx), once auth store hydrated:
+- **The Problem:** In [`apps/dealer-app/app/index.tsx`](../../apps/dealer-app/app/index.tsx), once auth store hydrated:
   ```tsx
   return <Redirect href="/(auth)/welcome" />;
   ```
-  Simultaneously in [`apps/dealer-app/app/_layout.tsx`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app/_layout.tsx), `AuthGuard` observed that the initial route was not `"(auth)"` and called:
+  Simultaneously in [`apps/dealer-app/app/_layout.tsx`](../../apps/dealer-app/app/_layout.tsx), `AuthGuard` observed that the initial route was not `"(auth)"` and called:
   ```tsx
   router.replace("/(auth)/login");
   ```
 - **The Failure:** Two conflicting navigation transitions fired in the same millisecond while `react-native-screens`'s `RNSScreenStackView` was still attaching view controllers. In `react-native-screens` on iPadOS, unmounting or transitioning screens during initial navigation bar setup causes a fatal unhandled native exception.
 
 ### Root Cause 3: Immediate Synchronous Notification Permissions on Mount
-- **The Problem:** In [`app/_layout.tsx`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app/_layout.tsx), both `notificationService.requestNotificationPermissions()` and `notificationService.initOneSignalPermissions()` were called immediately on component mount.
+- **The Problem:** In [`app/_layout.tsx`](../../apps/dealer-app/app/_layout.tsx), both `notificationService.requestNotificationPermissions()` and `notificationService.initOneSignalPermissions()` were called immediately on component mount.
 - **The Failure:** In crash log `66B3F250`, Thread 7 (`expo.modules.AsyncFunctionQueue`) was stuck in `semaphore_wait_trap` waiting for `getPermissionUsingRequester:`. Requesting native permissions before the window has completed its first paint blocks the UI queue and leads to watch-dog aborts.
 
 ### Root Cause 4: Custom URL Scheme Override
@@ -82,12 +82,12 @@ flowchart TD
 
 | Area | File | Change Made | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Tablet Targeting** | [`apps/dealer-app/app.json`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app.json) | Changed `"supportsTablet": false` | Designates app as an **iPhone-Only App** (`UIDeviceFamily: [1]`). Apple Review will test it as an iPhone app. iPad users can still install it from the App Store in iOS's native iPhone compatibility mode. |
-| **Orientations** | [`apps/dealer-app/app.json`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app.json) | Set `UISupportedInterfaceOrientations~ipad` to `["UIInterfaceOrientationPortrait"]` | Eliminates landscape orientation conflicts. |
-| **URL Schemes** | [`apps/dealer-app/app.json`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app.json) | Added `"rslcards"` & `"com.rslcards.dealer"` to `CFBundleURLSchemes` | Restores app linking schemes. |
-| **Routing Race** | [`apps/dealer-app/app/_layout.tsx`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app/_layout.tsx) | Updated `AuthGuard` condition: only redirect unauthenticated users if accessing protected routes (`(tabs)`, `buy`, `sell`, etc.) | Allows `app/index.tsx` to cleanly route to `/(auth)/welcome` on first launch without conflicting `router.replace` calls. |
-| **Permissions** | [`apps/dealer-app/app/_layout.tsx`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/app/_layout.tsx) | Added `setTimeout(..., 1200)` delay for notification permissions | Ensures the UI layout and window scene are completely settled before system dialogs are requested. |
-| **Bare Info.plist** | [`apps/dealer-app/ios/RSLCardsPro/Info.plist`](file:///Users/vinay/RSL_Cards/RSL/apps/dealer-app/ios/RSLCardsPro/Info.plist) | Locked orientations to portrait and set `UIRequiresFullScreen: true` | Mirrors `app.json` configuration for local native development. |
+| **Tablet Targeting** | [`apps/dealer-app/app.json`](../../apps/dealer-app/app.json) | Changed `"supportsTablet": false` | Designates app as an **iPhone-Only App** (`UIDeviceFamily: [1]`). Apple Review will test it as an iPhone app. iPad users can still install it from the App Store in iOS's native iPhone compatibility mode. |
+| **Orientations** | [`apps/dealer-app/app.json`](../../apps/dealer-app/app.json) | Set `UISupportedInterfaceOrientations~ipad` to `["UIInterfaceOrientationPortrait"]` | Eliminates landscape orientation conflicts. |
+| **URL Schemes** | [`apps/dealer-app/app.json`](../../apps/dealer-app/app.json) | Added `"rslcards"` & `"com.rslcards.dealer"` to `CFBundleURLSchemes` | Restores app linking schemes. |
+| **Routing Race** | [`apps/dealer-app/app/_layout.tsx`](../../apps/dealer-app/app/_layout.tsx) | Updated `AuthGuard` condition: only redirect unauthenticated users if accessing protected routes (`(tabs)`, `buy`, `sell`, etc.) | Allows `app/index.tsx` to cleanly route to `/(auth)/welcome` on first launch without conflicting `router.replace` calls. |
+| **Permissions** | [`apps/dealer-app/app/_layout.tsx`](../../apps/dealer-app/app/_layout.tsx) | Added `setTimeout(..., 1200)` delay for notification permissions | Ensures the UI layout and window scene are completely settled before system dialogs are requested. |
+| **Bare Info.plist** | [`apps/dealer-app/ios/RSLCardsPro/Info.plist`](../../apps/dealer-app/ios/RSLCardsPro/Info.plist) | Locked orientations to portrait and set `UIRequiresFullScreen: true` | Mirrors `app.json` configuration for local native development. |
 
 ---
 

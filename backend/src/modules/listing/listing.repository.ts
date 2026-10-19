@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { BadRequestError, NotFoundError } from "../../errors/index.js";
 import { createHash } from "node:crypto";
 import type { EbayService } from "./ebay.service.js";
 import type { SoldCompsService } from "./sold-comps.service.js";
@@ -30,50 +31,55 @@ export class ListingRepository {
     return { success: true, item: result.rows[0] };
   }
 
-  async getListingsId(id: string) {
+  async getListingsId(userId: string, id: string) {
     const result = await db.execute(sql`
-      SELECT * FROM inventory WHERE id = ${id} LIMIT 1
+      SELECT * FROM inventory WHERE id = ${id} AND user_id = ${userId} LIMIT 1
     `);
+    if (!result.rows[0]) throw new NotFoundError("Listing not found");
     return result.rows[0];
   }
 
-  async patchListingsIdPrice(id: string, body: any) {
-    const { price } = body;
+  async patchListingsIdPrice(userId: string, id: string, body: any) {
+    const price = Number(body?.price);
+    if (!Number.isFinite(price) || price < 0) throw new BadRequestError("A valid price is required");
     const result = await db.execute(sql`
       UPDATE inventory
       SET current_market_value = ${price}, updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${userId}
       RETURNING *
     `);
+    if (!result.rows[0]) throw new NotFoundError("Listing not found");
     return result.rows[0];
   }
 
-  async deleteListingsId(id: string) {
+  async deleteListingsId(userId: string, id: string) {
     const result = await db.execute(sql`
       UPDATE inventory
       SET listing_status = 'unlisted', updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${userId}
       RETURNING *
     `);
+    if (!result.rows[0]) throw new NotFoundError("Listing not found");
     return { success: true, item: result.rows[0] };
   }
 
-  async postListingsIdRelist(id: string) {
+  async postListingsIdRelist(userId: string, id: string) {
     const result = await db.execute(sql`
       UPDATE inventory
       SET listing_status = 'listed', updated_at = NOW()
-      WHERE id = ${id}
+      WHERE id = ${id} AND user_id = ${userId}
       RETURNING *
     `);
+    if (!result.rows[0]) throw new NotFoundError("Listing not found");
     return { success: true, item: result.rows[0] };
   }
 
-  async getPriceComparison(inventoryId: string) {
+  async getPriceComparison(userId: string, inventoryId: string) {
     const result = await db.execute(sql`
       SELECT i.*, cv.id as variant_id, cv.name as variant_name
       FROM inventory i
       LEFT JOIN card_variants cv ON cv.id = i.variant_id
-      WHERE i.id = ${inventoryId}
+      WHERE i.id = ${inventoryId} AND i.user_id = ${userId}
       LIMIT 1
     `);
     const item = result.rows[0] as any;

@@ -1,6 +1,7 @@
 # Build from monorepo root:
 #   docker build -f backend/Dockerfile -t rsl-backend .
-FROM oven/bun:latest
+# Pinned to the packageManager version in package.json so production builds are reproducible.
+FROM oven/bun:1.3.14
 WORKDIR /app
 ENV NODE_ENV=production
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser \

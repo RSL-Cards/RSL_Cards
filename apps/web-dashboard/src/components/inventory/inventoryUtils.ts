@@ -51,7 +51,6 @@ export type SortKey =
 
 export type SortDirection = 'asc' | 'desc'
 export type ProfitFilter = 'all' | 'profit' | 'loss'
-export type ImportToolMode = 'upload' | 'mapping' | 'rapid'
 
 export const sortLabels: Record<SortKey, string> = {
   player_name: 'Card Name',

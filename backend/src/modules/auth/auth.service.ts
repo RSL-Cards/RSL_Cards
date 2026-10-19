@@ -8,6 +8,7 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { EmailService } from "../email/email.service.js";
 import { redisAdapter } from "../../adapters/redis.adapter.js";
 import { REDIS_KEYS, REDIS_CONFIG } from "../../config/redisKeys.js";
+import { generateOtp, otpMatches, assertCanSendOtp, assertOtpAttemptsLeft, recordFailedOtp, clearOtpFailures } from "../../lib/otp-guard.js";
 
 export class AuthService {
   private googleClient: OAuth2Client;
@@ -27,11 +28,10 @@ export class AuthService {
       throw AuthError.userAlreadyExists();
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await assertCanSendOtp("register", trimmedEmail);
+    const otp = generateOtp();
     const redisKey = REDIS_KEYS.otp(trimmedEmail);
     await redisAdapter.set(redisKey, otp, 300);
-
-    console.log(`🔐 [OTP] Generated OTP for ${trimmedEmail}: ${otp} (stored in Redis for 300s)`);
 
     if (this.emailService) {
       await this.emailService.sendEmailVerification(trimmedEmail, {
@@ -51,9 +51,11 @@ export class AuthService {
   async verifyRegistrationOtp(email: string, otp: string) {
     const trimmedEmail = email.toLowerCase().trim();
     const redisKey = REDIS_KEYS.otp(trimmedEmail);
+    await assertOtpAttemptsLeft("register", trimmedEmail);
     const storedOtp = await redisAdapter.get(redisKey);
 
-    if (!storedOtp || storedOtp !== otp) {
+    if (!otpMatches(storedOtp, otp)) {
+      await recordFailedOtp("register", trimmedEmail, redisKey);
       throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code", 400);
     }
 
@@ -76,11 +78,14 @@ export class AuthService {
 
     if (body.otp) {
       const redisKey = REDIS_KEYS.otp(trimmedEmail);
+      await assertOtpAttemptsLeft("register", trimmedEmail);
       const storedOtp = await redisAdapter.get(redisKey);
-      if (!storedOtp || storedOtp !== body.otp) {
+      if (!otpMatches(storedOtp, body.otp)) {
+        await recordFailedOtp("register", trimmedEmail, redisKey);
         throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code", 400);
       }
       await redisAdapter.delete(redisKey);
+      await clearOtpFailures("register", trimmedEmail);
     }
 
     const pwdHash = await hashPassword(body.password);
@@ -144,11 +149,10 @@ export class AuthService {
       throw new AuthError(AuthErrorCode.USER_NOT_FOUND, "No account found with this email address.", 404);
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await assertCanSendOtp("login", trimmedEmail);
+    const otp = generateOtp();
     const redisKey = REDIS_KEYS.otp(`login:${trimmedEmail}`);
     await redisAdapter.set(redisKey, otp, 300);
-
-    console.log(`🔐 [LOGIN OTP] Generated Login OTP for ${trimmedEmail}: ${otp} (stored in Redis for 300s)`);
 
     if (this.emailService) {
       await this.emailService.sendEmailVerification(trimmedEmail, {
@@ -178,12 +182,15 @@ export class AuthService {
     }
 
     const redisKey = REDIS_KEYS.otp(`login:${trimmedEmail}`);
+    await assertOtpAttemptsLeft("login", trimmedEmail);
     const storedOtp = await redisAdapter.get(redisKey);
-    if (!storedOtp || storedOtp !== otp) {
+    if (!otpMatches(storedOtp, otp)) {
+      await recordFailedOtp("login", trimmedEmail, redisKey);
       throw new AuthError(AuthErrorCode.INVALID_CREDENTIALS, "Invalid or expired verification code.", 400);
     }
 
     await redisAdapter.delete(redisKey);
+    await clearOtpFailures("login", trimmedEmail);
 
     const tokens = await generateTokens(
       { userId: user.id, role: user.role },
@@ -237,8 +244,10 @@ export class AuthService {
       return this.loginWithOtp(trimmedEmail, body.otp, ipAddress, deviceInfo);
     }
 
+    await assertOtpAttemptsLeft("password", trimmedEmail);
     const user = await this.repository.getUserByEmail(trimmedEmail);
     if (!user || !user.passwordHash) {
+      await recordFailedOtp("password", trimmedEmail);
       throw AuthError.invalidCredentials();
     }
 
@@ -247,8 +256,10 @@ export class AuthService {
       user.passwordHash,
     );
     if (!validPassword) {
+      await recordFailedOtp("password", trimmedEmail);
       throw AuthError.invalidCredentials();
     }
+    await clearOtpFailures("password", trimmedEmail);
 
     const tokens = await generateTokens(
       { userId: user.id, role: user.role },
@@ -385,18 +396,17 @@ export class AuthService {
     const user = await this.repository.getUserByEmail(cleanEmail);
 
     if (!user) {
-      console.log("❌ User not found:", cleanEmail);
-
       return {
         message: "If an account exists, an OTP has been sent",
       };
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await assertCanSendOtp("reset", cleanEmail);
+    const otp = generateOtp();
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Save to DB fallback
-    await this.repository.updateUserResetToken(user.id, otp, expiry);
+    // Save to DB fallback (hashed, so a database read doesn't reveal usable codes)
+    await this.repository.updateUserResetToken(user.id, hashToken(otp), expiry);
 
     // Store in Redis with key 'rsl-cards:v1:otp:<email>' and 15 min TTL
     const redisKey = REDIS_KEYS.otp(cleanEmail);
@@ -408,9 +418,6 @@ export class AuthService {
     });
     await redisAdapter.set(redisKey, redisPayload, 900); // 15 min expiration
 
-    console.log("\n🔐 PASSWORD RESET OTP (REDIS KEY: " + redisKey + ")");
-    console.log(`📧 Email: ${cleanEmail}`);
-    console.log(`🔢 OTP: ${otp}`);
 
     if (this.emailService) {
       try {
@@ -422,7 +429,6 @@ export class AuthService {
             expiresInMinutes: 15,
           }
         );
-        console.log("✅ Password reset email sent to " + user.email);
       } catch (error) {
         console.error("⚠️ Password reset email delivery issue:", error);
       }
@@ -448,19 +454,25 @@ export class AuthService {
       console.error("[AuthService] Redis OTP fetch error:", e);
     }
 
+    await assertOtpAttemptsLeft("reset", cleanEmail);
     const user = await this.repository.getUserByEmail(cleanEmail);
     if (!user) {
+      await recordFailedOtp("reset", cleanEmail);
       throw new Error("Invalid email or OTP");
     }
 
     const userRecord = await this.repository.getResetTokenInfo(user.id);
-    const dbOtp = userRecord?.passwordResetToken;
+    const dbOtpHash = userRecord?.passwordResetToken;
     const isDbExpired = userRecord?.passwordResetExpiry ? new Date() > new Date(userRecord.passwordResetExpiry) : true;
+    const providedHash = typeof body.otp === "string" ? hashToken(body.otp.trim()) : "";
 
-    const isOtpValid = (redisOtp && redisOtp === body.otp) || (dbOtp && dbOtp === body.otp && !isDbExpired);
+    const isOtpValid = otpMatches(redisOtp, body.otp) || (!isDbExpired && otpMatches(dbOtpHash, providedHash));
 
     if (!isOtpValid) {
-      if (this.emailService && user) {
+      const lockedOut = await recordFailedOtp("reset", cleanEmail, redisKey);
+      if (lockedOut) await this.repository.updateUserResetToken(user.id, null, null);
+      // Only email the owner once, when the lockout kicks in, rather than on every wrong guess.
+      if (this.emailService && lockedOut) {
         await this.emailService.sendPasswordResetFailed(user.email, {
           displayName: user.email.split("@")[0],
           reason: "Invalid or expired verification code",
@@ -476,6 +488,7 @@ export class AuthService {
 
     // Delete used OTP from Redis
     await redisAdapter.delete(redisKey);
+    await clearOtpFailures("reset", cleanEmail);
 
     if (this.emailService && user) {
       await this.emailService.sendPasswordResetSuccess(user.email, {

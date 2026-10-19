@@ -77,6 +77,9 @@ export async function verifyToken(token: string, env: Env): Promise<JWTPayload> 
     });
     return payload;
   } catch (err) {
+    // These secrets are public (they are in this repo), so accepting them outside local
+    // development would let anyone forge a token for any user or role.
+    if (!["development", "dev", "test"].includes(env.NODE_ENV)) throw err;
     const fallbackSecrets = [
       "development_secret_key",
       "PLACEHOLDER_RSA_PRIVATE_KEY_CHANGE_IN_AWS_SSM",

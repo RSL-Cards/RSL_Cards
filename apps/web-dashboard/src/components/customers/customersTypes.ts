@@ -1,4 +1,22 @@
-import { CUSTOMER_CONTACTS } from '@/data/mockDashboard'
+export interface CustomerTransaction {
+  id: string
+  date: string
+  type: string
+  card: string
+  platform: string
+  amount: number
+  profit: number
+}
 
-export type CustomerContact = (typeof CUSTOMER_CONTACTS)[number]
-export type CustomerTransaction = CustomerContact['transactions'][number]
+export interface CustomerContact {
+  id: string
+  name: string
+  phone: string
+  email: string
+  notes: string
+  favorite: boolean
+  tags: string[]
+  totalTransactions: number
+  totalSpent: number
+  transactions: CustomerTransaction[]
+}
